@@ -1,20 +1,52 @@
 import { requireSql } from "./db";
 import type { DbEventInput } from "./types";
 
+/** Count populated optional fields — a rough "richness" score for a row. */
+function richness(e: DbEventInput): number {
+  let n = 0;
+  if (e.description) n++;
+  if (e.ticket_url) n++;
+  if (e.image) n++;
+  if (e.address) n++;
+  if (e.end_at) n++;
+  if (e.source_url) n++;
+  return n;
+}
+
+/**
+ * Collapse rows that share an event_key BEFORE the SQL upsert (Layer 1).
+ * Two agents can return the same event in one run (e.g. a food festival found
+ * by both the "food" and "festival" agents); without this, Postgres rejects the
+ * batch with "ON CONFLICT DO UPDATE cannot affect row a second time". When keys
+ * collide we keep the richer row (more populated fields), tie → the later one.
+ * Pure function — no database needed.
+ */
+export function dedupeByKey(events: DbEventInput[]): DbEventInput[] {
+  const byKey = new Map<string, DbEventInput>();
+  for (const e of events) {
+    const existing = byKey.get(e.event_key);
+    if (!existing || richness(e) >= richness(existing)) {
+      byKey.set(e.event_key, e);
+    }
+  }
+  return [...byKey.values()];
+}
+
 /**
  * Idempotent batch upsert. Conflicts on event_key (the dedup key), so an event
  * re-found in a later run UPDATES its row instead of inserting a duplicate.
  * Returns the number of rows written.
  *
- * Note: status is only set on INSERT. On UPDATE we deliberately do NOT touch
- * status, so an event you've already reviewed/published stays published when
- * the agent re-finds it.
+ * Note: status is set only on INSERT. On UPDATE we deliberately do NOT touch
+ * status. New events auto-publish; if you later move one to 'draft' to hide it,
+ * that decision sticks — a re-found event keeps your status, never reverting.
  */
 export async function upsertEvents(events: DbEventInput[]): Promise<number> {
-  if (events.length === 0) return 0;
+  const deduped = dedupeByKey(events);
+  if (deduped.length === 0) return 0;
   const sql = requireSql();
 
-  const rows = events.map((e) => ({
+  const rows = deduped.map((e) => ({
     event_key: e.event_key,
     title: e.title,
     category: e.category,

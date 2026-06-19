@@ -1,21 +1,17 @@
 import { createHash } from "node:crypto";
 import type { PriceTier } from "./types";
+import { canonicalizeTitle, canonicalizeVenue } from "./canonicalize";
 
-/** Lowercase, strip punctuation/diacritics, collapse whitespace. */
-export function normalizeKeyPart(s: string): string {
-  return s
-    .toLowerCase()
-    .normalize("NFKD")
-    .replace(/[\u0300-\u036f]/g, "") // diacritics
-    .replace(/[^a-z0-9\s]/g, "")
-    .replace(/\s+/g, " ")
-    .trim();
-}
+// Re-exported for backwards compatibility (now defined in canonicalize.ts).
+export { normalizeKeyPart } from "./canonicalize";
 
 /**
  * Stable identity for an event. The same event re-discovered in a later run
  * yields the same key, so the weekly pipeline UPSERTs instead of duplicating.
- * Uses the start DATE (not time) so a corrected start time still matches.
+ *
+ * Inputs are CANONICALIZED first (venue aliases folded, titles cleaned), so
+ * more true-duplicates collapse to one key. Uses the start DATE (not time) so
+ * a corrected start time still matches.
  */
 export function computeEventKey(
   title: string,
@@ -23,7 +19,7 @@ export function computeEventKey(
   startISO: string,
 ): string {
   const day = startISO.slice(0, 10); // YYYY-MM-DD
-  const basis = [normalizeKeyPart(title), normalizeKeyPart(venue), day].join("|");
+  const basis = [canonicalizeTitle(title), canonicalizeVenue(venue), day].join("|");
   return createHash("sha256").update(basis).digest("hex").slice(0, 32);
 }
 

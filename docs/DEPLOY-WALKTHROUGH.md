@@ -220,17 +220,17 @@ npm run dev
 npm run pipeline
 ```
 
-2. Watch the terminal. It works through the categories (music, sports, family, arts, food, weird, festival), and for each one you'll see it research, then report how many events it wrote, e.g. `music: upserted 6`. The whole run takes a few minutes. This is the AI doing real web research, so it's not instant.
+2. Watch the terminal. It works through the horizon bands (near/mid/far) and, within each, the categories (music, sports, family, arts, food, weird, festival), reporting how many events it wrote, e.g. `near/music: upserted 6`. The whole run takes a few minutes — this is the AI doing real web research, so it's not instant.
 
 ✅ **You'll know it worked when** it ends with a summary like `done — upserted N, archived 0`.
 
-3. Now go look at what it found: Supabase → **Table Editor** → `events`. You'll see rows with **status = `draft`**. These are *candidates* — nothing is on the website yet. This is your **review gate**, and it's the heart of running a curated brand instead of an algorithmic feed.
+3. Now go look at what it found: Supabase → **Table Editor** → `events`. The rows have **status = `published`** — they're **already live** (events auto-publish; there's no approval step). 
 
-4. **Publish the good ones.** Skim the drafts. For each event you want live, click its `status` cell and change `draft` to `published`. (You can also select several and edit in bulk.) Leave anything you don't want as `draft` — it simply won't show.
+4. **Hiding something (optional).** If an event isn't a fit, click its `status` cell and change `published` to `draft`. It drops off the site immediately, and — importantly — the weekly robot won't bring it back, because your choice sticks. Change it back to `published` any time. (There are ready-made snippets in `db/moderate-events.sql`.)
 
-5. Reload `localhost:3000` (the site caches for ~5 minutes, so either wait or restart `npm run dev`). **Your real, hand-picked events now appear** on the calendar and map.
+5. Reload `localhost:3000` (the site caches for ~5 minutes, so either wait or restart `npm run dev`). **Your real events now appear** on the calendar and map.
 
-> 🧠 **Why drafts?** The robot is good but not your taste. The draft → published step is *you* deciding what represents City Pulse. If you ever want it fully automatic, that's a one-line change, but you'd lose the editorial filter. Keep the gate while you're finding your voice.
+> 🧠 **Auto-publish vs. review.** Events go live on their own, and you curate by *exception* — hiding the occasional miss rather than approving every hit. If you'd ever rather approve each one first, that's a one-line switch (`NEW_EVENT_STATUS` in `lib/pipeline-config.ts` → `"draft"`), and new events would arrive hidden for you to publish by hand.
 
 ---
 
@@ -331,9 +331,9 @@ Still in GoDaddy's DNS records:
 3. Now test it by hand: go to the **Actions** tab → choose **"Weekly Event Research"** in the left list → **Run workflow** → confirm. 
 4. Watch it run (click into the run to see live logs — the same per-category output you saw locally).
 
-✅ **You'll know it worked when** the run finishes green and new `draft` rows appear in your Supabase Table Editor.
+✅ **You'll know it worked when** the run finishes green and new `published` rows appear in your Supabase Table Editor.
 
-From now on it runs **every Monday at 06:00 UTC** automatically. Your only recurring job is the fun part: reviewing drafts and publishing the good ones.
+From now on it runs **every Monday at 06:00 UTC** automatically. Events publish themselves — your only recurring job is the occasional hide when something isn't a fit.
 
 > 🧠 **What's a "workflow"?** A recipe (the file `.github/workflows/weekly-research.yml`) that tells GitHub Actions what to do and when. Yours says "every Monday, install the app and run the pipeline." `workflow_dispatch` is the line that also lets you run it manually, which you just did.
 
@@ -343,11 +343,11 @@ From now on it runs **every Monday at 06:00 UTC** automatically. Your only recur
 
 Once everything above is done, running City Pulse is light:
 
-1. **Monday** — the robot researches the next two weeks and drops fresh **drafts** into Supabase. You don't have to do anything for this to happen.
-2. **Whenever you like** — open Supabase Table Editor, skim the drafts, flip the keepers to **`published`**. The live site reflects changes within ~5 minutes.
+1. **Monday** — the robot researches the horizon (weeks to months out) and writes fresh events into Supabase, **auto-published**. They're live within ~5 minutes; you don't have to do anything.
+2. **Whenever you like** — if something isn't a fit, open Supabase Table Editor and flip that event to **`draft`** to hide it. That's curating by exception, not approving every event.
 3. **Changing the site itself** (design, copy, features) — edit the code, commit/push in GitHub Desktop, and Vercel redeploys automatically in a minute or two.
 
-That's the whole operation. Database and robot run themselves; you curate.
+That's the whole operation. Database and robot run themselves; you step in only to hide the occasional miss.
 
 ---
 
@@ -355,7 +355,7 @@ That's the whole operation. Database and robot run themselves; you curate.
 
 | What you see | What it usually means | What to do |
 |---|---|---|
-| Site shows the old sample events | No `published` rows yet, or `DATABASE_URL` missing on Vercel | Publish some drafts; confirm the Vercel env var; redeploy |
+| Site shows the old sample events | No rows yet (pipeline hasn't run), or `DATABASE_URL` missing on Vercel | Run the pipeline (events auto-publish); confirm the Vercel env var; redeploy |
 | Map is a gray placeholder | Map token missing or (on Vercel) changed without a redeploy | Set `NEXT_PUBLIC_MAPBOX_TOKEN`; redeploy |
 | Map works on `.vercel.app` but 403s on your domain | Domain not in the Mapbox token's Allowed URLs | Add `citypulsemn.com` + `www`; redeploy |
 | Vercel domain stuck on "Invalid Configuration" | GoDaddy forwarding/parked records, or wrong values | Turn off forwarding; delete stray `A @`; match Vercel's values exactly |
@@ -380,7 +380,7 @@ If you're ever unsure which piece is misbehaving, walk the flow in order: does i
 - **Connection string** — one line containing your database's address + credentials.
 - **API key / token** — a password that lets your app use a service (Mapbox, Anthropic).
 - **Database / Postgres** — the structured store of your events; Supabase hosts it.
-- **Draft vs published** — a row the robot found vs. one you've approved for the live site.
+- **Published vs draft** — `published` is live (the default for new events); set an event to `draft` to hide it from the site.
 - **DNS** — the internet's address book that maps names to servers.
 - **A record / CNAME** — DNS entries mapping your domain (and `www`) to where the site lives.
 - **Propagation** — the delay while a DNS change spreads worldwide.

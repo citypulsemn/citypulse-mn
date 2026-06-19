@@ -13,20 +13,33 @@ A weekly cron (Mondays 06:00 UTC) checks out the repo, installs deps, and runs `
 You can also trigger it on demand from the Actions tab (`workflow_dispatch`).
 
 **Optional: Trigger.dev** ([`examples/trigger-alternative/`](../examples/trigger-alternative)).
-Graduate to this when you want durable multi-step execution, automatic retries, run-level observability, or **human-in-the-loop approval** (its v4 waitpoints can pause a run until you approve drafts). It's the same logic as a scheduled task. Note: the Trigger.dev SDK brings OpenTelemetry/telemetry transitive dependencies with their own advisories; those run on Trigger.dev's infrastructure and are intentionally **not** installed in the default project, which is why this lives under `examples/`.
+Graduate to this when you want durable multi-step execution, automatic retries, run-level observability, or **human-in-the-loop approval** (its v4 waitpoints can pause a run until you approve a step). It's the same logic as a scheduled task. Note: the Trigger.dev SDK brings OpenTelemetry/telemetry transitive dependencies with their own advisories; those run on Trigger.dev's infrastructure and are intentionally **not** installed in the default project, which is why this lives under `examples/`.
 
 ## The flow, step by step
 
 ```
 run-pipeline.ts
-  └─ for each category (music, sports, family, arts, food, weird, festival):
-       1. researchCategory()   → Claude (Sonnet) + web_search → raw events (JSON)
-       2. geocode()            → Mapbox: address → lat/lng  (skip if it fails)
-       3. computeEventKey()    → stable dedup id
-       4. normalizeTier()      → Free / $ / $$ / $$$
-       5. upsertEvents()       → INSERT … ON CONFLICT (event_key) DO UPDATE, status=draft
-  └─ archivePastEvents()       → published events that have ended → archived
+  └─ for each horizon BAND due this week (near / mid / far):
+       └─ for each category (music, sports, family, arts, food, weird, festival):
+            1. researchCategory()   → Claude (Sonnet) + web_search → raw events (JSON)
+            2. geocode()            → Mapbox: address → lat/lng  (skip if it fails)
+            3. computeEventKey()    → stable dedup id
+            4. normalizeTier()      → Free / $ / $$ / $$$
+            5. upsertEvents()       → dedupe batch, then INSERT … ON CONFLICT DO UPDATE, status=published
+  └─ archivePastEvents()            → published events that have ended → archived
 ```
+
+### 0. The research horizon (how far ahead, how hard)
+
+Defined in `lib/horizon.ts`. Instead of one flat look-ahead, the pipeline researches in **bands**, so the calendar fills months out *and* the near term stays accurate:
+
+| Band | Window | Depth | Cadence |
+|---|---|---|---|
+| near | next 0–21 days | deepest (8 searches) | every run |
+| mid | 22–60 days | medium (6) | every run |
+| far | 61–120 days | lighter (5) | every other run |
+
+The windows **slide forward every week**, so an event first caught in the sparse "far" band gets re-found and enriched as it migrates into "mid" then "near" — progressively deeper, more frequent passes as the date approaches. That's the "revisit closer to the date" guarantee, and dedup means the re-research never creates duplicates. Edit the `HORIZON` array to change ranges, depth, or cadence; the website needs no change (it already shows whatever future months hold events).
 
 ### 1. Research agents (the "Sonnet executes" half)
 
@@ -48,21 +61,26 @@ The prompts steer each agent at the right sources. The **weird** category is the
 
 `archivePastEvents()` moves ended `published` events to `archived`. History is kept; nothing is deleted.
 
-## The review gate
+## Publishing (auto-publish, opt-out hide)
 
-The pipeline writes **drafts**. You decide what goes live by flipping `draft → published` (Supabase Table Editor or a quick SQL update — see [DATABASE.md](DATABASE.md)). This is what keeps City Pulse a curated brand instead of an algorithmic firehose. If you'd rather it be fully hands-off, change `status: "draft"` to `"published"` in `scripts/run-pipeline.ts` — but you lose the editorial gate.
+New events go live **automatically** — the pipeline writes them as `published`, set by the single policy constant `NEW_EVENT_STATUS` in `lib/pipeline-config.ts`. There's no pre-review step.
+
+To pull an event from the site, move it to **`draft`** (Supabase Table Editor, or the snippets in `db/moderate-events.sql`). Because status is **sticky on update**, that's durable: the weekly pipeline never republishes an event you've hidden — the on-conflict UPDATE leaves your status alone. Set it back to `published` any time to restore it.
+
+If you ever want the old review gate (nothing goes live until you approve it), flip `NEW_EVENT_STATUS` to `"draft"` — one line, and new events arrive hidden for you to publish by hand.
 
 ## Tuning
 
-- **Cadence / window:** change the cron in the workflow and `LOOKAHEAD_DAYS` in `run-pipeline.ts` (default: next 14 days).
+- **Horizon (how far ahead / how deep / how often):** edit the `HORIZON` bands in `lib/horizon.ts`. Widen `far` to fill more of the calendar; raise a band's `everyNWeeks` to run it less often and save cost.
+- **Cadence of the whole run:** the cron in the workflow (default weekly).
 - **Model:** set in `lib/agents/research-agent.ts` (default `claude-sonnet-4-6`).
-- **Search breadth:** `max_uses` on the web_search tool.
+- **Search breadth:** each band's `maxSearchUses` (passed through to the web_search tool).
 - **Resilience:** a single category failing is logged and skipped; the run continues.
 
 ## Cost & observability
 
-- Cost per run ≈ (7 agents × Claude tokens incl. web search) + geocoding calls. Weekly cadence keeps this small; widen the window or cadence to trade cost for freshness.
-- GitHub Actions gives you per-run logs. Trigger.dev adds step-level observability and retries if you adopt it.
+- Cost per run ≈ (7 categories × **bands running that week**) Claude calls incl. web search, + geocoding. With the default bands that's 21 agent calls most weeks and 14 on odd weeks (far skipped). Raise `everyNWeeks` or narrow bands to cut cost; the near band alone keeps the next 3 weeks sharp.
+- GitHub Actions gives you per-run logs (now grouped by band). Trigger.dev adds step-level observability and retries if you adopt it.
 
 ## Run it locally
 

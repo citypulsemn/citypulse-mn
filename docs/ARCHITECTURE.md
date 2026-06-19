@@ -23,7 +23,7 @@ City Pulse MN is a Twin Cities events hub: a **Next.js website** (calendar + Map
                                                                      │  published /     │
                                                                      │  archived        │
                                                                      └────────┬─────────┘
-                                              you review drafts ──► published │  (read-only)
+                                          auto-published (hide → draft) │  (read-only)
                                                                               ▼
                       ┌──────────────────────── WEBSITE ─────────────────────────────────┐
                       │  getEvents() ──►  Server Component ──►  EventsExplorer (client)     │
@@ -72,6 +72,6 @@ examples/trigger-alternative/   Optional Trigger.dev version of the pipeline
 ## Read the rest
 
 - **[DATABASE.md](DATABASE.md)** — schema, the dedup key, lifecycle, time zones, provisioning.
-- **[PIPELINE.md](PIPELINE.md)** — the weekly automation in detail, agents, the review gate, the Trigger.dev alternative.
+- **[PIPELINE.md](PIPELINE.md)** — the weekly automation in detail, agents, auto-publish & hiding, the Trigger.dev alternative.
 - **[CONNECTORS-AND-TOOLS.md](CONNECTORS-AND-TOOLS.md)** — every external service, env var, and where to get each key.
 - **[SETUP.md](SETUP.md)** — end-to-end runbook to go live.

@@ -30,8 +30,9 @@ create table if not exists events (
   image         text not null default '',
   source_url    text not null default '',
 
-  -- Review gate: the site serves ONLY status='published'.
-  status        text not null default 'draft' check (status in
+  -- Visibility: the site serves ONLY status='published'. New events are
+  -- auto-published (set by the pipeline). Move an event to 'draft' to hide it.
+  status        text not null default 'published' check (status in
                   ('draft','published','archived')),
 
   -- Lifecycle bookkeeping.
@@ -61,11 +62,23 @@ create trigger trg_events_updated_at
   before update on events
   for each row execute function set_updated_at();
 
+-- For databases created before auto-publish: make the default 'published' too.
+-- (Idempotent; safe to re-run. Does not change existing rows.)
+alter table events alter column status set default 'published';
+
 -- Convenience view = exactly what the website reads.
 create or replace view published_events as
   select * from events
   where status = 'published'
   order by start_at;
+
+-- ──────────────────────────────────────────────────────────────────────────
+-- Fuzzy near-duplicate review (dedup Layer 3). Trigram similarity lets you
+-- SURFACE likely-duplicate drafts for a human to resolve — it never merges
+-- anything automatically. See db/review-duplicates.sql for the query.
+create extension if not exists pg_trgm;
+create index if not exists idx_events_title_trgm on events using gin (title gin_trgm_ops);
+-- ──────────────────────────────────────────────────────────────────────────
 
 -- ──────────────────────────────────────────────────────────────────────────
 -- OPTIONAL: PostGIS upgrade for true geospatial queries (Supabase ships it).

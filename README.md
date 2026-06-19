@@ -40,7 +40,7 @@ npm run pipeline   # run the weekly research pipeline once (needs env)
 | **[DEPLOY-WALKTHROUGH.md](docs/DEPLOY-WALKTHROUGH.md)** | The friendly, detailed, no-experience-assumed version — every concept and click explained |
 | **[ARCHITECTURE.md](docs/ARCHITECTURE.md)** | System overview, the master flow diagram, where everything lives |
 | **[DATABASE.md](docs/DATABASE.md)** | Schema, the dedup key, lifecycle, time zones, provisioning Supabase/Neon |
-| **[PIPELINE.md](docs/PIPELINE.md)** | The weekly automation: agents, normalize, upsert, review gate, scheduling |
+| **[PIPELINE.md](docs/PIPELINE.md)** | The weekly automation: agents, normalize, upsert, auto-publish & hiding, scheduling |
 | **[CONNECTORS-AND-TOOLS.md](docs/CONNECTORS-AND-TOOLS.md)** | Every external service, env var, and where to get each key |
 | **[SETUP.md](docs/SETUP.md)** | Zero-to-live runbook with a verify checklist and troubleshooting |
 

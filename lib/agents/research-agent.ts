@@ -32,6 +32,7 @@ export async function researchCategory(
   category: CategoryKey,
   startDate: string,
   endDate: string,
+  maxSearchUses = 8,
 ): Promise<AgentEvent[]> {
   const res = await anthropic.messages.create({
     model: "claude-sonnet-4-6",
@@ -39,7 +40,7 @@ export async function researchCategory(
     // Web search is a server tool; the SDK's tool union is version-specific,
     // so we type the array loosely.
     tools: [
-      { type: "web_search_20250305", name: "web_search", max_uses: 8 },
+      { type: "web_search_20250305", name: "web_search", max_uses: maxSearchUses },
     ] as unknown as Anthropic.Tool[],
     messages: [
       { role: "user", content: buildResearchPrompt(category, startDate, endDate) },

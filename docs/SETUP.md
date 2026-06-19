@@ -50,11 +50,13 @@ ANTHROPIC_API_KEY=sk-ant-…
 npm run pipeline
 ```
 
-This researches the next 14 days across all categories and writes **drafts** to the DB. Watch the logs for per-category counts.
+This researches the horizon bands (near/mid/far) across all categories and writes events to the DB, **auto-published**. Watch the logs for per-band, per-category counts.
 
-## 6. Review & publish (5 min)
+## 6. See your events live (5 min)
 
-Open the **Supabase Table Editor** (or query Postgres). Filter `status = draft`, skim, and set the good ones to `published`. Restart `npm run dev` (or wait 5 min for ISR) and your real events appear on the calendar and map.
+The pipeline auto-publishes, so your researched events are already live — no review step. Restart `npm run dev` (or wait 5 min for ISR) and they appear on the calendar and map.
+
+To **hide** any event, open the **Supabase Table Editor** → `events`, and flip its `status` from `published` to `draft` (or use `db/moderate-events.sql`). It disappears from the site, and the weekly pipeline won't bring it back.
 
 Verify quickly:
 
@@ -70,7 +72,7 @@ curl http://localhost:3000/api/events     # should return YOUR events, not the 3
 
 ## 8. Deploy the website to Vercel (5 min)
 
-The site is hosted on **Vercel** (native Next.js — keeps instant publishing, the live `/api/events` route, and real-time draft→publish). The domain **citypulsemn.com** (registered at GoDaddy) is pointed at it in the next step.
+The site is hosted on **Vercel** (native Next.js — keeps instant publishing, the live `/api/events` route, and real-time hide/restore). The domain **citypulsemn.com** (registered at GoDaddy) is pointed at it in the next step.
 
 1. Import the GitHub repo at **vercel.com** (New Project → import).
 2. **Project → Settings → Environment Variables** (Production + Preview): add `DATABASE_URL` and `NEXT_PUBLIC_MAPBOX_TOKEN`.
@@ -95,8 +97,8 @@ Keep the domain registered at GoDaddy and just point its DNS at Vercel.
 - [ ] `db/schema.sql` applied; pooled `DATABASE_URL` copied
 - [ ] Public Mapbox token created with `localhost:3000` + `citypulsemn.com` + `www.citypulsemn.com` allowed
 - [ ] `.env.local` filled; `npm run dev` shows sample data, map renders
-- [ ] `npm run pipeline` wrote drafts; logs show per-category counts
-- [ ] Drafts reviewed and some set to `published`
+- [ ] `npm run pipeline` wrote events; logs show per-band counts
+- [ ] Events auto-published; confirmed you can hide one by setting it to `draft`
 - [ ] `curl /api/events` returns your events
 - [ ] GitHub secrets set; weekly workflow run succeeds on manual trigger
 - [ ] Vercel env vars set (Prod + Preview), redeployed; `*.vercel.app` URL loads
@@ -114,7 +116,7 @@ npm run build     # type-check + compile the site
 
 | Symptom | Cause | Fix |
 |---|---|---|
-| Site shows the 30 sample events | `DATABASE_URL` unset, or no `published` rows | Set the env var / publish some drafts; restart dev |
+| Site shows the 30 sample events | `DATABASE_URL` unset, or no `published` rows | Set the env var; confirm the pipeline ran (events auto-publish); restart dev |
 | `npm run pipeline` errors immediately | Missing `DATABASE_URL` or `ANTHROPIC_API_KEY` | Fill `.env.local` |
 | Events found but none written | All rows failed geocoding | Check addresses; geocoder skips unmappable rows |
 | Same event appears twice | Shouldn't happen — dedup is on `event_key` | If titles/venues differ wildly between runs, tighten the source/prompt |
