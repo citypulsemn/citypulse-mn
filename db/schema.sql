@@ -31,9 +31,10 @@ create table if not exists events (
   source_url    text not null default '',
 
   -- Visibility: the site serves ONLY status='published'. New events are
-  -- auto-published (set by the pipeline). Move an event to 'draft' to hide it.
+  -- auto-published (set by the pipeline). Move an event to 'draft' to hide it;
+  -- the pipeline sets 'cancelled' when a source confirms a cancellation.
   status        text not null default 'published' check (status in
-                  ('draft','published','archived')),
+                  ('draft','published','archived','cancelled')),
 
   -- Lifecycle bookkeeping.
   last_seen_at  timestamptz not null default now(),  -- last run that re-found it
@@ -65,6 +66,12 @@ create trigger trg_events_updated_at
 -- For databases created before auto-publish: make the default 'published' too.
 -- (Idempotent; safe to re-run. Does not change existing rows.)
 alter table events alter column status set default 'published';
+
+-- For databases created before cancellations: widen the status CHECK to allow
+-- 'cancelled'. (Idempotent; drops and re-adds the constraint.)
+alter table events drop constraint if exists events_status_check;
+alter table events add constraint events_status_check
+  check (status in ('draft','published','archived','cancelled'));
 
 -- Convenience view = exactly what the website reads.
 create or replace view published_events as

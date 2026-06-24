@@ -26,6 +26,8 @@ export interface AgentEvent {
   description: string;
   source_url: string;
   image?: string;
+  /** True if the agent found this previously-listed event is now cancelled. */
+  cancelled?: boolean;
 }
 
 export async function researchCategory(
@@ -36,7 +38,7 @@ export async function researchCategory(
 ): Promise<AgentEvent[]> {
   const res = await anthropic.messages.create({
     model: "claude-sonnet-4-6",
-    max_tokens: 8000,
+    max_tokens: 12000,
     // Web search is a server tool; the SDK's tool union is version-specific,
     // so we type the array loosely.
     tools: [
@@ -85,6 +87,7 @@ export function parseAgentEvents(text: string, category: CategoryKey): AgentEven
       description: String(e.description ?? ""),
       source_url: String(e.source_url ?? ""),
       image: e.image ? String(e.image) : undefined,
+      cancelled: e.cancelled === true,
     });
   }
   return out;

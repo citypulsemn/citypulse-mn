@@ -1,13 +1,13 @@
 /**
  * Research horizon (how far ahead the pipeline looks, and how hard).
  *
- * The problem: we want the calendar populated months ahead so someone browsing
- * the future sees something — but far-out listings are sparse and firm up as the
- * date nears. So we research in BANDS, each with its own depth and cadence:
+ * The problem: we want the calendar populated ~3 months ahead so someone
+ * browsing the future sees something — but far-out listings are sparse and firm
+ * up as the date nears. So we research in BANDS, each refreshed EVERY week:
  *
- *   near  (0–21d)   deep,  every week   ← the "revisit closer to the date" guarantee
- *   mid   (22–60d)  medium, every week
- *   far   (61–120d) lighter, every 2 weeks (seeds the long calendar; saves cost)
+ *   near  (0–30d)   deep,   every week
+ *   mid   (31–60d)  medium, every week
+ *   far   (61–92d)  lighter, every week  (still seeds the ~3-month calendar)
  *
  * Because the windows slide forward every run and upserts are idempotent, an
  * event first caught far out gets re-found and ENRICHED as it migrates
@@ -27,9 +27,9 @@ export interface HorizonBand {
 }
 
 export const HORIZON: HorizonBand[] = [
-  { label: "near", startDay: 0, endDay: 21, maxSearchUses: 8, everyNWeeks: 1 },
-  { label: "mid", startDay: 22, endDay: 60, maxSearchUses: 6, everyNWeeks: 1 },
-  { label: "far", startDay: 61, endDay: 120, maxSearchUses: 5, everyNWeeks: 2 },
+  { label: "near", startDay: 0, endDay: 30, maxSearchUses: 8, everyNWeeks: 1 },
+  { label: "mid", startDay: 31, endDay: 60, maxSearchUses: 7, everyNWeeks: 1 },
+  { label: "far", startDay: 61, endDay: 92, maxSearchUses: 6, everyNWeeks: 1 },
 ];
 
 export interface HorizonWindow {

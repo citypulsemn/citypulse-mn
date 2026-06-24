@@ -1,37 +1,35 @@
 import { describe, it, expect } from "vitest";
-import { dueWindows, weekIndex, HORIZON, type HorizonBand } from "../horizon";
+import { dueWindows, HORIZON, type HorizonBand } from "../horizon";
 
-describe("horizon windows", () => {
-  // A Wednesday. weekIndex parity drives which bands are due.
-  const base = new Date("2026-06-17T12:00:00Z");
+describe("horizon windows (3-month, all bands weekly)", () => {
+  const base = new Date("2026-06-17T12:00:00Z"); // a Wednesday
 
-  it("near band starts today and spans its configured length", () => {
+  it("near band starts today and spans 30 days", () => {
     const near = dueWindows(base).find((w) => w.label === "near")!;
     expect(near.startDate).toBe("2026-06-17");
-    expect(near.endDate).toBe("2026-07-08"); // +21 days
+    expect(near.endDate).toBe("2026-07-17"); // +30
   });
 
-  it("mid band picks up where near ends and reaches further out", () => {
+  it("mid band picks up where near ends", () => {
     const mid = dueWindows(base).find((w) => w.label === "mid")!;
-    expect(mid.startDate).toBe("2026-07-09"); // +22
+    expect(mid.startDate).toBe("2026-07-18"); // +31
     expect(mid.endDate).toBe("2026-08-16"); // +60
   });
 
-  it("near and mid run every week; far runs every other week", () => {
-    // Find an even-week and an odd-week date one week apart.
-    let evenWeek = base;
-    let oddWeek = new Date(base.getTime() + 7 * 86_400_000);
-    if (weekIndex(evenWeek) % 2 !== 0) [evenWeek, oddWeek] = [oddWeek, evenWeek];
-
-    const evenLabels = dueWindows(evenWeek).map((w) => w.label);
-    const oddLabels = dueWindows(oddWeek).map((w) => w.label);
-
-    expect(evenLabels).toContain("far"); // far runs on even weeks
-    expect(oddLabels).not.toContain("far"); // …and skips odd weeks
-    expect(oddLabels).toEqual(expect.arrayContaining(["near", "mid"])); // these always run
+  it("far band reaches ~3 months out", () => {
+    const far = dueWindows(base).find((w) => w.label === "far")!;
+    expect(far.startDate).toBe("2026-08-17"); // +61
+    expect(far.endDate).toBe("2026-09-17"); // +92
   });
 
-  it("far band carries a smaller search budget than near", () => {
+  it("all three bands run EVERY week (no skipped weeks)", () => {
+    const wk1 = dueWindows(base).map((w) => w.label);
+    const wk2 = dueWindows(new Date(base.getTime() + 7 * 86_400_000)).map((w) => w.label);
+    expect(wk1).toEqual(["near", "mid", "far"]);
+    expect(wk2).toEqual(["near", "mid", "far"]);
+  });
+
+  it("search depth tapers from near to far", () => {
     const near = HORIZON.find((b) => b.label === "near")!;
     const far = HORIZON.find((b) => b.label === "far")!;
     expect(far.maxSearchUses).toBeLessThan(near.maxSearchUses);

@@ -6,7 +6,8 @@ import { CATEGORY_KEYS } from "../../lib/categories";
 import { researchCategory } from "../../lib/agents/research-agent";
 import { geocode } from "../../lib/geocode";
 import { computeEventKey, normalizeTier } from "../../lib/event-key";
-import { upsertEvents, archivePastEvents } from "../../lib/upsert";
+import { upsertEvents, archivePastEvents, markCancelled } from "../../lib/upsert";
+import { partitionCancellations } from "../../lib/cancellations";
 import { dueWindows } from "../../lib/horizon";
 import { NEW_EVENT_STATUS } from "../../lib/pipeline-config";
 import type { DbEventInput } from "../../lib/types";
@@ -37,8 +38,10 @@ export const weeklyResearch = schedules.task({
           continue;
         }
 
+        const { active, cancelledKeys } = partitionCancellations(found);
+
         const normalized: DbEventInput[] = [];
-        for (const ev of found) {
+        for (const ev of active) {
           const geo = await geocode(ev.address, ev.city);
           if (!geo) continue;
           normalized.push({
@@ -63,6 +66,7 @@ export const weeklyResearch = schedules.task({
         }
 
         bandTotal += await upsertEvents(normalized);
+        await markCancelled(cancelledKeys);
       }
       perBand[win.label] = bandTotal;
       totalUpserted += bandTotal;

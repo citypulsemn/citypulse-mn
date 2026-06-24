@@ -26,6 +26,7 @@ run-pipeline.ts
             3. computeEventKey()    → stable dedup id
             4. normalizeTier()      → Free / $ / $$ / $$$
             5. upsertEvents()       → dedupe batch, then INSERT … ON CONFLICT DO UPDATE, status=published
+       └─ markCancelled()           → events the agent flagged cancelled → status=cancelled
   └─ archivePastEvents()            → published events that have ended → archived
 ```
 
@@ -35,11 +36,11 @@ Defined in `lib/horizon.ts`. Instead of one flat look-ahead, the pipeline resear
 
 | Band | Window | Depth | Cadence |
 |---|---|---|---|
-| near | next 0–21 days | deepest (8 searches) | every run |
-| mid | 22–60 days | medium (6) | every run |
-| far | 61–120 days | lighter (5) | every other run |
+| near | next 0–30 days | deepest (8 searches) | every run |
+| mid | 31–60 days | medium (7) | every run |
+| far | 61–92 days | lighter (6) | every run |
 
-The windows **slide forward every week**, so an event first caught in the sparse "far" band gets re-found and enriched as it migrates into "mid" then "near" — progressively deeper, more frequent passes as the date approaches. That's the "revisit closer to the date" guarantee, and dedup means the re-research never creates duplicates. Edit the `HORIZON` array to change ranges, depth, or cadence; the website needs no change (it already shows whatever future months hold events).
+The windows **slide forward every week** and all three run **every** week, so the full ~3-month calendar is refreshed and "filled in" continuously: far-out events are re-found and enriched as they move into the nearer, deeper bands. Coverage spans the whole metro — both downtowns plus all first- and second-ring suburbs (Plymouth, Maple Grove, Champlin, Bloomington, Edina, Eden Prairie, Woodbury, Eagan, and the rest). Edit the `HORIZON` array to change ranges or depth; the website needs no change (it already shows whatever future months hold events).
 
 ### 1. Research agents (the "Sonnet executes" half)
 
@@ -57,9 +58,11 @@ The prompts steer each agent at the right sources. The **weird** category is the
 
 `upsertEvents()` writes a batch with `ON CONFLICT (event_key) DO UPDATE`. A re-found event updates in place — **no duplicates across weekly runs**. New events land as `status = 'draft'`. Status is left untouched on update, so already-published events stay published.
 
-### 4. Archive
+### 4. Changes, cancellations, and archive
 
-`archivePastEvents()` moves ended `published` events to `archived`. History is kept; nothing is deleted.
+- **Changed events** are updated in place on re-find (same dedup key → the upsert refreshes time, price, description, etc.). One caveat: if an event's **date** moves, the key changes, so the new date is added and the old entry falls off on its own when that original date passes.
+- **Cancellations**: when an agent confirms a previously-listed event was called off, it returns it with `"cancelled": true`. The pipeline flips the matching row to `status = 'cancelled'` (via `markCancelled`), which removes it from the site even if it was published.
+- `archivePastEvents()` moves ended `published` events to `archived`. History is kept; nothing is hard-deleted.
 
 ## Publishing (auto-publish, opt-out hide)
 
@@ -79,7 +82,7 @@ If you ever want the old review gate (nothing goes live until you approve it), f
 
 ## Cost & observability
 
-- Cost per run ≈ (7 categories × **bands running that week**) Claude calls incl. web search, + geocoding. With the default bands that's 21 agent calls most weeks and 14 on odd weeks (far skipped). Raise `everyNWeeks` or narrow bands to cut cost; the near band alone keeps the next 3 weeks sharp.
+- Cost per run ≈ (7 categories × 3 bands) Claude calls incl. web search, + geocoding — so ~21 agent calls every week now that all bands run weekly and reach ~3 months out. That's the cost of comprehensive, always-fresh coverage; narrow the bands or raise a band's `everyNWeeks` in `lib/horizon.ts` to trade freshness for cost.
 - GitHub Actions gives you per-run logs (now grouped by band). Trigger.dev adds step-level observability and retries if you adopt it.
 
 ## Run it locally

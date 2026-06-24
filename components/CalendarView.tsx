@@ -1,6 +1,7 @@
 "use client";
 
 import { CATEGORIES } from "@/lib/categories";
+import { eventDotColors } from "@/lib/calendar-dots";
 import {
   classifyDay,
   dkey,
@@ -50,6 +51,11 @@ export function CalendarView({
         className={`cell ${isToday ? "today" : ""} ${focusClass} ${dimClass}`.trim()}
         key={k}
         onClick={() => onOpenDay(k)}
+        aria-label={
+          evs.length
+            ? `${d}: ${evs.length} event${evs.length > 1 ? "s" : ""}`
+            : `${d}: no events`
+        }
       >
         <div className="dnum">{d}</div>
         <div className="evs">
@@ -64,6 +70,13 @@ export function CalendarView({
           ))}
           {evs.length > 3 && <div className="ev-more">+{evs.length - 3} more</div>}
         </div>
+        {evs.length > 0 && (
+          <div className="cell-dots" aria-hidden="true">
+            {eventDotColors(evs).map((color, i) => (
+              <span className="cd" key={i} style={{ background: color }} />
+            ))}
+          </div>
+        )}
       </button>,
     );
   }

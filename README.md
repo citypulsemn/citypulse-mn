@@ -1,6 +1,6 @@
 # City Pulse MN
 
-A hub for everything happening across the Twin Cities metro — a searchable **calendar**, a **Mapbox** map, **category filters** (music, sports, family, arts, food, weird, festival), and full event detail, in the City Pulse MN brand.
+A hub for everything happening across the Twin Cities metro — both downtowns plus all first- and second-ring suburbs (Plymouth, Maple Grove, Bloomington, Edina, Woodbury, and the rest). A searchable **calendar**, a **Mapbox** map, **category filters** (music, sports, family, arts, food, weird, festival), and full event detail, in the City Pulse MN brand. Mobile-optimized.
 
 Live at **[citypulsemn.com](https://citypulsemn.com)** — hosted on Vercel, with the GoDaddy-registered domain pointed at it.
 

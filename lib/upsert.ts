@@ -107,3 +107,20 @@ export async function archivePastEvents(): Promise<number> {
   `;
   return res.count;
 }
+
+/**
+ * Mark events as cancelled (removes them from the site). Overrides status even
+ * if published — a confirmed cancellation should always come down. No-op for
+ * keys we don't have. Returns rows changed.
+ */
+export async function markCancelled(eventKeys: string[]): Promise<number> {
+  if (eventKeys.length === 0) return 0;
+  const sql = requireSql();
+  const res = await sql`
+    update events
+    set status = 'cancelled'
+    where event_key in ${sql(eventKeys)}
+      and status <> 'cancelled'
+  `;
+  return res.count;
+}

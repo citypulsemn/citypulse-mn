@@ -9,7 +9,7 @@ export type CategoryKey =
 
 export type PriceTier = "Free" | "$" | "$$" | "$$$";
 
-export type EventStatus = "draft" | "published";
+export type EventStatus = "draft" | "published" | "archived" | "cancelled";
 
 /**
  * One event = one row in the Google Sheet.

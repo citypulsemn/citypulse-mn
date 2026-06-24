@@ -1,10 +1,16 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
   title: "City Pulse MN — Twin Cities Events",
   description:
     "The pulse of the Twin Cities. Concerts, sports, family outings, festivals, and the wonderfully weird — all across the Minneapolis–St. Paul metro.",
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  themeColor: "#0e1830",
 };
 
 export default function RootLayout({

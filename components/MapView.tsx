@@ -39,8 +39,8 @@ export function MapView({
       const map = new mapboxgl.Map({
         container: containerRef.current,
         style: "mapbox://styles/mapbox/dark-v11",
-        center: [-93.2, 44.965],
-        zoom: 10,
+        center: [-93.25, 44.95],
+        zoom: 9.4,
         attributionControl: true,
       });
       map.addControl(new mapboxgl.NavigationControl({ showCompass: false }), "top-right");
@@ -89,7 +89,7 @@ export function MapView({
       el.style.background = color;
 
       const node = buildPopupNode(ev, color);
-      const popup = new mapboxgl.Popup({ offset: 18, closeButton: true }).setDOMContent(node);
+      const popup = new mapboxgl.Popup({ offset: 18, closeButton: true, maxWidth: "300px" }).setDOMContent(node);
 
       const marker = new mapboxgl.Marker({ element: el, anchor: "bottom" })
         .setLngLat([ev.lng, ev.lat])
@@ -100,7 +100,7 @@ export function MapView({
       bounds.extend([ev.lng, ev.lat]);
     }
     if (!bounds.isEmpty()) {
-      map.fitBounds(bounds, { padding: 60, maxZoom: 13, duration: 400 });
+      map.fitBounds(bounds, { padding: 40, maxZoom: 12, duration: 400 });
     }
   }
 

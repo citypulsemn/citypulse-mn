@@ -30,7 +30,7 @@ Standard Postgres. Works identically on **Supabase** or **Neon** (or any Postgre
 | `price` | text | display string (`"$45"`, `"$18–$120"`, `"Free"`) |
 | `price_tier` | text | `Free / $ / $$ / $$$` (CHECK) |
 | `ticket_url`, `description`, `image`, `source_url` | text | |
-| `status` | text | `draft / published / archived` (CHECK) — **site serves only `published`** |
+| `status` | text | `draft / published / archived / cancelled` (CHECK) — **site serves only `published`** |
 | `last_seen_at` | timestamptz | last pipeline run that re-found the event |
 | `created_at`, `updated_at` | timestamptz | `updated_at` auto-maintained by trigger |
 
