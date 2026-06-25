@@ -10,7 +10,12 @@ import { buildResearchPrompt } from "./prompts";
  * fans out one of these per category.
  */
 
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+const anthropic = new Anthropic({
+  apiKey: process.env.ANTHROPIC_API_KEY,
+  // Web-search runs are long; give them room and retry transient drops.
+  timeout: 600_000, // 10 minutes
+  maxRetries: 3,
+});
 
 /** Raw event as returned by the agent, before geocoding/normalization. */
 export interface AgentEvent {
@@ -36,9 +41,12 @@ export async function researchCategory(
   endDate: string,
   maxSearchUses = 8,
 ): Promise<AgentEvent[]> {
-  const res = await anthropic.messages.create({
+  // Stream the request. Web-search requests run long, and a single non-streaming
+  // call can have its connection cut mid-response ("Premature close"). Streaming
+  // reads the response incrementally and is Anthropic's recommended pattern here.
+  const stream = anthropic.messages.stream({
     model: "claude-sonnet-4-6",
-    max_tokens: 12000,
+    max_tokens: 8000,
     // Web search is a server tool; the SDK's tool union is version-specific,
     // so we type the array loosely.
     tools: [
@@ -48,6 +56,8 @@ export async function researchCategory(
       { role: "user", content: buildResearchPrompt(category, startDate, endDate) },
     ],
   });
+
+  const res = await stream.finalMessage();
 
   const text = res.content
     .filter((b): b is Anthropic.TextBlock => b.type === "text")
