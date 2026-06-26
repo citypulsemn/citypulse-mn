@@ -124,3 +124,41 @@ export async function markCancelled(eventKeys: string[]): Promise<number> {
   `;
   return res.count;
 }
+
+/**
+ * Collapse near-duplicates that string-based keys miss — the same real event
+ * listed with a slightly different title or venue spelling ("Como Park" vs
+ * "Como Regional Park", "Fest" vs "Fest 2026"). Two live events on the SAME day,
+ * within ~250m of each other, with similar titles are treated as one: the
+ * earliest-seen row is kept and the others archived (recoverable, not deleted).
+ *
+ * Uses coordinates (which don't lie about location) plus pg_trgm title
+ * similarity, so it catches what normalization can't — without re-keying data.
+ * Requires the pg_trgm extension (in db/schema.sql). Returns rows archived.
+ */
+export async function dedupeNearDuplicates(): Promise<number> {
+  const sql = requireSql();
+  const res = await sql`
+    with extras as (
+      select b.id as dup_id
+      from events a
+      join events b
+        on a.id < b.id
+       and a.status in ('published', 'draft')
+       and b.status in ('published', 'draft')
+       and a.start_at::date = b.start_at::date
+       and similarity(a.title, b.title) > 0.6
+       and (
+         6371000 * acos(greatest(-1, least(1,
+           cos(radians(a.lat)) * cos(radians(b.lat)) * cos(radians(b.lng) - radians(a.lng))
+           + sin(radians(a.lat)) * sin(radians(b.lat))
+         ))) < 250
+       )
+    )
+    update events
+    set status = 'archived'
+    where id in (select dup_id from extras)
+      and status in ('published', 'draft')
+  `;
+  return res.count;
+}

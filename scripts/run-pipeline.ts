@@ -16,7 +16,7 @@ import { CATEGORY_KEYS } from "../lib/categories";
 import { researchCategory } from "../lib/agents/research-agent";
 import { geocode } from "../lib/geocode";
 import { computeEventKey, normalizeTier } from "../lib/event-key";
-import { upsertEvents, archivePastEvents, markCancelled } from "../lib/upsert";
+import { upsertEvents, archivePastEvents, markCancelled, dedupeNearDuplicates } from "../lib/upsert";
 import { partitionCancellations } from "../lib/cancellations";
 import { dueWindows } from "../lib/horizon";
 import { NEW_EVENT_STATUS } from "../lib/pipeline-config";
@@ -90,6 +90,9 @@ async function main() {
     perBand[win.label] = bandTotal;
     totalUpserted += bandTotal;
   }
+
+  const collapsed = await dedupeNearDuplicates();
+  if (collapsed > 0) console.log(`[pipeline] collapsed ${collapsed} near-duplicate(s)`);
 
   const archived = await archivePastEvents();
   console.log(
