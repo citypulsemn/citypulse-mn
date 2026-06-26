@@ -31,7 +31,7 @@ body::before {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 
-.wrap { position: relative; z-index: 1; max-width: 1240px; margin: 0 auto; padding: 0 20px 60px; }
+.wrap { position: relative; z-index: 1; max-width: 1240px; margin: 0 auto; padding: 0 max(20px, env(safe-area-inset-right)) 60px max(20px, env(safe-area-inset-left)); }
 
 /* ---------- Top bar ---------- */
 .topbar {
@@ -40,11 +40,11 @@ body::before {
   backdrop-filter: blur(10px);
   border-bottom: 1px solid var(--line);
 }
-.topbar-inner { max-width: 1240px; margin: 0 auto; padding: 14px 20px; display: flex; align-items: center; gap: 24px; justify-content: space-between; }
+.topbar-inner { max-width: 1240px; margin: 0 auto; padding: 14px max(20px, env(safe-area-inset-right)) 14px max(20px, env(safe-area-inset-left)); display: flex; align-items: center; gap: 24px; justify-content: space-between; }
 .brand { display: flex; align-items: center; gap: 14px; text-decoration: none; color: var(--cream); }
 .brand svg { display: block; }
 .brand .word { display: flex; flex-direction: column; line-height: 1; }
-.brand .cp { font-family: "Oswald"; font-weight: 600; font-size: 22px; letter-spacing: 0.06em; color: var(--cream); }
+.brand .cp { font-family: "Oswald"; font-weight: 600; font-size: clamp(18px, 1.4vw + 14px, 22px); letter-spacing: 0.06em; color: var(--cream); }
 .brand .mn { font-family: "Oswald"; font-weight: 400; font-size: 11px; letter-spacing: 0.55em; color: var(--gold); margin-top: 3px; padding-left: 2px; }
 
 .viewtoggle { display: flex; background: rgba(0, 0, 0, 0.25); border: 1px solid var(--line); border-radius: 999px; padding: 4px; }
@@ -68,7 +68,7 @@ body::before {
 .monthnav { display: flex; align-items: center; gap: 10px; }
 .monthnav button { background: transparent; border: 1px solid var(--line); color: var(--cream); width: 34px; height: 34px; border-radius: 8px; cursor: pointer; font-size: 16px; transition: 0.18s; }
 .monthnav button:hover { border-color: var(--gold); }
-.monthnav .label { font-family: "Oswald"; font-weight: 500; font-size: 20px; letter-spacing: 0.04em; min-width: 190px; text-align: center; }
+.monthnav .label { font-family: "Oswald"; font-weight: 500; font-size: clamp(17px, 1vw + 12px, 20px); letter-spacing: 0.04em; min-width: clamp(150px, 16vw, 190px); text-align: center; }
 
 /* ---------- Category chips ---------- */
 .chips { display: flex; gap: 9px; flex-wrap: wrap; padding: 6px 0 22px; border-bottom: 1px solid var(--line); margin-bottom: 24px; }
@@ -118,9 +118,9 @@ body::before {
 
 /* ---------- Map ---------- */
 .map-shell { position: relative; }
-#map { height: 620px; border-radius: 14px; border: 1px solid var(--line); overflow: hidden; }
+#map { height: clamp(440px, 64vh, 720px); border-radius: 14px; border: 1px solid var(--line); overflow: hidden; }
 .map-missing {
-  height: 620px; border-radius: 14px; border: 1px dashed var(--line); display: flex; flex-direction: column;
+  height: clamp(440px, 64vh, 720px); border-radius: 14px; border: 1px dashed var(--line); display: flex; flex-direction: column;
   align-items: center; justify-content: center; gap: 10px; text-align: center; padding: 30px; background: rgba(27, 42, 74, 0.3);
 }
 .map-missing .mm-title { font-family: "Oswald"; font-weight: 600; font-size: 20px; letter-spacing: 0.04em; }
@@ -154,7 +154,7 @@ body::before {
 .marquee::before { content: ""; position: absolute; inset: 7px; border: 1px solid var(--line); border-radius: 12px; pointer-events: none; }
 .marquee-head { text-align: center; padding: 26px 24px 18px; border-bottom: 1px solid var(--line); position: relative; }
 .marquee-head .dow { font-family: "Oswald"; letter-spacing: 0.3em; font-size: 12px; color: var(--gold); text-transform: uppercase; }
-.marquee-head .big { font-family: "Oswald"; font-weight: 600; font-size: 30px; letter-spacing: 0.02em; margin-top: 4px; }
+.marquee-head .big { font-family: "Oswald"; font-weight: 600; font-size: clamp(24px, 2vw + 16px, 30px); letter-spacing: 0.02em; margin-top: 4px; }
 .closebtn { position: absolute; top: 14px; right: 16px; background: transparent; border: 1px solid var(--line); color: var(--cream); width: 30px; height: 30px; border-radius: 8px; cursor: pointer; font-size: 15px; z-index: 2; }
 .closebtn:hover { border-color: var(--gold); }
 .marquee-body { padding: 10px 22px 24px; display: flex; flex-direction: column; gap: 2px; }
@@ -174,7 +174,7 @@ body::before {
 .detail-img::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, transparent 40%, var(--navy-700)); border-radius: 11px 11px 0 0; }
 .detail-body { padding: 4px 26px 26px; }
 .detail-cat { font-family: "Oswald"; font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; display: inline-flex; align-items: center; gap: 6px; margin-bottom: 6px; }
-.detail-title { font-family: "Oswald"; font-weight: 600; font-size: 27px; line-height: 1.1; margin-bottom: 16px; }
+.detail-title { font-family: "Oswald"; font-weight: 600; font-size: clamp(22px, 2vw + 14px, 27px); line-height: 1.1; margin-bottom: 16px; }
 .detail-rows { display: flex; flex-direction: column; gap: 13px; margin-bottom: 20px; }
 .drow { display: flex; gap: 13px; align-items: flex-start; }
 .drow .ic { width: 18px; text-align: center; color: var(--gold); flex-shrink: 0; padding-top: 1px; }
@@ -189,8 +189,8 @@ footer .gold { color: var(--gold); }
 
 /* ---------- Mobile ---------- */
 @media (max-width: 820px) {
-  .wrap { padding: 0 14px 48px; }
-  .topbar-inner { padding: 11px 14px; gap: 12px; }
+  .wrap { padding: 0 max(14px, env(safe-area-inset-right)) 48px max(14px, env(safe-area-inset-left)); }
+  .topbar-inner { padding: 11px max(14px, env(safe-area-inset-right)) 11px max(14px, env(safe-area-inset-left)); gap: 12px; }
   .brand .cp { font-size: 18px; }
   .brand svg { width: 30px; height: auto; }
 
@@ -253,4 +253,27 @@ footer .gold { color: var(--gold); }
 
 @media (prefers-reduced-motion: reduce) {
   * { animation: none !important; transition: none !important; }
+}
+
+/* ---------- Input-aware polish (laptop vs touch) ---------- */
+
+/* Kill the blue tap-flash and let buttons feel native on touch. */
+button, a, .cell, .chip, .daycard, .preset { -webkit-tap-highlight-color: transparent; }
+
+/* Hover lift/shift only on real pointers, so taps don't leave "stuck" states. */
+@media (hover: none) {
+  .cell:hover { transform: none; border-color: rgba(201, 169, 97, 0.14); }
+  .cell.today:hover, .cell.inrange:hover { border-color: var(--gold); }
+  .cell.outrange:hover { border-color: rgba(201, 169, 97, 0.14); }
+  .daycard:hover { padding-left: 6px; background: transparent; }
+}
+
+/* Pressed feedback — subtle on a mouse, satisfying on a finger. */
+.preset:active, .chip:active, .monthnav button:active, .viewtoggle button:active,
+.daycard:active, .ticket-btn:active, .closebtn:active, .pop-btn:active { transform: scale(0.97); }
+.cell:active { transform: scale(0.99); }
+
+/* Keyboard focus ring for laptop/keyboard users (hidden on mouse click). */
+a:focus-visible, button:focus-visible, .cell:focus-visible, .chip:focus-visible {
+  outline: 2px solid var(--gold); outline-offset: 2px; border-radius: 8px;
 }
