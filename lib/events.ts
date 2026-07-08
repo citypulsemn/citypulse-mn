@@ -1,6 +1,7 @@
 import { sql } from "./db";
 import { sampleEvents } from "./sample-events";
-import type { EventRecord, CategoryKey, PriceTier } from "./types";
+import { isPublicStatus, dayKeyOf } from "./event-view";
+import type { EventRecord, EventStatus, CategoryKey, PriceTier } from "./types";
 
 /**
  * The events data layer — the single boundary between the pipeline (which
@@ -50,7 +51,7 @@ function rowToEvent(r: Row): EventRecord {
     description: r.description,
     image: r.image,
     sourceUrl: r.source_url,
-    status: "published",
+    status: (r.status as EventStatus) ?? "published",
   };
 }
 
@@ -76,5 +77,61 @@ export async function getEvents(): Promise<EventRecord[]> {
   } catch (err) {
     console.error("[events] DB read failed, using sample data:", err);
     return sampleEvents;
+  }
+}
+
+/**
+ * A single event by id for its shareable page. Returns published, archived, or
+ * cancelled events (so old links degrade gracefully); returns null for drafts
+ * (hidden) and unknown ids (→ 404). Falls back to sample data with no DB.
+ */
+export async function getEvent(id: string): Promise<EventRecord | null> {
+  if (!sql) {
+    const ev = sampleEvents.find((e) => e.id === id);
+    return ev && isPublicStatus(ev.status) ? ev : null;
+  }
+  try {
+    const rows = await sql<Row[]>`
+      select
+        id::text                                                            as id,
+        title, category, venue, address, city, lat, lng,
+        to_char(start_at at time zone 'America/Chicago', 'YYYY-MM-DD"T"HH24:MI') as start,
+        to_char(end_at   at time zone 'America/Chicago', 'YYYY-MM-DD"T"HH24:MI') as end,
+        price, price_tier, ticket_url, description, image, source_url, status
+      from events
+      where id::text = ${id} and status <> 'draft'
+      limit 1
+    `;
+    return rows.length ? rowToEvent(rows[0]) : null;
+  } catch (err) {
+    console.error("[events] getEvent failed:", err);
+    return null;
+  }
+}
+
+/** Published events on a given Central-time day (YYYY-MM-DD), earliest first. */
+export async function getEventsForDay(dayKey: string): Promise<EventRecord[]> {
+  if (!sql) {
+    return sampleEvents.filter(
+      (e) => isPublicStatus(e.status) && dayKeyOf(e) === dayKey,
+    );
+  }
+  try {
+    const rows = await sql<Row[]>`
+      select
+        id::text                                                            as id,
+        title, category, venue, address, city, lat, lng,
+        to_char(start_at at time zone 'America/Chicago', 'YYYY-MM-DD"T"HH24:MI') as start,
+        to_char(end_at   at time zone 'America/Chicago', 'YYYY-MM-DD"T"HH24:MI') as end,
+        price, price_tier, ticket_url, description, image, source_url, status
+      from events
+      where status = 'published'
+        and to_char(start_at at time zone 'America/Chicago', 'YYYY-MM-DD') = ${dayKey}
+      order by start_at asc
+    `;
+    return rows.map(rowToEvent);
+  } catch (err) {
+    console.error("[events] getEventsForDay failed:", err);
+    return [];
   }
 }

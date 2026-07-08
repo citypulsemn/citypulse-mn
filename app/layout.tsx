@@ -2,9 +2,10 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://citypulsemn.com"),
   title: "City Pulse MN — Twin Cities Events",
   description:
-    "The pulse of the Twin Cities. Concerts, sports, family outings, festivals, and the wonderfully weird — all across the Minneapolis–St. Paul metro.",
+    "The pulse of the Twin Cities. Concerts, sports, family outings, festivals, and the wonderfully unique — all across the Minneapolis–St. Paul metro.",
 };
 
 export const viewport: Viewport = {

@@ -277,3 +277,42 @@ button, a, .cell, .chip, .daycard, .preset { -webkit-tap-highlight-color: transp
 a:focus-visible, button:focus-visible, .cell:focus-visible, .chip:focus-visible {
   outline: 2px solid var(--gold); outline-offset: 2px; border-radius: 8px;
 }
+
+/* ---------- Shareable event & day pages (roadmap 1.1) ---------- */
+.page { padding-top: 22px; padding-bottom: 56px; }
+.page-back { color: var(--cream-dim); text-decoration: none; font-size: 13px; letter-spacing: 0.04em; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--line); }
+.page-back:hover { color: var(--cream); border-color: var(--gold); }
+
+.page-card { max-width: 620px; margin: 6px auto 0; }
+.cat-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+
+.detail-actions { margin-top: 12px; display: flex; gap: 10px; }
+.sharebtn { flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 6px; font-family: "Oswald"; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; font-size: 13px; color: var(--cream); background: transparent; border: 1px solid var(--line); border-radius: 10px; padding: 12px; cursor: pointer; transition: 0.18s; }
+.sharebtn:hover { border-color: var(--gold); color: var(--gold); }
+
+.evt-banner { margin: 7px 7px 0; padding: 11px 14px; border-radius: 10px; font-family: "Oswald"; font-weight: 500; letter-spacing: 0.06em; text-transform: uppercase; font-size: 12.5px; text-align: center; }
+.evt-banner.cancelled { background: rgba(224, 122, 95, 0.16); color: #f0a488; border: 1px solid rgba(224, 122, 95, 0.5); }
+.evt-banner.ended { background: rgba(184, 178, 164, 0.1); color: var(--cream-dim); border: 1px solid var(--line); }
+
+.evt-map { display: block; margin: 0 7px 7px; border-radius: 11px; overflow: hidden; border: 1px solid var(--line); }
+.evt-map img { display: block; width: 100%; height: auto; }
+
+.more-day { max-width: 620px; margin: 26px auto 0; }
+.more-day-h, .dayhdr-title { font-family: "Oswald"; font-weight: 600; }
+.more-day-h { font-size: 16px; letter-spacing: 0.04em; color: var(--gold); text-transform: uppercase; margin-bottom: 10px; }
+.more-day-list, .day-list { background: linear-gradient(180deg, var(--navy-700), var(--navy-800)); border: 1px solid var(--line); border-radius: 14px; padding: 6px 16px; }
+.more-day-all { display: inline-block; margin-top: 14px; color: var(--gold); text-decoration: none; font-size: 13px; letter-spacing: 0.04em; }
+.more-day-all:hover { text-decoration: underline; }
+
+a.daycard { text-decoration: none; }
+
+.dayhdr { max-width: 620px; margin: 4px auto 18px; text-align: center; }
+.dayhdr-eyebrow { font-family: "Oswald"; letter-spacing: 0.28em; font-size: 11px; text-transform: uppercase; color: var(--gold); }
+.dayhdr-title { font-size: clamp(24px, 3vw + 14px, 32px); margin: 6px 0 4px; }
+.dayhdr-count { color: var(--cream-dim); font-size: 13px; }
+.day-list { max-width: 620px; margin: 0 auto; }
+.day-empty { max-width: 620px; margin: 0 auto; text-align: center; color: var(--cream-dim); font-size: 14px; line-height: 1.7; padding: 30px 16px; border: 1px dashed var(--line); border-radius: 14px; }
+
+@media (max-width: 820px) {
+  .page-card, .more-day, .dayhdr, .day-list, .day-empty { max-width: 100%; }
+}

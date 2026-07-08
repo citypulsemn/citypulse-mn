@@ -46,7 +46,7 @@ The windows **slide forward every week** and all three run **every** week, so th
 
 One subagent per category (`lib/agents/research-agent.ts`). Each calls **Claude Sonnet** with the **`web_search` tool** and a category-specific prompt (`lib/agents/prompts.ts`) that lists good local sources and the exact fields to return. The agent does the searching and returns a JSON array of events. The orchestrator (`run-pipeline.ts`) is the "Opus plans" half — it fans out, normalizes, and writes.
 
-The prompts steer each agent at the right sources. The **weird** category is the differentiator and the hardest to automate — its prompt leans on venue Instagrams and neighborhood newsletters rather than APIs.
+The prompts steer each agent at the right sources. The **Unique** category (internally keyed `weird`) is the differentiator and the hardest to automate — its prompt leans on venue Instagrams and neighborhood newsletters rather than APIs.
 
 ### 2. Normalize
 
