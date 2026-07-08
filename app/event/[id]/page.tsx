@@ -5,6 +5,8 @@ import { EventDetailBody } from "@/components/EventDetailBody";
 import { EventDayCard } from "@/components/EventDayCard";
 import { ShareButton } from "@/components/ShareButton";
 import { Logo } from "@/components/Logo";
+import { eventJsonLd } from "@/lib/seo/event-jsonld";
+import { SITE_URL } from "@/lib/seo/site";
 import {
   dayKeyOf,
   isEnded,
@@ -27,8 +29,8 @@ export async function generateMetadata({
   const title = `${event.title} — ${event.venue} | City Pulse MN`;
   const description = eventMetaDescription(event);
   const path = `/event/${event.id}`;
-  const images = event.image?.startsWith("http") ? [event.image] : undefined;
 
+  // og:image / twitter:image are provided automatically by opengraph-image.tsx.
   return {
     title,
     description,
@@ -39,13 +41,11 @@ export async function generateMetadata({
       url: path,
       type: "website",
       siteName: "City Pulse MN",
-      images,
     },
     twitter: {
-      card: images ? "summary_large_image" : "summary",
+      card: "summary_large_image",
       title,
       description,
-      images,
     },
   };
 }
@@ -70,8 +70,17 @@ export default async function EventPage({
 
   const mapUrl = staticMapUrl(event.lat, event.lng, process.env.NEXT_PUBLIC_MAPBOX_TOKEN);
 
+  const imageUrl = event.image?.startsWith("http")
+    ? event.image
+    : `${SITE_URL}/event/${event.id}/opengraph-image`;
+  const jsonLd = eventJsonLd(event, { baseUrl: SITE_URL, imageUrl });
+
   return (
     <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       <header className="topbar">
         <div className="topbar-inner">
           <Logo />

@@ -6,6 +6,11 @@ const nextConfig: NextConfig = {
   images: {
     remotePatterns: [{ protocol: "https", hostname: "**" }],
   },
+  // Ensure the OG-image font is bundled into the serverless function (it's read
+  // from disk at render time in the Node runtime).
+  outputFileTracingIncludes: {
+    "/event/[id]/opengraph-image": ["./app/event/[id]/Oswald-SemiBold.ttf"],
+  },
 };
 
 export default nextConfig;

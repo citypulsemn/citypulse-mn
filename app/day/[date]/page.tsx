@@ -3,6 +3,8 @@ import { notFound } from "next/navigation";
 import { getEventsForDay } from "@/lib/events";
 import { EventDayCard } from "@/components/EventDayCard";
 import { Logo } from "@/components/Logo";
+import { dayItemListJsonLd } from "@/lib/seo/event-jsonld";
+import { SITE_URL } from "@/lib/seo/site";
 import { isValidDayKey, longDate } from "@/lib/event-view";
 
 export const revalidate = 300;
@@ -41,6 +43,14 @@ export default async function DayPage({
 
   return (
     <>
+      {events.length > 0 && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify(dayItemListJsonLd(events, { baseUrl: SITE_URL })),
+          }}
+        />
+      )}
       <header className="topbar">
         <div className="topbar-inner">
           <Logo />
