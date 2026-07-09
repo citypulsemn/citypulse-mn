@@ -96,3 +96,37 @@ create index if not exists idx_events_title_trgm on events using gin (title gin_
 -- update events set geom = st_setsrid(st_makepoint(lng, lat), 4326)::geography;
 -- create index if not exists idx_events_geom on events using gist (geom);
 -- ──────────────────────────────────────────────────────────────────────────
+
+-- ---------------------------------------------------------------------------
+-- Admin & observability (roadmap 1.5)
+-- ---------------------------------------------------------------------------
+
+-- One row per weekly pipeline run — powers the admin "Pipeline" health tab.
+create table if not exists pipeline_runs (
+  id           bigint generated always as identity primary key,
+  started_at   timestamptz not null default now(),
+  finished_at  timestamptz,
+  ok           boolean not null default false,
+  upserted     int not null default 0,
+  cancelled    int not null default 0,
+  archived     int not null default 0,
+  collapsed    int not null default 0,
+  bands        jsonb,
+  error        text
+);
+create index if not exists idx_pipeline_runs_started on pipeline_runs (started_at desc);
+
+-- Audit trail for every admin mutation (who=admin, what, when).
+create table if not exists admin_audit (
+  id         bigint generated always as identity primary key,
+  at         timestamptz not null default now(),
+  action     text not null,
+  event_id   uuid,
+  patch      jsonb
+);
+create index if not exists idx_admin_audit_at on admin_audit (at desc);
+
+-- These tables are never public. Enable RLS with no anon policy; the app reaches
+-- them only through the service DATABASE_URL connection (which bypasses RLS).
+alter table pipeline_runs enable row level security;
+alter table admin_audit  enable row level security;

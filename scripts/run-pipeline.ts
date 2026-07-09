@@ -34,7 +34,16 @@ async function main() {
   );
 
   let totalUpserted = 0;
+  let totalCancelled = 0;
   const perBand: Record<string, number> = {};
+
+  let runId: number | undefined;
+  if (sql) {
+    const rows = await sql<{ id: number }[]>`
+      insert into pipeline_runs (started_at, ok) values (now(), false) returning id
+    `;
+    runId = rows[0]?.id;
+  }
 
   for (const win of windows) {
     console.log(`\n[pipeline] === band: ${win.label} (${win.startDate} → ${win.endDate}) ===`);
@@ -83,6 +92,7 @@ async function main() {
       const n = await upsertEvents(normalized);
       const cancelled = await markCancelled(cancelledKeys);
       bandTotal += n;
+      totalCancelled += cancelled;
       if (cancelled > 0) console.log(`[pipeline] ${win.label}/${category}: cancelled ${cancelled}`);
       console.log(`[pipeline] ${win.label}/${category}: upserted ${n}`);
     }
@@ -99,6 +109,17 @@ async function main() {
     `\n[pipeline] done — upserted ${totalUpserted}, archived ${archived}`,
     perBand,
   );
+
+  if (sql && runId != null) {
+    await sql`
+      update pipeline_runs set
+        finished_at = now(), ok = true,
+        upserted = ${totalUpserted}, cancelled = ${totalCancelled},
+        archived = ${archived}, collapsed = ${collapsed},
+        bands = ${sql.json(perBand)}
+      where id = ${runId}
+    `;
+  }
 
   await sql?.end({ timeout: 5 });
 }
