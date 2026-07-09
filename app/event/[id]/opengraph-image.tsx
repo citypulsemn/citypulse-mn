@@ -1,9 +1,8 @@
 import { ImageResponse } from "next/og";
-import { readFile } from "node:fs/promises";
-import { join } from "node:path";
 import { getEvent } from "@/lib/events";
 import { categoryColor, CATEGORIES } from "@/lib/categories";
 import { DOW, MONTHS } from "@/lib/dates";
+import { oswaldSemiBold } from "./oswald-font";
 
 // Node runtime: the image reads the event from Postgres (postgres.js needs TCP).
 export const runtime = "nodejs";
@@ -22,9 +21,7 @@ const SKYLINE =
 export default async function Image({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const event = await getEvent(id);
-  const oswald = await readFile(
-    join(process.cwd(), "app", "event", "[id]", "Oswald-SemiBold.ttf"),
-  );
+  const oswald = oswaldSemiBold;
 
   const fonts = [{ name: "Oswald", data: oswald, weight: 600 as const, style: "normal" as const }];
 

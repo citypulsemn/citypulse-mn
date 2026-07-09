@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useDeferredValue, useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
 import { CATEGORY_KEYS } from "@/lib/categories";
 import {
@@ -9,9 +9,12 @@ import {
   eventsInWindow,
   rangeWindow,
 } from "@/lib/dates";
+import { searchEvents } from "@/lib/search";
+import { track } from "@/lib/track";
 import type { CategoryKey, EventRecord, RangeKey } from "@/lib/types";
 import { Logo } from "./Logo";
 import { ControlBar } from "./ControlBar";
+import { SearchBox } from "./SearchBox";
 import { CategoryChips } from "./CategoryChips";
 import { CalendarView } from "./CalendarView";
 import { DayPanel } from "./DayPanel";
@@ -39,6 +42,16 @@ export function EventsExplorer({
   );
   const [dayKey, setDayKey] = useState<string | null>(null);
   const [detail, setDetail] = useState<EventRecord | null>(null);
+  const [query, setQuery] = useState("");
+
+  // Defer the expensive filtering so the input stays responsive while typing.
+  const deferredQuery = useDeferredValue(query);
+
+  // Search narrows the whole dataset; category chips + window narrow further.
+  const searched = useMemo(
+    () => searchEvents(events, deferredQuery),
+    [events, deferredQuery],
+  );
 
   // Refresh "now" to the client clock after hydration (keeps "today" accurate).
   useEffect(() => {
@@ -48,16 +61,25 @@ export function EventsExplorer({
   const viewState = useMemo(() => ({ range, year, month }), [range, year, month]);
   const win = useMemo(() => rangeWindow(now, viewState), [now, viewState]);
   const windowedEvents = useMemo(
-    () => eventsInWindow(events, active, win),
-    [events, active, win],
+    () => eventsInWindow(searched, active, win),
+    [searched, active, win],
   );
+
+  const isSearching = deferredQuery.trim().length > 0;
+  const matchCount = windowedEvents.length;
 
   const dayEvents = useMemo(() => {
     if (!dayKey) return [];
-    return events
+    return searched
       .filter((ev) => active.has(ev.category) && dkey(evDate(ev)) === dayKey)
       .sort((a, b) => evDate(a).getTime() - evDate(b).getTime());
-  }, [events, active, dayKey]);
+  }, [searched, active, dayKey]);
+
+  // Log search terms (no-op until roadmap 1.4 wires analytics).
+  useEffect(() => {
+    const q = deferredQuery.trim();
+    if (q) track("search", { q, results: matchCount });
+  }, [deferredQuery, matchCount]);
 
   // Escape closes the topmost overlay.
   useEffect(() => {
@@ -132,6 +154,28 @@ export function EventsExplorer({
       </header>
 
       <div className="wrap">
+        <div className="searchrow">
+          <SearchBox value={query} onChange={setQuery} />
+          {isSearching && (
+            <div className="search-count">
+              {matchCount > 0 ? (
+                <>
+                  {matchCount} event{matchCount === 1 ? "" : "s"} match
+                  {view === "calendar" ? " this range" : ""}
+                </>
+              ) : (
+                <>
+                  No matches for “{deferredQuery.trim()}”
+                  {view === "calendar" ? " in this range" : ""} ·{" "}
+                  <button className="linklike" onClick={() => setQuery("")}>
+                    clear search
+                  </button>
+                </>
+              )}
+            </div>
+          )}
+        </div>
+
         <ControlBar
           range={range}
           year={year}
@@ -144,7 +188,7 @@ export function EventsExplorer({
 
         {view === "calendar" ? (
           <CalendarView
-            events={events}
+            events={searched}
             active={active}
             view={viewState}
             now={now}
