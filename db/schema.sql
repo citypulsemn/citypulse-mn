@@ -130,3 +130,26 @@ create index if not exists idx_admin_audit_at on admin_audit (at desc);
 -- them only through the service DATABASE_URL connection (which bypasses RLS).
 alter table pipeline_runs enable row level security;
 alter table admin_audit  enable row level security;
+
+-- ---------------------------------------------------------------------------
+-- Row Level Security on events (roadmap 1.6)
+-- ---------------------------------------------------------------------------
+-- The site and pipeline connect as the table OWNER via DATABASE_URL, which
+-- BYPASSES RLS — so nothing about the public site or the admin panel changes
+-- (the admin still reads drafts/cancelled/archived). RLS only governs Supabase's
+-- auto-generated REST API roles (anon / authenticated): through that path only
+-- PUBLISHED events are readable, and there is no write policy so that path is
+-- read-only. Drafts, cancelled, and archived rows stay private.
+--
+-- (pipeline_runs and admin_audit already have RLS enabled with NO policy above,
+-- which fully seals them from the anon/authenticated roles.)
+--
+-- Idempotent: enabling twice is a no-op; the policy is dropped and recreated.
+
+alter table events enable row level security;
+
+drop policy if exists events_public_read on events;
+create policy events_public_read
+  on events for select
+  to anon, authenticated
+  using (status = 'published');

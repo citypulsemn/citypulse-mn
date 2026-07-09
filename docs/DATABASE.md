@@ -99,3 +99,20 @@ where status = 'published'
   and lat between 44.90 and 45.05
   and lng between -93.35 and -93.05;
 ```
+
+## Row Level Security (roadmap 1.6)
+
+The public site and the pipeline connect through `DATABASE_URL` as the table **owner**, which **bypasses RLS** — so RLS changes nothing about the app or the admin panel (the admin still reads drafts, cancelled, and archived events). RLS exists to lock down Supabase's auto-generated REST API, which uses the `anon` (public key) and `authenticated` roles:
+
+- **`events`** — RLS enabled with a single policy: `anon`/`authenticated` may `select` only `status = 'published'`. There is no insert/update/delete policy, so that path is read-only. Drafts, cancelled, and archived rows are invisible to it.
+- **`pipeline_runs`, `admin_audit`** — RLS enabled with **no policy at all** → fully sealed from `anon`/`authenticated`.
+
+Verified with `db/verify-rls.sql` (run it in the Supabase SQL Editor) and, during development, against a real Postgres engine: anon sees only published, the owner role sees everything.
+
+### Standing rule for new tables
+
+**Every new table ships with RLS from day one.** The default posture is *deny*: `alter table <t> enable row level security;` with **no** policy (sealed), and add a narrow `select` policy for `anon`/`authenticated` only if that data is genuinely meant to be public. Tables coming later that will follow this:
+
+- `subscribers` (2.2) — sealed; writes go through server actions as the owner.
+- `saved_events` (3.3) — RLS with a per-user policy (`user_id = auth.uid()`).
+- any future personal or operational data — sealed by default.
