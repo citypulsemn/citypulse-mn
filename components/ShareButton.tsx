@@ -1,18 +1,29 @@
 "use client";
 
 import { useState } from "react";
+import { track } from "@/lib/track";
 
 /**
  * Shares the canonical event URL. Uses the native Web Share sheet on mobile,
  * falls back to copying the link on desktop. `url` may be a path (e.g.
  * "/event/123") — the absolute URL is resolved from the current origin.
  */
-export function ShareButton({ url, title }: { url: string; title: string }) {
+export function ShareButton({
+  url,
+  title,
+  eventId,
+}: {
+  url: string;
+  title: string;
+  eventId?: string;
+}) {
   const [copied, setCopied] = useState(false);
 
   async function onShare() {
     const abs =
       typeof window !== "undefined" ? new URL(url, window.location.origin).href : url;
+
+    track("share_click", { id: eventId ?? url, title });
 
     if (typeof navigator !== "undefined" && navigator.share) {
       try {

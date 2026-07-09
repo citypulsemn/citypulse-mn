@@ -100,7 +100,7 @@ export default async function EventPage({
           )}
           <EventDetailBody
             event={event}
-            actions={<ShareButton url={`/event/${event.id}`} title={event.title} />}
+            actions={<ShareButton url={`/event/${event.id}`} title={event.title} eventId={event.id} />}
           />
           {mapUrl && (
             <a className="evt-map" href="/?view=map" aria-label="Open the map view">

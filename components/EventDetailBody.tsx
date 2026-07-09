@@ -1,5 +1,6 @@
 import { CATEGORIES } from "@/lib/categories";
 import { DOW, MONTHS, fmtTime } from "@/lib/dates";
+import { TicketButton } from "./TicketButton";
 import type { EventRecord } from "@/lib/types";
 import type { ReactNode } from "react";
 
@@ -66,15 +67,7 @@ export function EventDetailBody({
           </div>
         </div>
         {event.description && <div className="detail-desc">{event.description}</div>}
-        {event.ticketUrl ? (
-          <a className="ticket-btn" href={event.ticketUrl} target="_blank" rel="noopener noreferrer">
-            Tickets &amp; Info
-          </a>
-        ) : (
-          <span className="ticket-btn" style={{ opacity: 0.5, cursor: "default" }}>
-            Details to come
-          </span>
-        )}
+        <TicketButton event={event} />
         {actions && <div className="detail-actions">{actions}</div>}
       </div>
     </>

@@ -93,12 +93,18 @@ export function EventsExplorer({
   }, [detail, dayKey]);
 
   function handleRange(r: RangeKey) {
+    track("preset_select", { preset: r });
     setRange(r);
     if (r !== "month") {
       const w = rangeWindow(now, { range: r, year, month });
       setYear(w.start.getFullYear());
       setMonth(w.start.getMonth());
     }
+  }
+
+  function openDetail(ev: EventRecord, surface: "calendar" | "map") {
+    track("event_open", { id: ev.id, category: ev.category, surface });
+    setDetail(ev);
   }
 
   function handleMonth(delta: number) {
@@ -117,6 +123,7 @@ export function EventsExplorer({
   }
 
   function toggleCat(k: CategoryKey) {
+    track("chip_toggle", { category: k });
     setActive((prev) => {
       const next = new Set(prev);
       if (next.has(k)) next.delete(k);
@@ -195,7 +202,7 @@ export function EventsExplorer({
             onOpenDay={setDayKey}
           />
         ) : (
-          <MapView events={windowedEvents} win={win} onPick={setDetail} />
+          <MapView events={windowedEvents} win={win} onPick={(ev) => openDetail(ev, "map")} />
         )}
 
         <footer>
@@ -207,7 +214,7 @@ export function EventsExplorer({
         <DayPanel
           dateKey={dayKey}
           events={dayEvents}
-          onPick={(ev) => setDetail(ev)}
+          onPick={(ev) => openDetail(ev, "calendar")}
           onClose={() => setDayKey(null)}
         />
       )}

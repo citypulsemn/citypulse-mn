@@ -23,7 +23,7 @@ export function EventDetail({
         </button>
         <EventDetailBody
           event={event}
-          actions={<ShareButton url={`/event/${event.id}`} title={event.title} />}
+          actions={<ShareButton url={`/event/${event.id}`} title={event.title} eventId={event.id} />}
         />
       </div>
     </div>

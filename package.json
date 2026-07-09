@@ -13,6 +13,8 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.106.0",
+    "@vercel/analytics": "^2.0.1",
+    "@vercel/speed-insights": "^2.0.0",
     "mapbox-gl": "^3.9.3",
     "next": "^15.5.4",
     "papaparse": "^5.4.1",
