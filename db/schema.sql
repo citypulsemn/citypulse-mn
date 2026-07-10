@@ -153,3 +153,26 @@ create policy events_public_read
   on events for select
   to anon, authenticated
   using (status = 'published');
+
+-- ---------------------------------------------------------------------------
+-- Email subscribers (roadmap 2.2)
+-- ---------------------------------------------------------------------------
+-- The owned audience. Emails are stored normalized (lowercased/trimmed) so the
+-- UNIQUE constraint dedupes case variants. `status` supports a later double
+-- opt-in + unsubscribe flow (Phase 3 digest); capture today is single opt-in.
+create table if not exists subscribers (
+  id              bigint generated always as identity primary key,
+  email           text not null unique,
+  source          text not null default 'site',
+  status          text not null default 'subscribed'
+                    check (status in ('subscribed','pending','unsubscribed')),
+  created_at      timestamptz not null default now(),
+  confirmed_at    timestamptz,
+  unsubscribed_at timestamptz
+);
+create index if not exists idx_subscribers_created on subscribers (created_at desc);
+
+-- PII → sealed from day one (roadmap 1.6 rule): RLS enabled, NO anon/authenticated
+-- policy. The app reads/writes only through the owner DATABASE_URL connection,
+-- which bypasses RLS. The public REST API can neither read nor write this table.
+alter table subscribers enable row level security;

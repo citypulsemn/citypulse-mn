@@ -5,6 +5,7 @@ import { EventDetailBody } from "@/components/EventDetailBody";
 import { EventDayCard } from "@/components/EventDayCard";
 import { ShareButton } from "@/components/ShareButton";
 import { Logo } from "@/components/Logo";
+import { SiteFooter } from "@/components/SiteFooter";
 import { eventJsonLd } from "@/lib/seo/event-jsonld";
 import { SITE_URL } from "@/lib/seo/site";
 import {
@@ -130,7 +131,7 @@ export default async function EventPage({
           </section>
         )}
 
-        <footer>City Pulse MN · the pulse of the Twin Cities</footer>
+        <SiteFooter source="event" />
       </main>
     </>
   );

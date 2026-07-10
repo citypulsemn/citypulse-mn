@@ -1,4 +1,5 @@
 import { getContentStats } from "@/lib/admin";
+import { getSubscriberStats } from "@/lib/subscribe";
 import { CATEGORIES } from "@/lib/categories";
 import type { CategoryKey } from "@/lib/types";
 
@@ -6,6 +7,7 @@ export const dynamic = "force-dynamic";
 
 export default async function AdminStatsPage() {
   const s = await getContentStats();
+  const subs = await getSubscriberStats();
 
   return (
     <>
@@ -55,6 +57,21 @@ export default async function AdminStatsPage() {
           );
         })}
       </ul>
+
+      <h3 className="admin-h3">Email subscribers</h3>
+      <div className="admin-stats-grid">
+        <div className="admin-stat">
+          <div className="admin-stat-n">{subs.total}</div>
+          <div className="admin-stat-l">Subscribers</div>
+        </div>
+        <div className="admin-stat">
+          <div className="admin-stat-n">{subs.last7d}</div>
+          <div className="admin-stat-l">New last 7 days</div>
+        </div>
+        <div className="admin-stat admin-stat-action">
+          <a className="admin-btn" href="/admin/subscribers/export">Download CSV</a>
+        </div>
+      </div>
 
       <div className="admin-note">
         <strong>Engagement metrics</strong> (page views, ticket clicks, searches, Web Vitals)

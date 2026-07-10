@@ -113,6 +113,6 @@ Verified with `db/verify-rls.sql` (run it in the Supabase SQL Editor) and, durin
 
 **Every new table ships with RLS from day one.** The default posture is *deny*: `alter table <t> enable row level security;` with **no** policy (sealed), and add a narrow `select` policy for `anon`/`authenticated` only if that data is genuinely meant to be public. Tables coming later that will follow this:
 
-- `subscribers` (2.2) — sealed; writes go through server actions as the owner.
+- `subscribers` (2.2) ✓ built — sealed; writes go through the server action as the owner.
 - `saved_events` (3.3) — RLS with a per-user policy (`user_id = auth.uid()`).
 - any future personal or operational data — sealed by default.

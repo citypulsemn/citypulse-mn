@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { getEventsForDay } from "@/lib/events";
 import { EventDayCard } from "@/components/EventDayCard";
 import { Logo } from "@/components/Logo";
+import { SiteFooter } from "@/components/SiteFooter";
 import { dayItemListJsonLd } from "@/lib/seo/event-jsonld";
 import { SITE_URL } from "@/lib/seo/site";
 import { isValidDayKey, longDate } from "@/lib/event-view";
@@ -87,7 +88,7 @@ export default async function DayPage({
           </div>
         )}
 
-        <footer>City Pulse MN · the pulse of the Twin Cities</footer>
+        <SiteFooter source="day" />
       </main>
     </>
   );
