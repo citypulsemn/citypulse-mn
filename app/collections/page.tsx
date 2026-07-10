@@ -1,0 +1,67 @@
+import type { Metadata } from "next";
+import { getEvents } from "@/lib/events";
+import { COLLECTIONS, selectCollection } from "@/lib/collections";
+import { Logo } from "@/components/Logo";
+import { SiteFooter } from "@/components/SiteFooter";
+
+export const revalidate = 300;
+
+export const metadata: Metadata = {
+  title: "Collections — Twin Cities Events by Theme | City Pulse MN",
+  description:
+    "Curated Twin Cities event collections — this weekend, free events, live music, family fun, date night, arts, festivals, and the uniquely Minnesotan.",
+  alternates: { canonical: "/collections" },
+  openGraph: {
+    title: "Collections | City Pulse MN",
+    description: "Curated Twin Cities events by theme.",
+    url: "/collections",
+    type: "website",
+    siteName: "City Pulse MN",
+  },
+};
+
+export default async function CollectionsIndex() {
+  const events = await getEvents();
+  const now = new Date();
+  const cards = COLLECTIONS.map((c) => ({
+    ...c,
+    count: selectCollection(events, c, now).length,
+  }));
+
+  return (
+    <>
+      <header className="topbar">
+        <div className="topbar-inner">
+          <Logo />
+          <a className="page-back" href="/">
+            ← All events
+          </a>
+        </div>
+      </header>
+
+      <main className="wrap page">
+        <div className="dayhdr">
+          <div className="dayhdr-eyebrow">Twin Cities · by theme</div>
+          <h1 className="dayhdr-title">Collections</h1>
+          <p className="coll-tagline">
+            Hand-picked views of what&apos;s happening across the metro.
+          </p>
+        </div>
+
+        <div className="coll-grid">
+          {cards.map((c) => (
+            <a key={c.slug} className="coll-card" href={`/collections/${c.slug}`}>
+              <div className="coll-card-title">{c.title}</div>
+              <div className="coll-card-tag">{c.tagline}</div>
+              <div className="coll-card-count">
+                {c.count > 0 ? `${c.count} event${c.count > 1 ? "s" : ""} →` : "See what's coming →"}
+              </div>
+            </a>
+          ))}
+        </div>
+
+        <SiteFooter source="collections" />
+      </main>
+    </>
+  );
+}

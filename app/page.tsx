@@ -1,5 +1,6 @@
 import { getEvents } from "@/lib/events";
 import { EventsExplorer } from "@/components/EventsExplorer";
+import { CollectionsStrip } from "@/components/CollectionsStrip";
 import { SiteFooter } from "@/components/SiteFooter";
 
 // Re-render at most every 5 minutes (events also revalidate at the data layer).
@@ -12,6 +13,7 @@ export default async function Home() {
   return (
     <>
       <EventsExplorer events={events} nowISO={nowISO} />
+      <CollectionsStrip />
       <SiteFooter source="home" />
     </>
   );
