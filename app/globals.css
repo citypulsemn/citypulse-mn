@@ -479,3 +479,23 @@ a.daycard { text-decoration: none; }
 .addcal-menu { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; padding: 8px; border: 1px solid var(--line); border-radius: 10px; background: rgba(0,0,0,0.18); max-width: 280px; }
 .addcal-menu a { display: block; padding: 11px 12px; border-radius: 8px; color: var(--cream); text-decoration: none; font-size: 14px; min-height: 42px; box-sizing: border-box; }
 .addcal-menu a:hover { background: rgba(201,169,97,0.12); color: var(--gold); }
+
+/* ---------- Price/Area filters (roadmap 2.5) ---------- */
+.filterpanel { margin: 4px 0 14px; }
+.filter-toggle { display: inline-flex; align-items: center; gap: 7px; padding: 8px 15px; border: 1px solid var(--line); border-radius: 999px; background: rgba(255,255,255,0.02); color: var(--cream-dim); font-family: "Oswald"; font-weight: 500; letter-spacing: 0.03em; font-size: 13px; cursor: pointer; min-height: 38px; }
+.filter-toggle:hover { color: var(--cream); border-color: var(--cream-dim); }
+.filter-toggle.on { color: var(--gold); border-color: var(--gold); }
+.filter-caret { font-size: 9px; }
+.filter-body { margin-top: 12px; padding: 14px; border: 1px solid var(--line); border-radius: 12px; background: rgba(255,255,255,0.015); display: flex; flex-direction: column; gap: 14px; }
+.filter-group { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.filter-label { width: 44px; flex: none; font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--cream-dim); }
+.filter-pills { display: flex; gap: 7px; flex-wrap: wrap; }
+.filter-pill { padding: 7px 13px; border: 1px solid var(--line); border-radius: 999px; background: transparent; color: var(--cream-dim); font-size: 13px; cursor: pointer; min-height: 36px; }
+.filter-pill:hover { color: var(--cream); border-color: var(--cream-dim); }
+.filter-pill.active { background: var(--gold); border-color: var(--gold); color: var(--navy-900); font-weight: 600; }
+.filter-clear { align-self: flex-start; font-size: 12.5px; }
+
+@media (max-width: 560px) {
+  .filter-group { align-items: flex-start; }
+  .filter-label { width: 100%; margin-bottom: 2px; }
+}

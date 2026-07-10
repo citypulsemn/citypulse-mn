@@ -10,12 +10,15 @@ import {
   rangeWindow,
 } from "@/lib/dates";
 import { searchEvents } from "@/lib/search";
+import { applyPriceArea } from "@/lib/filters";
+import type { AreaKey } from "@/lib/areas";
 import { track } from "@/lib/track";
-import type { CategoryKey, EventRecord, RangeKey } from "@/lib/types";
+import type { CategoryKey, EventRecord, PriceTier, RangeKey } from "@/lib/types";
 import { Logo } from "./Logo";
 import { ControlBar } from "./ControlBar";
 import { SearchBox } from "./SearchBox";
 import { CategoryChips } from "./CategoryChips";
+import { FilterPanel } from "./FilterPanel";
 import { CalendarView } from "./CalendarView";
 import { DayPanel } from "./DayPanel";
 import { EventDetail } from "./EventDetail";
@@ -43,14 +46,21 @@ export function EventsExplorer({
   const [dayKey, setDayKey] = useState<string | null>(null);
   const [detail, setDetail] = useState<EventRecord | null>(null);
   const [query, setQuery] = useState("");
+  const [prices, setPrices] = useState<Set<PriceTier>>(() => new Set());
+  const [areas, setAreas] = useState<Set<AreaKey>>(() => new Set());
 
   // Defer the expensive filtering so the input stays responsive while typing.
   const deferredQuery = useDeferredValue(query);
 
-  // Search narrows the whole dataset; category chips + window narrow further.
+  // Search narrows the whole dataset; price/area narrow further; then category
+  // chips + window. All compose as AND across every surface.
   const searched = useMemo(
     () => searchEvents(events, deferredQuery),
     [events, deferredQuery],
+  );
+  const filtered = useMemo(
+    () => applyPriceArea(searched, prices, areas),
+    [searched, prices, areas],
   );
 
   // Refresh "now" to the client clock after hydration (keeps "today" accurate).
@@ -61,25 +71,51 @@ export function EventsExplorer({
   const viewState = useMemo(() => ({ range, year, month }), [range, year, month]);
   const win = useMemo(() => rangeWindow(now, viewState), [now, viewState]);
   const windowedEvents = useMemo(
-    () => eventsInWindow(searched, active, win),
-    [searched, active, win],
+    () => eventsInWindow(filtered, active, win),
+    [filtered, active, win],
   );
 
   const isSearching = deferredQuery.trim().length > 0;
+  const filtersActive = prices.size > 0 || areas.size > 0;
+  const isFiltering = isSearching || filtersActive;
   const matchCount = windowedEvents.length;
 
   const dayEvents = useMemo(() => {
     if (!dayKey) return [];
-    return searched
+    return filtered
       .filter((ev) => active.has(ev.category) && dkey(evDate(ev)) === dayKey)
       .sort((a, b) => evDate(a).getTime() - evDate(b).getTime());
-  }, [searched, active, dayKey]);
+  }, [filtered, active, dayKey]);
 
   // Log search terms (no-op until roadmap 1.4 wires analytics).
   useEffect(() => {
     const q = deferredQuery.trim();
     if (q) track("search", { q, results: matchCount });
   }, [deferredQuery, matchCount]);
+
+  function togglePrice(t: PriceTier) {
+    track("price_toggle", { tier: t });
+    setPrices((prev) => {
+      const next = new Set(prev);
+      next.has(t) ? next.delete(t) : next.add(t);
+      return next;
+    });
+  }
+
+  function toggleArea(a: AreaKey) {
+    track("area_toggle", { area: a });
+    setAreas((prev) => {
+      const next = new Set(prev);
+      next.has(a) ? next.delete(a) : next.add(a);
+      return next;
+    });
+  }
+
+  function clearAll() {
+    setQuery("");
+    setPrices(new Set());
+    setAreas(new Set());
+  }
 
   // Escape closes the topmost overlay.
   useEffect(() => {
@@ -163,7 +199,7 @@ export function EventsExplorer({
       <div className="wrap">
         <div className="searchrow">
           <SearchBox value={query} onChange={setQuery} />
-          {isSearching && (
+          {isFiltering && (
             <div className="search-count">
               {matchCount > 0 ? (
                 <>
@@ -172,10 +208,14 @@ export function EventsExplorer({
                 </>
               ) : (
                 <>
-                  No matches for “{deferredQuery.trim()}”
+                  {isSearching ? (
+                    <>No matches for “{deferredQuery.trim()}”</>
+                  ) : (
+                    <>No events match these filters</>
+                  )}
                   {view === "calendar" ? " in this range" : ""} ·{" "}
-                  <button className="linklike" onClick={() => setQuery("")}>
-                    clear search
+                  <button className="linklike" onClick={clearAll}>
+                    clear all
                   </button>
                 </>
               )}
@@ -193,9 +233,17 @@ export function EventsExplorer({
 
         <CategoryChips active={active} onToggle={toggleCat} onToggleAll={toggleAll} />
 
+        <FilterPanel
+          prices={prices}
+          areas={areas}
+          onTogglePrice={togglePrice}
+          onToggleArea={toggleArea}
+          onClear={clearAll}
+        />
+
         {view === "calendar" ? (
           <CalendarView
-            events={searched}
+            events={filtered}
             active={active}
             view={viewState}
             now={now}

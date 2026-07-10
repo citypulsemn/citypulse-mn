@@ -18,6 +18,8 @@ Roadmap 1.4. City Pulse uses **Vercel Analytics** (page views + custom events) a
 | `search` | search box (debounced) | `q`, `results` |
 | `chip_toggle` | category chip | `category` |
 | `preset_select` | range preset | `preset` |
+| `price_toggle` | price filter (2.5) | `tier` |
+| `area_toggle` | area filter (2.5) | `area` |
 
 `ticket_click` is the **north-star metric** — it's the proof-of-value number for the Phase-4 venue pitch ("we drove N ticket clicks for your events").
 
