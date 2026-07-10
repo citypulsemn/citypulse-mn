@@ -21,7 +21,7 @@ Roadmap 1.4. City Pulse uses **Vercel Analytics** (page views + custom events) a
 
 `ticket_click` is the **north-star metric** — it's the proof-of-value number for the Phase-4 venue pitch ("we drove N ticket clicks for your events").
 
-`ics_download` (add-to-calendar) will be added with roadmap 2.3.
+`ics_download` (add-to-calendar) — live as of roadmap 2.3 (`target: ics | google`).
 
 ## Viewing the data
 

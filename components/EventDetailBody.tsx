@@ -1,6 +1,7 @@
 import { CATEGORIES } from "@/lib/categories";
 import { DOW, MONTHS, fmtTime } from "@/lib/dates";
 import { TicketButton } from "./TicketButton";
+import { AddToCalendar } from "./AddToCalendar";
 import type { EventRecord } from "@/lib/types";
 import type { ReactNode } from "react";
 
@@ -68,6 +69,7 @@ export function EventDetailBody({
         </div>
         {event.description && <div className="detail-desc">{event.description}</div>}
         <TicketButton event={event} />
+        {event.status !== "archived" && <AddToCalendar event={event} />}
         {actions && <div className="detail-actions">{actions}</div>}
       </div>
     </>

@@ -469,3 +469,13 @@ a.daycard { text-decoration: none; }
   .site-footer-inner { flex-direction: column; align-items: stretch; }
   .subscribe-form { max-width: none; }
 }
+
+/* ---------- Add to calendar (roadmap 2.3) ---------- */
+.addcal { margin-top: 10px; }
+.addcal-btn { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; list-style: none; padding: 10px 16px; border: 1px solid var(--line); border-radius: 10px; color: var(--cream); font-family: "Oswald"; font-weight: 500; letter-spacing: 0.03em; font-size: 13.5px; min-height: 42px; box-sizing: border-box; }
+.addcal-btn::-webkit-details-marker { display: none; }
+.addcal[open] .addcal-btn { border-color: var(--gold); color: var(--gold); }
+.addcal-btn:hover { border-color: var(--gold); color: var(--gold); }
+.addcal-menu { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; padding: 8px; border: 1px solid var(--line); border-radius: 10px; background: rgba(0,0,0,0.18); max-width: 280px; }
+.addcal-menu a { display: block; padding: 11px 12px; border-radius: 8px; color: var(--cream); text-decoration: none; font-size: 14px; min-height: 42px; box-sizing: border-box; }
+.addcal-menu a:hover { background: rgba(201,169,97,0.12); color: var(--gold); }
