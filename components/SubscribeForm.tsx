@@ -1,7 +1,8 @@
 "use client";
 
 import { useActionState } from "react";
-import { subscribeAction, initialSubscribeState } from "@/lib/subscribe-actions";
+import { subscribeAction } from "@/lib/subscribe-actions";
+import { initialSubscribeState } from "@/lib/subscribe-types";
 
 export function SubscribeForm({ source = "site" }: { source?: string }) {
   const [state, action, pending] = useActionState(subscribeAction, initialSubscribeState);

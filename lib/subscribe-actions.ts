@@ -1,13 +1,10 @@
 "use server";
 
 import { addSubscriber } from "./subscribe";
+import type { SubscribeState } from "./subscribe-types";
 
-export interface SubscribeState {
-  status: "idle" | "success" | "already" | "error";
-  message: string;
-}
-
-export const initialSubscribeState: SubscribeState = { status: "idle", message: "" };
+// A "use server" module must export ONLY async server actions.
+// The SubscribeState type and initial value live in ./subscribe-types.
 
 export async function subscribeAction(
   _prev: SubscribeState,
