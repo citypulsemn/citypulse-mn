@@ -426,3 +426,19 @@ a.daycard { text-decoration: none; }
   .admin-dup-pair { flex-direction: column; }
   .admin-form-row { flex-direction: column; }
 }
+
+/* ---------- Admin Content tab (roadmap 2.1) ---------- */
+.content-block { background: linear-gradient(180deg, var(--navy-700), var(--navy-800)); border: 1px solid var(--line); border-radius: 12px; padding: 13px; margin-bottom: 14px; }
+.content-head { font-family: "Oswald"; font-weight: 500; font-size: 15px; margin-bottom: 11px; letter-spacing: 0.02em; }
+.content-body { display: flex; gap: 14px; }
+.content-card { width: 168px; height: 210px; flex: none; border-radius: 8px; border: 1px solid var(--line); object-fit: cover; background: var(--navy-900); }
+.content-side { display: flex; flex-direction: column; gap: 9px; flex: 1; min-width: 0; }
+.content-caption { width: 100%; resize: vertical; background: rgba(0,0,0,0.22); border: 1px solid var(--line); border-radius: 9px; color: var(--cream); padding: 10px 11px; font-family: "Inter", sans-serif; font-size: 13px; line-height: 1.5; }
+.content-caption:focus { outline: none; border-color: var(--gold); }
+.content-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+@media (max-width: 560px) {
+  .content-body { flex-direction: column; align-items: center; }
+  .content-card { width: 216px; height: 270px; }
+  .content-side { width: 100%; }
+}

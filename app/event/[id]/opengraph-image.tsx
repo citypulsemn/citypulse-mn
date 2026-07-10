@@ -2,7 +2,7 @@ import { ImageResponse } from "next/og";
 import { getEvent } from "@/lib/events";
 import { categoryColor, CATEGORIES } from "@/lib/categories";
 import { DOW, MONTHS } from "@/lib/dates";
-import { oswaldSemiBold } from "./oswald-font";
+import { oswaldSemiBold } from "@/lib/brand/oswald-font";
 
 // Node runtime: the image reads the event from Postgres (postgres.js needs TCP).
 export const runtime = "nodejs";
@@ -69,7 +69,7 @@ export default async function Image({ params }: { params: Promise<{ id: string }
           fontFamily: "Oswald",
         }}
       >
-        <div style={{ position: "absolute", inset: 28, border: `3px solid ${GOLD}`, borderRadius: 20 }} />
+        <div style={{ position: "absolute", top: 28, left: 28, right: 28, bottom: 28, border: `3px solid ${GOLD}`, borderRadius: 20 }} />
         <div
           style={{
             position: "absolute",
