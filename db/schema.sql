@@ -219,3 +219,29 @@ create table if not exists event_submissions (
 );
 create index if not exists idx_submissions_status on event_submissions (status, created_at desc);
 alter table event_submissions enable row level security;
+
+-- ── Saved events (roadmap 3.3) ────────────────────────────────────────────
+-- Each visitor gets an anonymous, unguessable token (an httpOnly cookie). Their
+-- saved events live here, keyed by that token — no login required.
+create table if not exists saved_events (
+  user_token text not null,
+  event_id   uuid not null references events(id) on delete cascade,
+  saved_at   timestamptz not null default now(),
+  primary key (user_token, event_id)
+);
+create index if not exists idx_saved_user on saved_events (user_token, saved_at desc);
+
+alter table saved_events enable row level security;
+
+-- FIRST PER-USER RLS POLICY. Unlike the sealed tables (which allow no anon
+-- access at all), this policy scopes rows to a single owner: under any
+-- RLS-subject role a request may see/modify only rows whose token matches the
+-- request-scoped setting `request.saver_token` (unset → matches nothing, so the
+-- table is invisible by default). The app reads/writes through the owner
+-- connection and additionally scopes every query by the caller's cookie token,
+-- so per-user isolation holds regardless of connection role.
+drop policy if exists saved_events_owner on saved_events;
+create policy saved_events_owner on saved_events
+  for all
+  using  (user_token = current_setting('request.saver_token', true))
+  with check (user_token = current_setting('request.saver_token', true));

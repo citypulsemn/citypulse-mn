@@ -135,3 +135,29 @@ export async function getEventsForDay(dayKey: string): Promise<EventRecord[]> {
     return [];
   }
 }
+
+/**
+ * Fetch events by id (used by saved events, roadmap 3.3). Returns records in the
+ * SAME order as the input ids, and only ones that are still visible
+ * (published/archived/cancelled — a saved draft resolves to nothing).
+ */
+export async function getEventsByIds(ids: string[]): Promise<EventRecord[]> {
+  if (ids.length === 0) return [];
+  if (!sql) {
+    const byId = new Map(sampleEvents.map((e) => [e.id, e]));
+    return ids.map((id) => byId.get(id)).filter(Boolean) as EventRecord[];
+  }
+  const rows = await sql<Row[]>`
+    select
+      id::text                                                            as id,
+      title, category, venue, address, city, lat, lng,
+      to_char(start_at at time zone 'America/Chicago', 'YYYY-MM-DD"T"HH24:MI') as start,
+      to_char(end_at   at time zone 'America/Chicago', 'YYYY-MM-DD"T"HH24:MI') as end,
+      price, price_tier, ticket_url, description, image, source_url, status
+    from events
+    where id::text in ${sql(ids)}
+      and status in ('published', 'archived', 'cancelled')
+  `;
+  const order = new Map(ids.map((id, i) => [id, i]));
+  return rows.map(rowToEvent).sort((a, b) => (order.get(a.id) ?? 0) - (order.get(b.id) ?? 0));
+}
