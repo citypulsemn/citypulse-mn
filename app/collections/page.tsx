@@ -4,7 +4,7 @@ import { COLLECTIONS, selectCollection } from "@/lib/collections";
 import { Logo } from "@/components/Logo";
 import { SiteFooter } from "@/components/SiteFooter";
 
-export const revalidate = 300;
+export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "Collections — Twin Cities Events by Theme | City Pulse MN",
