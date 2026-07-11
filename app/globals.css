@@ -527,7 +527,7 @@ a.daycard { text-decoration: none; }
 .admin-subhead { font-family: "Oswald"; font-weight: 500; font-size: 15px; letter-spacing: 0.03em; color: var(--gold); margin: 24px 0 10px; }
 
 /* ---------- Submit an event (roadmap 3.2) ---------- */
-.submit-form { display: flex; flex-direction: column; gap: 16px; max-width: 640px; margin-top: 8px; }
+.submit-form { display: flex; flex-direction: column; gap: 16px; max-width: 620px; margin: 8px auto 0; }
 .sf-field { display: flex; flex-direction: column; gap: 6px; flex: 1; }
 .sf-field > span { font-size: 12.5px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--cream-dim); }
 .sf-field input, .sf-field select, .sf-field textarea { width: 100%; box-sizing: border-box; padding: 11px 13px; background: var(--navy-800); border: 1px solid var(--line); border-radius: 9px; color: var(--cream); font-size: 15px; font-family: inherit; min-height: 44px; }
@@ -539,7 +539,7 @@ a.daycard { text-decoration: none; }
 .sf-submit { align-self: flex-start; padding: 13px 26px; background: var(--gold); color: var(--navy-900); border: none; border-radius: 10px; font-family: "Oswald"; font-weight: 600; font-size: 15px; letter-spacing: 0.03em; cursor: pointer; min-height: 48px; }
 .sf-submit:disabled { opacity: 0.6; cursor: default; }
 .sf-note { font-size: 12.5px; color: var(--cream-dim); margin: 0; }
-.submit-done { text-align: center; padding: 40px 20px; border: 1px solid var(--line); border-radius: 14px; background: rgba(201,169,97,0.06); max-width: 640px; }
+.submit-done { text-align: center; padding: 40px 20px; border: 1px solid var(--line); border-radius: 14px; background: rgba(201,169,97,0.06); max-width: 620px; margin: 0 auto; }
 .submit-done-check { width: 48px; height: 48px; line-height: 48px; margin: 0 auto 14px; border-radius: 50%; background: var(--gold); color: var(--navy-900); font-size: 26px; font-weight: 700; }
 .submit-done p { color: var(--cream); font-size: 16px; margin: 0 0 18px; }
 
