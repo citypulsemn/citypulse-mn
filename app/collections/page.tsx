@@ -4,7 +4,10 @@ import { COLLECTIONS, selectCollection } from "@/lib/collections";
 import { Logo } from "@/components/Logo";
 import { SiteFooter } from "@/components/SiteFooter";
 
-export const revalidate = 300;
+// Render on-demand rather than prerendering at build. Like the slug pages, this
+// index reads from the database (to show per-collection counts); keeping it off
+// the build-time render path avoids the DB stampede that failed the build.
+export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "Collections — Twin Cities Events by Theme | City Pulse MN",

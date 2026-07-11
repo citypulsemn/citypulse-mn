@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getEvents } from "@/lib/events";
-import { getCollection, selectCollection, COLLECTIONS } from "@/lib/collections";
+import { getCollection, selectCollection } from "@/lib/collections";
 import { EventDayCard } from "@/components/EventDayCard";
 import { Logo } from "@/components/Logo";
 import { SiteFooter } from "@/components/SiteFooter";
@@ -13,8 +13,14 @@ import type { EventRecord } from "@/lib/types";
 
 export const revalidate = 300;
 
+// Render on-demand, not at build. Collection pages read from the database, and
+// prerendering all of them in parallel at build time exhausted Vercel's DB
+// connection limit (each build render timed out). Returning no params means each
+// page is generated on first request and then cached for `revalidate` seconds —
+// same speed and SEO for visitors, without the build-time database stampede.
+// (dynamicParams defaults to true, so any valid slug still renders.)
 export function generateStaticParams() {
-  return COLLECTIONS.map((c) => ({ slug: c.slug }));
+  return [];
 }
 
 export async function generateMetadata({

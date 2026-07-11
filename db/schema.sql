@@ -189,3 +189,33 @@ create table if not exists digest_sends (
 );
 create index if not exists idx_digest_sends_sent on digest_sends (sent_at desc);
 alter table digest_sends enable row level security;
+
+-- ── Community event submissions (roadmap 3.2) ─────────────────────────────
+-- The public "Submit an event" form writes here (via a server action on the
+-- owner connection). Nothing is published automatically: an admin reviews each
+-- one and approves (creates a published event) or rejects. Sealed like other
+-- internal tables — RLS on, NO anon policy — so the public REST API can neither
+-- read nor write it; the moderated events table remains the only public source.
+create table if not exists event_submissions (
+  id             uuid primary key default gen_random_uuid(),
+  title          text not null,
+  category       text not null check (category in
+                   ('music','sports','family','arts','food','weird','festival')),
+  venue          text not null default '',
+  city           text not null default '',
+  address        text not null default '',
+  start_local    text not null,            -- "YYYY-MM-DDTHH:MM" Central wall-clock
+  end_local      text,                     -- optional
+  price          text not null default 'See listing',
+  ticket_url     text not null default '',
+  description    text not null default '',
+  source_url     text not null default '',
+  submitter_email text not null default '',
+  status         text not null default 'pending'
+                   check (status in ('pending','approved','rejected')),
+  review_note    text,
+  created_at     timestamptz not null default now(),
+  reviewed_at    timestamptz
+);
+create index if not exists idx_submissions_status on event_submissions (status, created_at desc);
+alter table event_submissions enable row level security;

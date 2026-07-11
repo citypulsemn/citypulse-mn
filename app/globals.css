@@ -525,3 +525,43 @@ a.daycard { text-decoration: none; }
 /* ---------- Admin digest (roadmap 3.1) ---------- */
 .digest-preview { width: 100%; max-width: 640px; height: 720px; border: 1px solid var(--line); border-radius: 12px; background: #0a1020; }
 .admin-subhead { font-family: "Oswald"; font-weight: 500; font-size: 15px; letter-spacing: 0.03em; color: var(--gold); margin: 24px 0 10px; }
+
+/* ---------- Submit an event (roadmap 3.2) ---------- */
+.submit-form { display: flex; flex-direction: column; gap: 16px; max-width: 640px; margin-top: 8px; }
+.sf-field { display: flex; flex-direction: column; gap: 6px; flex: 1; }
+.sf-field > span { font-size: 12.5px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--cream-dim); }
+.sf-field input, .sf-field select, .sf-field textarea { width: 100%; box-sizing: border-box; padding: 11px 13px; background: var(--navy-800); border: 1px solid var(--line); border-radius: 9px; color: var(--cream); font-size: 15px; font-family: inherit; min-height: 44px; }
+.sf-field textarea { min-height: 96px; resize: vertical; }
+.sf-field input:focus, .sf-field select:focus, .sf-field textarea:focus { outline: none; border-color: var(--gold); }
+.sf-row { display: flex; gap: 12px; flex-wrap: wrap; }
+.sf-row .sf-field { min-width: 130px; }
+.sf-err { color: #e0736b; font-size: 12.5px; font-style: normal; }
+.sf-submit { align-self: flex-start; padding: 13px 26px; background: var(--gold); color: var(--navy-900); border: none; border-radius: 10px; font-family: "Oswald"; font-weight: 600; font-size: 15px; letter-spacing: 0.03em; cursor: pointer; min-height: 48px; }
+.sf-submit:disabled { opacity: 0.6; cursor: default; }
+.sf-note { font-size: 12.5px; color: var(--cream-dim); margin: 0; }
+.submit-done { text-align: center; padding: 40px 20px; border: 1px solid var(--line); border-radius: 14px; background: rgba(201,169,97,0.06); max-width: 640px; }
+.submit-done-check { width: 48px; height: 48px; line-height: 48px; margin: 0 auto 14px; border-radius: 50%; background: var(--gold); color: var(--navy-900); font-size: 26px; font-weight: 700; }
+.submit-done p { color: var(--cream); font-size: 16px; margin: 0 0 18px; }
+
+.site-footer-links { display: flex; gap: 10px; justify-content: center; margin-top: 14px; font-size: 13px; }
+.site-footer-links a { color: var(--gold); text-decoration: none; }
+.site-footer-links a:hover { text-decoration: underline; }
+.site-footer-links span { color: var(--cream-dim); }
+
+/* Admin submissions */
+.sub-card { border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px; margin-bottom: 14px; background: var(--navy-800); }
+.sub-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; }
+.sub-when { font-size: 13px; color: var(--cream-dim); }
+.sub-title { font-family: "Oswald"; font-weight: 600; font-size: 19px; color: var(--cream); }
+.sub-meta { font-size: 13.5px; color: var(--cream-dim); margin-top: 3px; }
+.sub-desc { font-size: 14px; color: var(--cream); margin: 10px 0 0; line-height: 1.5; }
+.sub-links { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 10px; font-size: 12.5px; }
+.sub-links a { color: var(--gold); text-decoration: none; }
+.sub-submitter { color: var(--cream-dim); }
+.sub-actions { display: flex; gap: 12px; align-items: flex-start; margin-top: 14px; flex-wrap: wrap; }
+.sub-approve { padding: 10px 18px; background: var(--gold); color: var(--navy-900); border: none; border-radius: 8px; font-weight: 600; font-family: "Oswald"; cursor: pointer; min-height: 42px; }
+.sub-reject summary { cursor: pointer; padding: 10px 16px; border: 1px solid var(--line); border-radius: 8px; color: var(--cream-dim); font-size: 13.5px; list-style: none; min-height: 42px; box-sizing: border-box; display: inline-flex; align-items: center; }
+.sub-reject summary::-webkit-details-marker { display: none; }
+.sub-reject-form { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
+.sub-reject-form input { padding: 9px 12px; background: var(--navy-900); border: 1px solid var(--line); border-radius: 8px; color: var(--cream); min-width: 200px; }
+.sub-reject-form button { padding: 9px 14px; background: transparent; border: 1px solid #e0736b; color: #e0736b; border-radius: 8px; cursor: pointer; }
