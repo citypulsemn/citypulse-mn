@@ -14,7 +14,7 @@ import type { EventRecord } from "@/lib/types";
 export const revalidate = 300;
 
 export function generateStaticParams() {
-  return COLLECTIONS.map((c) => ({ slug: c.slug }));
+  return [];
 }
 
 export async function generateMetadata({
