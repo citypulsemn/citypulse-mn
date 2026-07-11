@@ -20,6 +20,11 @@ export interface SubscriberStats {
   last7d: number;
 }
 
+export interface DigestRecipient {
+  id: number;
+  email: string;
+}
+
 /** Trim + lowercase so dedupe and lookups are case-insensitive. */
 export function normalizeEmail(raw: string): string {
   return (raw ?? "").trim().toLowerCase();
@@ -75,4 +80,28 @@ export async function listSubscribers(): Promise<SubscriberRow[]> {
     from subscribers
     order by created_at desc
   `;
+}
+
+/** Confirmed recipients for the weekly digest (roadmap 3.1). */
+export async function getSubscribedRecipients(): Promise<DigestRecipient[]> {
+  if (!sql) return [];
+  return await sql<DigestRecipient[]>`
+    select id, email
+    from subscribers
+    where status = 'subscribed'
+    order by id
+  `;
+}
+
+/** Mark a subscriber unsubscribed (idempotent). Returns true if a row changed. */
+export async function markUnsubscribed(id: number | string): Promise<boolean> {
+  if (!sql) return false;
+  if (!/^\d+$/.test(String(id))) return false;
+  const rows = await sql<{ id: number }[]>`
+    update subscribers
+    set status = 'unsubscribed', unsubscribed_at = now()
+    where id = ${id} and status <> 'unsubscribed'
+    returning id
+  `;
+  return rows.length > 0;
 }

@@ -1,0 +1,36 @@
+name: Weekly Email Digest
+
+# Sends the weekly digest every Thursday at 15:00 UTC (~10am Central), and
+# on-demand. Use the workflow_dispatch "dry_run" input to preview without sending.
+on:
+  schedule:
+    - cron: "0 15 * * 4"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Dry run (build + log, do not send)"
+        type: boolean
+        default: false
+
+jobs:
+  digest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Send weekly digest
+        run: npm run digest ${{ github.event.inputs.dry_run == 'true' && '-- --dry-run' || '' }}
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          UNSUBSCRIBE_SECRET: ${{ secrets.UNSUBSCRIBE_SECRET }}
+          SITE_URL: ${{ secrets.SITE_URL }}
+          DIGEST_FROM: ${{ secrets.DIGEST_FROM }}

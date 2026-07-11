@@ -176,3 +176,16 @@ create index if not exists idx_subscribers_created on subscribers (created_at de
 -- policy. The app reads/writes only through the owner DATABASE_URL connection,
 -- which bypasses RLS. The public REST API can neither read nor write this table.
 alter table subscribers enable row level security;
+
+-- ── Weekly digest send log (roadmap 3.1) ──────────────────────────────────
+-- Observability for the weekly email job. Sealed like other internal tables:
+-- RLS enabled, NO anon/authenticated policy (owner connection only).
+create table if not exists digest_sends (
+  id          bigint generated always as identity primary key,
+  sent_at     timestamptz not null default now(),
+  recipients  int not null default 0,
+  ok          boolean not null default true,
+  note        text
+);
+create index if not exists idx_digest_sends_sent on digest_sends (sent_at desc);
+alter table digest_sends enable row level security;

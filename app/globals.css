@@ -521,3 +521,7 @@ a.daycard { text-decoration: none; }
 .collstrip-row::-webkit-scrollbar { display: none; }
 .collstrip-pill { flex: none; padding: 10px 16px; border: 1px solid var(--line); border-radius: 999px; background: rgba(255,255,255,0.02); color: var(--cream); text-decoration: none; font-size: 13.5px; white-space: nowrap; transition: border-color 0.18s, color 0.18s; }
 .collstrip-pill:hover { border-color: var(--gold); color: var(--gold); }
+
+/* ---------- Admin digest (roadmap 3.1) ---------- */
+.digest-preview { width: 100%; max-width: 640px; height: 720px; border: 1px solid var(--line); border-radius: 12px; background: #0a1020; }
+.admin-subhead { font-family: "Oswald"; font-weight: 500; font-size: 15px; letter-spacing: 0.03em; color: var(--gold); margin: 24px 0 10px; }
