@@ -10,7 +10,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "pipeline": "tsx --env-file-if-exists=.env.local scripts/run-pipeline.ts",
-    "digest": "tsx --env-file-if-exists=.env.local scripts/send-digest.ts"
+    "digest": "tsx --env-file-if-exists=.env.local scripts/send-digest.ts",
+    "reclassify": "tsx --env-file-if-exists=.env.local scripts/reclassify.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.106.0",

@@ -3,6 +3,7 @@ import { CATEGORIES } from "./categories";
 import { normalizeTier, computeEventKey } from "./event-key";
 import { toIsoWithOffset } from "./seo/event-jsonld";
 import { isValidEmail } from "./subscribe";
+import { classifyEvent } from "./classify";
 import type { CategoryKey, PriceTier, DbEventInput } from "./types";
 import type { GeoResult } from "./geocode";
 
@@ -148,10 +149,18 @@ export function submissionToDbEvent(sub: SubmissionEventFields, geo: GeoResult |
   const endISO = sub.end_local ? toIsoWithOffset(sub.end_local) : null;
   const coords = geo ?? METRO_CENTER;
   const priceTier: PriceTier = normalizeTier(sub.price);
+  // Roadmap 4.1 — trust the event's content over the submitter's dropdown pick,
+  // the same way the pipeline no longer trusts the finding agent's guess.
+  const { category } = classifyEvent({
+    title: sub.title,
+    venue: sub.venue,
+    description: sub.description,
+    category: sub.category,
+  });
   return {
     event_key: computeEventKey(sub.title, sub.venue, startISO),
     title: sub.title,
-    category: sub.category,
+    category,
     venue: sub.venue,
     address: sub.address,
     city: sub.city,

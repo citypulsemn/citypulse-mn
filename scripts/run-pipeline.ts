@@ -14,6 +14,7 @@
  */
 import { CATEGORY_KEYS } from "../lib/categories";
 import { researchCategory } from "../lib/agents/research-agent";
+import { classifyEvent } from "../lib/classify";
 import { geocode } from "../lib/geocode";
 import { computeEventKey, normalizeTier } from "../lib/event-key";
 import { upsertEvents, archivePastEvents, markCancelled, dedupeNearDuplicates } from "../lib/upsert";
@@ -35,6 +36,7 @@ async function main() {
 
   let totalUpserted = 0;
   let totalCancelled = 0;
+  let reclassified = 0; // events whose category the classifier corrected (4.1)
   const perBand: Record<string, number> = {};
 
   let runId: number | undefined;
@@ -68,10 +70,25 @@ async function main() {
           console.warn(`[pipeline] no geocode, skipping: ${ev.title} @ ${ev.venue}`);
           continue;
         }
+
+        // ROADMAP 4.1 — category comes from the EVENT, not from whichever agent
+        // found it. (Previously we stamped `category` here, so a concert found by
+        // the food agent became a food event; that's why Live Music was empty.)
+        const { category: classified, changed } = classifyEvent({
+          title: ev.title,
+          venue: ev.venue,
+          description: ev.description,
+          category: ev.category ?? category,
+        });
+        if (changed) {
+          reclassified++;
+          console.log(`[pipeline]   ↻ "${ev.title}" ${category} → ${classified}`);
+        }
+
         normalized.push({
           event_key: computeEventKey(ev.title, ev.venue, ev.start),
           title: ev.title,
-          category,
+          category: classified,
           venue: ev.venue,
           address: ev.address,
           city: ev.city,
@@ -106,7 +123,7 @@ async function main() {
 
   const archived = await archivePastEvents();
   console.log(
-    `\n[pipeline] done — upserted ${totalUpserted}, archived ${archived}`,
+    `\n[pipeline] done — upserted ${totalUpserted}, archived ${archived}, reclassified ${reclassified}`,
     perBand,
   );
 

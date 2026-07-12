@@ -91,3 +91,7 @@ If you ever want the old review gate (nothing goes live until you approve it), f
 # .env.local must have DATABASE_URL, ANTHROPIC_API_KEY, and a Mapbox token
 npm run pipeline
 ```
+
+## Classification (roadmap 4.1)
+
+The category an event ends up with is **not** the category of the agent that found it. After research and geocoding, every event runs through `lib/classify.ts`, which decides the category from the event's own title/venue/description. The pipeline logs each correction and reports a `reclassified` count. See `docs/CLASSIFICATION.md`.
