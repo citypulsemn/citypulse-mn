@@ -17,6 +17,8 @@ import { researchCategory, researchVenueShard } from "../lib/agents/research-age
 import type { AgentEvent } from "../lib/agents/research-agent";
 import { classifyEvent } from "../lib/classify";
 import { venuesFor, shardVenues, isVenueAnchored } from "../lib/venues";
+import { assessCoverage, formatCoverageAlerts } from "../lib/coverage";
+import type { CoverageInput } from "../lib/coverage";
 import { VENUES_PER_SHARD, VENUE_SWEEP_SEARCHES } from "../lib/pipeline-config";
 import { geocode } from "../lib/geocode";
 import { computeEventKey, normalizeTier } from "../lib/event-key";
@@ -161,6 +163,31 @@ async function main() {
     `\n[pipeline] done — upserted ${totalUpserted}, archived ${archived}, reclassified ${reclassified}, venue-swept ${venueSwept}`,
     perBand,
   );
+
+  // ROADMAP 4.3 — coverage check. The pipeline finishing "successfully" says
+  // nothing about whether its OUTPUT is any good: the Live Music collection sat
+  // empty for weeks through green runs. Grade the calendar every time and print
+  // the gaps, so a thin category is visible in the run log (and CI) instead of
+  // waiting for someone to notice the site looks wrong.
+  let coverageAlerts = 0;
+  if (sql) {
+    const upcoming = await sql<CoverageInput[]>`
+      select category,
+             to_char(start_at at time zone 'America/Chicago', 'YYYY-MM-DD"T"HH24:MI') as start
+      from events
+      where status = 'published' and start_at >= now()
+        and start_at <= now() + interval '28 days'
+    `;
+    const report = assessCoverage(upcoming, new Date(), 4);
+    coverageAlerts = report.alerts.length;
+    console.log("");
+    for (const line of formatCoverageAlerts(report)) console.log(line);
+    if (!report.healthy) {
+      console.warn(
+        `\n[coverage] ${coverageAlerts} category-week(s) below floor — see /admin/coverage`,
+      );
+    }
+  }
 
   if (sql && runId != null) {
     await sql`

@@ -580,3 +580,22 @@ a.daycard { text-decoration: none; }
 .saved-row-card { flex: 1; min-width: 0; }
 .saved-remove { flex: none; width: 42px; border: 1px solid var(--line); border-radius: 10px; background: transparent; color: var(--cream-dim); font-size: 15px; cursor: pointer; transition: border-color .18s, color .18s; }
 .saved-remove:hover { border-color: #e0736b; color: #e0736b; }
+
+/* ---------- Coverage monitor (roadmap 4.3) ---------- */
+.cov-banner { padding: 14px 16px; border-radius: 10px; margin-bottom: 14px; font-size: 14px; line-height: 1.5; border: 1px solid var(--line); }
+.cov-banner.ok { border-color: rgba(91,168,138,0.5); background: rgba(91,168,138,0.10); color: #8fd3b6; }
+.cov-banner.warn { border-color: rgba(224,179,65,0.5); background: rgba(224,179,65,0.10); color: #e6c66e; }
+.cov-banner.bad { border-color: rgba(224,115,107,0.55); background: rgba(224,115,107,0.12); color: #f0938c; }
+.cov-wrap { overflow-x: auto; }
+.cov-table { border-collapse: collapse; width: 100%; min-width: 560px; font-size: 14px; }
+.cov-table th { text-align: left; padding: 9px 12px; font-family: "Oswald"; font-weight: 500; font-size: 12px; letter-spacing: 0.05em; text-transform: uppercase; color: var(--cream-dim); border-bottom: 1px solid var(--line); white-space: nowrap; }
+.cov-table td { padding: 9px 12px; border-bottom: 1px solid rgba(201,169,97,0.12); }
+.cov-cat { white-space: nowrap; color: var(--cream); }
+.cov-cat .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 8px; }
+.cov-cell { text-align: center; font-variant-numeric: tabular-nums; font-weight: 600; border-radius: 6px; }
+.cov-cell.ok { color: #8fd3b6; }
+.cov-cell.thin { color: #e6c66e; background: rgba(224,179,65,0.12); }
+.cov-cell.empty { color: #f0938c; background: rgba(224,115,107,0.16); }
+.cov-floor, .cov-total { text-align: center; color: var(--cream-dim); font-variant-numeric: tabular-nums; }
+.cov-legend { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 14px; font-size: 12.5px; color: var(--cream-dim); }
+.cov-legend .cov-cell { padding: 3px 9px; }

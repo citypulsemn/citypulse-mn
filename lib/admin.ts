@@ -4,6 +4,7 @@ import { sampleEvents } from "./sample-events";
 import { searchEvents } from "./search";
 import { parseBasicAuth, safeEqual } from "./admin-auth";
 import type { EventRecord, EventStatus } from "./types";
+import type { CoverageInput } from "./coverage";
 
 export type AdminEvent = EventRecord & { createdLabel?: string };
 
@@ -298,4 +299,27 @@ export function parseEventPatch(
   const description = s("description").slice(0, 2000);
 
   return { ok: true, patch: { title, venue, city, start: startN, end, price, ticketUrl, description } };
+}
+
+/**
+ * Events in the coverage window (roadmap 4.3) — minimal columns, published only.
+ * Feeds the category × week coverage grid.
+ */
+export async function getCoverageEvents(days = 35): Promise<CoverageInput[]> {
+  // Dev fallback, consistent with lib/events.ts: without a database, grade the
+  // sample calendar rather than reporting a scary (and meaningless) all-zero grid.
+  if (!sql) {
+    return sampleEvents
+      .filter((e) => e.status === "published")
+      .map((e) => ({ category: e.category, start: e.start }));
+  }
+  return await sql<CoverageInput[]>`
+    select
+      category,
+      to_char(start_at at time zone 'America/Chicago', 'YYYY-MM-DD"T"HH24:MI') as start
+    from events
+    where status = 'published'
+      and start_at >= now() - interval '7 days'
+      and start_at <= now() + (${days} || ' days')::interval
+  `;
 }
