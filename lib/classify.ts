@@ -56,14 +56,23 @@ const SIGNALS: Record<CategoryKey, Signal[]> = {
     { re: /\b(country|rock|soul|house|folk)\s+(music|band|night|show|concert|fest\w*|jam)\b/, w: 8 },
     { re: /\b(music|concert)\b.*\b(country|rock|soul|house|folk)\b/, w: 6 },
     { re: /\b(singer|songwriter|vocalist|guitarist|drummer|rapper|musician|performs?|performing|headlin\w*|opening act)\b/, w: 6 },
+    // Instruments and music-format words are unambiguous music signals
+    // (caught against live data: "Lakeside GUITAR Festival" was staying festival).
+    { re: /\b(guitar|banjo|fiddle|violin|piano|saxophone|trumpet|drumline|bagpipe|accordion|organ recital)\b/, w: 9 },
+    { re: /\b(porchfest|bandshell|battle of the bands|showcase)\b/, w: 7 },
     { re: /\b(open mic|jam session|karaoke|record release|album release|unplugged|recital)\b/, w: 8 },
     { re: /\b(presents|in concert|live at|on tour)\b/, w: 4 },
   ],
   sports: [
     { re: /\b(vs\.?|versus|@)\b.*\b(game|match)?\b/, w: 3 },
     { re: /\b(twins|vikings|timberwolves|wolves|lynx|wild|united|saints|gophers|loons)\b/, w: 9 },
-    { re: /\b(game|match|tournament|championship|playoff|scrimmage|meet)\b/, w: 7 },
+    { re: /\b(game|match|tournament|championship|playoff|scrimmage)\b/, w: 7 },
+    // "meet" alone is far too generic ("Meet at Mia") — require an athletic sense.
+    { re: /\b(track|swim|cross[- ]country|dual)\s+meet\b/, w: 7 },
     { re: /\b(baseball|basketball|football|hockey|soccer|volleyball|lacrosse|tennis|golf|wrestling|boxing|mma)\b/, w: 9 },
+    // NOTE: "mini golf" is a rooftop art installation at the Walker, not a sport.
+    // The ARTS_VENUE guard in scoreCategories() suppresses sport/food signals
+    // inside arts venues.
     { re: /\b(marathon|half marathon|5k|10k|race|triathlon|cycling|regatta)\b/, w: 8 },
     { re: /\b(target field|target center|xcel energy center|us bank stadium|allianz field|chs field)\b/, w: 6 },
   ],
@@ -76,7 +85,8 @@ const SIGNALS: Record<CategoryKey, Signal[]> = {
     { re: /\b(family)\b/, w: 5 },
   ],
   arts: [
-    { re: /\b(theatre|theater|play|musical|drama|comedy|improv|stand[- ]?up|cabaret|burlesque)\b/, w: 8 },
+    { re: /\b(theatre|theater|play|musical|drama|comedy|improv|stand[- ]?up|cabaret|burlesque)\b/, w: 11 },
+    { re: /\b(shakespeare|fringe|godot|broadway|playwright|monologue|one[- ]act)\b/, w: 11 },
     { re: /\b(exhibit|exhibition|gallery|museum|installation|retrospective|curated|curator)\b/, w: 9 },
     { re: /\b(art|arts|artist|painting|sculpture|photography|printmaking|ceramics|pottery)\b/, w: 7 },
     { re: /\b(ballet|dance|choreograph\w*|contemporary dance|tap|modern dance)\b/, w: 8 },
@@ -129,6 +139,21 @@ const VENUE_HINTS: { re: RegExp; category: CategoryKey; w: number }[] = [
   { re: /\b(zoo|aquarium|children'?s museum|nature center)\b/, category: "family", w: 5 },
 ];
 
+/**
+ * ARTS VENUES. A theatre or museum's NAME must not decide what its shows are.
+ * Real cases this fixes (caught against live data):
+ *   - "Annie" @ Chanhassen DINNER Theatres → was scoring food (the venue's name!)
+ *   - "Skyline Mini GOLF" @ Walker Art Center → was scoring sports (it's a rooftop
+ *     art installation)
+ *   - "Meet at Mia: Building Blocks" → "meet" was scoring sports at an art museum
+ * Inside these venues we suppress food/sports signals coming from the VENUE and
+ * apply a floor of arts credit, so the programming is read as arts unless the
+ * TITLE says otherwise (a concert at the Ordway is still music — music signals
+ * are untouched).
+ */
+const ARTS_VENUE =
+  /\b(theatre|theater|playhouse|opera house|art center|arts center|art centre|museum|gallery|institute of art|walker art|guthrie|orpheum|ordway|pantages|state theatre|fringe|dinner theatres?)\b/;
+
 function norm(s: string | undefined): string {
   return (s ?? "").toLowerCase();
 }
@@ -138,6 +163,7 @@ export function scoreCategories(ev: Classifiable): Record<CategoryKey, number> {
   const title = norm(ev.title);
   const venue = norm(ev.venue);
   const desc = norm(ev.description);
+  const inArtsVenue = ARTS_VENUE.test(venue);
 
   const scores = Object.fromEntries(CATEGORY_KEYS.map((k) => [k, 0])) as Record<CategoryKey, number>;
 
@@ -146,8 +172,26 @@ export function scoreCategories(ev: Classifiable): Record<CategoryKey, number> {
       // Title is the truest signal; description is corroboration; venue is a hint.
       if (sig.re.test(title)) scores[key] += sig.w * 2;
       if (sig.re.test(desc)) scores[key] += sig.w;
-      if (sig.re.test(venue)) scores[key] += Math.round(sig.w * 0.5);
+      // Inside an arts venue, the venue's own name must not make its shows into
+      // food or sports events ("Chanhassen DINNER Theatres", "Mini GOLF" at the Walker).
+      const venueMuted = inArtsVenue && (key === "food" || key === "sports");
+      if (!venueMuted && sig.re.test(venue)) scores[key] += Math.round(sig.w * 0.5);
     }
+  }
+
+  // In an arts venue, sport/food words in the TITLE are usually programming, not
+  // the subject ("Skyline Mini Golf" is an art installation). Damp them, and give
+  // arts a floor so the venue's own programming reads as arts by default.
+  // EXCEPTION: an explicit family signal in the TITLE ("Mia FAMILY Day", "Family
+  // Trails", "Puppet Playdate") means the museum is programming *for families* —
+  // that's the point of the event, so family beats the arts floor.
+  if (inArtsVenue) {
+    scores.sports = Math.round(scores.sports * 0.25);
+    scores.food = Math.round(scores.food * 0.25);
+    const explicitFamilyInTitle = /\b(kids?|children'?s?|toddler|all[- ]ages|family|families|playdate|story ?time)\b/.test(
+      title,
+    );
+    if (!explicitFamilyInTitle) scores.arts += 6;
   }
 
   for (const hint of VENUE_HINTS) {

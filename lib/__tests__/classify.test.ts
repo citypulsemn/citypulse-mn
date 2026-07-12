@@ -79,6 +79,32 @@ const GOLDEN: GoldenCase[] = [
   { title: "Folk Art Exhibition", venue: "Mia", agent: "arts", expect: "arts" },
   // …but a real genre event in musical context is still music:
   { title: "Country Music Night at the Turf Club", venue: "Turf Club", agent: "food", expect: "music" },
+
+  // ── Cases found by running against the LIVE database export (4.1 backfill).
+  //    Every one of these was a real misclassification the classifier produced
+  //    before these guards existed. They are the reason the arts-venue guard exists.
+  { title: "Annie", venue: "Chanhassen Dinner Theatres", agent: "arts", expect: "arts" },          // "DINNER Theatres" ≠ food
+  { title: "Guys and Dolls", venue: "Chanhassen Dinner Theatres", agent: "arts", expect: "arts" },
+  { title: "Skyline Mini Golf", venue: "Walker Art Center (Rooftop)", agent: "arts", expect: "arts" }, // rooftop art installation, not sport
+  { title: "Meet at Mia: Building Blocks", venue: "Minneapolis Institute of Art", agent: "arts", expect: "arts" }, // "meet" ≠ track meet
+  { title: "Minnesota Fringe Festival", venue: "Various Twin Cities Venues", agent: "arts", expect: "arts" }, // theatre festival is arts
+  { title: "Twin Cities Shakespeare Festival", venue: "Theatre in the Round", agent: "arts", expect: "arts" },
+  // …and the corrections it SHOULD make in an arts venue:
+  { title: "SPCO Opening Weekend: Beethoven's Second Symphony", venue: "Ordway Concert Hall", agent: "arts", expect: "music" },
+  { title: "Cantus Vocal Ensemble Presents", venue: "Ordway Concert Hall", agent: "arts", expect: "music" },
+  { title: "Mia Family Day", venue: "Minneapolis Institute of Art", agent: "arts", expect: "family" }, // explicit family beats the arts floor
+  { title: "Free First Saturday: Puppet Playdate", venue: "Walker Art Center", agent: "arts", expect: "family" },
+
+  // ── Second live-export batch (festival/food): the music hiding in the
+  //    festival and food buckets — this is what fills the Live Music collection.
+  { title: "Lakeside Guitar Festival", venue: "Como Lakeside Pavilion", agent: "festival", expect: "music" },
+  { title: "Washington County Bluegrass Festival", venue: "Lake Elmo Park Reserve", agent: "festival", expect: "music" },
+  { title: "Outlaw Music Festival", venue: "Mystic Lake Amphitheater", agent: "festival", expect: "music" },
+  { title: "Uptown Porchfest", venue: "Uptown Neighborhood", agent: "festival", expect: "music" },
+  { title: "Beer Choir at Forgotten Star Brewing", venue: "Forgotten Star Brewing Company", agent: "food", expect: "music" },
+  { title: "Powderhorn Art Fair", venue: "Powderhorn Park", agent: "festival", expect: "arts" },
+  { title: "Minnesota Food Truck Festival", venue: "Father Hennepin Bluff Park", agent: "festival", expect: "food" },
+  { title: "Carver County Fair", venue: "Carver County Fairgrounds", agent: "food", expect: "festival" },
 ];
 
 describe("classifyEvent — golden set of real City Pulse events", () => {
