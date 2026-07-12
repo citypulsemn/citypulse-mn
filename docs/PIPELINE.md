@@ -95,3 +95,7 @@ npm run pipeline
 ## Classification (roadmap 4.1)
 
 The category an event ends up with is **not** the category of the agent that found it. After research and geocoding, every event runs through `lib/classify.ts`, which decides the category from the event's own title/venue/description. The pipeline logs each correction and reports a `reclassified` count. See `docs/CLASSIFICATION.md`.
+
+## Venue-anchored sweeps (roadmap 4.2)
+
+For fragmented categories (music, family), the near-band run also shards `lib/venues.ts` across sub-agents that walk named venue calendars directly — a generic search budget can't cover a city's club calendars. Sweeps are additive to the generic agent; dedup on `event_key` collapses overlap. See `docs/VENUES.md`.

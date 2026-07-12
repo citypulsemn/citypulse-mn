@@ -13,8 +13,11 @@
  * (MAPBOX_GEOCODING_TOKEN or NEXT_PUBLIC_MAPBOX_TOKEN).
  */
 import { CATEGORY_KEYS } from "../lib/categories";
-import { researchCategory } from "../lib/agents/research-agent";
+import { researchCategory, researchVenueShard } from "../lib/agents/research-agent";
+import type { AgentEvent } from "../lib/agents/research-agent";
 import { classifyEvent } from "../lib/classify";
+import { venuesFor, shardVenues, isVenueAnchored } from "../lib/venues";
+import { VENUES_PER_SHARD, VENUE_SWEEP_SEARCHES } from "../lib/pipeline-config";
 import { geocode } from "../lib/geocode";
 import { computeEventKey, normalizeTier } from "../lib/event-key";
 import { upsertEvents, archivePastEvents, markCancelled, dedupeNearDuplicates } from "../lib/upsert";
@@ -37,6 +40,7 @@ async function main() {
   let totalUpserted = 0;
   let totalCancelled = 0;
   let reclassified = 0; // events whose category the classifier corrected (4.1)
+  let venueSwept = 0;   // events found by venue-anchored sweeps (4.2)
   const perBand: Record<string, number> = {};
 
   let runId: number | undefined;
@@ -53,13 +57,44 @@ async function main() {
 
     for (const category of CATEGORY_KEYS) {
       console.log(`[pipeline] ${win.label}/${category}…`);
-      let found;
+      let found: AgentEvent[] = [];
       try {
         found = await researchCategory(category, win.startDate, win.endDate, win.maxSearchUses);
       } catch (err) {
         console.error(`[pipeline] ${win.label}/${category} agent failed:`, err);
-        continue; // one category failing shouldn't sink the run
+        // Don't `continue` — a venue sweep below may still succeed for this category.
       }
+
+      // ROADMAP 4.2 — venue-anchored sweeps. A single generic agent with a small
+      // search budget cannot cover a fragmented category like music (every club
+      // has its own calendar and nothing aggregates them), which is why the Live
+      // Music collection had no First Ave / Palace / Turf Club shows at all. For
+      // these categories we ALSO walk the venue registry in small shards, so
+      // coverage follows the venue list rather than whatever a generic search
+      // happens to surface. Dedup on event_key makes the overlap harmless.
+      if (isVenueAnchored(category) && win.label === "near") {
+        const shards = shardVenues(venuesFor(category), VENUES_PER_SHARD);
+        for (const [i, shard] of shards.entries()) {
+          const names = shard.map((v) => v.name).join(", ");
+          console.log(`[pipeline] ${win.label}/${category} venue sweep ${i + 1}/${shards.length}: ${names}`);
+          try {
+            const swept = await researchVenueShard(
+              category,
+              shard,
+              win.startDate,
+              win.endDate,
+              VENUE_SWEEP_SEARCHES,
+            );
+            console.log(`[pipeline]   swept ${swept.length} event(s)`);
+            found = found.concat(swept);
+            venueSwept += swept.length;
+          } catch (err) {
+            console.error(`[pipeline] ${win.label}/${category} venue sweep ${i + 1} failed:`, err);
+          }
+        }
+      }
+
+      if (found.length === 0) continue;
 
       const { active, cancelledKeys } = partitionCancellations(found);
 
@@ -123,7 +158,7 @@ async function main() {
 
   const archived = await archivePastEvents();
   console.log(
-    `\n[pipeline] done — upserted ${totalUpserted}, archived ${archived}, reclassified ${reclassified}`,
+    `\n[pipeline] done — upserted ${totalUpserted}, archived ${archived}, reclassified ${reclassified}, venue-swept ${venueSwept}`,
     perBand,
   );
 

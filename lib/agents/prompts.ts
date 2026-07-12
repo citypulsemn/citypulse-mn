@@ -58,7 +58,53 @@ Rules:
 - If you confirm an event was cancelled, still include it with "cancelled": true so we can remove it.
 - Do NOT geocode or assign a price tier — a later step handles that.
 - Prefer primary sources (venue / box-office pages) over aggregators.
-- category for every event must be exactly "${category}".
+- Set "category" to what the event genuinely IS (music, sports, family, arts, food, weird, festival) — a later step re-checks this, so report honestly rather than forcing "${category}".
 
 After your research, output ONLY a JSON array of event objects, inside a single \`\`\`json code block, with no other text. If you found nothing, output \`\`\`json\n[]\n\`\`\`.`;
+}
+
+/**
+ * Venue-anchored sweep (roadmap 4.2). Instead of asking an agent to "find music
+ * in the metro" — which no search budget can cover — we hand it a short list of
+ * real venues and ask it to walk those calendars. Coverage becomes a function of
+ * the venue registry, not of what a generic search happens to surface.
+ */
+export function buildVenueSweepPrompt(
+  category: CategoryKey,
+  venues: { name: string; city: string; calendarHint?: string }[],
+  startDate: string,
+  endDate: string,
+): string {
+  const list = venues
+    .map((v) => `- ${v.name} (${v.city})${v.calendarHint ? ` — calendar: ${v.calendarHint}` : ""}`)
+    .join("\n");
+
+  return `You are a VENUE SWEEP agent for City Pulse MN (${category} focus).
+
+Your job is NOT a general search. Work through the following venues ONE BY ONE and list every event on each venue's calendar between ${startDate} and ${endDate}:
+
+${list}
+
+For each venue, look up its official calendar / event listing page (search "<venue name> calendar ${startDate.slice(0, 7)}" or visit its site) and read the scheduled events in the window. Some venues have many shows — list them all, not just the highlights. If a venue has nothing scheduled in the window, simply move on.
+
+For each event, gather:
+- title (the act/show name — e.g. the band or artist)
+- venue (use the venue name as given above)
+- address (street address of the venue)
+- city
+- start (ISO 8601, local time, e.g. 2026-06-20T19:30)
+- end (ISO 8601, local time; best estimate if not listed)
+- price (display string, e.g. "$45", "$18-$120", "Free")
+- ticket_url
+- description (1-2 factual sentences)
+- source_url (the venue calendar page you read)
+- category (what the event genuinely is — usually ${category}, but a comedy night at a music club is "arts"; report honestly)
+- cancelled (true ONLY if a source shows a previously-scheduled event is cancelled)
+
+Rules:
+- Only include events you can verify on a real source. Always include source_url.
+- Prioritize completeness per venue over commentary. Do not invent shows.
+- Do NOT geocode or assign a price tier — a later step handles that.
+
+Output ONLY a JSON array of event objects inside a single \`\`\`json code block, no other text. If you found nothing, output \`\`\`json\n[]\n\`\`\`.`;
 }

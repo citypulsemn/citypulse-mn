@@ -1,7 +1,8 @@
 import Anthropic from "@anthropic-ai/sdk";
 import type { CategoryKey } from "../types";
 import { CATEGORY_KEYS } from "../categories";
-import { buildResearchPrompt } from "./prompts";
+import { buildResearchPrompt, buildVenueSweepPrompt } from "./prompts";
+import type { Venue } from "../venues";
 
 /**
  * A category research subagent. Runs Claude (Sonnet) with the web_search tool
@@ -101,4 +102,42 @@ export function parseAgentEvents(text: string, category: CategoryKey): AgentEven
     });
   }
   return out;
+}
+
+/**
+ * Venue sweep subagent (roadmap 4.2). Walks a SHORT list of named venue
+ * calendars rather than searching the metro generically — the only way to get
+ * real coverage of a fragmented category like music, where every club has its
+ * own calendar and nothing aggregates them.
+ */
+export async function researchVenueShard(
+  category: CategoryKey,
+  venues: Venue[],
+  startDate: string,
+  endDate: string,
+  maxSearchUses = 10,
+): Promise<AgentEvent[]> {
+  if (venues.length === 0) return [];
+
+  const stream = anthropic.messages.stream({
+    model: "claude-sonnet-4-6",
+    max_tokens: 8000,
+    tools: [
+      { type: "web_search_20250305", name: "web_search", max_uses: maxSearchUses },
+    ] as unknown as Anthropic.Tool[],
+    messages: [
+      {
+        role: "user",
+        content: buildVenueSweepPrompt(category, venues, startDate, endDate),
+      },
+    ],
+  });
+
+  const res = await stream.finalMessage();
+  const text = res.content
+    .filter((b): b is Anthropic.TextBlock => b.type === "text")
+    .map((b) => b.text)
+    .join("\n");
+
+  return parseAgentEvents(text, category);
 }

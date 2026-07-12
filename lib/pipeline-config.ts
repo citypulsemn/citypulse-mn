@@ -13,3 +13,10 @@ import type { EventStatus } from "./types";
  * pipeline will not flip it back to published.
  */
 export const NEW_EVENT_STATUS: EventStatus = "published";
+
+/**
+ * Venue-anchored discovery (roadmap 4.2). Small shards so each sub-agent can
+ * actually visit every calendar it's handed within its search budget.
+ */
+export const VENUES_PER_SHARD = 5;
+export const VENUE_SWEEP_SEARCHES = 12;
