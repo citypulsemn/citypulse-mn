@@ -99,3 +99,11 @@ The category an event ends up with is **not** the category of the agent that fou
 ## Venue-anchored sweeps (roadmap 4.2)
 
 For fragmented categories (music, family), the near-band run also shards `lib/venues.ts` across sub-agents that walk named venue calendars directly — a generic search budget can't cover a city's club calendars. Sweeps are additive to the generic agent; dedup on `event_key` collapses overlap. See `docs/VENUES.md`.
+
+## Multi-day collapse (roadmap 4.4)
+
+Each run ends by folding consecutive-day runs into one spanning event and merging same-day duplicates the geo rule misses. Weekly series are never collapsed. See `docs/MULTIDAY.md`.
+
+## Freshness verification (roadmap 4.5)
+
+A separate Thursday workflow (`verify-events`) re-checks the next 7 days of events against their sources. Cancellations with evidence are applied automatically (audited); everything else is flagged, never auto-edited. See `docs/VERIFICATION.md`.

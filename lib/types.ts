@@ -34,6 +34,8 @@ export interface EventRecord {
   image: string; // https URL, or a CSS gradient (sample data only)
   sourceUrl: string;
   status: EventStatus;
+  /** Last day of a multi-day run (roadmap 4.4); null/absent for single-day events. */
+  multiDayEnd?: string | null;
 }
 
 /** What the pipeline writes to the database (one upsert row). */

@@ -1,7 +1,8 @@
 import Anthropic from "@anthropic-ai/sdk";
 import type { CategoryKey } from "../types";
 import { CATEGORY_KEYS } from "../categories";
-import { buildResearchPrompt, buildVenueSweepPrompt } from "./prompts";
+import { buildResearchPrompt, buildVenueSweepPrompt, buildVerifyPrompt } from "./prompts";
+import { parseVerdicts, type VerifiableEvent, type VerificationVerdict } from "../verify";
 import type { Venue } from "../venues";
 
 /**
@@ -140,4 +141,32 @@ export async function researchVenueShard(
     .join("\n");
 
   return parseAgentEvents(text, category);
+}
+
+/**
+ * Verify a batch of near-term events against their sources (roadmap 4.5).
+ * Returns verdicts; the caller applies the policy in lib/verify.ts.
+ */
+export async function verifyEventsBatch(
+  events: VerifiableEvent[],
+  maxSearchUses = 12,
+): Promise<VerificationVerdict[]> {
+  if (events.length === 0) return [];
+
+  const stream = anthropic.messages.stream({
+    model: "claude-sonnet-4-6",
+    max_tokens: 4000,
+    tools: [
+      { type: "web_search_20250305", name: "web_search", max_uses: maxSearchUses },
+    ] as unknown as Anthropic.Tool[],
+    messages: [{ role: "user", content: buildVerifyPrompt(events) }],
+  });
+
+  const res = await stream.finalMessage();
+  const text = res.content
+    .filter((b): b is Anthropic.TextBlock => b.type === "text")
+    .map((b) => b.text)
+    .join("\n");
+
+  return parseVerdicts(text, new Set(events.map((e) => e.id)));
 }

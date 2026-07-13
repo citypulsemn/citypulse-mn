@@ -108,3 +108,35 @@ Rules:
 
 Output ONLY a JSON array of event objects inside a single \`\`\`json code block, no other text. If you found nothing, output \`\`\`json\n[]\n\`\`\`.`;
 }
+
+/**
+ * Verification prompt (roadmap 4.5). Re-check a small batch of near-term events
+ * against their sources. The policy asymmetry is deliberate and stated to the
+ * agent: cancelling requires evidence; absence of a page proves nothing.
+ */
+export function buildVerifyPrompt(
+  events: { id: string; title: string; venue: string; city: string; start: string; sourceUrl: string; ticketUrl: string }[],
+): string {
+  const list = events
+    .map(
+      (e) =>
+        `- id: ${e.id}\n  event: ${e.title} @ ${e.venue}, ${e.city} — ${e.start}\n  source: ${e.sourceUrl || e.ticketUrl}`,
+    )
+    .join("\n");
+
+  return `You are a VERIFICATION agent for City Pulse MN, a Twin Cities events calendar. These events are happening in the next few days. Re-check each one against its source (and a quick search if the source is unhelpful):
+
+${list}
+
+For EACH event, decide exactly one verdict:
+- "confirmed"  — the event still appears as scheduled.
+- "cancelled"  — a source explicitly says cancelled/postponed. You MUST include "evidence": the URL or the exact wording you saw. Never infer cancellation.
+- "moved"      — the source shows a different date/time. Include "new_start" (ISO 8601) if visible. Do not guess.
+- "sold_out"   — still happening, but tickets are gone.
+- "not_found"  — you can't find the event anymore. IMPORTANT: a missing page is NOT evidence of cancellation — pages move all the time. Use this verdict and let a human look.
+
+Be conservative: when unsure between two verdicts, pick the less drastic one.
+
+Output ONLY a JSON array inside a single \`\`\`json code block:
+[{"id": "...", "verdict": "confirmed"}, {"id": "...", "verdict": "cancelled", "evidence": "https://…"}]`;
+}

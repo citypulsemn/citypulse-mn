@@ -1,5 +1,6 @@
 import { requireSql } from "./db";
 import type { DbEventInput } from "./types";
+import { collapsibleClusters } from "./multiday";
 
 /** Count populated optional fields — a rough "richness" score for a row. */
 function richness(e: DbEventInput): number {
@@ -161,4 +162,101 @@ export async function dedupeNearDuplicates(): Promise<number> {
       and status in ('published', 'draft')
   `;
   return res.count;
+}
+
+/**
+ * Collapse multi-day runs and merge true duplicates (roadmap 4.4).
+ *
+ * Reads the candidate rows, groups them in TypeScript with the pure logic in
+ * lib/multiday.ts (so the rules are unit-tested rather than buried in SQL), then:
+ *   - keeps the earliest row of each cluster, extending it with `multi_day_end`
+ *     when the cluster spans more than one day;
+ *   - archives the rest.
+ *
+ * A cluster only forms from CONSECUTIVE days, so a weekly series (a recurring
+ * date night, a Thursday film series) is never collapsed — those are real,
+ * separate events.
+ */
+export async function collapseMultiDayRuns(): Promise<{ collapsed: number; merged: number }> {
+  const sql = requireSql();
+
+  const rows = await sql<
+    { id: string; title: string; city: string; start: string; day: string }[]
+  >`
+    select id::text as id, title, city,
+           to_char(start_at at time zone 'America/Chicago', 'YYYY-MM-DD"T"HH24:MI') as start,
+           to_char(start_at at time zone 'America/Chicago', 'YYYY-MM-DD') as day
+    from events
+    where status in ('published', 'draft')
+    order by start_at asc
+  `;
+
+  const clusters = collapsibleClusters(rows);
+  let collapsed = 0;
+  let merged = 0;
+
+  for (const cluster of clusters) {
+    const [keep, ...extras] = cluster.events;
+    if (extras.length === 0) continue;
+
+    if (cluster.multiDay) {
+      // A genuine run: keep one row, give it the span.
+      await sql`
+        update events
+        set multi_day_end = (${`${cluster.endDay}T23:59`}::timestamp at time zone 'America/Chicago')
+        where id::text = ${keep.id}
+      `;
+      collapsed++;
+    } else {
+      // Same title, same city, same day, different venue guesses → duplicate.
+      merged++;
+    }
+
+    await sql`
+      update events set status = 'archived'
+      where id::text = any(${extras.map((e) => e.id)})
+        and status in ('published', 'draft')
+    `;
+  }
+
+  return { collapsed, merged };
+}
+
+/** Stamp events as source-verified just now (roadmap 4.5). */
+export async function markVerified(ids: string[]): Promise<number> {
+  if (ids.length === 0) return 0;
+  const sql = requireSql();
+  const res = await sql`
+    update events set verified_at = now()
+    where id::text = any(${ids}) and status = 'published'
+  `;
+  return res.count;
+}
+
+/** Cancel events by id with evidence, recorded in the audit log (roadmap 4.5). */
+export async function cancelVerified(items: { id: string; evidence: string }[]): Promise<number> {
+  if (items.length === 0) return 0;
+  const sql = requireSql();
+  let n = 0;
+  for (const item of items) {
+    const res = await sql`
+      update events set status = 'cancelled'
+      where id::text = ${item.id} and status = 'published'
+    `;
+    n += res.count;
+    await sql`
+      insert into admin_audit (action, event_id, patch)
+      values ('verify_cancel', ${item.id}::uuid, ${JSON.stringify({ evidence: item.evidence.slice(0, 500) })}::jsonb)
+    `;
+  }
+  return n;
+}
+
+/** Record a verification flag for admin attention (roadmap 4.5). */
+export async function flagVerification(id: string, verdict: string, note: string): Promise<void> {
+  const sql = requireSql();
+  await sql`
+    insert into admin_audit (action, event_id, patch)
+    values ('verify_flag', ${id}::uuid, ${JSON.stringify({ verdict, note: note.slice(0, 300) })}::jsonb)
+  `;
 }

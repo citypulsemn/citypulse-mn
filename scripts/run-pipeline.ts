@@ -22,7 +22,7 @@ import type { CoverageInput } from "../lib/coverage";
 import { VENUES_PER_SHARD, VENUE_SWEEP_SEARCHES } from "../lib/pipeline-config";
 import { geocode } from "../lib/geocode";
 import { computeEventKey, normalizeTier } from "../lib/event-key";
-import { upsertEvents, archivePastEvents, markCancelled, dedupeNearDuplicates } from "../lib/upsert";
+import { upsertEvents, archivePastEvents, markCancelled, dedupeNearDuplicates, collapseMultiDayRuns } from "../lib/upsert";
 import { partitionCancellations } from "../lib/cancellations";
 import { dueWindows } from "../lib/horizon";
 import { NEW_EVENT_STATUS } from "../lib/pipeline-config";
@@ -157,6 +157,17 @@ async function main() {
 
   const collapsed = await dedupeNearDuplicates();
   if (collapsed > 0) console.log(`[pipeline] collapsed ${collapsed} near-duplicate(s)`);
+
+  // ROADMAP 4.4 — fold consecutive-day runs into one spanning event, and merge
+  // same-day duplicates the geo rule misses (the agents guess different venues
+  // for the same festival). Weekly series are NOT touched — only consecutive days
+  // form a run, so a recurring date night stays as separate real events.
+  const runs = await collapseMultiDayRuns();
+  if (runs.collapsed > 0 || runs.merged > 0) {
+    console.log(
+      `[pipeline] multi-day: collapsed ${runs.collapsed} run(s), merged ${runs.merged} duplicate(s)`,
+    );
+  }
 
   const archived = await archivePastEvents();
   console.log(

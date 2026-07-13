@@ -30,6 +30,7 @@ interface Row {
   description: string;
   image: string;
   source_url: string;
+  multi_day_end: string | null;
   status: string;
 }
 
@@ -52,6 +53,7 @@ function rowToEvent(r: Row): EventRecord {
     image: r.image,
     sourceUrl: r.source_url,
     status: (r.status as EventStatus) ?? "published",
+    multiDayEnd: r.multi_day_end ?? null,
   };
 }
 
@@ -67,7 +69,8 @@ export async function getEvents(): Promise<EventRecord[]> {
         title, category, venue, address, city, lat, lng,
         to_char(start_at at time zone 'America/Chicago', 'YYYY-MM-DD"T"HH24:MI') as start,
         to_char(end_at   at time zone 'America/Chicago', 'YYYY-MM-DD"T"HH24:MI') as end,
-        price, price_tier, ticket_url, description, image, source_url, status
+        price, price_tier, ticket_url, description, image, source_url, status,
+      to_char(multi_day_end at time zone 'America/Chicago', 'YYYY-MM-DD"T"HH24:MI') as multi_day_end
       from events
       where status = 'published'
       order by start_at asc
@@ -97,7 +100,8 @@ export async function getEvent(id: string): Promise<EventRecord | null> {
         title, category, venue, address, city, lat, lng,
         to_char(start_at at time zone 'America/Chicago', 'YYYY-MM-DD"T"HH24:MI') as start,
         to_char(end_at   at time zone 'America/Chicago', 'YYYY-MM-DD"T"HH24:MI') as end,
-        price, price_tier, ticket_url, description, image, source_url, status
+        price, price_tier, ticket_url, description, image, source_url, status,
+      to_char(multi_day_end at time zone 'America/Chicago', 'YYYY-MM-DD"T"HH24:MI') as multi_day_end
       from events
       where id::text = ${id} and status <> 'draft'
       limit 1
@@ -123,10 +127,20 @@ export async function getEventsForDay(dayKey: string): Promise<EventRecord[]> {
         title, category, venue, address, city, lat, lng,
         to_char(start_at at time zone 'America/Chicago', 'YYYY-MM-DD"T"HH24:MI') as start,
         to_char(end_at   at time zone 'America/Chicago', 'YYYY-MM-DD"T"HH24:MI') as end,
-        price, price_tier, ticket_url, description, image, source_url, status
+        price, price_tier, ticket_url, description, image, source_url, status,
+      to_char(multi_day_end at time zone 'America/Chicago', 'YYYY-MM-DD"T"HH24:MI') as multi_day_end
       from events
       where status = 'published'
-        and to_char(start_at at time zone 'America/Chicago', 'YYYY-MM-DD') = ${dayKey}
+        and (
+          to_char(start_at at time zone 'America/Chicago', 'YYYY-MM-DD') = ${dayKey}
+          -- A multi-day festival is happening on every day it spans, so it must
+          -- surface in "what's on today" — not only on its opening day (4.4).
+          or (
+            multi_day_end is not null
+            and to_char(start_at at time zone 'America/Chicago', 'YYYY-MM-DD') <= ${dayKey}
+            and to_char(multi_day_end at time zone 'America/Chicago', 'YYYY-MM-DD') >= ${dayKey}
+          )
+        )
       order by start_at asc
     `;
     return rows.map(rowToEvent);
@@ -153,7 +167,8 @@ export async function getEventsByIds(ids: string[]): Promise<EventRecord[]> {
       title, category, venue, address, city, lat, lng,
       to_char(start_at at time zone 'America/Chicago', 'YYYY-MM-DD"T"HH24:MI') as start,
       to_char(end_at   at time zone 'America/Chicago', 'YYYY-MM-DD"T"HH24:MI') as end,
-      price, price_tier, ticket_url, description, image, source_url, status
+      price, price_tier, ticket_url, description, image, source_url, status,
+      to_char(multi_day_end at time zone 'America/Chicago', 'YYYY-MM-DD"T"HH24:MI') as multi_day_end
     from events
     where id::text in ${sql(ids)}
       and status in ('published', 'archived', 'cancelled')

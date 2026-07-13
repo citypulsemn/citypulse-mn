@@ -106,8 +106,11 @@ export function eventsByDay(
   const byDay: Record<string, EventRecord[]> = {};
   for (const ev of events) {
     if (!active.has(ev.category)) continue;
-    const k = dkey(evDate(ev));
-    (byDay[k] ??= []).push(ev);
+    // A multi-day festival belongs on EVERY day it spans (roadmap 4.4) — the
+    // Aquatennial is genuinely on today, not just on its opening day.
+    for (const k of daysSpanned(ev)) {
+      (byDay[k] ??= []).push(ev);
+    }
   }
   for (const k of Object.keys(byDay)) {
     byDay[k].sort((a, b) => evDate(a).getTime() - evDate(b).getTime());
@@ -135,4 +138,27 @@ export function windowLabel(win: DateWindow): string {
   return sameDay(win.start, win.end)
     ? shortDate(win.start)
     : `${shortDate(win.start)} – ${shortDate(win.end)}`;
+}
+
+
+/**
+ * The day keys an event occupies. One for a normal event; every day of the run
+ * for a multi-day festival (roadmap 4.4). Capped so a bad `multi_day_end` can't
+ * balloon the calendar.
+ */
+export function daysSpanned(ev: EventRecord): string[] {
+  const start = dkey(evDate(ev));
+  const endISO = ev.multiDayEnd;
+  if (!endISO) return [start];
+  const endKey = endISO.slice(0, 10);
+  if (endKey <= start) return [start];
+
+  const out: string[] = [];
+  const cur = new Date(`${start}T12:00:00`);
+  const end = new Date(`${endKey}T12:00:00`);
+  for (let i = 0; i < 60 && cur <= end; i++) {
+    out.push(dkey(cur));
+    cur.setDate(cur.getDate() + 1);
+  }
+  return out;
 }

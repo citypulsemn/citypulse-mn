@@ -599,3 +599,7 @@ a.daycard { text-decoration: none; }
 .cov-floor, .cov-total { text-align: center; color: var(--cream-dim); font-variant-numeric: tabular-nums; }
 .cov-legend { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 14px; font-size: 12.5px; color: var(--cream-dim); }
 .cov-legend .cov-cell { padding: 3px 9px; }
+
+/* ---------- Multi-day events (roadmap 4.4) ---------- */
+.run-badge { display: inline-block; padding: 3px 8px; border: 1px solid var(--gold); border-radius: 999px; color: var(--gold); font-size: 11px; font-family: "Oswald"; font-weight: 500; letter-spacing: 0.03em; white-space: nowrap; line-height: 1.4; }
+.run-note { color: var(--cream-dim); font-size: 13px; }

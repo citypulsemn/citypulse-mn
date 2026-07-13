@@ -3,6 +3,7 @@ import { DOW, MONTHS, fmtTime } from "@/lib/dates";
 import { TicketButton } from "./TicketButton";
 import { AddToCalendar } from "./AddToCalendar";
 import { SaveButton } from "./SaveButton";
+import { isMultiDay, multiDayLabel, runLength } from "@/lib/multiday";
 import type { EventRecord } from "@/lib/types";
 import type { ReactNode } from "react";
 
@@ -43,8 +44,19 @@ export function EventDetailBody({
             <div>
               <div className="dk">When</div>
               <div className="dv">
-                {DOW[d.getDay()]}, {MONTHS[d.getMonth()]} {d.getDate()} · {fmtTime(event.start)}
-                {hasRange ? ` – ${fmtTime(event.end)}` : ""}
+                {isMultiDay(event) ? (
+                  <>
+                    {multiDayLabel(event)}{" "}
+                    <span className="run-note">
+                      · runs {runLength(event)} days · daily from {fmtTime(event.start)}
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    {DOW[d.getDay()]}, {MONTHS[d.getMonth()]} {d.getDate()} · {fmtTime(event.start)}
+                    {hasRange ? ` – ${fmtTime(event.end)}` : ""}
+                  </>
+                )}
               </div>
             </div>
           </div>

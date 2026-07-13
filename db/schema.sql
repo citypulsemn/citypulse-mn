@@ -245,3 +245,15 @@ create policy saved_events_owner on saved_events
   for all
   using  (user_token = current_setting('request.saver_token', true))
   with check (user_token = current_setting('request.saver_token', true));
+
+-- ── Multi-day events (roadmap 4.4) ────────────────────────────────────────
+-- A festival that runs Jul 20–28 is ONE event with a span, not nine rows that
+-- crowd everything else off the calendar. `multi_day_end` is the last day of the
+-- run (null for ordinary single-day events).
+alter table events add column if not exists multi_day_end timestamptz;
+create index if not exists idx_events_multi_day on events (multi_day_end)
+  where multi_day_end is not null;
+
+-- ── Freshness re-verification (roadmap 4.5) ───────────────────────────────
+-- When an event was last confirmed against its source. Null = never verified.
+alter table events add column if not exists verified_at timestamptz;
