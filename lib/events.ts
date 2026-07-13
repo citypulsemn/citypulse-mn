@@ -135,10 +135,22 @@ export async function getEventsForDay(dayKey: string): Promise<EventRecord[]> {
           to_char(start_at at time zone 'America/Chicago', 'YYYY-MM-DD') = ${dayKey}
           -- A multi-day festival is happening on every day it spans, so it must
           -- surface in "what's on today" — not only on its opening day (4.4).
+          -- The span can come from the collapse (multi_day_end) OR from an event
+          -- stored as one row whose end_at lands on a later date.
           or (
-            multi_day_end is not null
+            coalesce(multi_day_end, case
+              when to_char(end_at at time zone 'America/Chicago', 'YYYY-MM-DD')
+                 > to_char(start_at at time zone 'America/Chicago', 'YYYY-MM-DD')
+               and not (
+                 -- late-night rule: ending before 6 AM the very next day is a
+                 -- late show, not a two-day span
+                 (end_at at time zone 'America/Chicago')::date
+                   = (start_at at time zone 'America/Chicago')::date + 1
+                 and extract(hour from end_at at time zone 'America/Chicago') < 6
+               )
+              then end_at end) is not null
             and to_char(start_at at time zone 'America/Chicago', 'YYYY-MM-DD') <= ${dayKey}
-            and to_char(multi_day_end at time zone 'America/Chicago', 'YYYY-MM-DD') >= ${dayKey}
+            and to_char(coalesce(multi_day_end, end_at) at time zone 'America/Chicago', 'YYYY-MM-DD') >= ${dayKey}
           )
         )
       order by start_at asc

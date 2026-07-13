@@ -65,6 +65,18 @@ export function runKey(ev: Pick<EventRecord, "title" | "city">): string {
   return `${normalizeRunTitle(ev.title)}|${normalizeCityKey(ev.city)}`;
 }
 
+/**
+ * SPORTS SERIES ARE NOT RUNS. A homestand is the same title in the same city on
+ * consecutive days — "St. Paul Saints vs. Columbus Clippers" appears seven days
+ * straight on the live calendar — but each of those is a REAL, SEPARATE game.
+ * Collapsing them would archive six real events. So for sports, only SAME-DAY
+ * rows may cluster (a true duplicate of one game); a next-day row is always a
+ * new game.
+ */
+function maxGapFor(category: string | undefined): number {
+  return category === "sports" ? 0 : 1;
+}
+
 export interface RunCluster<T> {
   key: string;
   /** Events sorted by start, forming ONE consecutive run (gaps ≤ 1 day). */
@@ -82,9 +94,9 @@ export interface RunCluster<T> {
  * adjacent (gap of 0 or 1 day). A weekly series has 7-day gaps, so it never
  * collapses — which is exactly what protects "Day Block Brewing Date Night".
  */
-export function groupRuns<T extends Pick<EventRecord, "title" | "city" | "start">>(
-  events: T[],
-): RunCluster<T>[] {
+export function groupRuns<
+  T extends Pick<EventRecord, "title" | "city" | "start"> & { category?: string },
+>(events: T[]): RunCluster<T>[] {
   const byKey = new Map<string, T[]>();
   for (const ev of events) {
     const k = runKey(ev);
@@ -105,7 +117,8 @@ export function groupRuns<T extends Pick<EventRecord, "title" | "city" | "start"
       const prevDay = dayNumber(current[current.length - 1].start);
       const gap = dayNumber(ev.start) - prevDay;
       // Same day (a duplicate) or the next day (a continuing run) → same cluster.
-      if (gap <= 1) {
+      // Sports never continue across days: each game is its own event.
+      if (gap <= maxGapFor(ev.category)) {
         current.push(ev);
       } else {
         clusters.push(makeCluster(key, current));
@@ -125,23 +138,48 @@ function makeCluster<T extends Pick<EventRecord, "start">>(key: string, events: 
 }
 
 /** Clusters worth acting on: more than one row means a collapse or a merge. */
-export function collapsibleClusters<T extends Pick<EventRecord, "title" | "city" | "start">>(
-  events: T[],
-): RunCluster<T>[] {
+export function collapsibleClusters<
+  T extends Pick<EventRecord, "title" | "city" | "start"> & { category?: string },
+>(events: T[]): RunCluster<T>[] {
   return groupRuns(events).filter((c) => c.events.length > 1);
 }
 
 // ── Display ───────────────────────────────────────────────────────────────
 
+type Spannable = Pick<EventRecord, "start" | "multiDayEnd"> & { end?: string };
+
+/**
+ * The last day an event runs, from EITHER source of span:
+ *  - `multiDayEnd`, set by the 4.4 collapse (row-per-day festivals), or
+ *  - the event's own `end` when it lands on a later DATE than `start` — some
+ *    events arrive as one row with a two-week `end_at` (a county fair on the
+ *    live site rendered as "7 PM – 6 PM" because same-day time-range formatting
+ *    was applied to a 13-day range).
+ * Null for ordinary single-day events.
+ */
+export function spanEnd(ev: Spannable): string | null {
+  if (ev.multiDayEnd && dayOf(ev.multiDayEnd) > dayOf(ev.start)) return ev.multiDayEnd;
+  if (ev.end && dayOf(ev.end) > dayOf(ev.start)) {
+    // An event ending in the small hours of the next morning is a LATE NIGHT
+    // (a 9 PM show ending at 1 AM), not a two-day festival. Only an end at
+    // 6 AM or later on a following day counts as a real span.
+    const nextMorning =
+      dayNumber(ev.end) - dayNumber(ev.start) === 1 &&
+      Number((ev.end.slice(11, 13) || "0")) < 6;
+    if (!nextMorning) return ev.end;
+  }
+  return null;
+}
+
 /** True when an event spans more than one day. */
-export function isMultiDay(ev: Pick<EventRecord, "start" | "multiDayEnd">): boolean {
-  return Boolean(ev.multiDayEnd) && dayOf(ev.multiDayEnd!) !== dayOf(ev.start);
+export function isMultiDay(ev: Spannable): boolean {
+  return spanEnd(ev) !== null;
 }
 
 /** "Jul 20 – 28" or "Jul 30 – Aug 2". */
-export function multiDayLabel(ev: Pick<EventRecord, "start" | "multiDayEnd">): string {
+export function multiDayLabel(ev: Spannable): string {
   const a = new Date(`${dayOf(ev.start)}T12:00:00`);
-  const b = new Date(`${dayOf(ev.multiDayEnd ?? ev.start)}T12:00:00`);
+  const b = new Date(`${dayOf(spanEnd(ev) ?? ev.start)}T12:00:00`);
   const left = `${MONTHS[a.getMonth()].slice(0, 3)} ${a.getDate()}`;
   const right =
     a.getMonth() === b.getMonth()
@@ -151,17 +189,19 @@ export function multiDayLabel(ev: Pick<EventRecord, "start" | "multiDayEnd">): s
 }
 
 /** Number of days an event runs (1 for a normal event). */
-export function runLength(ev: Pick<EventRecord, "start" | "multiDayEnd">): number {
-  if (!isMultiDay(ev)) return 1;
-  return dayNumber(ev.multiDayEnd!) - dayNumber(ev.start) + 1;
+export function runLength(ev: Spannable): number {
+  const end = spanEnd(ev);
+  if (!end) return 1;
+  return dayNumber(end) - dayNumber(ev.start) + 1;
 }
 
 /**
  * Does this event occur on `dayKey`? A multi-day festival is happening on every
  * day it spans — so it should surface in "what's on today", not only on day one.
  */
-export function spansDay(ev: Pick<EventRecord, "start" | "multiDayEnd">, dayKey: string): boolean {
+export function spansDay(ev: Spannable, dayKey: string): boolean {
   const start = dayOf(ev.start);
-  if (!isMultiDay(ev)) return start === dayKey;
-  return dayKey >= start && dayKey <= dayOf(ev.multiDayEnd!);
+  const end = spanEnd(ev);
+  if (!end) return start === dayKey;
+  return dayKey >= start && dayKey <= dayOf(end);
 }

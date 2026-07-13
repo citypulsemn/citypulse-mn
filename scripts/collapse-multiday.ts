@@ -21,6 +21,7 @@ interface Row {
   id: string;
   title: string;
   city: string;
+  category: string;
   start: string;
 }
 
@@ -29,7 +30,7 @@ async function main() {
   if (!sql) throw new Error("DATABASE_URL is required");
 
   const rows = await sql<Row[]>`
-    select id::text as id, title, city,
+    select id::text as id, title, city, category,
            to_char(start_at at time zone 'America/Chicago', 'YYYY-MM-DD"T"HH24:MI') as start
     from events
     where status in ('published', 'draft')

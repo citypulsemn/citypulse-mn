@@ -148,7 +148,21 @@ export function windowLabel(win: DateWindow): string {
  */
 export function daysSpanned(ev: EventRecord): string[] {
   const start = dkey(evDate(ev));
-  const endISO = ev.multiDayEnd;
+  // Same rule as lib/multiday.ts spanEnd: a span can come from the 4.4 collapse
+  // (multiDayEnd) OR from the event's own end landing on a later date.
+  // Mirrors lib/multiday.ts spanEnd, including the late-night rule (an event
+  // ending before 6 AM the next morning is not a two-day span).
+  const startDay = ev.start.slice(0, 10);
+  let endISO: string | null = null;
+  if (ev.multiDayEnd && ev.multiDayEnd.slice(0, 10) > startDay) {
+    endISO = ev.multiDayEnd;
+  } else if (ev.end && ev.end.slice(0, 10) > startDay) {
+    const nextDay = new Date(`${startDay}T12:00:00`);
+    nextDay.setDate(nextDay.getDate() + 1);
+    const isNextDay = ev.end.slice(0, 10) === dkey(nextDay);
+    const smallHours = Number(ev.end.slice(11, 13) || "0") < 6;
+    if (!(isNextDay && smallHours)) endISO = ev.end;
+  }
   if (!endISO) return [start];
   const endKey = endISO.slice(0, 10);
   if (endKey <= start) return [start];

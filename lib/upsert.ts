@@ -181,9 +181,9 @@ export async function collapseMultiDayRuns(): Promise<{ collapsed: number; merge
   const sql = requireSql();
 
   const rows = await sql<
-    { id: string; title: string; city: string; start: string; day: string }[]
+    { id: string; title: string; city: string; category: string; start: string; day: string }[]
   >`
-    select id::text as id, title, city,
+    select id::text as id, title, city, category,
            to_char(start_at at time zone 'America/Chicago', 'YYYY-MM-DD"T"HH24:MI') as start,
            to_char(start_at at time zone 'America/Chicago', 'YYYY-MM-DD') as day
     from events

@@ -111,6 +111,46 @@ describe("groupRuns — the three cases that look identical but aren't", () => {
     expect(groupRuns(events)).toHaveLength(4); // four separate events, untouched
   });
 
+
+  /**
+   * THE BUG THE SECOND LIVE-SITE AUDIT CAUGHT — before the collapse was ever
+   * run in production. "St. Paul Saints vs. Columbus Clippers" appears SEVEN
+   * consecutive days on the live calendar (Jul 21–27). Same title, same city,
+   * consecutive days — the exact shape of a multi-day run — but each is a real,
+   * separate game. Sports must NEVER form consecutive-day runs.
+   */
+  it("SPORTS HOMESTAND: seven consecutive Saints games are never collapsed", () => {
+    const games = Array.from({ length: 7 }, (_, i) =>
+      ev({
+        id: `g${i}`,
+        title: "St. Paul Saints vs. Columbus Clippers",
+        category: "sports",
+        city: "St Paul",
+        start: `2026-07-${21 + i}T19:00`,
+      }),
+    );
+    expect(collapsibleClusters(games)).toEqual([]);
+    expect(groupRuns(games)).toHaveLength(7);
+  });
+
+  it("sports on consecutive days with a vague repeated title also survive", () => {
+    const games = [
+      ev({ id: "l1", title: "Minnesota Lynx Home Game", category: "sports", city: "Minneapolis", start: "2026-07-26T19:00" }),
+      ev({ id: "l2", title: "Minnesota Lynx Home Game", category: "sports", city: "Minneapolis", start: "2026-07-27T19:00" }),
+    ];
+    expect(collapsibleClusters(games)).toEqual([]);
+  });
+
+  it("a SAME-DAY sports duplicate still merges (two rows for one game)", () => {
+    const rows = [
+      ev({ id: "s1", title: "Minnesota Twins vs. Kansas City Royals", category: "sports", city: "Minneapolis", start: "2026-07-28T19:10" }),
+      ev({ id: "s2", title: "Minnesota Twins vs. Kansas City Royals", category: "sports", city: "Minneapolis", start: "2026-07-28T19:10" }),
+    ];
+    const clusters = collapsibleClusters(rows);
+    expect(clusters).toHaveLength(1);
+    expect(clusters[0].multiDay).toBe(false); // a merge, never a run
+  });
+
   it("a two-day gap is NOT a run (a Fri + Mon series stays separate)", () => {
     const events = [
       ev({ title: "Series", start: "2026-08-14T10:00" }),
@@ -180,5 +220,38 @@ describe("calendar expansion", () => {
     const byDay = eventsByDay([fair], active);
     expect(Object.keys(byDay).sort()).toEqual(["2026-08-20", "2026-08-21", "2026-08-22"]);
     expect(byDay["2026-08-21"][0].id).toBe("fair");
+  });
+});
+
+describe("spanEnd from the event's own end_at (second live-site audit)", () => {
+  it("a one-row fair with a 13-day end renders as a run, not '7 PM – 6 PM'", () => {
+    // Ramsey County Fair on the live site: start Jul 15 7 PM, end Jul 29.
+    const fair = ev({ start: "2026-07-15T19:00", end: "2026-07-29T18:00", multiDayEnd: null });
+    expect(isMultiDay(fair)).toBe(true);
+    expect(multiDayLabel(fair)).toBe("Jul 15 – 29");
+    expect(runLength(fair)).toBe(15);
+    expect(spansDay(fair, "2026-07-22")).toBe(true);
+  });
+
+  it("a normal evening event (end later the same day) is NOT multi-day", () => {
+    const show = ev({ start: "2026-07-15T19:00", end: "2026-07-15T23:00" });
+    expect(isMultiDay(show)).toBe(false);
+  });
+
+  it("a late show ending at 1 AM is NOT a two-day span (late-night rule)", () => {
+    const late = ev({ start: "2026-07-15T21:00", end: "2026-07-16T01:00" });
+    expect(isMultiDay(late)).toBe(false);
+    expect(runLength(late)).toBe(1);
+  });
+
+  it("a genuine Sat–Sun weekend event (ending Sunday evening) IS a span", () => {
+    const weekend = ev({ start: "2026-07-18T10:00", end: "2026-07-19T18:00" });
+    expect(isMultiDay(weekend)).toBe(true);
+    expect(runLength(weekend)).toBe(2);
+  });
+
+  it("multiDayEnd wins when both are present", () => {
+    const both = ev({ start: "2026-07-15T10:00", end: "2026-07-16T18:00", multiDayEnd: "2026-07-20T23:59" });
+    expect(multiDayLabel(both)).toBe("Jul 15 – 20");
   });
 });
