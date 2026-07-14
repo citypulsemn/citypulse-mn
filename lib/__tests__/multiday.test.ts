@@ -209,9 +209,18 @@ describe("calendar expansion", () => {
     expect(daysSpanned(ev({ start: "2026-08-20T10:00" }))).toEqual(["2026-08-20"]);
   });
 
-  it("caps runaway spans (a bad multi_day_end can't balloon the calendar)", () => {
-    const days = daysSpanned(ev({ start: "2026-01-01T10:00", multiDayEnd: "2030-01-01T00:00" }));
-    expect(days.length).toBeLessThanOrEqual(60);
+  it("ONGOING RULE: spans longer than 14 days show on their start day only", () => {
+    // A three-month exhibition repeated on every calendar cell buried the rest
+    // of the calendar (live regression, caught by the user). Long spans are
+    // ongoing attractions, not daily events.
+    const exhibition = ev({ start: "2026-06-01T10:00", end: "2026-09-07T17:00" });
+    expect(daysSpanned(exhibition)).toEqual(["2026-06-01"]);
+
+    const fair = ev({ start: "2026-08-20T09:00", multiDayEnd: "2026-08-31T23:59" }); // 12 days
+    expect(daysSpanned(fair)).toHaveLength(12);
+
+    const runaway = ev({ start: "2026-01-01T10:00", multiDayEnd: "2030-01-01T00:00" });
+    expect(daysSpanned(runaway)).toEqual(["2026-01-01"]);
   });
 
   it("eventsByDay puts a festival on every day it spans", () => {

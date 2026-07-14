@@ -146,6 +146,14 @@ export function windowLabel(win: DateWindow): string {
  * for a multi-day festival (roadmap 4.4). Capped so a bad `multi_day_end` can't
  * balloon the calendar.
  */
+/**
+ * Spans longer than this show on their start day only. A 12-day State Fair
+ * belongs on every day it runs; a three-month museum exhibition repeated on
+ * ninety calendar cells buries everything else (this actually happened — the
+ * calendar showed the same three exhibitions on every day of July).
+ */
+export const EXPAND_MAX_DAYS = 14;
+
 export function daysSpanned(ev: EventRecord): string[] {
   const start = dkey(evDate(ev));
   // Same rule as lib/multiday.ts spanEnd: a span can come from the 4.4 collapse
@@ -170,9 +178,12 @@ export function daysSpanned(ev: EventRecord): string[] {
   const out: string[] = [];
   const cur = new Date(`${start}T12:00:00`);
   const end = new Date(`${endKey}T12:00:00`);
-  for (let i = 0; i < 60 && cur <= end; i++) {
+  for (let i = 0; i < EXPAND_MAX_DAYS && cur <= end; i++) {
     out.push(dkey(cur));
     cur.setDate(cur.getDate() + 1);
   }
+  // Longer than the cap ⇒ an ongoing attraction, not a daily event: show it on
+  // its start day only instead of flooding the calendar.
+  if (cur <= end) return [start];
   return out;
 }

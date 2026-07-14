@@ -151,6 +151,10 @@ export async function getEventsForDay(dayKey: string): Promise<EventRecord[]> {
               then end_at end) is not null
             and to_char(start_at at time zone 'America/Chicago', 'YYYY-MM-DD') <= ${dayKey}
             and to_char(coalesce(multi_day_end, end_at) at time zone 'America/Chicago', 'YYYY-MM-DD') >= ${dayKey}
+            -- Same cap as the client (EXPAND_MAX_DAYS): spans longer than 14
+            -- days are ongoing attractions, shown on their start day only.
+            and (coalesce(multi_day_end, end_at) at time zone 'America/Chicago')::date
+              - (start_at at time zone 'America/Chicago')::date <= 14
           )
         )
       order by start_at asc

@@ -8,6 +8,7 @@ import {
   evDate,
   eventsInWindow,
   rangeWindow,
+  daysSpanned,
 } from "@/lib/dates";
 import { searchEvents } from "@/lib/search";
 import { applyPriceArea } from "@/lib/filters";
@@ -82,9 +83,21 @@ export function EventsExplorer({
 
   const dayEvents = useMemo(() => {
     if (!dayKey) return [];
+    // MUST match the calendar cells' rule (eventsByDay → daysSpanned): the cell
+    // showed spanning events but this panel filtered by start day only, so
+    // clicking a day could open an empty panel under a full-looking cell.
     return filtered
-      .filter((ev) => active.has(ev.category) && dkey(evDate(ev)) === dayKey)
-      .sort((a, b) => evDate(a).getTime() - evDate(b).getTime());
+      .filter((ev) => active.has(ev.category) && daysSpanned(ev).includes(dayKey))
+      .sort((a, b) => {
+        // Ongoing/multi-day items first (they're all-day context), then timed
+        // events by their clock time. Sorting spans by their original (old)
+        // start dates would be meaningless here.
+        const aSpan = daysSpanned(a).length > 1 ? 0 : 1;
+        const bSpan = daysSpanned(b).length > 1 ? 0 : 1;
+        if (aSpan !== bSpan) return aSpan - bSpan;
+        if (aSpan === 0) return a.title.localeCompare(b.title);
+        return evDate(a).getTime() - evDate(b).getTime();
+      });
   }, [filtered, active, dayKey]);
 
   // Log search terms (no-op until roadmap 1.4 wires analytics).
