@@ -56,6 +56,11 @@ async function main() {
     runId = rows[0]?.id;
   }
 
+  // Everything below runs inside a try so a failure FINALIZES the run row with
+  // the error message. Previously a crash left the initial `ok=false` row with
+  // error NULL — indistinguishable from a hard kill. (A kill, e.g. the GitHub
+  // Actions timeout, still can't write; its signature is finished_at IS NULL.)
+  try {
   for (const win of windows) {
     console.log(`\n[pipeline] === band: ${win.label} (${win.startDate} → ${win.endDate}) ===`);
     let bandTotal = 0;
@@ -79,24 +84,33 @@ async function main() {
       // happens to surface. Dedup on event_key makes the overlap harmless.
       if (isVenueAnchored(category) && win.label === "near") {
         const shards = shardVenues(venuesFor(category), VENUES_PER_SHARD);
-        for (const [i, shard] of shards.entries()) {
-          const names = shard.map((v) => v.name).join(", ");
-          console.log(`[pipeline] ${win.label}/${category} venue sweep ${i + 1}/${shards.length}: ${names}`);
-          try {
-            const swept = await researchVenueShard(
-              category,
-              shard,
-              win.startDate,
-              win.endDate,
-              VENUE_SWEEP_SEARCHES,
+        console.log(
+          `[pipeline] ${win.label}/${category}: ${shards.length} venue sweeps in parallel`,
+        );
+        // Shards run in PARALLEL: serially they added ~30+ minutes of wall
+        // clock, which pushed the Jul 14 run past the workflow's timeout and
+        // GitHub killed it mid-flight (ok=false, error null, nothing upserted).
+        // allSettled keeps one shard's failure from sinking the others.
+        const results = await Promise.allSettled(
+          shards.map((shard) =>
+            researchVenueShard(category, shard, win.startDate, win.endDate, VENUE_SWEEP_SEARCHES),
+          ),
+        );
+        results.forEach((res, i) => {
+          const names = shards[i].map((v) => v.name).join(", ");
+          if (res.status === "fulfilled") {
+            console.log(
+              `[pipeline]   sweep ${i + 1}/${shards.length} (${names}): ${res.value.length} event(s)`,
             );
-            console.log(`[pipeline]   swept ${swept.length} event(s)`);
-            found = found.concat(swept);
-            venueSwept += swept.length;
-          } catch (err) {
-            console.error(`[pipeline] ${win.label}/${category} venue sweep ${i + 1} failed:`, err);
+            found = found.concat(res.value);
+            venueSwept += res.value.length;
+          } else {
+            console.error(
+              `[pipeline]   sweep ${i + 1}/${shards.length} (${names}) failed:`,
+              res.reason,
+            );
           }
-        }
+        });
       }
 
       if (found.length === 0) continue;
@@ -231,6 +245,18 @@ async function main() {
         bands = ${sql.json(perBand)}
       where id = ${runId}
     `;
+  }
+  } catch (err) {
+    if (sql && runId != null) {
+      await sql`
+        update pipeline_runs set
+          finished_at = now(), ok = false,
+          upserted = ${totalUpserted},
+          error = ${String(err).slice(0, 500)}
+        where id = ${runId}
+      `.catch(() => {});
+    }
+    throw err;
   }
 
   await sql?.end({ timeout: 5 });
