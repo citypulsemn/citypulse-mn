@@ -1,6 +1,7 @@
 import { sql } from "./db";
 import { sampleEvents } from "./sample-events";
 import { isPublicStatus, dayKeyOf } from "./event-view";
+import { cleanEventTitle, displayCity } from "./title-hygiene";
 import type { EventRecord, EventStatus, CategoryKey, PriceTier } from "./types";
 
 /**
@@ -38,11 +39,17 @@ interface Row {
 function rowToEvent(r: Row): EventRecord {
   return {
     id: r.id,
-    title: r.title,
+    // ROADMAP 4.7 — titles/cities are cleaned at the read path, in this one
+    // place, so every consumer (cards, detail, digest, .ics, JSON-LD, OG
+    // images) inherits it. The RAW title stays in the database: it feeds the
+    // dedup key (mid-title parens are hashed as-is, so rewriting stored titles
+    // would change keys and duplicate events on re-find) and the admin shows
+    // it as provenance.
+    title: cleanEventTitle(r.title, r.venue, r.city),
     category: r.category,
     venue: r.venue,
     address: r.address,
-    city: r.city,
+    city: displayCity(r.city),
     lat: Number(r.lat),
     lng: Number(r.lng),
     start: r.start,

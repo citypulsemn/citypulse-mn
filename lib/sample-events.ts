@@ -1,11 +1,12 @@
 import type { EventRecord } from "./types";
+import { cleanEventTitle, displayCity } from "./title-hygiene";
 
 /**
  * Bundled sample events (Twin Cities metro, June 2026).
  * Used automatically when EVENTS_CSV_URL is not set, so the app runs out of the box.
  * In production these are replaced by published rows from your Google Sheet.
  */
-export const sampleEvents: EventRecord[] = [
+const rawSampleEvents: EventRecord[] = [
   {
     "id": "1",
     "title": "Trampled by Turtles",
@@ -577,3 +578,11 @@ export const sampleEvents: EventRecord[] = [
     "status": "published"
   }
 ];
+
+// ROADMAP 4.7 — the sample fallback goes through the same read-path hygiene as
+// database rows, so local dev and previews match production display exactly.
+export const sampleEvents: EventRecord[] = rawSampleEvents.map((e) => ({
+  ...e,
+  title: cleanEventTitle(e.title, e.venue, e.city),
+  city: displayCity(e.city),
+}));
