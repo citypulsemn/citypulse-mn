@@ -603,3 +603,10 @@ a.daycard { text-decoration: none; }
 /* ---------- Multi-day events (roadmap 4.4) ---------- */
 .run-badge { display: inline-block; padding: 3px 8px; border: 1px solid var(--gold); border-radius: 999px; color: var(--gold); font-size: 11px; font-family: "Oswald"; font-weight: 500; letter-spacing: 0.03em; white-space: nowrap; line-height: 1.4; }
 .run-note { color: var(--cream-dim); font-size: 13px; }
+
+/* ---------- First-party analytics (roadmap 5.1) ---------- */
+.stats-grid-5 { grid-template-columns: repeat(5, 1fr); }
+@media (max-width: 720px) { .stats-grid-5 { grid-template-columns: repeat(2, 1fr); } }
+.admin-h3-links { font-size: 12px; font-weight: 400; letter-spacing: 0; margin-left: 8px; }
+.admin-h3-links a { color: var(--cream-dim); }
+.admin-h3-links a.active { color: var(--gold); }

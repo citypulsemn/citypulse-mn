@@ -1,6 +1,7 @@
 "use client";
 
 import { track } from "@/lib/track";
+import { sendStat } from "./StatBeacon";
 import type { EventRecord } from "@/lib/types";
 
 /**
@@ -22,13 +23,15 @@ export function TicketButton({ event }: { event: EventRecord }) {
       href={event.ticketUrl}
       target="_blank"
       rel="noopener noreferrer"
-      onClick={() =>
+      onClick={() => {
+        // Vendor analytics (the 1.4 seam) AND our first-party counter (5.1).
         track("ticket_click", {
           id: event.id,
           category: event.category,
           title: event.title,
-        })
-      }
+        });
+        sendStat(event.id, "ticket_click");
+      }}
     >
       Tickets &amp; Info
     </a>

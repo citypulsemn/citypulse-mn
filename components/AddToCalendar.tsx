@@ -1,6 +1,7 @@
 "use client";
 
 import { track } from "@/lib/track";
+import { sendStat } from "./StatBeacon";
 import { googleCalendarUrl } from "@/lib/ics";
 import type { EventRecord } from "@/lib/types";
 
@@ -28,7 +29,12 @@ export function AddToCalendar({ event }: { event: EventRecord }) {
           href={gcalHref}
           target="_blank"
           rel="noopener noreferrer"
-          onClick={() => track("ics_download", { id: event.id, target: "google" })}
+          onClick={() => {
+            track("ics_download", { id: event.id, target: "google" });
+            // First-party count (5.1). The .ics link above is counted in its
+            // download route instead — beaconing it here too would double-count.
+            sendStat(event.id, "calendar");
+          }}
         >
           Google Calendar
         </a>

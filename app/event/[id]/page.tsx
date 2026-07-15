@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getEvent, getEventsForDay } from "@/lib/events";
 import { EventDetailBody } from "@/components/EventDetailBody";
+import { StatBeacon } from "@/components/StatBeacon";
 import { EventDayCard } from "@/components/EventDayCard";
 import { ShareButton } from "@/components/ShareButton";
 import { Logo } from "@/components/Logo";
@@ -99,6 +100,9 @@ export default async function EventPage({
           {ended && (
             <div className="evt-banner ended">This event has already happened.</div>
           )}
+          {/* First-party view counter (roadmap 5.1): client-side so
+              prefetches and non-JS crawlers do not inflate the numbers. */}
+          <StatBeacon eventId={event.id} action="view" />
           <EventDetailBody
             event={event}
             actions={<ShareButton url={`/event/${event.id}`} title={event.title} eventId={event.id} />}

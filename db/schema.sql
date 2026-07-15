@@ -262,3 +262,16 @@ alter table events add column if not exists verified_at timestamptz;
 -- Date-only events (festivals, fairs) display "All day" instead of a fake
 -- clock time invented by timezone drift.
 alter table events add column if not exists all_day boolean not null default false;
+
+-- ── First-party analytics (roadmap 5.1) ───────────────────────────────────
+-- Aggregate-only by design: one counter per (event, Chicago-day, action).
+-- No user identifiers, no IPs, no cookies — the table cannot answer "who did
+-- what", only "how many". That's the privacy story AND the schema.
+create table if not exists event_stats (
+  event_id  uuid not null references events(id) on delete cascade,
+  day       date not null,
+  action    text not null check (action in ('view','ticket_click','save','calendar')),
+  count     integer not null default 0,
+  primary key (event_id, day, action)
+);
+create index if not exists idx_event_stats_day on event_stats (day);

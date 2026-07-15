@@ -1,42 +1,28 @@
-# Analytics
+# First-party analytics
 
-Roadmap 1.4. City Pulse uses **Vercel Analytics** (page views + custom events) and **Vercel Speed Insights** (Web Vitals). Both are cookieless and privacy-friendly — **no cookie-consent banner required**.
+Roadmap 5.1. The feedback loop: which events people view, click through, save, and put on their calendars — counted in our own database, joinable against our own data, not locked in a vendor dashboard.
 
-## Architecture
+## Privacy by schema
 
-- `app/layout.tsx` mounts `<Analytics />` and `<SpeedInsights />` — this is the entire traffic + Web-Vitals layer.
-- Every custom event goes through **one wrapper**: `lib/track.ts` → `track(name, props)`. Components never import the vendor directly, so Vercel can be swapped for Plausible/umami/first-party later without touching a single call site.
-- The wrapper no-ops on the server, never throws, and forwards only primitive properties (Vercel's requirement).
+`event_stats` holds one counter per **(event, Chicago-day, action)**. No user identifiers, no IPs, no cookies. The table cannot answer "who did what" — only "how many" — so there is nothing to leak or comply about. This is the design, not a policy layered on top.
 
-## Custom events
+## The four actions and their write paths
 
-| Event | Where | Properties |
+| Action | Counted where | Why there |
 |---|---|---|
-| `ticket_click` ⭐ | ticket CTA (modal + event page) | `id`, `category`, `title` |
-| `event_open` | opening the detail modal | `id`, `category`, `surface` (`calendar` \| `map`) |
-| `share_click` | Share button | `id`, `title` |
-| `search` | search box (debounced) | `q`, `results` |
-| `chip_toggle` | category chip | `category` |
-| `preset_select` | range preset | `preset` |
-| `price_toggle` | price filter (2.5) | `tier` |
-| `area_toggle` | area filter (2.5) | `area` |
-| `save_toggle` | Save/unsave an event (3.3) | `id`, `saved` |
+| `view` | client beacon on the event detail page | client-side, so prefetches and non-JS crawlers don't inflate it |
+| `ticket_click` | client beacon in TicketButton (alongside the vendor `track()` seam) | the click ends on an external page; `sendBeacon` survives navigation |
+| `calendar` | **server-side** in the `.ics` download route; client beacon for the Google Calendar link | the route *is* the download → exact count; Google is an external URL |
+| `save` | **server-action only** (`toggleSaveAction`, adds only) | deliberately NOT accepted by the public beacon — the one metric tied to real user state shouldn't be inflatable with a curl loop |
 
-`ticket_click` is the **north-star metric** — it's the proof-of-value number for the Phase-4 venue pitch ("we drove N ticket clicks for your events").
+## The beacon endpoint
 
-`ics_download` (add-to-calendar) — live as of roadmap 2.3 (`target: ics | google`).
+`POST /api/beacon` with `{id, action}`. `parseBeacon` (pure, tested) accepts exactly a UUID plus an allow-listed public action; everything else is dropped. The endpoint **always answers 204** — a beacon must never surface an error to a page, and a uniform response gives probes nothing to learn from. Unknown-but-valid UUIDs die silently on the foreign key. `recordStat` swallows every failure by contract: analytics must never break the feature it measures.
 
-## Viewing the data
+Honest limitation: the public actions (`view`, `ticket_click`, `calendar`) *can* be inflated by a determined script — first-party beacons always can. Counts are directional instruments for editorial decisions, not billing records.
 
-In the **Vercel dashboard → your project → Analytics**:
-- **Web Analytics** tab: page views, top pages (event/day pages included), referrers, countries, devices.
-- **Custom Events** section: counts per event name; click an event to break down by its properties (e.g. `ticket_click` by `title`, `search` by `q`). This answers "top events by ticket clicks this week" and "what are people searching."
-- **Speed Insights** tab: Core Web Vitals per route.
+## Reading it
 
-## Enabling (one-time)
+**Admin → Stats** now ends with the Engagement section: totals (views, ticket clicks, view→ticket CTR, saves, calendar adds), top events, and a by-day table, over a 7d/30d toggle. `getEngagement()` in `lib/stats.ts` is the query if you want it elsewhere (it's what 5.2 trending will build on).
 
-Analytics only collects once enabled on the project (see the deploy guide): Vercel dashboard → project → **Analytics** → enable **Web Analytics** and **Speed Insights**. Data appears within a few minutes of real traffic on the production deployment. Locally and in preview, `track()` safely no-ops.
-
-## Later
-
-Roadmap **5.4 (Trending & related)** introduces a first-party `event_stats` table — a server-side dual-write so the engagement data becomes queryable *product* fuel (trending strips, the admin snapshot in 1.5). That's when analytics stops being just a dashboard and starts driving on-site features. Until then, the Vercel dashboard is the source of truth.
+Vendor analytics (Vercel, via the `lib/track.ts` seam) still exists for site-wide vitals and search events; 5.1 doesn't replace that seam — it adds the per-event data that's ours.
