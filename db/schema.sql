@@ -275,3 +275,10 @@ create table if not exists event_stats (
   primary key (event_id, day, action)
 );
 create index if not exists idx_event_stats_day on event_stats (day);
+
+-- ── Personalized digest (roadmap 5.3) ─────────────────────────────────────
+-- The bridge between an email subscriber and the anonymous saver cookie,
+-- captured ONLY when someone subscribes from a browser where they've saved
+-- events. Used for exactly one thing: showing subscribers their own saved
+-- events in their own email. Cleared on unsubscribe.
+alter table subscribers add column if not exists saver_token text;

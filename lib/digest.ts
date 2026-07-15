@@ -26,6 +26,10 @@ export interface DigestOptions {
   weekLabel: string;
   unsubscribeUrl: string;
   siteUrl: string;
+  /** ROADMAP 5.3 — the subscriber's own saved events happening this week.
+   *  When present and non-empty, a "You saved these" section leads the email.
+   *  Absent/empty ⇒ the digest is exactly the standard one. */
+  savedThisWeek?: EventRecord[];
 }
 
 /** The curated ~8-event set for the email: family + unique + top regulars. */
@@ -94,15 +98,29 @@ function eventRowHtml(e: EventRecord, siteUrl: string): string {
 
 export function renderDigestEmail(opts: DigestOptions): DigestData {
   const { events, weekLabel, unsubscribeUrl, siteUrl } = opts;
+  const saved = opts.savedThisWeek ?? [];
   const top = events[0];
   const subject =
-    events.length === 0
-      ? "This week in the Twin Cities"
-      : events.length === 1
-        ? `This week: ${top.title}`
-        : `This week in the Twin Cities: ${top.title} + ${events.length - 1} more`;
+    saved.length > 0
+      ? `You saved ${saved.length === 1 ? `"${saved[0].title}"` : `${saved.length} events`} — happening this week`
+      : events.length === 0
+        ? "This week in the Twin Cities"
+        : events.length === 1
+          ? `This week: ${top.title}`
+          : `This week in the Twin Cities: ${top.title} + ${events.length - 1} more`;
 
   const rows = events.map((e) => eventRowHtml(e, siteUrl)).join("");
+  const savedRows = saved.map((e) => eventRowHtml(e, siteUrl)).join("");
+  const savedSection = saved.length === 0 ? "" : `
+        <tr><td style="padding:16px 24px 0;">
+          <div style="font:600 13px/1.2 Arial,Helvetica,sans-serif;color:${GOLD};text-transform:uppercase;letter-spacing:1.5px;">You saved these — happening this week</div>
+        </td></tr>
+        <tr><td style="padding:12px 24px 0;">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0">${savedRows}</table>
+        </td></tr>
+        <tr><td style="padding:2px 24px 0;">
+          <div style="font:600 13px/1.2 Arial,Helvetica,sans-serif;color:${GOLD};text-transform:uppercase;letter-spacing:1.5px;">Also worth your time</div>
+        </td></tr>`;
 
   const html = `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head><body style="margin:0;padding:0;background:#0a1020;">
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0a1020;">
@@ -113,8 +131,8 @@ export function renderDigestEmail(opts: DigestOptions): DigestData {
           <div style="font:400 14px/1.5 Arial,Helvetica,sans-serif;color:${CREAM_DIM};margin-top:6px;">This week in the Twin Cities · ${esc(weekLabel)}</div>
         </td></tr>
         <tr><td style="padding:16px 24px 4px;">
-          <div style="font:400 15px/1.6 Arial,Helvetica,sans-serif;color:${CREAM};">Here's what's worth your time across the metro this week.</div>
-        </td></tr>
+          <div style="font:400 15px/1.6 Arial,Helvetica,sans-serif;color:${CREAM};">${saved.length > 0 ? "Your week, starting with the plans you already made." : "Here's what's worth your time across the metro this week."}</div>
+        </td></tr>${savedSection}
         <tr><td style="padding:14px 24px 0;">
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0">${rows}</table>
         </td></tr>
@@ -134,6 +152,21 @@ export function renderDigestEmail(opts: DigestOptions): DigestData {
   const textLines = [
     `THIS WEEK IN THE TWIN CITIES — ${weekLabel}`,
     "",
+    ...(saved.length > 0
+      ? [
+          "YOU SAVED THESE — HAPPENING THIS WEEK",
+          "",
+          ...saved.flatMap((e) => [
+            e.title,
+            `  ${whenLabel(e)}`,
+            `  ${[e.venue, e.city].filter(Boolean).join(" · ")} · ${e.price}`,
+            `  ${eventUrl(siteUrl, e.id)}`,
+            "",
+          ]),
+          "ALSO WORTH YOUR TIME",
+          "",
+        ]
+      : []),
     ...events.flatMap((e) => [
       e.title,
       `  ${whenLabel(e)}`,

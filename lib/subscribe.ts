@@ -23,6 +23,7 @@ export interface SubscriberStats {
 export interface DigestRecipient {
   id: number;
   email: string;
+  saver_token: string | null;
 }
 
 /** Trim + lowercase so dedupe and lookups are case-insensitive. */
@@ -36,7 +37,11 @@ export function isValidEmail(email: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
 
-export async function addSubscriber(rawEmail: string, source = "site"): Promise<SubscribeResult> {
+export async function addSubscriber(
+  rawEmail: string,
+  source = "site",
+  saverToken: string | null = null,
+): Promise<SubscribeResult> {
   const email = normalizeEmail(rawEmail);
   if (!isValidEmail(email)) return "invalid";
 
@@ -47,13 +52,19 @@ export async function addSubscriber(rawEmail: string, source = "site"): Promise<
   }
 
   try {
-    const rows = await sql<{ id: number }[]>`
-      insert into subscribers (email, source)
-      values (${email}, ${source})
-      on conflict (email) do nothing
-      returning id
+    // ROADMAP 5.3 — the identity bridge. If this browser has the anonymous
+    // saver cookie, remember it on the subscriber row so the digest can lead
+    // with THEIR saved events. On re-subscribe we refresh the link (that's
+    // also how an existing subscriber connects their saves: submit the form
+    // once from the browser they save in).
+    const rows = await sql<{ inserted: boolean }[]>`
+      insert into subscribers (email, source, saver_token)
+      values (${email}, ${source}, ${saverToken})
+      on conflict (email) do update
+        set saver_token = coalesce(excluded.saver_token, subscribers.saver_token)
+      returning (xmax = 0) as inserted
     `;
-    return rows.length > 0 ? "added" : "already";
+    return rows[0]?.inserted ? "added" : "already";
   } catch (err) {
     console.error("[subscribe] insert failed:", err);
     return "error";
@@ -86,7 +97,7 @@ export async function listSubscribers(): Promise<SubscriberRow[]> {
 export async function getSubscribedRecipients(): Promise<DigestRecipient[]> {
   if (!sql) return [];
   return await sql<DigestRecipient[]>`
-    select id, email
+    select id, email, saver_token
     from subscribers
     where status = 'subscribed'
     order by id
@@ -99,7 +110,9 @@ export async function markUnsubscribed(id: number | string): Promise<boolean> {
   if (!/^\d+$/.test(String(id))) return false;
   const rows = await sql<{ id: number }[]>`
     update subscribers
-    set status = 'unsubscribed', unsubscribed_at = now()
+    set status = 'unsubscribed', unsubscribed_at = now(),
+        -- 5.3: sever the saves link — no reason to keep it for someone who left.
+        saver_token = null
     where id = ${id} and status <> 'unsubscribed'
     returning id
   `;

@@ -1,6 +1,7 @@
 "use server";
 
 import { addSubscriber } from "./subscribe";
+import { getSaverToken } from "./saver";
 import type { SubscribeState } from "./subscribe-types";
 
 // A "use server" module must export ONLY async server actions.
@@ -17,7 +18,10 @@ export async function subscribeAction(
 
   const email = String(formData.get("email") || "");
   const source = String(formData.get("source") || "site");
-  const result = await addSubscriber(email, source);
+  // ROADMAP 5.3 — read the anonymous saver cookie from THIS browser (if any)
+  // so the weekly digest can lead with the subscriber's own saved events.
+  const saverToken = await getSaverToken();
+  const result = await addSubscriber(email, source, saverToken);
 
   switch (result) {
     case "added":

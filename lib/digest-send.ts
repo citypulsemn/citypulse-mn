@@ -2,6 +2,8 @@ import { getEvents } from "./events";
 import { getSubscribedRecipients } from "./subscribe";
 import { sql } from "./db";
 import { digestEvents, renderDigestEmail, digestWeekLabel } from "./digest";
+import { selectSavedUpcoming, categoryAffinity, personalizePicks } from "./digest-personal";
+import { getSavedEvents } from "./saved";
 import { unsubscribeUrl, unsubSecret } from "./unsubscribe-token";
 import { SITE_URL } from "./seo/site";
 
@@ -49,9 +51,36 @@ export async function sendWeeklyDigest(opts: { dryRun?: boolean } = {}): Promise
   }
 
   const weekLabel = digestWeekLabel(now);
+
+  // ROADMAP 5.3 — personalization. Recipients who subscribed from a browser
+  // where they'd saved events carry a saver_token; their email leads with
+  // their own imminent saves and reorders the picks toward their taste.
+  // Every failure degrades to the standard digest — personalization must
+  // never cost anyone their email.
+  const savedByToken = new Map<string, Awaited<ReturnType<typeof getSavedEvents>>>();
+  const tokens = [...new Set(recipients.map((r) => r.saver_token).filter((t): t is string => Boolean(t)))];
+  for (const token of tokens) {
+    try {
+      savedByToken.set(token, await getSavedEvents(token));
+    } catch (err) {
+      console.error("[digest] saved fetch failed (standard digest for that token):", err);
+    }
+  }
+  let personalized = 0;
+
   const messages = recipients.map((r) => {
     const unsub = unsubscribeUrl(siteUrl, r.id, secret);
-    const { subject, html, text } = renderDigestEmail({ events: picks, weekLabel, unsubscribeUrl: unsub, siteUrl });
+    const saved = r.saver_token ? (savedByToken.get(r.saver_token) ?? []) : [];
+    const savedThisWeek = selectSavedUpcoming(saved, now);
+    const myPicks = personalizePicks(picks, categoryAffinity(saved), savedThisWeek);
+    if (savedThisWeek.length > 0) personalized++;
+    const { subject, html, text } = renderDigestEmail({
+      events: myPicks,
+      weekLabel,
+      unsubscribeUrl: unsub,
+      siteUrl,
+      savedThisWeek,
+    });
     return {
       from,
       to: [r.email],
@@ -66,14 +95,15 @@ export async function sendWeeklyDigest(opts: { dryRun?: boolean } = {}): Promise
   });
 
   if (dryRun || !apiKey) {
-    const note = dryRun ? "dry run" : "no RESEND_API_KEY — logged only";
+    const base = dryRun ? "dry run" : "no RESEND_API_KEY — logged only";
+    const note = `${base} · ${personalized} personalized`;
     console.log(`[digest] ${note}: ${messages.length} emails, subject="${messages[0].subject}"`);
     return record({ attempted: recipients.length, sent: 0, dryRun: true, ok: true, note });
   }
 
   let sent = 0;
   let ok = true;
-  let note: string | undefined;
+  let note: string | undefined = `${personalized} personalized`;
   for (let i = 0; i < messages.length; i += CHUNK) {
     const chunk = messages.slice(i, i + CHUNK);
     const res = await fetch(RESEND_BATCH_ENDPOINT, {
