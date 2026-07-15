@@ -610,3 +610,12 @@ a.daycard { text-decoration: none; }
 .admin-h3-links { font-size: 12px; font-weight: 400; letter-spacing: 0; margin-left: 8px; }
 .admin-h3-links a { color: var(--cream-dim); }
 .admin-h3-links a.active { color: var(--gold); }
+
+/* ---------- Trending (roadmap 5.2) ---------- */
+.trending { max-width: 1080px; margin: 34px auto 0; padding: 0 max(16px, env(safe-area-inset-left)); }
+.trending-head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
+.trending-title { font-family: "Oswald"; font-weight: 600; font-size: 21px; letter-spacing: 0.02em; margin: 0; }
+.trending-sub { color: var(--cream-dim); font-size: 13px; }
+.trending-all { margin-left: auto; color: var(--gold); font-size: 13.5px; }
+.trending-row { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 10px; }
+.trending-card .daycard { height: 100%; }

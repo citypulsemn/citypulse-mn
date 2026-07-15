@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { getEvents } from "@/lib/events";
 import { COLLECTIONS, selectCollection } from "@/lib/collections";
+import { getTrendingEvents } from "@/lib/trending";
 import { Logo } from "@/components/Logo";
 import { SiteFooter } from "@/components/SiteFooter";
 
@@ -30,6 +31,18 @@ export default async function CollectionsIndex() {
     ...c,
     count: selectCollection(events, c, now).length,
   }));
+
+  // Trending (5.2) leads the list — but only once it has earned its place
+  // (rankTrending's all-or-nothing rule). Before that, the index is unchanged.
+  const trending = await getTrendingEvents();
+  if (trending.length > 0) {
+    cards.unshift({
+      slug: "trending",
+      title: "Trending Now",
+      tagline: "What the Twin Cities is actually clicking on this week.",
+      count: trending.length,
+    });
+  }
 
   return (
     <>
