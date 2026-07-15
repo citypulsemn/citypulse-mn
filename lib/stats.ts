@@ -127,15 +127,32 @@ const EMPTY: Engagement = {
   top: [],
 };
 
-/** Engagement over the last `days` days, for /admin/stats. */
+/**
+ * Engagement over the last `days` days, for /admin/stats.
+ *
+ * Wrapped in the same never-break contract as the writes: if the table is
+ * missing (schema step not yet run) or any query fails, the admin page shows
+ * the empty state instead of a 500. This bit the live site once — the read
+ * path crashed /admin/stats before the schema was applied. Never again.
+ */
 export async function getEngagement(days: number): Promise<Engagement> {
+  if (!sql) return EMPTY;
+  try {
+    return await queryEngagement(days);
+  } catch (err) {
+    console.error("[stats] getEngagement failed (returning empty):", err);
+    return EMPTY;
+  }
+}
+
+async function queryEngagement(days: number): Promise<Engagement> {
   if (!sql) return EMPTY;
   const window = Math.max(1, Math.min(days, 90));
 
   const dailyRows = await sql<DailyRow[]>`
     select day::text as day, action, sum(count)::int as n
     from event_stats
-    where day >= (now() at time zone 'America/Chicago')::date - ${window - 1}
+    where day >= (now() at time zone 'America/Chicago')::date - (${window - 1})::int
     group by day, action
   `;
 
@@ -148,7 +165,7 @@ export async function getEngagement(days: number): Promise<Engagement> {
            coalesce(sum(s.count) filter (where s.action = 'calendar'), 0)::int as calendar
     from event_stats s
     join events e on e.id = s.event_id
-    where s.day >= (now() at time zone 'America/Chicago')::date - ${window - 1}
+    where s.day >= (now() at time zone 'America/Chicago')::date - (${window - 1})::int
     group by e.id, e.title, e.category, e.start_at
     order by view desc, ticket_click desc
     limit 50
