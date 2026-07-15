@@ -257,3 +257,8 @@ create index if not exists idx_events_multi_day on events (multi_day_end)
 -- ── Freshness re-verification (roadmap 4.5) ───────────────────────────────
 -- When an event was last confirmed against its source. Null = never verified.
 alter table events add column if not exists verified_at timestamptz;
+
+-- ── Time integrity (roadmap 4.6) ──────────────────────────────────────────
+-- Date-only events (festivals, fairs) display "All day" instead of a fake
+-- clock time invented by timezone drift.
+alter table events add column if not exists all_day boolean not null default false;

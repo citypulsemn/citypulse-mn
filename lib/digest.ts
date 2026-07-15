@@ -1,5 +1,5 @@
 import { weeklyPicks } from "./content/weekly-picks";
-import { DOW, MONTHS, fmtTime, evDate, dkey } from "./dates";
+import { DOW, MONTHS, timeLabel, evDate, dkey } from "./dates";
 import { CATEGORIES } from "./categories";
 import type { EventRecord } from "./types";
 
@@ -64,7 +64,7 @@ function eventUrl(siteUrl: string, id: string): string {
 
 function whenLabel(e: EventRecord): string {
   const d = evDate(e);
-  return `${DOW[d.getDay()]}, ${MONTHS[d.getMonth()]} ${d.getDate()} · ${fmtTime(e.start)}`;
+  return `${DOW[d.getDay()]}, ${MONTHS[d.getMonth()]} ${d.getDate()} · ${timeLabel(e)}`;
 }
 
 function esc(s: string): string {

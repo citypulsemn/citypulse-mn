@@ -1,7 +1,7 @@
 "use client";
 
 import { CATEGORIES } from "@/lib/categories";
-import { DOW, MONTHS, fmtTime } from "@/lib/dates";
+import { DOW, MONTHS, timeLabel } from "@/lib/dates";
 import type { EventRecord } from "@/lib/types";
 
 export function DayPanel({
@@ -42,7 +42,7 @@ export function DayPanel({
               const c = CATEGORIES[ev.category];
               return (
                 <button className="daycard" key={ev.id} onClick={() => onPick(ev)}>
-                  <div className="time">{fmtTime(ev.start)}</div>
+                  <div className="time">{timeLabel(ev)}</div>
                   <div className="dc-body">
                     <div className="dc-title">{ev.title}</div>
                     <div className="dc-meta">

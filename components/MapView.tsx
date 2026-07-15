@@ -3,7 +3,7 @@
 import { useEffect, useRef } from "react";
 import "mapbox-gl/dist/mapbox-gl.css";
 import { CATEGORIES } from "@/lib/categories";
-import { DOW, MONTHS, fmtTime, windowLabel, type DateWindow } from "@/lib/dates";
+import { DOW, MONTHS, timeLabel, windowLabel, type DateWindow } from "@/lib/dates";
 import type { EventRecord } from "@/lib/types";
 
 const TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
@@ -111,7 +111,7 @@ export function MapView({
       <div class="pop-cat" style="color:${color}">${CATEGORIES[ev.category].label}</div>
       <div class="pop-title">${escapeHtml(ev.title)}</div>
       <div class="pop-meta">${escapeHtml(ev.venue)} · ${escapeHtml(ev.city)}</div>
-      <div class="pop-meta">${DOW[d.getDay()].slice(0, 3)} ${MONTHS[d.getMonth()].slice(0, 3)} ${d.getDate()} · ${fmtTime(ev.start)}</div>
+      <div class="pop-meta">${DOW[d.getDay()].slice(0, 3)} ${MONTHS[d.getMonth()].slice(0, 3)} ${d.getDate()} · ${timeLabel(ev)}</div>
       <div class="pop-meta">${escapeHtml(ev.price)}</div>`;
     const btn = document.createElement("button");
     btn.className = "pop-btn";

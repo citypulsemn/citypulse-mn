@@ -36,6 +36,8 @@ export interface EventRecord {
   status: EventStatus;
   /** Last day of a multi-day run (roadmap 4.4); null/absent for single-day events. */
   multiDayEnd?: string | null;
+  /** Date-only event — display "All day" instead of a clock time (roadmap 4.6). */
+  allDay?: boolean;
 }
 
 /** What the pipeline writes to the database (one upsert row). */
@@ -48,7 +50,8 @@ export interface DbEventInput {
   city: string;
   lat: number;
   lng: number;
-  start_at: string; // ISO
+  start_at: string;
+  all_day?: boolean; // ISO
   end_at: string | null;
   price: string;
   priceTier: PriceTier;

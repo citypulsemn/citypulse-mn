@@ -17,6 +17,7 @@ import { researchCategory, researchVenueShard } from "../lib/agents/research-age
 import type { AgentEvent } from "../lib/agents/research-agent";
 import { classifyEvent } from "../lib/classify";
 import { venuesFor, shardVenues, isVenueAnchored } from "../lib/venues";
+import { normalizeAgentTime, isImprobableStart } from "../lib/time-integrity";
 import { assessCoverage, formatCoverageAlerts } from "../lib/coverage";
 import type { CoverageInput } from "../lib/coverage";
 import { VENUES_PER_SHARD, VENUE_SWEEP_SEARCHES } from "../lib/pipeline-config";
@@ -43,6 +44,8 @@ async function main() {
   let totalCancelled = 0;
   let reclassified = 0; // events whose category the classifier corrected (4.1)
   let venueSwept = 0;   // events found by venue-anchored sweeps (4.2)
+  let timeNormalized = 0; // times whose zone noise / date-only form was corrected (4.6)
+  let improbableTimes = 0; // starts before 7 AM kept but flagged (4.6)
   const perBand: Record<string, number> = {};
 
   let runId: number | undefined;
@@ -102,6 +105,24 @@ async function main() {
 
       const normalized: DbEventInput[] = [];
       for (const ev of active) {
+        // ROADMAP 4.6 — an agent's time is Twin Cities wall-clock, whatever zone
+        // suffix it attached. Previously the raw string went straight into a
+        // timestamptz column in a UTC session, shifting every event 5–6 hours
+        // (the "5 AM Aquatennial" / "fair starts 7 PM the day before" bugs).
+        const startT = normalizeAgentTime(ev.start);
+        if (!startT) {
+          console.warn(`[pipeline] unparseable start "${ev.start}", skipping: ${ev.title}`);
+          continue;
+        }
+        const endT = ev.end ? normalizeAgentTime(ev.end) : null;
+        if (startT.changed || endT?.changed) timeNormalized++;
+        if (isImprobableStart(startT.wallClock, startT.allDay)) {
+          improbableTimes++;
+          console.warn(
+            `[pipeline] ⏰ improbable start ${startT.wallClock.slice(11)} — "${ev.title}" (kept; check the source)`,
+          );
+        }
+
         const geo = await geocode(ev.address, ev.city);
         if (!geo) {
           console.warn(`[pipeline] no geocode, skipping: ${ev.title} @ ${ev.venue}`);
@@ -123,7 +144,7 @@ async function main() {
         }
 
         normalized.push({
-          event_key: computeEventKey(ev.title, ev.venue, ev.start),
+          event_key: computeEventKey(ev.title, ev.venue, startT.wallClock),
           title: ev.title,
           category: classified,
           venue: ev.venue,
@@ -131,8 +152,9 @@ async function main() {
           city: ev.city,
           lat: geo.lat,
           lng: geo.lng,
-          start_at: ev.start,
-          end_at: ev.end || null,
+          start_at: startT.iso,
+          all_day: startT.allDay,
+          end_at: endT?.iso ?? null,
           price: ev.price || "See listing",
           priceTier: normalizeTier(ev.price),
           ticket_url: ev.ticket_url,
@@ -171,7 +193,7 @@ async function main() {
 
   const archived = await archivePastEvents();
   console.log(
-    `\n[pipeline] done — upserted ${totalUpserted}, archived ${archived}, reclassified ${reclassified}, venue-swept ${venueSwept}`,
+    `\n[pipeline] done — upserted ${totalUpserted}, archived ${archived}, reclassified ${reclassified}, venue-swept ${venueSwept}, times normalized ${timeNormalized}, improbable ${improbableTimes}`,
     perBand,
   );
 

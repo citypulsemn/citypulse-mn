@@ -107,3 +107,7 @@ Each run ends by folding consecutive-day runs into one spanning event and mergin
 ## Freshness verification (roadmap 4.5)
 
 A separate Thursday workflow (`verify-events`) re-checks the next 7 days of events against their sources. Cancellations with evidence are applied automatically (audited); everything else is flagged, never auto-edited. See `docs/VERIFICATION.md`.
+
+## Time integrity (roadmap 4.6)
+
+Agent times are normalized before storage (`lib/time-integrity.ts`): zone suffixes stripped as noise, the wall-clock face kept, the DST-correct Chicago offset attached, date-only inputs marked `all_day`. Improbable starts (before 7 AM) are flagged in the run log. See `docs/TIME.md`.

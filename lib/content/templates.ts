@@ -1,4 +1,4 @@
-import { DOW, MONTHS, fmtTime } from "../dates";
+import { DOW, MONTHS, timeLabel } from "../dates";
 import type { EventRecord, CategoryKey } from "../types";
 import type { WeeklyPicks } from "./weekly-picks";
 
@@ -67,7 +67,7 @@ export function captionFor(event: EventRecord, label: CardLabel = "regular"): st
   lines.push(hook(label, event));
   lines.push("");
   lines.push(event.title);
-  lines.push(`📅 ${shortDate(event.start)} · ${fmtTime(event.start)}`);
+  lines.push(`📅 ${shortDate(event.start)} · ${timeLabel(event)}`);
   lines.push(`📍 ${event.venue}${event.city ? ` · ${event.city}` : ""}`);
   if (event.price && event.price !== "See listing") lines.push(`💵 ${event.price}`);
   lines.push("");

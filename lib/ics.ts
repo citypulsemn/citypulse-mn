@@ -77,8 +77,15 @@ export function eventToICS(event: EventRecord, opts: IcsOptions = {}): string {
     "BEGIN:VEVENT",
     `UID:${event.id}@citypulsemn.com`,
     `DTSTAMP:${stampFromDate(opts.now ?? new Date())}`,
-    `DTSTART:${icsBasicUTC(event.start)}`,
-    `DTEND:${endStamp(event)}`,
+    // All-day events use DATE values (RFC 5545 §3.6.1): calendar apps render a
+    // banner across the day instead of a fake midnight appointment. DTEND is
+    // exclusive, so it's the day AFTER the last day.
+    ...(event.allDay
+      ? [
+          `DTSTART;VALUE=DATE:${dateBasic(event.start)}`,
+          `DTEND;VALUE=DATE:${dateBasic(nextDay(spanLastDay(event)))}`,
+        ]
+      : [`DTSTART:${icsBasicUTC(event.start)}`, `DTEND:${endStamp(event)}`]),
     `SUMMARY:${escapeICS(event.title)}`,
     `LOCATION:${escapeICS(locationOf(event))}`,
     `DESCRIPTION:${escapeICS(description)}`,
@@ -103,4 +110,26 @@ export function googleCalendarUrl(event: EventRecord, opts: IcsOptions = {}): st
     location: locationOf(event),
   });
   return `https://calendar.google.com/calendar/render?${params.toString()}`;
+}
+
+/** "YYYY-MM-DD…" → "YYYYMMDD" for VALUE=DATE properties. */
+function dateBasic(iso: string): string {
+  return iso.slice(0, 10).replace(/-/g, "");
+}
+
+/** The last calendar day an event occupies (multi-day aware). */
+function spanLastDay(event: EventRecord): string {
+  const start = event.start.slice(0, 10);
+  const md = event.multiDayEnd?.slice(0, 10);
+  if (md && md > start) return md;
+  const end = event.end?.slice(0, 10);
+  if (end && end > start) return end;
+  return start;
+}
+
+/** Day after a YYYY-MM-DD, as YYYY-MM-DD (DTEND;VALUE=DATE is exclusive). */
+function nextDay(day: string): string {
+  const d = new Date(`${day}T12:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + 1);
+  return d.toISOString().slice(0, 10);
 }

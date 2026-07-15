@@ -1,5 +1,5 @@
 import { CATEGORIES } from "@/lib/categories";
-import { fmtTime } from "@/lib/dates";
+import { timeLabel } from "@/lib/dates";
 import { isMultiDay, multiDayLabel } from "@/lib/multiday";
 import type { EventRecord } from "@/lib/types";
 
@@ -12,7 +12,7 @@ export function EventDayCard({ event }: { event: EventRecord }) {
         {isMultiDay(event) ? (
           <span className="run-badge">{multiDayLabel(event)}</span>
         ) : (
-          fmtTime(event.start)
+          timeLabel(event)
         )}
       </div>
       <div className="dc-body">

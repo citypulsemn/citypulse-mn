@@ -187,3 +187,11 @@ export function daysSpanned(ev: EventRecord): string[] {
   if (cur <= end) return [start];
   return out;
 }
+
+/**
+ * The clock label for an event: "All day" for date-only events (roadmap 4.6 —
+ * never invent a fake time), otherwise the formatted start time.
+ */
+export function timeLabel(ev: Pick<EventRecord, "start" | "allDay">): string {
+  return ev.allDay ? "All day" : fmtTime(ev.start);
+}

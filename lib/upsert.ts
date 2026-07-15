@@ -57,6 +57,7 @@ export async function upsertEvents(events: DbEventInput[]): Promise<number> {
     lat: e.lat,
     lng: e.lng,
     start_at: e.start_at,
+    all_day: e.all_day ?? false,
     end_at: e.end_at,
     price: e.price,
     price_tier: e.priceTier,
@@ -69,7 +70,7 @@ export async function upsertEvents(events: DbEventInput[]): Promise<number> {
 
   const cols = [
     "event_key", "title", "category", "venue", "address", "city",
-    "lat", "lng", "start_at", "end_at", "price", "price_tier",
+    "lat", "lng", "start_at", "all_day", "end_at", "price", "price_tier",
     "ticket_url", "description", "image", "source_url", "status",
   ] as const;
 
@@ -84,6 +85,7 @@ export async function upsertEvents(events: DbEventInput[]): Promise<number> {
       lat         = excluded.lat,
       lng         = excluded.lng,
       start_at    = excluded.start_at,
+      all_day     = excluded.all_day,
       end_at      = excluded.end_at,
       price       = excluded.price,
       price_tier  = excluded.price_tier,

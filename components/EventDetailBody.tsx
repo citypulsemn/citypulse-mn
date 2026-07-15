@@ -48,8 +48,13 @@ export function EventDetailBody({
                   <>
                     {multiDayLabel(event)}{" "}
                     <span className="run-note">
-                      · runs {runLength(event)} days · daily from {fmtTime(event.start)}
+                      · runs {runLength(event)} days
+                      {event.allDay ? "" : ` · daily from ${fmtTime(event.start)}`}
                     </span>
+                  </>
+                ) : event.allDay ? (
+                  <>
+                    {DOW[d.getDay()]}, {MONTHS[d.getMonth()]} {d.getDate()} · All day
                   </>
                 ) : (
                   <>
