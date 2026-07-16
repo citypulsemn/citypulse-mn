@@ -38,6 +38,8 @@ export interface EventRecord {
   multiDayEnd?: string | null;
   /** Date-only event — display "All day" instead of a clock time (roadmap 4.6). */
   allDay?: boolean;
+  /** Neighborhood key derived from coordinates at the read path (roadmap 5.5). */
+  neighborhood?: string | null;
 }
 
 /** What the pipeline writes to the database (one upsert row). */

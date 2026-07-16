@@ -4,6 +4,7 @@ import { TicketButton } from "./TicketButton";
 import { AddToCalendar } from "./AddToCalendar";
 import { SaveButton } from "./SaveButton";
 import { isMultiDay, multiDayLabel, runLength } from "@/lib/multiday";
+import { neighborhoodByKey } from "@/lib/neighborhoods";
 import type { EventRecord } from "@/lib/types";
 import type { ReactNode } from "react";
 
@@ -71,6 +72,13 @@ export function EventDetailBody({
               <div className="dk">Where</div>
               <div className="dv">
                 {event.venue}
+                {event.neighborhood && neighborhoodByKey(event.neighborhood) ? (
+                  <span className="nbhd-chip">
+                    <a href={`/neighborhoods/${event.neighborhood}`}>
+                      {neighborhoodByKey(event.neighborhood)!.label}
+                    </a>
+                  </span>
+                ) : null}
                 <br />
                 {event.address}
                 {event.city ? `, ${event.city}, MN` : ""}

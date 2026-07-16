@@ -1,5 +1,6 @@
 import type { EventRecord } from "./types";
 import { cleanEventTitle, displayCity } from "./title-hygiene";
+import { eventNeighborhood } from "./neighborhoods";
 
 /**
  * Bundled sample events (Twin Cities metro, June 2026).
@@ -585,4 +586,5 @@ export const sampleEvents: EventRecord[] = rawSampleEvents.map((e) => ({
   ...e,
   title: cleanEventTitle(e.title, e.venue, e.city),
   city: displayCity(e.city),
+  neighborhood: eventNeighborhood(e),
 }));

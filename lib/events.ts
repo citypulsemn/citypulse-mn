@@ -2,6 +2,7 @@ import { sql } from "./db";
 import { sampleEvents } from "./sample-events";
 import { isPublicStatus, dayKeyOf } from "./event-view";
 import { cleanEventTitle, displayCity } from "./title-hygiene";
+import { eventNeighborhood } from "./neighborhoods";
 import type { EventRecord, EventStatus, CategoryKey, PriceTier } from "./types";
 
 /**
@@ -50,6 +51,7 @@ function rowToEvent(r: Row): EventRecord {
     venue: r.venue,
     address: r.address,
     city: displayCity(r.city),
+    neighborhood: eventNeighborhood({ lat: r.lat, lng: r.lng }),
     lat: Number(r.lat),
     lng: Number(r.lng),
     start: r.start,
