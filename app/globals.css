@@ -647,3 +647,11 @@ a.daycard { text-decoration: none; }
 .nbhd-name { font-family: "Oswald"; font-weight: 600; font-size: 16px; letter-spacing: 0.02em; }
 .nbhd-blurb { color: var(--cream-dim); font-size: 12.5px; margin: 5px 0 10px; line-height: 1.45; }
 .nbhd-count { color: var(--gold); font-size: 12.5px; }
+
+/* ---------- Venue pages (roadmap 6.1) ---------- */
+.venue-map { display: block; width: 100%; max-width: 640px; height: auto; border-radius: 12px; border: 1px solid var(--line); margin: 4px 0 20px; }
+.venue-link { color: var(--cream); text-decoration: underline; text-decoration-color: rgba(201,169,97,0.55); text-underline-offset: 3px; }
+.venue-quiet { color: var(--cream-dim); font-size: 13px; line-height: 2; }
+.venue-quiet a { color: var(--cream-dim); }
+.venue-quiet a:hover { color: var(--gold); }
+.venue-count { color: var(--cream-dim); font-size: 13.5px; margin: 0 0 12px; }
