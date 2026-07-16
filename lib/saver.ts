@@ -31,3 +31,19 @@ export async function ensureSaverToken(): Promise<string> {
   });
   return token;
 }
+
+/**
+ * Point this browser at an existing saver identity (roadmap 5.4 magic-link
+ * restore). Server Actions / Route Handlers only — cookie writes are illegal
+ * during render.
+ */
+export async function setSaverToken(token: string): Promise<void> {
+  const store = await cookies();
+  store.set(COOKIE, token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    path: "/",
+    maxAge: ONE_YEAR,
+  });
+}
