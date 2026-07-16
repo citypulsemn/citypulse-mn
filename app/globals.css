@@ -656,3 +656,8 @@ a.daycard { text-decoration: none; }
 .venue-quiet a { color: var(--cream-dim); }
 .venue-quiet a:hover { color: var(--gold); }
 .venue-count { color: var(--cream-dim); font-size: 13.5px; margin: 0 0 12px; }
+
+/* ---------- City pages (roadmap 6.2) ---------- */
+.city-districts { color: var(--cream-dim); font-size: 13px; margin-top: 10px; line-height: 1.9; }
+.city-districts a { color: var(--gold); }
+.eyebrow-link { color: inherit; text-decoration: underline; text-decoration-color: rgba(201,169,97,0.45); text-underline-offset: 3px; }

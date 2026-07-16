@@ -4,6 +4,7 @@ import { dayKeyOf } from "@/lib/event-view";
 import { COLLECTIONS } from "@/lib/collections";
 import { NEIGHBORHOODS } from "@/lib/neighborhoods";
 import { VENUE_PAGES } from "@/lib/venue-pages";
+import { matchCitySlug } from "@/lib/cities";
 import { SITE_URL } from "@/lib/seo/site";
 
 // Refresh hourly so newly-published events get crawled quickly.
@@ -36,6 +37,28 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "daily" as const,
       priority: 0.6,
     })),
+    // 6.2 — city landing pages: ONLY cities with published events go in the
+    // sitemap (the thin-content rule) — ~110 suburbs exist; empty pages are
+    // spam, not SEO. Recomputed hourly with the rest of this file.
+    { url: `${SITE_URL}/cities`, changeFrequency: "daily", priority: 0.6 },
+    ...[...new Set(
+      events
+        .filter((e) => {
+          // upcoming (or still running) only — a city of past events is an
+          // empty page, and empty pages don't belong in a sitemap.
+          const start = new Date(e.start).getTime();
+          const end = e.multiDayEnd ? new Date(e.multiDayEnd).getTime() : start;
+          return !Number.isNaN(start) && Math.max(start, end) >= Date.now();
+        })
+        .map((e) => matchCitySlug(e.city))
+        .filter((s): s is string => Boolean(s)),
+    )].map(
+      (slug) => ({
+        url: `${SITE_URL}/cities/${slug}`,
+        changeFrequency: "daily" as const,
+        priority: 0.6,
+      }),
+    ),
     { url: `${SITE_URL}/venues`, changeFrequency: "daily", priority: 0.6 },
     ...VENUE_PAGES.map((v) => ({
       url: `${SITE_URL}/venues/${v.slug}`,

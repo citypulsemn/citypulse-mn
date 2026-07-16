@@ -6,6 +6,7 @@ import { EventDayCard } from "@/components/EventDayCard";
 import { getEvents } from "@/lib/events";
 import { neighborhoodByKey } from "@/lib/neighborhoods";
 import { daysSpanned } from "@/lib/dates";
+import { matchCitySlug } from "@/lib/cities";
 
 export const revalidate = 300;
 
@@ -71,7 +72,9 @@ export default async function NeighborhoodPage({
 
       <main className="wrap page">
         <div className="dayhdr">
-          <div className="dayhdr-eyebrow">{n.city} · neighborhood</div>
+          <div className="dayhdr-eyebrow">
+            <a href={`/cities/${matchCitySlug(n.city)}`} className="eyebrow-link">{n.city}</a> · neighborhood
+          </div>
           <h1 className="dayhdr-title">{n.label}</h1>
           <div className="dayhdr-count">
             {n.blurb}
