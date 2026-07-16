@@ -26,6 +26,8 @@ export async function requestSavedLinkAction(
       return { status: "success", message: "Check your inbox — your link is on the way." };
     case "nothing_to_keep":
       return { status: "error", message: "Save an event first — then you'll have a list to keep." };
+    case "send_failed":
+      return { status: "error", message: "We couldn't send the email just now — mind trying again in a minute?" };
     case "invalid":
     default:
       return { status: "error", message: "That email doesn't look right — mind checking it?" };

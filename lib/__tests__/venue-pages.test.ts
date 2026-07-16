@@ -93,9 +93,17 @@ describe("dominantCoords / dominantAddress — the mode is the building", () => 
     expect(dominantAddress([{ address: "" }])).toBeNull();
   });
 
-  it("staticMapUrl carries pin, coords, and the token", () => {
+  it("staticMapUrl: pin at TRUE coords, map center nudged north to frame the pin body", () => {
     const url = staticMapUrl(44.9784, -93.2762, "pk.test");
+    // The pin is anchored at the exact coordinates — never moved:
     expect(url).toContain("pin-l+c9a961(-93.2762,44.9784)");
     expect(url).toContain("access_token=pk.test");
+    // The CENTER is slightly north (pins render upward from their tip);
+    // at zoom 14 near 45°N the nudge is ~0.0008° (≈ 85 m ≈ 25 style px):
+    const center = url.match(/\/(-93\.2762),([0-9.]+),14,0\//);
+    expect(center).not.toBeNull();
+    const centerLat = Number(center![2]);
+    expect(centerLat).toBeGreaterThan(44.9784 + 0.0004);
+    expect(centerLat).toBeLessThan(44.9784 + 0.0012);
   });
 });

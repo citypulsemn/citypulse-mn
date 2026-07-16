@@ -135,8 +135,27 @@ export function dominantAddress(events: Pick<EventRecord, "address">[]): string 
   return best;
 }
 
-/** Mapbox Static Images URL — a plain <img>, no JS on an SEO page. */
+const MAP_ZOOM = 14;
+/** Half the rendered pin height above its tip, in style pixels (@1x). */
+const PIN_NUDGE_PX = 25;
+
+/**
+ * Mapbox Static Images URL — a plain <img>, no JS on an SEO page.
+ *
+ * CENTERING: Mapbox pins are anchored at their TIP, with the body extending
+ * upward — so centering the map on the coordinate puts the pin body entirely
+ * in the top half of the image ("the map isn't centered", live report Jul 15).
+ * Fix: nudge the map CENTER north by half the pin's height so the pin body
+ * sits visually centered. The pin itself stays anchored at the true
+ * coordinates — accuracy is untouched, only the framing moves.
+ *
+ * Pixel→degrees: Mapbox styles use 512px tiles, so meters/px at @1x is
+ * 78271.517 × cos(lat) / 2^zoom; divide by 111,320 m/° for latitude degrees.
+ */
 export function staticMapUrl(lat: number, lng: number, token: string): string {
+  const metersPerPx = (78271.517 * Math.cos((lat * Math.PI) / 180)) / 2 ** MAP_ZOOM;
+  const nudgeLatDeg = (PIN_NUDGE_PX * metersPerPx) / 111_320;
+  const centerLat = +(lat + nudgeLatDeg).toFixed(6);
   const pin = `pin-l+c9a961(${lng},${lat})`;
-  return `https://api.mapbox.com/styles/v1/mapbox/dark-v11/static/${pin}/${lng},${lat},14,0/640x320@2x?access_token=${encodeURIComponent(token)}`;
+  return `https://api.mapbox.com/styles/v1/mapbox/dark-v11/static/${pin}/${lng},${centerLat},${MAP_ZOOM},0/640x320@2x?access_token=${encodeURIComponent(token)}`;
 }

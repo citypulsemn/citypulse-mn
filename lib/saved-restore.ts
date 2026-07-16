@@ -26,7 +26,7 @@ import { SITE_URL } from "./seo/site";
  * whether or not anything was stored or sent.
  */
 
-export type RequestLinkResult = "sent" | "invalid" | "nothing_to_keep";
+export type RequestLinkResult = "sent" | "invalid" | "nothing_to_keep" | "send_failed";
 
 export async function requestSavedLink(rawEmail: string): Promise<RequestLinkResult> {
   const email = normalizeEmail(rawEmail);
@@ -53,8 +53,11 @@ export async function requestSavedLink(rawEmail: string): Promise<RequestLinkRes
   if (!id) return "sent"; // shouldn't happen; stay generic
 
   const url = restoreUrl(SITE_URL, id, unsubSecret());
-  await sendRestoreEmail(email, url);
-  return "sent";
+  // NO-ENUMERATION, scoped correctly: the generic success hides whether an
+  // ADDRESS exists — it must not hide whether OUR MAIL PIPE works. A send
+  // failure is the same for every address, so reporting it leaks nothing.
+  const sent = await sendRestoreEmail(email, url);
+  return sent ? "sent" : "send_failed";
 }
 
 export type RestoreResult = "restored" | "invalid";
@@ -131,14 +134,18 @@ export function renderRestoreEmail(url: string): { subject: string; html: string
   return { subject, html, text };
 }
 
-async function sendRestoreEmail(to: string, url: string): Promise<void> {
+/** True only if the email was actually handed to Resend. */
+async function sendRestoreEmail(to: string, url: string): Promise<boolean> {
   const apiKey = process.env.RESEND_API_KEY;
   const from = process.env.DIGEST_FROM ?? "City Pulse MN <hello@citypulsemn.com>";
   const { subject, html, text } = renderRestoreEmail(url);
 
   if (!apiKey) {
-    console.log(`[saved-link] no RESEND_API_KEY — link for ${to}: ${url}`);
-    return;
+    // A missing key is an INFRA failure, not a secret to keep (live incident,
+    // Jul 15: the form said "check your inbox" while nothing could send). The
+    // link is still logged so an operator can hand it over.
+    console.error(`[saved-link] no RESEND_API_KEY — could not send. Link for ${to}: ${url}`);
+    return false;
   }
   try {
     const res = await fetch("https://api.resend.com/emails", {
@@ -146,8 +153,13 @@ async function sendRestoreEmail(to: string, url: string): Promise<void> {
       headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
       body: JSON.stringify({ from, to: [to], subject, html, text }),
     });
-    if (!res.ok) console.error(`[saved-link] send failed: ${res.status} ${await res.text()}`);
+    if (!res.ok) {
+      console.error(`[saved-link] send failed: ${res.status} ${await res.text()}`);
+      return false;
+    }
+    return true;
   } catch (err) {
     console.error("[saved-link] send error:", err);
+    return false;
   }
 }
