@@ -353,7 +353,16 @@ a.daycard { text-decoration: none; }
 .admin-exit { color: var(--cream-dim); text-decoration: none; font-size: 13px; }
 .admin-exit:hover { color: var(--gold); }
 
-.admin-tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--line); margin-bottom: 16px; overflow-x: auto; }
+.admin-tabs {
+  display: flex; gap: 4px; border-bottom: 1px solid var(--line); margin-bottom: 16px;
+  /* Scrollable tabs WITHOUT the OS scrollbar chrome (live report Jul 16: the
+     9th tab overflowed desktop widths and the browser painted its default
+     white-tracked scrollbar). Swipe/trackpad/wheel scrolling still works. */
+  overflow-x: auto; overflow-y: hidden;
+  scrollbar-width: none;           /* Firefox */
+  -ms-overflow-style: none;        /* legacy Edge */
+}
+.admin-tabs::-webkit-scrollbar { display: none; }  /* Chrome/Safari */
 .admin-tabs a { flex: none; padding: 10px 14px; color: var(--cream-dim); text-decoration: none; font-family: "Oswald"; font-weight: 500; letter-spacing: 0.04em; font-size: 14px; border-bottom: 2px solid transparent; margin-bottom: -1px; white-space: nowrap; }
 .admin-tabs a:hover { color: var(--cream); }
 .admin-tabs a.active { color: var(--gold); border-bottom-color: var(--gold); }
