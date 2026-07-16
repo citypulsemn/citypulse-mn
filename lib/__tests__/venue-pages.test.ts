@@ -100,6 +100,7 @@ describe("dominantCoords / dominantAddress — the mode is the building", () => 
     expect(url).toContain("access_token=pk.test");
     // The CENTER is slightly north (pins render upward from their tip);
     // at zoom 14 near 45°N the nudge is ~0.0008° (≈ 85 m ≈ 25 style px):
+    expect(url).toContain("/1280x400@2x?");
     const center = url.match(/\/(-93\.2762),([0-9.]+),14,0\//);
     expect(center).not.toBeNull();
     const centerLat = Number(center![2]);

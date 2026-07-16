@@ -157,5 +157,8 @@ export function staticMapUrl(lat: number, lng: number, token: string): string {
   const nudgeLatDeg = (PIN_NUDGE_PX * metersPerPx) / 111_320;
   const centerLat = +(lat + nudgeLatDeg).toFixed(6);
   const pin = `pin-l+c9a961(${lng},${lat})`;
-  return `https://api.mapbox.com/styles/v1/mapbox/dark-v11/static/${pin}/${lng},${centerLat},${MAP_ZOOM},0/640x320@2x?access_token=${encodeURIComponent(token)}`;
+  // 1280x400 (the API's max width) @2x: the map renders as a full-column
+  // banner, and object-fit:cover center-crops it to the display box on any
+  // screen — the pin stays in the middle on desktop and phone alike.
+  return `https://api.mapbox.com/styles/v1/mapbox/dark-v11/static/${pin}/${lng},${centerLat},${MAP_ZOOM},0/1280x400@2x?access_token=${encodeURIComponent(token)}`;
 }

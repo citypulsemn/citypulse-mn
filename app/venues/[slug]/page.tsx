@@ -129,8 +129,8 @@ export default async function VenuePage({
             className="venue-map"
             src={mapUrl}
             alt={`Map showing ${v.name} in ${v.city}`}
-            width={640}
-            height={320}
+            width={1280}
+            height={400}
             loading="lazy"
           />
         )}

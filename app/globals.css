@@ -649,7 +649,8 @@ a.daycard { text-decoration: none; }
 .nbhd-count { color: var(--gold); font-size: 12.5px; }
 
 /* ---------- Venue pages (roadmap 6.1) ---------- */
-.venue-map { display: block; width: 100%; max-width: 640px; height: auto; border-radius: 12px; border: 1px solid var(--line); margin: 4px 0 20px; }
+.venue-map { display: block; width: 100%; height: 280px; object-fit: cover; border-radius: 12px; border: 1px solid var(--line); margin: 4px 0 20px; }
+@media (max-width: 720px) { .venue-map { height: 200px; } }
 .venue-link { color: var(--cream); text-decoration: underline; text-decoration-color: rgba(201,169,97,0.55); text-underline-offset: 3px; }
 .venue-quiet { color: var(--cream-dim); font-size: 13px; line-height: 2; }
 .venue-quiet a { color: var(--cream-dim); }
