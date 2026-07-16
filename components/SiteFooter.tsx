@@ -13,6 +13,8 @@ export function SiteFooter({ source = "site" }: { source?: string }) {
         <SubscribeForm source={source} />
       </div>
       <div className="site-footer-links">
+        <a href="/this-weekend">This Weekend</a>
+        <span aria-hidden="true">·</span>
         <a href="/collections">Collections</a>
         <span aria-hidden="true">·</span>
         <a href="/cities">Cities</a>

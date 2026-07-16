@@ -56,7 +56,7 @@ export default async function TrendingPage() {
             Nothing has broken out yet — trending is measured, not curated, and it only
             appears when enough events have real momentum.
             <br />
-            <a href="/collections/this-weekend">Browse this weekend&apos;s picks →</a>
+            <a href="/this-weekend">Browse this weekend&apos;s picks →</a>
           </div>
         ) : (
           <div className="day-list">

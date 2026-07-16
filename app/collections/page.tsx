@@ -65,6 +65,12 @@ export default async function CollectionsIndex() {
         </div>
 
         <div className="coll-grid">
+          {/* 6.3 — the weekend surface lives at its evergreen root URL now. */}
+          <a className="coll-card" href="/this-weekend">
+            <div className="coll-card-title">This Weekend in the Twin Cities</div>
+            <div className="coll-card-tag">Everything worth leaving the house for, Friday through Sunday.</div>
+            <div className="coll-card-count">See the weekend →</div>
+          </a>
           {cards.map((c) => (
             <a key={c.slug} className="coll-card" href={`/collections/${c.slug}`}>
               <div className="coll-card-title">{c.title}</div>

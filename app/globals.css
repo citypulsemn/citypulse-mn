@@ -661,3 +661,7 @@ a.daycard { text-decoration: none; }
 .city-districts { color: var(--cream-dim); font-size: 13px; margin-top: 10px; line-height: 1.9; }
 .city-districts a { color: var(--gold); }
 .eyebrow-link { color: inherit; text-decoration: underline; text-decoration-color: rgba(201,169,97,0.45); text-underline-offset: 3px; }
+
+/* ---------- This Weekend (roadmap 6.3) ---------- */
+.wknd-section { margin: 26px 0 6px; }
+.wknd-day { font-family: "Oswald"; font-weight: 600; font-size: 19px; letter-spacing: 0.03em; margin: 0 0 12px; color: var(--gold); }

@@ -101,7 +101,11 @@ describe("COLLECTIONS registry", () => {
     }
   });
   it("getCollection resolves by slug", () => {
-    expect(getCollection("this-weekend")?.title).toContain("Weekend");
-    expect(getCollection("nope")).toBeUndefined();
+    expect(getCollection("free-this-week")?.title).toContain("Free");
+    expect(getCollection("nonsense")).toBeUndefined();
+    // 6.3 — this-weekend GRADUATED from a collection to the evergreen root
+    // URL (/this-weekend, with a 301 from the old path). It must stay out of
+    // the registry, or two pages would compete for the same query.
+    expect(getCollection("this-weekend")).toBeUndefined();
   });
 });

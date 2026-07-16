@@ -27,6 +27,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   }));
 
   const collectionUrls: MetadataRoute.Sitemap = [
+    // 6.3 — the evergreen weekend page: the highest-intent URL on the site.
+    { url: `${SITE_URL}/this-weekend`, changeFrequency: "daily", priority: 0.9 },
     { url: `${SITE_URL}/collections`, changeFrequency: "daily", priority: 0.6 },
     // 5.5 + 6.1 — the evergreen browse surfaces (venue pages are the "first
     // avenue schedule" searches; neighborhood pages the "things to do in

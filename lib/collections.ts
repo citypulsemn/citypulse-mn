@@ -25,12 +25,6 @@ export interface CollectionSpec {
 
 export const COLLECTIONS: CollectionSpec[] = [
   {
-    slug: "this-weekend",
-    title: "This Weekend in the Twin Cities",
-    tagline: "Everything worth leaving the house for, Friday through Sunday.",
-    window: "weekend",
-  },
-  {
     slug: "free-this-week",
     title: "Free This Week",
     tagline: "Great things to do across the metro that cost exactly nothing.",
