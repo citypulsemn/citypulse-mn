@@ -4,14 +4,18 @@ import { Logo } from "@/components/Logo";
 import { SiteFooter } from "@/components/SiteFooter";
 import { EventDayCard } from "@/components/EventDayCard";
 import { getEvents } from "@/lib/events";
-import { NEIGHBORHOODS, neighborhoodByKey } from "@/lib/neighborhoods";
+import { neighborhoodByKey } from "@/lib/neighborhoods";
 import { daysSpanned } from "@/lib/dates";
 
 export const revalidate = 300;
 
-export function generateStaticParams() {
-  return NEIGHBORHOODS.map((n) => ({ slug: n.key }));
-}
+// NO generateStaticParams — deliberately. Prerendering all 16 districts at
+// build time meant 16 concurrent full getEvents() queries from parallel build
+// workers, which stampeded the database connection pool on Vercel: every page
+// waited past the 60-second prerender limit, retries piled on more load, and
+// the build died (Jul 15). On-demand ISR renders each district on its first
+// visit and caches it for 5 minutes — identical behavior for users, zero
+// database dependency at build time.
 
 export async function generateMetadata({
   params,
