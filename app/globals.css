@@ -14,11 +14,20 @@
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html, body { height: 100%; }
 
+html {
+  /* Base coat everywhere (incl. overscroll) — the glow layer sits on top. */
+  background: var(--navy-900);
+}
+
 body {
   font-family: "Inter", system-ui, sans-serif;
-  background:
-    radial-gradient(1200px 600px at 50% -10%, rgba(34, 51, 90, 0.55), transparent 60%),
-    var(--navy-900);
+  /* ONE top glow, never tiled. Gradients are background-images and images
+     default to background-repeat: repeat — on long pages the glow painted
+     again further down, leaving a hard horizontal seam (live report Jul 16).
+     no-repeat + a flat base color = a single glow, then plain navy forever. */
+  background-color: var(--navy-900);
+  background-image: radial-gradient(1200px 600px at 50% -10%, rgba(34, 51, 90, 0.55), transparent 60%);
+  background-repeat: no-repeat;
   color: var(--cream);
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
