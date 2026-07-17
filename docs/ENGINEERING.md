@@ -31,3 +31,11 @@ cd /home/claude/citypulse-mn && rm -f /mnt/user-data/outputs/citypulse-mn.zip \
   && zip -rq /mnt/user-data/outputs/citypulse-mn.zip . -x "node_modules/*" ".next/*" ".git/*"
 ```
 Quality gate per item: pure logic in lib/ + golden tests · idempotent additive schema · tsc clean · build clean · audit 0 · one smoke cycle · deploy guide.
+
+## 8. Verify the archive, not the intention
+A rate-limit interruption mid-`zip` produces a structurally valid but PARTIAL archive — and a grep that "verifies" it can pass on what it finds while missing what it doesn't. **Origin:** the 3.1 zip shipped without docs/INDEXING.md; the operator caught it, not the build. The rule: after packaging, compare COUNTS — files in tree vs entries in archive — and re-zip on any mismatch:
+```
+T=$(find . -type f ! -path "./node_modules/*" ! -path "./.next/*" ! -path "./.git/*" | wc -l)
+Z=$(unzip -l /mnt/user-data/outputs/citypulse-mn.zip | grep -cE "^\s+[0-9]+\s+[0-9-]+ [0-9:]+   .+[^/]$")
+echo "tree=$T zip=$Z"; [ "$T" = "$Z" ] && echo PARITY || echo "MISMATCH - re-zip"
+```

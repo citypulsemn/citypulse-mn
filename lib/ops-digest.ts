@@ -40,6 +40,10 @@ export interface OpsInputs {
   trending: { count: number; top: string[] };
   subscribers: { total: number; delta7: number };
   lastDigestNote: string | null; // digest_sends.note — carries "N personalized"
+  /** Live sitemap URL count (fetched from SITE_URL/sitemap.xml — the number
+   *  Google actually sees; zero drift by construction) + last week's. */
+  sitemapUrls: number | null;
+  prevSitemapUrls: number | null;
   /** Sections that failed to gather: section key -> reason. */
   errors: Record<string, string>;
 }
@@ -57,6 +61,7 @@ const SECTION_KEYS = [
   "engagement",
   "trending",
   "subscribers",
+  "index",
 ] as const;
 
 function unavailable(reason: string): string[] {
@@ -186,7 +191,28 @@ export function buildSections(inputs: OpsInputs): OpsSection[] {
     out.push({ title: "Trending", lines, alert });
   }
 
-  // 6 — Subscribers
+  // 6 — Index surface (roadmap 3.1: the supply side of the indexing loop,
+  // measured automatically; the demand side — indexed count, impressions —
+  // is your weekly GSC glance, per the loop's manual-first design)
+  {
+    let lines: string[];
+    let alert = false;
+    if (err("index")) {
+      lines = unavailable(err("index"));
+      alert = true;
+    } else if (inputs.sitemapUrls === null) {
+      lines = ["sitemap not fetched (SITE_URL unset?)"];
+      alert = true;
+    } else {
+      lines = [
+        `${inputs.sitemapUrls} URLs in the live sitemap (${wowLabel(inputs.sitemapUrls, inputs.prevSitemapUrls)})`,
+        "demand side: check GSC Pages + Performance for indexed count & impressions",
+      ];
+    }
+    out.push({ title: "Index surface", lines, alert });
+  }
+
+  // 7 — Subscribers
   {
     let lines: string[];
     let alert = false;

@@ -24,6 +24,8 @@ function healthy(overrides: Partial<OpsInputs> = {}): OpsInputs {
     trending: { count: 6, top: ["Aquatennial Fireworks", "Trampled by Turtles", "Como Family Day"] },
     subscribers: { total: 84, delta7: 6 },
     lastDigestNote: "84 sent, 17 personalized",
+    sitemapUrls: 121,
+    prevSitemapUrls: 118,
     errors: {},
     ...overrides,
   };
@@ -50,7 +52,7 @@ describe("composeOpsDigest — the healthy week", () => {
     expect(subject).toBe("✅ City Pulse ops — all green (Jul 20)");
   });
   it("all six sections render in both formats", () => {
-    for (const title of ["Pipeline", "Coverage", "Verification", "Engagement (7d)", "Trending", "Subscribers"]) {
+    for (const title of ["Pipeline", "Coverage", "Verification", "Engagement (7d)", "Trending", "Index surface", "Subscribers"]) {
       expect(text).toContain(title);
       expect(html).toContain(title);
     }
@@ -119,11 +121,27 @@ describe("the resilience contract", () => {
 
   it("every section can fail and the email still composes with six unavailable notices", () => {
     const errs = Object.fromEntries(
-      ["pipeline", "coverage", "verify", "engagement", "trending", "subscribers"].map((k) => [k, "db down"]),
+      ["pipeline", "coverage", "verify", "engagement", "trending", "subscribers", "index"].map((k) => [k, "db down"]),
     );
     const { subject, text } = composeOpsDigest(healthy({ errors: errs }), NOW);
-    expect(subject).toContain("6 alerts");
-    expect(text.match(/section unavailable: db down/g)).toHaveLength(6);
+    expect(subject).toContain("7 alerts");
+    expect(text.match(/section unavailable: db down/g)).toHaveLength(7);
+  });
+});
+
+describe("the Index surface section (roadmap 3.1)", () => {
+  it("reports live sitemap count with WoW", () => {
+    const { text } = composeOpsDigest(healthy(), NOW);
+    expect(text).toContain("121 URLs in the live sitemap (+3% WoW)");
+  });
+  it("first run: no prior sitemap number → 'first report'", () => {
+    const { text } = composeOpsDigest(healthy({ prevSitemapUrls: null }), NOW);
+    expect(text).toContain("121 URLs in the live sitemap (first report)");
+  });
+  it("unfetchable sitemap is an alert, not a crash", () => {
+    const { subject, text } = composeOpsDigest(healthy({ sitemapUrls: null }), NOW);
+    expect(text).toContain("sitemap not fetched");
+    expect(subject).toContain("alert");
   });
 });
 

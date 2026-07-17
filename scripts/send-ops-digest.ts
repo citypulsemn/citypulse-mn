@@ -86,6 +86,22 @@ async function gather(): Promise<OpsInputs> {
     return sends[0]?.note ?? null;
   });
 
+  const sitemapUrls = await wrap<number | null>("index", null, async () => {
+    const base = process.env.SITE_URL;
+    if (!base) return null;
+    const res = await fetch(`${base.replace(/\/$/, "")}/sitemap.xml`);
+    if (!res.ok) throw new Error(`sitemap fetch ${res.status}`);
+    const xml = await res.text();
+    return (xml.match(/<loc>/g) ?? []).length;
+  });
+
+  const prevSitemapUrls = await wrap<number | null>("index", null, async () => {
+    if (!sql) throw new Error("no database connection");
+    const rows = await sql<{ totals: { sitemap_urls?: number } }[]>`
+      select totals from ops_digest_runs order by sent_at desc limit 1`;
+    return rows[0]?.totals?.sitemap_urls ?? null;
+  });
+
   return {
     pipeline,
     coverageHealthy: coverage.healthy,
@@ -96,6 +112,8 @@ async function gather(): Promise<OpsInputs> {
     trending,
     subscribers,
     lastDigestNote,
+    sitemapUrls,
+    prevSitemapUrls,
     errors,
   };
 }
@@ -133,7 +151,11 @@ async function main() {
 
   if (sql) {
     try {
-      await sql`insert into ops_digest_runs (totals) values (${JSON.stringify(inputs.engagement.totals)}::jsonb)`;
+      // Baseline for next week's WoW: engagement totals + sitemap size in one
+      // jsonb (additive key — old rows without sitemap_urls read as null,
+      // which wowLabel renders as "first report").
+      const baseline = { ...inputs.engagement.totals, sitemap_urls: inputs.sitemapUrls ?? undefined };
+      await sql`insert into ops_digest_runs (totals) values (${JSON.stringify(baseline)}::jsonb)`;
       console.log("[ops-digest] WoW baseline recorded");
     } catch (err) {
       console.error("[ops-digest] baseline record failed (email already sent):", err);
