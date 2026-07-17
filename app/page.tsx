@@ -6,6 +6,13 @@ import { CollectionsStrip } from "@/components/CollectionsStrip";
 import { SiteFooter } from "@/components/SiteFooter";
 
 // Re-render at most every 5 minutes (events also revalidate at the data layer).
+// 1.2 — the homepage is the site's most important URL; it gets an explicit
+// canonical like every other page type (Search Console judges this). Title and
+// description inherit from the root layout.
+export const metadata = {
+  alternates: { canonical: "/" },
+};
+
 export const revalidate = 300;
 
 export default async function Home() {

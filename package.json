@@ -13,7 +13,8 @@
     "digest": "tsx --env-file-if-exists=.env.local scripts/send-digest.ts",
     "reclassify": "tsx --env-file-if-exists=.env.local scripts/reclassify.ts",
     "collapse": "tsx --env-file-if-exists=.env.local scripts/collapse-multiday.ts",
-    "verify": "tsx --env-file-if-exists=.env.local scripts/verify-events.ts"
+    "verify": "tsx --env-file-if-exists=.env.local scripts/verify-events.ts",
+    "ops-digest": "tsx --env-file-if-exists=.env.local scripts/send-ops-digest.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.106.0",

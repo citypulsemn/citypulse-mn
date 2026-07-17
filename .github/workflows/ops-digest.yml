@@ -1,0 +1,37 @@
+name: Ops Digest
+
+# The cockpit email (roadmap 2.1): runs after the weekly pipeline completes
+# (success OR failure — the cockpit reports especially when the news is bad),
+# and on demand with an optional dry run.
+on:
+  workflow_run:
+    workflows: ["Weekly Event Research"]
+    types: [completed]
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Dry run (compose + log, do not send)"
+        type: boolean
+        default: false
+
+jobs:
+  ops-digest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Send ops digest
+        run: npm run ops-digest ${{ github.event.inputs.dry_run == 'true' && '-- --dry-run' || '' }}
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          DIGEST_FROM: ${{ secrets.DIGEST_FROM }}
+          OPS_DIGEST_TO: ${{ secrets.OPS_DIGEST_TO }}

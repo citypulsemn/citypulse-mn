@@ -282,3 +282,15 @@ create index if not exists idx_event_stats_day on event_stats (day);
 -- events. Used for exactly one thing: showing subscribers their own saved
 -- events in their own email. Cleared on unsubscribe.
 alter table subscribers add column if not exists saver_token text;
+
+-- ── Ops digest (roadmap 2.1) ──────────────────────────────────────────────
+-- One row per successful ops-digest send; totals (jsonb) is last week's
+-- engagement snapshot, the baseline for week-over-week deltas. Written only
+-- on real sends (dry runs leave no trace) so the WoW math always compares
+-- against what was actually reported.
+create table if not exists ops_digest_runs (
+  id      bigint generated always as identity primary key,
+  sent_at timestamptz not null default now(),
+  totals  jsonb not null
+);
+alter table ops_digest_runs enable row level security;
