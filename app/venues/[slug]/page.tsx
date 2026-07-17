@@ -1,3 +1,4 @@
+import { VENUE_INTROS } from "@/lib/editorial";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { Logo } from "@/components/Logo";
@@ -122,6 +123,7 @@ export default async function VenuePage({
             {" · "}
             <a href={directions} target="_blank" rel="noopener noreferrer">Directions ↗</a>
           </div>
+          {VENUE_INTROS[v.slug] && <p className="page-intro">{VENUE_INTROS[v.slug]}</p>}
         </div>
 
         {mapUrl && (

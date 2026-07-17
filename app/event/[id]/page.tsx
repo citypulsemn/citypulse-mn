@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { getEvent, getEventsForDay } from "@/lib/events";
+import { getEvent, getEvents, getEventsForDay } from "@/lib/events";
+import { MoreAtVenue } from "@/components/MoreAtVenue";
 import { EventDetailBody } from "@/components/EventDetailBody";
 import { StatBeacon } from "@/components/StatBeacon";
 import { EventDayCard } from "@/components/EventDayCard";
@@ -66,6 +67,7 @@ export default async function EventPage({
   const ended = !cancelled && (event.status === "archived" || isEnded(event, now));
 
   const dayKey = dayKeyOf(event);
+  const all = await getEvents();
   const siblings = (await getEventsForDay(dayKey))
     .filter((e) => e.id !== event.id)
     .slice(0, 3);
@@ -134,6 +136,8 @@ export default async function EventPage({
             </a>
           </section>
         )}
+
+        <MoreAtVenue all={all} current={event} now={new Date()} />
 
         <SiteFooter source="event" />
       </main>

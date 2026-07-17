@@ -1,3 +1,4 @@
+import { NEIGHBORHOOD_INTROS } from "@/lib/editorial";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { Logo } from "@/components/Logo";
@@ -81,6 +82,7 @@ export default async function NeighborhoodPage({
             {events.length > 0 &&
               ` — ${events.length} upcoming event${events.length > 1 ? "s" : ""}`}
           </div>
+          {NEIGHBORHOOD_INTROS[n.key] && <p className="page-intro">{NEIGHBORHOOD_INTROS[n.key]}</p>}
         </div>
 
         {events.length === 0 ? (
