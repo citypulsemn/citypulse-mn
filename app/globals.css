@@ -690,3 +690,7 @@ a.daycard { text-decoration: none; }
 .ig-block { margin: 12px 0; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
 .ig-block-head { display: flex; justify-content: space-between; align-items: center; padding: 8px 14px; font-size: 12.5px; color: var(--cream-dim); background: rgba(255,255,255,0.03); border-bottom: 1px solid var(--line); }
 .ig-pre { margin: 0; padding: 14px; font-size: 13px; line-height: 1.6; white-space: pre-wrap; color: var(--cream); }
+
+/* ---------- Ongoing (roadmap 2.2) ---------- */
+.ongoing-through { font-family: "Oswald"; font-size: 11.5px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: #e0b070; margin: 0 0 6px; }
+.ongoing-item { margin-bottom: 4px; }

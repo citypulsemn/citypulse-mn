@@ -1,6 +1,8 @@
 import { getEvents } from "@/lib/events";
 import { EventsExplorer } from "@/components/EventsExplorer";
 import { TrendingStrip } from "@/components/TrendingStrip";
+import { OngoingStrip } from "@/components/OngoingStrip";
+import { selectOngoing } from "@/lib/ongoing";
 import { getTrendingEvents } from "@/lib/trending";
 import { CollectionsStrip } from "@/components/CollectionsStrip";
 import { SiteFooter } from "@/components/SiteFooter";
@@ -26,6 +28,7 @@ export default async function Home() {
     <>
       <EventsExplorer events={events} nowISO={nowISO} />
       <TrendingStrip trending={trending} />
+      <OngoingStrip ongoing={selectOngoing(events, new Date())} now={new Date()} />
       <CollectionsStrip />
       <SiteFooter source="home" />
     </>
