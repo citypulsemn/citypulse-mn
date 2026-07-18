@@ -707,3 +707,10 @@ a.daycard { text-decoration: none; }
 .more-at-date { flex: none; width: 92px; font-size: 12px; color: var(--cream-dim); font-variant-numeric: tabular-nums; }
 .more-at-name { flex: 1; font-size: 14px; }
 .more-at-time { flex: none; font-size: 12px; color: var(--cream-dim); }
+
+/* ---------- Subscribe band (roadmap 3.4) ---------- */
+.subscribe-band { margin: 26px 0; padding: 20px 22px; border: 1px solid var(--line); border-radius: 14px; background: linear-gradient(180deg, rgba(201,169,97,0.06), rgba(201,169,97,0.02)); display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 14px; }
+.subscribe-band-copy { flex: 1 1 260px; }
+.subscribe-band-title { font-family: "Oswald"; font-weight: 600; font-size: 18px; letter-spacing: 0.02em; margin: 0 0 4px; color: var(--gold); }
+.subscribe-band-sub { margin: 0; font-size: 13.5px; line-height: 1.5; color: var(--cream-dim); }
+.subscribe-band .subscribe-form { flex: 0 1 320px; }

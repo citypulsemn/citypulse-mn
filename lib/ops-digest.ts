@@ -38,7 +38,12 @@ export interface OpsInputs {
   engagement: Engagement;
   prevTotals: Engagement["totals"] | null; // last ops_digest_runs row, or null on first run
   trending: { count: number; top: string[] };
-  subscribers: { total: number; delta7: number };
+  subscribers: {
+    total: number;
+    delta7: number;
+    /** 7-day signups grouped by placement, most first. Empty when none. */
+    bySource7?: { source: string; count: number }[];
+  };
   lastDigestNote: string | null; // digest_sends.note — carries "N personalized"
   /** Live sitemap URL count (fetched from SITE_URL/sitemap.xml — the number
    *  Google actually sees; zero drift by construction) + last week's. */
@@ -222,6 +227,9 @@ export function buildSections(inputs: OpsInputs): OpsSection[] {
     } else {
       const s = inputs.subscribers;
       lines = [`${s.total} subscribed (${s.delta7 >= 0 ? "+" : ""}${s.delta7} last 7 days)`];
+      if (s.bySource7 && s.bySource7.length > 0) {
+        lines.push(`new by placement: ${s.bySource7.map((r) => `${r.source} ${r.count}`).join(" · ")}`);
+      }
       if (inputs.lastDigestNote) lines.push(`last digest: ${inputs.lastDigestNote}`);
     }
     out.push({ title: "Subscribers", lines, alert });

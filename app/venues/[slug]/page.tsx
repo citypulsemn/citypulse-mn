@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { Logo } from "@/components/Logo";
 import { SiteFooter } from "@/components/SiteFooter";
+import { SubscribeBand } from "@/components/SubscribeBand";
 import { EventDayCard } from "@/components/EventDayCard";
 import { getEvents } from "@/lib/events";
 import {
@@ -154,6 +155,12 @@ export default async function VenuePage({
             </div>
           </>
         )}
+
+        <SubscribeBand
+          source="venue-page"
+          heading="Never miss a show here"
+          sub={`The week’s best Twin Cities events, including what’s coming to ${v.name}, every Thursday.`}
+        />
 
         <SiteFooter source={`venue-${v.slug}`} />
       </main>

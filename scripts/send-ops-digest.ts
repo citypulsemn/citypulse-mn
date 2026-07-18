@@ -71,14 +71,19 @@ async function gather(): Promise<OpsInputs> {
     return { count: ranked.length, top: ranked.slice(0, 3).map((r) => r.event.title) };
   });
 
-  const subscribers = await wrap("subscribers", { total: 0, delta7: 0 }, async () => {
+  const subscribers = await wrap("subscribers", { total: 0, delta7: 0, bySource7: [] as { source: string; count: number }[] }, async () => {
     if (!sql) throw new Error("no database connection");
     const [row] = await sql<{ total: number; delta7: number }[]>`
       select
         count(*) filter (where status = 'subscribed')::int as total,
         count(*) filter (where status = 'subscribed' and created_at >= now() - interval '7 days')::int as delta7
       from subscribers`;
-    return { total: row?.total ?? 0, delta7: row?.delta7 ?? 0 };
+    const bySource7 = await sql<{ source: string; count: number }[]>`
+      select source, count(*)::int as count
+      from subscribers
+      where status = 'subscribed' and created_at >= now() - interval '7 days'
+      group by source order by count desc`;
+    return { total: row?.total ?? 0, delta7: row?.delta7 ?? 0, bySource7: [...bySource7] };
   });
 
   const lastDigestNote = await wrap<string | null>("subscribers", null, async () => {

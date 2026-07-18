@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Logo } from "@/components/Logo";
 import { SiteFooter } from "@/components/SiteFooter";
+import { SubscribeBand } from "@/components/SubscribeBand";
 import { EventDayCard } from "@/components/EventDayCard";
 import { getEvents } from "@/lib/events";
 import { selectWeekend, weekendDays, weekendLabel } from "@/lib/weekend";
@@ -83,15 +84,18 @@ export default async function ThisWeekendPage() {
             <a href="/">Browse the full calendar →</a>
           </div>
         ) : (
-          sections.map((s) => (
-            <section key={s.key} className="wknd-section">
-              <h2 className="wknd-day">{s.heading}</h2>
-              <div className="day-list">
-                {s.events.map((e) => (
-                  <EventDayCard key={e.id} event={e} />
-                ))}
-              </div>
-            </section>
+          sections.map((s, i) => (
+            <div key={s.key}>
+              <section className="wknd-section">
+                <h2 className="wknd-day">{s.heading}</h2>
+                <div className="day-list">
+                  {s.events.map((e) => (
+                    <EventDayCard key={e.id} event={e} />
+                  ))}
+                </div>
+              </section>
+              {i === 0 && <SubscribeBand source="this-weekend" />}
+            </div>
           ))
         )}
 
