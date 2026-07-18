@@ -21,7 +21,7 @@ function CardBlock({
       <div className="content-head">{title}</div>
       <div className="content-body">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img className="content-card" src={cardUrl} alt="Instagram card preview" />
+        <img className="content-card" src={cardUrl} alt="Instagram card preview" width={1080} height={1350} />
         <div className="content-side">
           <textarea className="content-caption" readOnly value={caption} rows={11} />
           <div className="content-actions">

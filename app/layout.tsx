@@ -28,6 +28,10 @@ export default function RootLayout({
         {/* Google Fonts via <link>. For production you can swap to next/font. */}
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        {/* Vitals (roadmap 3.5): the Mapbox static map is the LCP asset on event
+            and venue pages. dns-prefetch (not preconnect) warms DNS without
+            holding a TCP/TLS handshake open on the many pages that show no map. */}
+        <link rel="dns-prefetch" href="https://api.mapbox.com" />
         <link
           href="https://fonts.googleapis.com/css2?family=Oswald:wght@300;400;500;600;700&family=Inter:wght@400;500;600;700&display=swap"
           rel="stylesheet"
