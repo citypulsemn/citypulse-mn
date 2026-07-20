@@ -250,7 +250,7 @@ export async function cancelVerified(items: { id: string; evidence: string }[]):
     n += res.count;
     await sql`
       insert into admin_audit (action, event_id, patch)
-      values ('verify_cancel', ${item.id}::uuid, ${JSON.stringify({ evidence: item.evidence.slice(0, 500) })}::jsonb)
+      values ('verify_cancel', ${item.id}::uuid, ${sql.json({ evidence: item.evidence.slice(0, 500) })})
     `;
   }
   return n;
@@ -261,6 +261,6 @@ export async function flagVerification(id: string, verdict: string, note: string
   const sql = requireSql();
   await sql`
     insert into admin_audit (action, event_id, patch)
-    values ('verify_flag', ${id}::uuid, ${JSON.stringify({ verdict, note: note.slice(0, 300) })}::jsonb)
+    values ('verify_flag', ${id}::uuid, ${sql.json({ verdict, note: note.slice(0, 300) })})
   `;
 }
