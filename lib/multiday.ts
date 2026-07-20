@@ -38,9 +38,16 @@ export function normalizeRunTitle(title: string): string {
     .toLowerCase()
     .replace(/\b(19|20)\d{2}\b/g, " ") // years
     .replace(/\bweekend\s*\d+\b/g, " ") // "Weekend 1"
+    .replace(/\bweekend\s+[ivx]+\b/g, " ") // "Weekend V" — the Jul 20 pipeline wave
     .replace(/\bday\s*\d+\b/g, " ") // "Day 2"
     .replace(/\b(second|third|1st|2nd|3rd)\s+edition\b/g, " ")
     .replace(/\([^)]*\)/g, " ") // parentheticals
+    // Trailing run-phrases after a dash: "— Final Weekends", "– continued
+    // weekends", "— Opening Weekend". A WHITELIST, not a general dash-strip —
+    // "— Labor Day Weekend" and "— Butter Sculptures" must keep their words
+    // (those merge via the parent-child fold in planCollapse, or not at all).
+    .replace(/\s*[—–-]\s*(?:(?:opening|closing|final|last|first|continued|ongoing)\s+)?weekends?(?:\s+only)?\s*$/g, " ")
+    .replace(/\s*[—–-]\s*(?:final|last)\s+(?:days|week)\s*$/g, " ")
     .replace(/[—–-]+\s*$/g, " ")
     .replace(/[''`]/g, "") // possessives: "Sever's" → "severs" (not "sever s")
     .replace(/[^a-z0-9 ]+/g, " ")
@@ -142,6 +149,189 @@ export function collapsibleClusters<
   T extends Pick<EventRecord, "title" | "city" | "start"> & { category?: string },
 >(events: T[]): RunCluster<T>[] {
   return groupRuns(events).filter((c) => c.events.length > 1);
+}
+
+// ── Collapse planning (span-aware; roadmap 4.4 continued, Jul 2026) ────────
+//
+// groupRuns clusters by START-day adjacency only, which has a blind spot the
+// 2026-07-20 pipeline run exposed: once a festival is collapsed to ONE card
+// with a multi_day_end span, that span is invisible to the next collapse pass.
+// A fresh "Weekend V" row dated three weeks into the run looks like an
+// isolated event (21-day gap from the survivor's START) and never merges.
+// planCollapse fixes this by clustering on INTERVALS — a row joins a run when
+// its days overlap or touch the run's whole span — and adds the parent-child
+// fold ("Minnesota State Fair — Llama Costume Contest" inside the fair's run
+// folds into the fair card; Taren's call, matching the COLLAPSE-1.1 plan).
+
+export interface CollapseRow {
+  id: string;
+  title: string;
+  city: string;
+  category?: string;
+  start: string;
+  /** Day part of an existing multi_day_end span, when the row has one. */
+  endDay?: string | null;
+}
+
+export interface CollapseAction {
+  /** run = consecutive days collapsed; duplicate = same-day copies; fold = sub-event absorbed by parent. */
+  kind: "run" | "duplicate" | "fold";
+  keepId: string;
+  title: string;
+  startDay: string;
+  endDay: string;
+  /** Day to write as the survivor's multi_day_end, or null when no write is needed. */
+  setEnd: string | null;
+  archiveIds: string[];
+}
+
+interface CollapseCluster {
+  titleKey: string;
+  cityKey: string;
+  sports: boolean;
+  rows: CollapseRow[];
+  startNum: number;
+  endNum: number;
+}
+
+function rowEndNum(row: CollapseRow): number {
+  const startNum = dayNumber(row.start);
+  if (row.endDay && row.endDay > dayOf(row.start)) {
+    return Math.floor(new Date(`${row.endDay}T12:00:00Z`).getTime() / DAY_MS);
+  }
+  return startNum;
+}
+
+/** Proper word-prefix: "minnesota state fair" extends to "minnesota state fair llama…". */
+function isWordPrefix(shorter: string, longer: string): boolean {
+  return longer.length > shorter.length && longer.startsWith(`${shorter} `);
+}
+
+/**
+ * Plan the collapse for a set of published/draft rows. Pure — returns actions
+ * (survivor, span to write, ids to archive); the DB layer applies them.
+ *
+ * Rules, in order of what they protect:
+ *  - SPORTS never merge across days and never fold — every game is real.
+ *  - Weekly series never merge: a 7-day gap between single-day rows always
+ *    splits clusters. Only a row whose days touch a run's span (gap ≤ 1) joins.
+ *  - Parent-child fold requires the child's ENTIRE interval inside the
+ *    parent's span — a sub-event dated outside the festival's run stays live
+ *    (conservative floor; the verify pass owns the ambiguous ones).
+ *  - Survivor = earliest start; ties prefer the row that already carries the
+ *    curated span, then the shorter (cleaner) title.
+ *  - Spans only ever EXTEND (never shrink), from attested rows only.
+ */
+export function planCollapse(rows: CollapseRow[]): CollapseAction[] {
+  // 1 — same-key interval clustering (span-aware groupRuns).
+  const byKey = new Map<string, CollapseRow[]>();
+  for (const row of rows) {
+    const k = runKey(row);
+    (byKey.get(k) ?? byKey.set(k, []).get(k)!).push(row);
+  }
+
+  let clusters: CollapseCluster[] = [];
+  for (const [key, list] of byKey) {
+    const sorted = [...list].sort(
+      (a, b) => a.start.localeCompare(b.start) || rowEndNum(a) - rowEndNum(b),
+    );
+    const [titleKey, cityKey] = key.split("|");
+    const sports = sorted.some((r) => r.category === "sports");
+    let current: CollapseRow[] = [];
+    let curStart = 0;
+    let curEnd = 0;
+
+    const flush = () => {
+      if (current.length > 0)
+        clusters.push({ titleKey, cityKey, sports, rows: current, startNum: curStart, endNum: curEnd });
+    };
+
+    for (const row of sorted) {
+      const s = dayNumber(row.start);
+      const e = rowEndNum(row);
+      const gap = sports ? 0 : 1; // sports: same-day only, as in groupRuns
+      if (current.length > 0 && s <= curEnd + gap) {
+        current.push(row);
+        curEnd = Math.max(curEnd, e);
+      } else {
+        flush();
+        current = [row];
+        curStart = s;
+        curEnd = e;
+      }
+    }
+    flush();
+  }
+
+  // 2 — parent-child fold. Child cluster's interval fully inside a
+  // prefix-related cluster's interval → absorb. Longest-key children first so
+  // chains land in their ultimate parent.
+  const folded = new Set<CollapseCluster>();
+  const foldKinds = new Map<CollapseCluster, boolean>();
+  const children = [...clusters].sort((a, b) => b.titleKey.length - a.titleKey.length);
+  for (const child of children) {
+    if (child.sports || folded.has(child)) continue;
+    let parent: CollapseCluster | null = null;
+    for (const cand of clusters) {
+      if (cand === child || cand.sports || folded.has(cand)) continue;
+      if (cand.cityKey !== child.cityKey) continue;
+      const [a, b] = [cand.titleKey, child.titleKey];
+      const related = isWordPrefix(a, b) || isWordPrefix(b, a);
+      if (!related) continue;
+      // The shorter of the two keys is the "parent name" — require substance.
+      const shorter = a.length < b.length ? a : b;
+      if (shorter.split(" ").length < 2) continue;
+      const contains = cand.startNum <= child.startNum && cand.endNum >= child.endNum;
+      if (!contains) continue;
+      // Prefer the widest containing parent, then the shorter (cleaner) key.
+      if (
+        !parent ||
+        cand.endNum - cand.startNum > parent.endNum - parent.startNum ||
+        (cand.endNum - cand.startNum === parent.endNum - parent.startNum &&
+          cand.titleKey.length < parent.titleKey.length)
+      ) {
+        parent = cand;
+      }
+    }
+    if (parent) {
+      parent.rows.push(...child.rows);
+      folded.add(child);
+      foldKinds.set(parent, true);
+    }
+  }
+  clusters = clusters.filter((c) => !folded.has(c));
+
+  // 3 — actions.
+  const actions: CollapseAction[] = [];
+  for (const cluster of clusters) {
+    const rowsSorted = [...cluster.rows].sort(
+      (a, b) =>
+        dayOf(a.start).localeCompare(dayOf(b.start)) ||
+        rowEndNum(b) - rowEndNum(a) || // ties: the row already carrying a span
+        a.title.length - b.title.length, // then the cleaner title
+    );
+    const keep = rowsSorted[0];
+    const extras = rowsSorted.slice(1);
+    if (extras.length === 0) continue;
+
+    const startDay = dayOf(keep.start);
+    const endNum = Math.max(...cluster.rows.map(rowEndNum));
+    const endDay = new Date(endNum * DAY_MS).toISOString().slice(0, 10);
+    const multiDay = endDay > startDay;
+    const keepEnd = keep.endDay && keep.endDay > startDay ? keep.endDay : null;
+    const setEnd = multiDay && (!keepEnd || keepEnd < endDay) ? endDay : null;
+
+    actions.push({
+      kind: foldKinds.get(cluster) ? "fold" : multiDay ? "run" : "duplicate",
+      keepId: keep.id,
+      title: keep.title,
+      startDay,
+      endDay,
+      setEnd,
+      archiveIds: extras.map((e) => e.id),
+    });
+  }
+  return actions;
 }
 
 // ── Display ───────────────────────────────────────────────────────────────

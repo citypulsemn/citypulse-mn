@@ -199,9 +199,9 @@ async function main() {
   // for the same festival). Weekly series are NOT touched — only consecutive days
   // form a run, so a recurring date night stays as separate real events.
   const runs = await collapseMultiDayRuns();
-  if (runs.collapsed > 0 || runs.merged > 0) {
+  if (runs.collapsed > 0 || runs.merged > 0 || runs.folded > 0) {
     console.log(
-      `[pipeline] multi-day: collapsed ${runs.collapsed} run(s), merged ${runs.merged} duplicate(s)`,
+      `[pipeline] multi-day: collapsed ${runs.collapsed} run(s), merged ${runs.merged} duplicate(s), folded ${runs.folded} sub-event group(s)`,
     );
   }
 

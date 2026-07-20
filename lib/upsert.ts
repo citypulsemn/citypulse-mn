@@ -1,6 +1,6 @@
 import { requireSql } from "./db";
 import type { DbEventInput } from "./types";
-import { collapsibleClusters } from "./multiday";
+import { planCollapse } from "./multiday";
 
 /** Count populated optional fields — a rough "richness" score for a row. */
 function richness(e: DbEventInput): number {
@@ -179,49 +179,51 @@ export async function dedupeNearDuplicates(): Promise<number> {
  * date night, a Thursday film series) is never collapsed — those are real,
  * separate events.
  */
-export async function collapseMultiDayRuns(): Promise<{ collapsed: number; merged: number }> {
+export async function collapseMultiDayRuns(): Promise<{ collapsed: number; merged: number; folded: number }> {
   const sql = requireSql();
 
+  // multi_day_end matters here: without it, a previously collapsed run card is
+  // invisible to clustering and every new "Weekend V"-style row survives
+  // (the 2026-07-20 duplicate wave). planCollapse clusters on full spans.
   const rows = await sql<
-    { id: string; title: string; city: string; category: string; start: string; day: string }[]
+    { id: string; title: string; city: string; category: string; start: string; end_day: string | null }[]
   >`
     select id::text as id, title, city, category,
            to_char(start_at at time zone 'America/Chicago', 'YYYY-MM-DD"T"HH24:MI') as start,
-           to_char(start_at at time zone 'America/Chicago', 'YYYY-MM-DD') as day
+           to_char(multi_day_end at time zone 'America/Chicago', 'YYYY-MM-DD') as end_day
     from events
     where status in ('published', 'draft')
     order by start_at asc
   `;
 
-  const clusters = collapsibleClusters(rows);
+  const actions = planCollapse(rows.map((r) => ({ ...r, endDay: r.end_day })));
   let collapsed = 0;
   let merged = 0;
+  let folded = 0;
 
-  for (const cluster of clusters) {
-    const [keep, ...extras] = cluster.events;
-    if (extras.length === 0) continue;
+  for (const action of actions) {
+    if (action.kind === "fold") folded++;
+    else if (action.kind === "run") collapsed++;
+    else merged++;
 
-    if (cluster.multiDay) {
-      // A genuine run: keep one row, give it the span.
+    if (action.setEnd) {
       await sql`
         update events
-        set multi_day_end = (${`${cluster.endDay}T23:59`}::timestamp at time zone 'America/Chicago')
-        where id::text = ${keep.id}
+        set multi_day_end = (${`${action.setEnd}T23:59`}::timestamp at time zone 'America/Chicago')
+        where id::text = ${action.keepId}
       `;
-      collapsed++;
-    } else {
-      // Same title, same city, same day, different venue guesses → duplicate.
-      merged++;
     }
 
-    await sql`
-      update events set status = 'archived'
-      where id::text = any(${extras.map((e) => e.id)})
-        and status in ('published', 'draft')
-    `;
+    if (action.archiveIds.length > 0) {
+      await sql`
+        update events set status = 'archived'
+        where id::text = any(${action.archiveIds})
+          and status in ('published', 'draft')
+      `;
+    }
   }
 
-  return { collapsed, merged };
+  return { collapsed, merged, folded };
 }
 
 /** Stamp events as source-verified just now (roadmap 4.5). */

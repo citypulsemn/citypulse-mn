@@ -4,10 +4,12 @@ import {
   runKey,
   groupRuns,
   collapsibleClusters,
+  planCollapse,
   isMultiDay,
   multiDayLabel,
   runLength,
   spansDay,
+  type CollapseRow,
 } from "../multiday";
 import { daysSpanned, eventsByDay } from "../dates";
 import type { EventRecord, CategoryKey } from "../types";
@@ -51,6 +53,164 @@ describe("normalizeRunTitle", () => {
     expect(normalizeRunTitle("Bloomington Farmers Market")).not.toBe(
       normalizeRunTitle("Burnsville Farmers Market"),
     );
+  });
+
+  it("strips run-phrase retitles from the Jul 20 pipeline wave", () => {
+    expect(normalizeRunTitle("Minnesota Renaissance Festival – Final Weekends")).toBe(
+      "minnesota renaissance festival",
+    );
+    expect(normalizeRunTitle("Minnesota Renaissance Festival (Weekend VI — Final Weekend)")).toBe(
+      "minnesota renaissance festival",
+    );
+    expect(normalizeRunTitle("Renaissance Festival Weekend V")).toBe("renaissance festival");
+    expect(normalizeRunTitle("Sever's Fall Festival & Corn Maze — Opening Weekend")).toBe(
+      "severs fall festival corn maze",
+    );
+    expect(normalizeRunTitle("Sever's Fall Festival (Shakopee) – continued weekends")).toBe(
+      "severs fall festival",
+    );
+  });
+
+  it("whitelist only: attraction suffixes keep their words (folding decides those, not the key)", () => {
+    expect(normalizeRunTitle("Minnesota State Fair — Butter Sculptures & Crop Art")).toBe(
+      "minnesota state fair butter sculptures crop art",
+    );
+  });
+});
+
+describe("planCollapse — span-aware clustering", () => {
+  function row(o: Partial<CollapseRow> & { id: string }): CollapseRow {
+    return {
+      title: "Event",
+      city: "Minneapolis",
+      category: "festival",
+      start: "2026-08-14T10:00",
+      endDay: null,
+      ...o,
+    };
+  }
+
+  it("regression (Jul 20 wave): retitled single-day rows inside an existing run card's span join it", () => {
+    const actions = planCollapse([
+      row({ id: "card", title: "Minnesota Renaissance Festival", start: "2026-08-22T09:00", endDay: "2026-10-04", city: "Shakopee" }),
+      row({ id: "w5", title: "Minnesota Renaissance Festival (Weekend V)", start: "2026-09-12T09:00", city: "Shakopee" }),
+      row({ id: "fw", title: "Minnesota Renaissance Festival – Final Weekends", start: "2026-09-26T09:00", city: "Shakopee" }),
+    ]);
+    expect(actions).toHaveLength(1);
+    expect(actions[0].keepId).toBe("card");
+    expect(actions[0].archiveIds.sort()).toEqual(["fw", "w5"]);
+    expect(actions[0].setEnd).toBeNull(); // span already reaches Oct 4 — never rewritten needlessly
+  });
+
+  it("parent-child fold: prefix-titled sub-event inside the parent's span is absorbed", () => {
+    const actions = planCollapse([
+      row({ id: "fair", title: "Minnesota State Fair 2026", start: "2026-08-27T08:00", endDay: "2026-09-07", city: "St Paul" }),
+      row({ id: "llama", title: "Minnesota State Fair — Llama & Alpaca Costume Contest", start: "2026-09-03T13:00", city: "St Paul" }),
+    ]);
+    expect(actions).toHaveLength(1);
+    expect(actions[0].kind).toBe("fold");
+    expect(actions[0].keepId).toBe("fair");
+    expect(actions[0].archiveIds).toEqual(["llama"]);
+  });
+
+  it("fold works when the SPANNED card has the longer title (Sever's & Corn Maze case)", () => {
+    const actions = planCollapse([
+      row({ id: "card", title: "Sever's Fall Festival & Corn Maze", start: "2026-09-04T10:00", endDay: "2026-10-04", city: "Shakopee" }),
+      row({ id: "w3", title: "Sever's Fall Festival (Weekend III)", start: "2026-09-19T10:00", city: "Shakopee" }),
+    ]);
+    expect(actions).toHaveLength(1);
+    expect(actions[0].keepId).toBe("card");
+    expect(actions[0].archiveIds).toEqual(["w3"]);
+  });
+
+  it("genuinely distinct titles at the same festival are NOT folded", () => {
+    const actions = planCollapse([
+      row({ id: "card", title: "Minnesota Renaissance Festival", start: "2026-08-22T09:00", endDay: "2026-10-04", city: "Shakopee" }),
+      row({ id: "feast", title: "Phantom's Feast Ghost Dinner & Hunt at Renaissance Festival", start: "2026-09-13T18:00", city: "Shakopee" }),
+    ]);
+    expect(actions).toEqual([]);
+  });
+
+  it("conservative floor: a sub-event dated OUTSIDE the parent's span stays live", () => {
+    const actions = planCollapse([
+      row({ id: "fair", title: "Minnesota State Fair 2026", start: "2026-08-27T08:00", endDay: "2026-09-07", city: "St Paul" }),
+      row({ id: "preview", title: "Minnesota State Fair — Preview Night", start: "2026-08-20T18:00", city: "St Paul" }),
+    ]);
+    expect(actions).toEqual([]);
+  });
+
+  it("weekly series never merge (7-day gaps split clusters)", () => {
+    const actions = planCollapse(
+      ["2026-08-06", "2026-08-13", "2026-08-20", "2026-08-27"].map((d, i) =>
+        row({ id: `n${i}`, title: "Day Block Brewing Date Night", start: `${d}T18:00` }),
+      ),
+    );
+    expect(actions).toEqual([]);
+  });
+
+  it("sports: consecutive-day games never merge; same-day copies do; folding never touches sports", () => {
+    expect(
+      planCollapse([
+        row({ id: "g1", title: "Minnesota Twins vs. Yankees", start: "2026-09-14T18:00", category: "sports", city: "Minneapolis" }),
+        row({ id: "g2", title: "Minnesota Twins vs. Yankees", start: "2026-09-15T18:00", category: "sports", city: "Minneapolis" }),
+      ]),
+    ).toEqual([]);
+
+    const sameDay = planCollapse([
+      row({ id: "a", title: "Minnesota Twins vs. Yankees", start: "2026-09-14T18:00", category: "sports", city: "Minneapolis" }),
+      row({ id: "b", title: "Minnesota Twins vs. Yankees", start: "2026-09-14T18:00", category: "sports", city: "Minneapolis" }),
+    ]);
+    expect(sameDay).toHaveLength(1);
+    expect(sameDay[0].kind).toBe("duplicate");
+
+    expect(
+      planCollapse([
+        row({ id: "team", title: "Minnesota Twins", start: "2026-09-14T12:00", category: "sports", city: "Minneapolis" }),
+        row({ id: "game", title: "Minnesota Twins vs. Yankees", start: "2026-09-14T18:00", category: "sports", city: "Minneapolis" }),
+      ]),
+    ).toEqual([]);
+  });
+
+  it("true spans: a row attesting a day just past the span end EXTENDS it", () => {
+    const actions = planCollapse([
+      row({ id: "card", title: "Uptown Art Fair", start: "2026-08-22T10:00", endDay: "2026-08-30" }),
+      row({ id: "extra", title: "Uptown Art Fair", start: "2026-08-31T10:00" }),
+    ]);
+    expect(actions).toHaveLength(1);
+    expect(actions[0].keepId).toBe("card");
+    expect(actions[0].setEnd).toBe("2026-08-31");
+  });
+
+  it("plain consecutive-day rows still collapse into a run (old behavior preserved)", () => {
+    const actions = planCollapse(
+      ["2026-08-14", "2026-08-15", "2026-08-16"].map((d, i) =>
+        row({ id: `d${i}`, title: "Irish Fair of Minnesota", start: `${d}T10:00`, city: "St Paul" }),
+      ),
+    );
+    expect(actions).toHaveLength(1);
+    expect(actions[0].kind).toBe("run");
+    expect(actions[0].keepId).toBe("d0");
+    expect(actions[0].setEnd).toBe("2026-08-16");
+    expect(actions[0].archiveIds).toEqual(["d1", "d2"]);
+  });
+
+  it("survivor tie on start day prefers the row already carrying the curated span", () => {
+    const actions = planCollapse([
+      row({ id: "plain", title: "Minnesota Renaissance Festival", start: "2026-08-22T08:00", city: "Shakopee" }),
+      row({ id: "card", title: "Minnesota Renaissance Festival", start: "2026-08-22T09:00", endDay: "2026-10-04", city: "Shakopee" }),
+    ]);
+    expect(actions).toHaveLength(1);
+    expect(actions[0].keepId).toBe("card");
+  });
+
+  it("honest emptiness: nothing to do → no actions", () => {
+    expect(planCollapse([])).toEqual([]);
+    expect(
+      planCollapse([
+        row({ id: "a", title: "First Avenue Show", start: "2026-08-14T20:00" }),
+        row({ id: "b", title: "Cedar Cultural Center Show", start: "2026-08-14T20:00" }),
+      ]),
+    ).toEqual([]);
   });
 });
 
