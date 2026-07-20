@@ -8,7 +8,10 @@ Any read or write that isn't core to serving events — stats, trending, digest 
 ## 2. DB-backed pages never prerender at build
 On-demand ISR is the default; `generateStaticParams` needs a positive reason. **Origin:** the 5.5 Vercel build stampede — 16 parallel build-time prerenders exhausted the Supabase connection pool; 60s timeouts × 3 retries killed the build. Index pages doing ONE query at build (homepage, /ongoing) are the allowed pattern; per-slug fleets are not.
 
-## 3. The container's blind spots are permanent
+## 3. Know your environment's blind spots
+
+> **Scope note (July 2026):** written for the ephemeral chat container. Work now happens on a local machine with a database, live-site egress, and a modern browser, so most of this dissolves — see `docs/HANDOFF.md`. The habit it taught (write DB paths defensively, name production-only failure modes in deploy guides) is worth keeping.
+
 The dev container has **no database** (all DB paths ship pre-wrapped and are exercised for the first time in production — write them defensively), an **old WebKit renderer** (no flex-gap; some live CSS bugs won't reproduce here — the background-seam fix was verified by construction, not reproduction), and **no egress to the live site or Mapbox**. Production-only failure modes are named in deploy guides, not discovered by users.
 
 ## 4. Verify the axis the user reported
@@ -32,7 +35,10 @@ cd /home/claude/citypulse-mn && rm -f /mnt/user-data/outputs/citypulse-mn.zip \
 ```
 Quality gate per item: pure logic in lib/ + golden tests · idempotent additive schema · tsc clean · build clean · audit 0 · one smoke cycle · deploy guide.
 
-## 8. Verify the archive, not the intention
+## 8. Verify the artifact, not the intention
+
+> **Scope note (July 2026):** the literal archive-parity check is obsolete now that deliverables are commits rather than zips. The principle generalizes: after changes, confirm `git status` / `git diff --stat` shows exactly what you believe you changed, and that tests ran against the tree you edited.
+
 A rate-limit interruption mid-`zip` produces a structurally valid but PARTIAL archive — and a grep that "verifies" it can pass on what it finds while missing what it doesn't. **Origin:** the 3.1 zip shipped without docs/INDEXING.md; the operator caught it, not the build. The rule: after packaging, compare COUNTS — files in tree vs entries in archive — and re-zip on any mismatch:
 ```
 T=$(find . -type f ! -path "./node_modules/*" ! -path "./.next/*" ! -path "./.git/*" | wc -l)
