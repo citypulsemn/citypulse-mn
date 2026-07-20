@@ -9,7 +9,7 @@
  * Usage: npm run ops-digest [-- --dry-run]
  */
 import { sql } from "../lib/db";
-import { composeOpsDigest, type OpsInputs, type PipelineRow } from "../lib/ops-digest";
+import { composeOpsDigest, parseStoredTotals, type OpsInputs, type PipelineRow } from "../lib/ops-digest";
 import { assessCoverage, formatCoverageAlerts } from "../lib/coverage";
 import { getEngagement } from "../lib/stats";
 import { getTrendingEvents } from "../lib/trending";
@@ -61,9 +61,9 @@ async function gather(): Promise<OpsInputs> {
 
   const prevTotals = await wrap<OpsInputs["prevTotals"]>("engagement", null, async () => {
     if (!sql) throw new Error("no database connection");
-    const rows = await sql<{ totals: OpsInputs["prevTotals"] }[]>`
+    const rows = await sql<{ totals: unknown }[]>`
       select totals from ops_digest_runs order by sent_at desc limit 1`;
-    return rows[0]?.totals ?? null;
+    return (parseStoredTotals(rows[0]?.totals) as OpsInputs["prevTotals"]) ?? null;
   });
 
   const trending = await wrap("trending", { count: 0, top: [] as string[] }, async () => {
@@ -102,9 +102,9 @@ async function gather(): Promise<OpsInputs> {
 
   const prevSitemapUrls = await wrap<number | null>("index", null, async () => {
     if (!sql) throw new Error("no database connection");
-    const rows = await sql<{ totals: { sitemap_urls?: number } }[]>`
+    const rows = await sql<{ totals: unknown }[]>`
       select totals from ops_digest_runs order by sent_at desc limit 1`;
-    return rows[0]?.totals?.sitemap_urls ?? null;
+    return parseStoredTotals(rows[0]?.totals)?.sitemap_urls ?? null;
   });
 
   return {
@@ -160,7 +160,7 @@ async function main() {
       // jsonb (additive key — old rows without sitemap_urls read as null,
       // which wowLabel renders as "first report").
       const baseline = { ...inputs.engagement.totals, sitemap_urls: inputs.sitemapUrls ?? undefined };
-      await sql`insert into ops_digest_runs (totals) values (${JSON.stringify(baseline)}::jsonb)`;
+      await sql`insert into ops_digest_runs (totals) values (${sql.json(baseline)})`;
       console.log("[ops-digest] WoW baseline recorded");
     } catch (err) {
       console.error("[ops-digest] baseline record failed (email already sent):", err);

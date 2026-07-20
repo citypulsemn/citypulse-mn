@@ -73,6 +73,26 @@ function unavailable(reason: string): string[] {
   return [`section unavailable: ${reason}`];
 }
 
+/**
+ * Normalize an ops_digest_runs.totals value read back from jsonb. Rows written
+ * before the sql.json fix stored the object double-stringified (a jsonb string
+ * scalar), which silently defeated every WoW comparison — the digest reported
+ * "first report" forever. Accepts either shape; anything else is null, which
+ * wowLabel renders honestly as "first report".
+ */
+export function parseStoredTotals(raw: unknown): Record<string, number> | null {
+  let value = raw;
+  if (typeof value === "string") {
+    try {
+      value = JSON.parse(value);
+    } catch {
+      return null;
+    }
+  }
+  if (value === null || typeof value !== "object" || Array.isArray(value)) return null;
+  return value as Record<string, number>;
+}
+
 /** "+18%" / "-7%" / "±0%" / "first report" for week-over-week deltas. */
 export function wowLabel(current: number, prev: number | null): string {
   if (prev === null) return "first report";

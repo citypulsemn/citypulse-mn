@@ -35,3 +35,6 @@ jobs:
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
           DIGEST_FROM: ${{ secrets.DIGEST_FROM }}
           OPS_DIGEST_TO: ${{ secrets.OPS_DIGEST_TO }}
+          # Without this the Index-surface section can never fetch the sitemap
+          # in CI — it silently rendered "sitemap not fetched" on every send.
+          SITE_URL: https://www.citypulsemn.com

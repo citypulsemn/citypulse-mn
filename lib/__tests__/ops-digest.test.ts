@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { composeOpsDigest, buildSections, wowLabel, type OpsInputs } from "../ops-digest";
+import { composeOpsDigest, buildSections, parseStoredTotals, wowLabel, type OpsInputs } from "../ops-digest";
 
 const NOW = new Date("2026-07-20T15:30:00Z"); // a Monday, 10:30am Chicago
 
@@ -30,6 +30,25 @@ function healthy(overrides: Partial<OpsInputs> = {}): OpsInputs {
     ...overrides,
   };
 }
+
+describe("parseStoredTotals — jsonb baseline read-back", () => {
+  it("passes a proper object through untouched", () => {
+    const totals = { view: 68, ticket_click: 15, save: 4, calendar: 1062 };
+    expect(parseStoredTotals(totals)).toEqual(totals);
+  });
+  it("recovers the legacy double-stringified rows (the WoW-always-'first-report' bug)", () => {
+    expect(parseStoredTotals('{"view":7,"ticket_click":3,"save":3,"calendar":117}')).toEqual({
+      view: 7, ticket_click: 3, save: 3, calendar: 117,
+    });
+  });
+  it("honest emptiness: garbage shapes → null, never a fake object", () => {
+    expect(parseStoredTotals(null)).toBeNull();
+    expect(parseStoredTotals(undefined)).toBeNull();
+    expect(parseStoredTotals("not json")).toBeNull();
+    expect(parseStoredTotals("42")).toBeNull(); // valid JSON, wrong shape
+    expect(parseStoredTotals([1, 2])).toBeNull();
+  });
+});
 
 describe("wowLabel — week-over-week math", () => {
   it("computes signed percentages", () => {
