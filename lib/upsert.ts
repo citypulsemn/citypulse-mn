@@ -153,15 +153,27 @@ export async function markCancelled(eventKeys: string[]): Promise<number> {
  */
 export async function dedupeNearDuplicates(): Promise<number> {
   const sql = requireSql();
+  // R0.3, three fixes to this join:
+  //  - Same-day means the same CHICAGO day. `start_at::date` casts in the DB
+  //    session zone (UTC on Supabase): a Mon 7:10 PM game lands on Tue's UTC
+  //    date — pairing it with Tue's real day game (sports-rule violation) and
+  //    missing genuine 5 PM/8 PM same-day duplicates that straddle 7 PM CDT.
+  //  - Survivorship is (created_at, id) — the doc's "earliest-seen row is
+  //    kept" is now actually true instead of a UUID coin flip.
+  //  - The keeper is anchored: a row that is itself being archived this pass
+  //    can't be the reason another row dies (stops chained pairs archiving a
+  //    row >250 m from its actual survivor; the rare unmatched tail of a
+  //    chain survives to the next run rather than guessing).
   const res = await sql`
-    with extras as (
-      select b.id as dup_id
+    with pairs as (
+      select a.id as keep_id, b.id as dup_id
       from events a
       join events b
-        on a.id < b.id
+        on (a.created_at, a.id) < (b.created_at, b.id)
        and a.status in ('published', 'draft')
        and b.status in ('published', 'draft')
-       and a.start_at::date = b.start_at::date
+       and (a.start_at at time zone 'America/Chicago')::date
+           = (b.start_at at time zone 'America/Chicago')::date
        and similarity(a.title, b.title) > 0.6
        and (
          6371000 * acos(greatest(-1, least(1,
@@ -172,7 +184,10 @@ export async function dedupeNearDuplicates(): Promise<number> {
     )
     update events
     set status = 'archived'
-    where id in (select dup_id from extras)
+    where id in (
+      select dup_id from pairs
+      where keep_id not in (select dup_id from pairs)
+    )
       and status in ('published', 'draft')
   `;
   return res.count;

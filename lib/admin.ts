@@ -167,9 +167,12 @@ export async function getDuplicatePairs(): Promise<DupPair[]> {
       round(similarity(a.title, b.title)::numeric, 2)::float8 as sim
     from events a
     join events b
-      on a.id < b.id
+      on (a.created_at, a.id) < (b.created_at, b.id)
      and a.status in ('published','draft') and b.status in ('published','draft')
-     and a.start_at::date = b.start_at::date
+     -- R0.3: same-day means the same CHICAGO day (bare ::date casts in the
+     -- session zone, UTC — evening games paired across real days).
+     and (a.start_at at time zone 'America/Chicago')::date
+         = (b.start_at at time zone 'America/Chicago')::date
      and similarity(a.title, b.title) > 0.4
     order by a.start_at asc
     limit 100
