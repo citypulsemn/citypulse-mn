@@ -7,6 +7,7 @@ import { FeedSubscribe } from "@/components/FeedSubscribe";
 import { getEvents } from "@/lib/events";
 import { selectWeekend, weekendDays, weekendLabel } from "@/lib/weekend";
 import { SITE_URL } from "@/lib/seo/site";
+import { jsonLdSafe } from "@/lib/seo/event-jsonld";
 
 export const revalidate = 300;
 
@@ -65,7 +66,7 @@ export default async function ThisWeekendPage() {
         {total > 0 && (
           <script
             type="application/ld+json"
-            dangerouslySetInnerHTML={{ __html: JSON.stringify(itemList) }}
+            dangerouslySetInnerHTML={{ __html: jsonLdSafe(itemList) }}
           />
         )}
 

@@ -8,7 +8,7 @@ import { EventDayCard } from "@/components/EventDayCard";
 import { ShareButton } from "@/components/ShareButton";
 import { Logo } from "@/components/Logo";
 import { SiteFooter } from "@/components/SiteFooter";
-import { eventJsonLd } from "@/lib/seo/event-jsonld";
+import { eventJsonLd, jsonLdSafe } from "@/lib/seo/event-jsonld";
 import { SITE_URL } from "@/lib/seo/site";
 import {
   dayKeyOf,
@@ -83,7 +83,7 @@ export default async function EventPage({
     <>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        dangerouslySetInnerHTML={{ __html: jsonLdSafe(jsonLd) }}
       />
       <header className="topbar">
         <div className="topbar-inner">

@@ -1,7 +1,10 @@
 import { describe, it, expect } from "vitest";
+import { readFileSync, readdirSync } from "node:fs";
+import { join } from "node:path";
 import {
   eventJsonLd,
   dayItemListJsonLd,
+  jsonLdSafe,
   chicagoOffset,
   toIsoWithOffset,
   lowestPrice,
@@ -119,5 +122,34 @@ describe("dayItemListJsonLd", () => {
     expect(items).toHaveLength(2);
     expect(items[0]).toMatchObject({ position: 1, url: `${BASE}/event/1` });
     expect(items[1].position).toBe(2);
+  });
+});
+
+describe("jsonLdSafe (R0.6) — the </script> breakout is closed", () => {
+  it("a hostile title round-trips inert: no literal < survives serialization", () => {
+    const hostile = ev({
+      title: `Fun Fair</script><img src=x onerror=alert(1)>`,
+      venue: `<b>Venue</b>`,
+      description: `nice "show" & more</script>`,
+    });
+    const out = jsonLdSafe(eventJsonLd(hostile, { baseUrl: BASE }));
+    expect(out).not.toContain("<");
+    expect(out).toContain("\\u003c");
+  });
+
+  it("output is still valid JSON and decodes back to the same object", () => {
+    const obj = eventJsonLd(ev({ title: "A </script> B" }), { baseUrl: BASE });
+    expect(JSON.parse(jsonLdSafe(obj))).toEqual(JSON.parse(JSON.stringify(obj)));
+  });
+
+  it("tripwire: no page renders raw JSON.stringify into HTML anywhere in app/", () => {
+    const offenders: string[] = [];
+    const root = join(__dirname, "..", "..", "app");
+    for (const f of readdirSync(root, { recursive: true }) as string[]) {
+      if (!String(f).endsWith(".tsx")) continue;
+      const src = readFileSync(join(root, String(f)), "utf8");
+      if (/__html:\s*JSON\.stringify/.test(src)) offenders.push(String(f));
+    }
+    expect(offenders).toEqual([]);
   });
 });

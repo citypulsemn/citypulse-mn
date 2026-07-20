@@ -17,6 +17,7 @@ import {
 import { neighborhoodOf } from "@/lib/neighborhoods";
 import { daysSpanned } from "@/lib/dates";
 import { SITE_URL } from "@/lib/seo/site";
+import { jsonLdSafe } from "@/lib/seo/event-jsonld";
 
 export const revalidate = 300;
 
@@ -109,7 +110,7 @@ export default async function VenuePage({
       <main className="wrap page">
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(placeJsonLd) }}
+          dangerouslySetInnerHTML={{ __html: jsonLdSafe(placeJsonLd) }}
         />
 
         <div className="dayhdr">

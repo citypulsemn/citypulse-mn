@@ -6,6 +6,19 @@ import type { EventRecord } from "../types";
  * render the output inside a <script type="application/ld+json">.
  */
 
+/**
+ * Serialize JSON-LD for a <script> block (R0.6). JSON.stringify escapes
+ * quotes but NOT `<` — a scraped or submitted title containing
+ * "</script><img onerror=…>" would terminate the script block and execute in
+ * every visitor's browser. Escaping every `<` as a unicode escape (backslash
+ * u003c) is invisible to JSON parsers and to Google, and closes the breakout.
+ * EVERY ld+json render goes through this — never raw JSON.stringify
+ * (tripwire-tested).
+ */
+export function jsonLdSafe(obj: unknown): string {
+  return JSON.stringify(obj).replace(/</g, "\\u003c");
+}
+
 /** Central Time UTC offset for a given YYYY-MM-DD (handles CST/CDT). */
 export function chicagoOffset(dayKey: string): "-05:00" | "-06:00" {
   // Noon UTC on that calendar day is safely outside DST-transition edges.

@@ -6,7 +6,7 @@ import { EventDayCard } from "@/components/EventDayCard";
 import { FeedSubscribe } from "@/components/FeedSubscribe";
 import { Logo } from "@/components/Logo";
 import { SiteFooter } from "@/components/SiteFooter";
-import { dayItemListJsonLd } from "@/lib/seo/event-jsonld";
+import { dayItemListJsonLd, jsonLdSafe } from "@/lib/seo/event-jsonld";
 import { SITE_URL } from "@/lib/seo/site";
 import { dkey, evDate } from "@/lib/dates";
 import { longDate } from "@/lib/event-view";
@@ -79,7 +79,7 @@ export default async function CollectionPage({
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
-            __html: JSON.stringify(dayItemListJsonLd(selected, { baseUrl: SITE_URL })),
+            __html: jsonLdSafe(dayItemListJsonLd(selected, { baseUrl: SITE_URL })),
           }}
         />
       )}
