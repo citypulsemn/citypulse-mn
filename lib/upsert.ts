@@ -207,9 +207,12 @@ export async function collapseMultiDayRuns(): Promise<{ collapsed: number; merge
     else merged++;
 
     if (action.setEnd) {
+      // ::text first — postgres.js types ISO-shaped string params as
+      // timestamptz, which shifts the value +5/6h before the tz attach
+      // (confirmed against prod 2026-07-20). Text cast keeps it a wall time.
       await sql`
         update events
-        set multi_day_end = (${`${action.setEnd}T23:59`}::timestamp at time zone 'America/Chicago')
+        set multi_day_end = (${`${action.setEnd}T23:59`}::text::timestamp at time zone 'America/Chicago')
         where id::text = ${action.keepId}
       `;
     }

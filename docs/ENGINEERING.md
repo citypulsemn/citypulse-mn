@@ -35,6 +35,17 @@ cd /home/claude/citypulse-mn && rm -f /mnt/user-data/outputs/citypulse-mn.zip \
 ```
 Quality gate per item: pure logic in lib/ + golden tests · idempotent additive schema · tsc clean · build clean · audit 0 · one smoke cycle · deploy guide.
 
+## 9. Timestamp params cross the driver as timestamptz — cast ::text first
+Any SQL that interprets a *parameterized* ISO-shaped string as a Chicago wall time must cast
+`::text` before `::timestamp at time zone 'America/Chicago'`. postgres.js infers timestamptz
+for ISO-looking string params, so without the text cast the value is treated as UTC first and
+the expression silently adds 5–6 hours — while the identical expression with a **literal**
+works correctly, which is why hand-pasted SQL (COLLAPSE-1.1) never showed the bug.
+**Origin:** the 2026-07-20 verify pass — three `multi_day_end` writes read back one day late
+and a start-time fix landed at 10 PM instead of 5 PM; probed and confirmed against prod
+(literal round-trip correct, param round-trip +5h). Admin event edits carried the same latent
+bug. Reads (`at time zone` in SELECT) are unaffected.
+
 ## 8. Verify the artifact, not the intention
 
 > **Scope note (July 2026):** the literal archive-parity check is obsolete now that deliverables are commits rather than zips. The principle generalizes: after changes, confirm `git status` / `git diff --stat` shows exactly what you believe you changed, and that tests ran against the tree you edited.

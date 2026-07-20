@@ -57,7 +57,7 @@ async function main() {
       if (a.setEnd) {
         await sql`
           update events
-          set multi_day_end = (${`${a.setEnd}T23:59`}::timestamp at time zone 'America/Chicago')
+          set multi_day_end = (${`${a.setEnd}T23:59`}::text::timestamp at time zone 'America/Chicago')
           where id::text = ${a.keepId}
         `;
       }
