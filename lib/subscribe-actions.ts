@@ -26,6 +26,9 @@ export async function subscribeAction(
   switch (result) {
     case "added":
       return { status: "success", message: "You're on the list — see you in your inbox." };
+    case "resubscribed":
+      // R0.5: honest copy — this row was unsubscribed or pending a moment ago.
+      return { status: "success", message: "Welcome back — you're on the list again." };
     case "already":
       return { status: "already", message: "You're already subscribed 🎉" };
     case "invalid":

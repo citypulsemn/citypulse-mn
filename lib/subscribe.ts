@@ -6,7 +6,7 @@ import { sql } from "./db";
  * bypasses RLS (the subscribers table is sealed from the public API).
  */
 
-export type SubscribeResult = "added" | "already" | "invalid" | "error";
+export type SubscribeResult = "added" | "resubscribed" | "already" | "invalid" | "error";
 
 export interface SubscriberRow {
   email: string;
@@ -57,14 +57,33 @@ export async function addSubscriber(
     // with THEIR saved events. On re-subscribe we refresh the link (that's
     // also how an existing subscriber connects their saves: submit the form
     // once from the browser they save in).
-    const rows = await sql<{ inserted: boolean }[]>`
-      insert into subscribers (email, source, saver_token)
-      values (${email}, ${source}, ${saverToken})
-      on conflict (email) do update
-        set saver_token = coalesce(excluded.saver_token, subscribers.saver_token)
-      returning (xmax = 0) as inserted
+    //
+    // R0.5 — an explicit form submit is consent, so the conflict path PROMOTES
+    // status back to 'subscribed' (an unsubscribed or pending row previously
+    // stayed dead forever while the UI said "already subscribed"). The `prior`
+    // CTE reads the pre-statement snapshot, so we can report honestly:
+    // added (new) / resubscribed (was unsubscribed or pending) / already.
+    // Confirmation-email policy is F2.3, deliberately separate.
+    const rows = await sql<{ inserted: boolean; prior_status: string | null }[]>`
+      with prior as (
+        select status from subscribers where email = ${email}
+      ),
+      ins as (
+        insert into subscribers (email, source, saver_token)
+        values (${email}, ${source}, ${saverToken})
+        on conflict (email) do update
+          set status = 'subscribed',
+              unsubscribed_at = null,
+              saver_token = coalesce(excluded.saver_token, subscribers.saver_token)
+        returning (xmax = 0) as inserted
+      )
+      select ins.inserted, prior.status as prior_status
+      from ins left join prior on true
     `;
-    return rows[0]?.inserted ? "added" : "already";
+    const row = rows[0];
+    if (!row) return "error";
+    if (row.inserted) return "added";
+    return row.prior_status === "subscribed" ? "already" : "resubscribed";
   } catch (err) {
     console.error("[subscribe] insert failed:", err);
     return "error";
