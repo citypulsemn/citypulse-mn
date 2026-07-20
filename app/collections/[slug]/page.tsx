@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { getEvents } from "@/lib/events";
 import { getCollection, selectCollection } from "@/lib/collections";
 import { EventDayCard } from "@/components/EventDayCard";
+import { FeedSubscribe } from "@/components/FeedSubscribe";
 import { Logo } from "@/components/Logo";
 import { SiteFooter } from "@/components/SiteFooter";
 import { dayItemListJsonLd } from "@/lib/seo/event-jsonld";
@@ -96,6 +97,7 @@ export default async function CollectionPage({
           <div className="dayhdr-eyebrow">Collection</div>
           <h1 className="dayhdr-title">{collection.title}</h1>
           <p className="coll-tagline">{collection.tagline}</p>
+          <FeedSubscribe slug={collection.slug} />
           <div className="dayhdr-count">
             {selected.length === 0
               ? "Nothing here right now — check back soon."

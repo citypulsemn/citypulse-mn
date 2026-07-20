@@ -62,18 +62,17 @@ export interface IcsOptions {
   now?: Date;
 }
 
-/** Full VCALENDAR document (CRLF-terminated) for a single event. */
-export function eventToICS(event: EventRecord, opts: IcsOptions = {}): string {
+/**
+ * VEVENT block (unfolded lines) for one event — shared by the single-event
+ * download (eventToICS) and the multi-event feeds (feedICS). Extracting this
+ * must never change eventToICS output; its golden tests are the guard.
+ */
+export function eventVEventLines(event: EventRecord, opts: IcsOptions = {}): string[] {
   const baseUrl = opts.baseUrl ?? SITE_URL;
   const url = `${baseUrl}/event/${event.id}`;
   const description = [event.description, `More: ${url}`].filter(Boolean).join("\n\n");
 
-  const lines = [
-    "BEGIN:VCALENDAR",
-    "VERSION:2.0",
-    "PRODID:-//City Pulse MN//Events//EN",
-    "CALSCALE:GREGORIAN",
-    "METHOD:PUBLISH",
+  return [
     "BEGIN:VEVENT",
     `UID:${event.id}@citypulsemn.com`,
     `DTSTAMP:${stampFromDate(opts.now ?? new Date())}`,
@@ -92,6 +91,38 @@ export function eventToICS(event: EventRecord, opts: IcsOptions = {}): string {
     `URL:${url}`,
     `STATUS:${event.status === "cancelled" ? "CANCELLED" : "CONFIRMED"}`,
     "END:VEVENT",
+  ];
+}
+
+/** Full VCALENDAR document (CRLF-terminated) for a single event. */
+export function eventToICS(event: EventRecord, opts: IcsOptions = {}): string {
+  const lines = [
+    "BEGIN:VCALENDAR",
+    "VERSION:2.0",
+    "PRODID:-//City Pulse MN//Events//EN",
+    "CALSCALE:GREGORIAN",
+    "METHOD:PUBLISH",
+    ...eventVEventLines(event, opts),
+    "END:VCALENDAR",
+  ];
+
+  return lines.map(foldLine).join("\r\n") + "\r\n";
+}
+
+/**
+ * Multi-event VCALENDAR feed (roadmap 6.1). X-WR-CALNAME is what calendar
+ * apps show in the subscription list, so it carries the brand.
+ */
+export function feedICS(name: string, events: EventRecord[], opts: IcsOptions = {}): string {
+  const lines = [
+    "BEGIN:VCALENDAR",
+    "VERSION:2.0",
+    "PRODID:-//City Pulse MN//Feeds//EN",
+    "CALSCALE:GREGORIAN",
+    "METHOD:PUBLISH",
+    `X-WR-CALNAME:${escapeICS(name)}`,
+    "X-WR-TIMEZONE:America/Chicago",
+    ...events.flatMap((e) => eventVEventLines(e, opts)),
     "END:VCALENDAR",
   ];
 

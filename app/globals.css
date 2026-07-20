@@ -697,6 +697,9 @@ a.daycard { text-decoration: none; }
 
 /* ---------- Editorial intros + More-at strip (roadmap 3.2) ---------- */
 .page-intro { max-width: 640px; margin: 12px 0 4px; font-size: 14.5px; line-height: 1.65; color: var(--cream-dim); }
+.feed-subscribe { margin: 10px 0 0; font-size: 13px; }
+.feed-subscribe a { color: var(--cream-dim); text-decoration: none; border-bottom: 1px dashed rgba(255,255,255,0.18); padding-bottom: 1px; }
+.feed-subscribe a:hover { color: var(--gold); border-bottom-color: var(--gold); }
 .more-at { margin: 30px 0 8px; padding-top: 18px; border-top: 1px solid var(--line); }
 .more-at-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 10px; }
 .more-at-title { font-family: "Oswald"; font-weight: 600; font-size: 17px; letter-spacing: 0.03em; margin: 0; color: var(--gold); }

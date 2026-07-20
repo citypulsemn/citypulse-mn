@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { Logo } from "@/components/Logo";
 import { SiteFooter } from "@/components/SiteFooter";
 import { EventDayCard } from "@/components/EventDayCard";
+import { FeedSubscribe } from "@/components/FeedSubscribe";
 import { getEvents } from "@/lib/events";
 import { neighborhoodByKey } from "@/lib/neighborhoods";
 import { daysSpanned } from "@/lib/dates";
@@ -83,6 +84,7 @@ export default async function NeighborhoodPage({
               ` — ${events.length} upcoming event${events.length > 1 ? "s" : ""}`}
           </div>
           {NEIGHBORHOOD_INTROS[n.key] && <p className="page-intro">{NEIGHBORHOOD_INTROS[n.key]}</p>}
+          <FeedSubscribe slug={n.key} />
         </div>
 
         {events.length === 0 ? (

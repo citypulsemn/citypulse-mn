@@ -3,6 +3,7 @@ import { Logo } from "@/components/Logo";
 import { SiteFooter } from "@/components/SiteFooter";
 import { SubscribeBand } from "@/components/SubscribeBand";
 import { EventDayCard } from "@/components/EventDayCard";
+import { FeedSubscribe } from "@/components/FeedSubscribe";
 import { getEvents } from "@/lib/events";
 import { selectWeekend, weekendDays, weekendLabel } from "@/lib/weekend";
 import { SITE_URL } from "@/lib/seo/site";
@@ -76,6 +77,7 @@ export default async function ThisWeekendPage() {
               ? TAGLINE
               : `${total} event${total > 1 ? "s" : ""} worth leaving the house for`}
           </div>
+          <FeedSubscribe slug="this-weekend" />
         </div>
 
         {total === 0 ? (

@@ -5,6 +5,7 @@ import { Logo } from "@/components/Logo";
 import { SiteFooter } from "@/components/SiteFooter";
 import { SubscribeBand } from "@/components/SubscribeBand";
 import { EventDayCard } from "@/components/EventDayCard";
+import { FeedSubscribe } from "@/components/FeedSubscribe";
 import { getEvents } from "@/lib/events";
 import {
   venuePageBySlug,
@@ -155,6 +156,8 @@ export default async function VenuePage({
             </div>
           </>
         )}
+
+        <FeedSubscribe slug={`venue-${v.slug}`} />
 
         <SubscribeBand
           source="venue-page"
