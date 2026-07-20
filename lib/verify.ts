@@ -1,4 +1,5 @@
 import type { EventRecord } from "./types";
+import { chiWallClock } from "./clock";
 
 /**
  * FRESHNESS RE-VERIFICATION (roadmap 4.5).
@@ -86,16 +87,18 @@ export function selectForVerification(
 ): VerifiableEvent[] {
   const days = opts.days ?? 7;
   const cap = opts.cap ?? 40;
-  const from = now.getTime();
-  const to = from + days * 86_400_000;
+  // R1.6 (rule 10): walls to walls. The old naive-parse window, run on the
+  // Thursday 16:00 UTC Actions runner, dropped tonight's events from
+  // verification after ~11 AM CT and let events just past day 7 sneak in.
+  // (The SQL prefilter in scripts/verify-events.ts is frame-correct —
+  // timestamptz vs now() — this TS filter was re-narrowing it wrongly.)
+  const fromWall = chiWallClock(now);
+  const toWall = chiWallClock(new Date(now.getTime() + days * 86_400_000));
 
   return events
     .filter((e) => e.status === "published")
     .filter((e) => (e.sourceUrl || e.ticketUrl).trim().length > 0)
-    .filter((e) => {
-      const t = new Date(e.start).getTime();
-      return !Number.isNaN(t) && t >= from && t <= to;
-    })
+    .filter((e) => e.start >= fromWall && e.start <= toWall)
     .sort((a, b) => a.start.localeCompare(b.start))
     .slice(0, cap)
     .map((e) => ({

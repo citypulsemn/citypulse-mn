@@ -124,3 +124,19 @@ describe("batchForVerification", () => {
     expect(batches.flat()).toHaveLength(19);
   });
 });
+
+describe("selectForVerification — CI runner boundary (R1.6, rule 10)", () => {
+  it("tonight is still verifiable on the Thursday 16:00Z runner", () => {
+    // verify-events.yml runs Thu 16:00 UTC = 11:00 AM CDT. The old naive
+    // window dropped everything between 11 AM and ~4 PM CT wall on run day.
+    const runnerNow = new Date("2026-07-16T16:00:00Z");
+    const earlyAfternoon = ev({ id: "onepm", start: "2026-07-16T13:00" });
+    const out = selectForVerification([earlyAfternoon], runnerNow);
+    expect(out.map((e) => e.id)).toEqual(["onepm"]);
+  });
+  it("events just past day 7 no longer sneak in through the shifted far edge", () => {
+    const runnerNow = new Date("2026-07-16T16:00:00Z"); // wall 11:00, so far edge is 7/23 11:00 wall
+    const sneaky = ev({ id: "late", start: "2026-07-23T14:00" }); // old fake-UTC edge admitted this
+    expect(selectForVerification([sneaky], runnerNow)).toEqual([]);
+  });
+});
