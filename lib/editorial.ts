@@ -86,3 +86,16 @@ export const NEIGHBORHOOD_INTROS: Record<string, string> = {
   "highland-park":
     "A leafy village-in-the-city on St. Paul's southwest corner — the 1930s Highland Theater sign, a walkable spine of shops on Cleveland and Ford Parkway, and the river gorge trails a few blocks west.",
 };
+
+/**
+ * /for-venues copy (roadmap 4.4). Plain strings, edit freely — this page is
+ * a promise to venues, so Taren's wording wins. If it sounds like a
+ * brochure, cut the sentence.
+ */
+export const FOR_VENUES = {
+  tagline: "Get your events listed — free. That is the whole pitch.",
+  how: "Every Monday, a research sweep reads venue calendars across the metro — First Avenue to the Cedar, church festivals to county fairs — and publishes what it finds. Thursdays, a verify pass checks facts against sources. If your room posts its calendar publicly, odds are we already list you.",
+  qualifies: "Public events in the Minneapolis–St. Paul metro with a real date, a real place, and a way for someone to show up. Concerts, games, markets, festivals, exhibitions, the wonderfully unique. Private parties, webinars, and pitch nights don't fit.",
+  missing: "Something missing or wrong — a show we haven't caught, a date that moved? Submit it and we'll take a look. Most submissions are reviewed within the week.",
+  rules: "Listing is free and stays free. Placement can't be bought: no pay-to-list, no pay-to-rank, ever. The calendar is chronological — what's on top is whatever happens next, not whoever paid.",
+};
