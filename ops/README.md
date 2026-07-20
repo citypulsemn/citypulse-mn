@@ -2,7 +2,7 @@
 
 One-off and scheduled operator SQL.
 
-- `COLLAPSE-1.1.sql` — **pending.** Roadmap 1.1 multi-day collapse: 93 clusters, 159 rows archived, 17 survivor span corrections. Run STEP 0 (pre-flight, expect zero rows) before STEP 1 (the transaction). Creates `collapse_backup_20260716` and includes a 3-line rollback. Read `COLLAPSE-1.1-GUIDE.md` first.
+- `COLLAPSE-1.1.sql` — **ran Jul 16, verified Jul 20** (STEP 0 zero rows; all 159 targets archived; `collapse_backup_20260716` in place). Kept for the record + rollback. The ~14 conflicting events its guide flagged were resolved with web evidence Jul 20 (see `docs/deploy-history/DEPLOY-VERIFY-PASS-20260720.md`).
 - `sql-history/` — previously executed one-off operations, kept for reference on how similar problems were handled (dedupe, time fixes, reclassification, moderation).
 
 Rule for anything in here: back up first, run the pre-flight, check the count, and never delete an event — archive it.

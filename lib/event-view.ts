@@ -11,10 +11,41 @@ export function dayKeyOf(event: Pick<EventRecord, "start">): string {
   return event.start.slice(0, 10);
 }
 
-/** True if the event's end (or start, if no end) is in the past. */
-export function isEnded(event: Pick<EventRecord, "start" | "end">, now: Date): boolean {
-  const end = new Date(event.end || event.start);
-  return end.getTime() < now.getTime();
+/**
+ * Chicago wall-clock "YYYY-MM-DDTHH:MM" for a real instant. The Intl pattern
+ * proven in lib/trending.ts. Interim home — R1.1 moves this into lib/clock.ts
+ * as the shared Chicago clock; keep the shape identical when it does.
+ */
+export function chiWallClock(now: Date): string {
+  const date = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Chicago" }).format(now);
+  const time = new Intl.DateTimeFormat("en-GB", {
+    timeZone: "America/Chicago",
+    hour: "2-digit",
+    minute: "2-digit",
+    hourCycle: "h23",
+  }).format(now);
+  return `${date}T${time}`;
+}
+
+/**
+ * True if the event is over (R0.1). Compares WALL CLOCK to WALL CLOCK —
+ * event times are stored as naive Chicago strings, so "now" must be converted
+ * into the same frame, never the reverse (`new Date(wallString)` on a UTC
+ * server reads 7 PM Chicago as 7 PM UTC and ends every evening event at
+ * ~2 PM CT — the bug this replaced, live on prod Jul 20). The effective end
+ * is the TRUE span end: the latest of multiDayEnd / end / start (rule 5).
+ * All-day events end at end-of-day, not midnight.
+ */
+export function isEnded(
+  event: Pick<EventRecord, "start" | "end" | "multiDayEnd" | "allDay">,
+  now: Date,
+): boolean {
+  const nowWall = chiWallClock(now);
+  const endWall = [event.start, event.end || "", event.multiDayEnd || ""].reduce((a, b) =>
+    b > a ? b : a,
+  );
+  if (event.allDay) return nowWall.slice(0, 10) > endWall.slice(0, 10);
+  return nowWall > endWall;
 }
 
 /** A ~200-char meta/OG description for an event page. */

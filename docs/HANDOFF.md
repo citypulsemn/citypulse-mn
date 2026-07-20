@@ -6,8 +6,10 @@ version listed. Read alongside `CLAUDE.md`.
 
 ## Where the roadmap stands
 
-The canonical plan is **Roadmap v4** (`docs/ROADMAP.md`). A file circulating as
-"CITYPULSE-ROADMAP-v5.md" has identical v4 content — there is no v5.
+The canonical plan is **Roadmap v5, Repair & Ripen** (`docs/ROADMAP-v5.md`, adopted Jul 20
+evening) — two repair sprints (R0 data-loss/trust, R1 the Chicago clock, R2 hardening),
+then v4's ripening schedule unchanged. v4 (`docs/ROADMAP.md`) stands as history; an earlier
+file circulating as "CITYPULSE-ROADMAP-v5.md" was identical to v4 and is superseded too.
 
 - **Phases 1–3: COMPLETE and verified live.** Cockpit sends (twice so far), Phase 3
   surfaces (editorial intros, OG cards, subscribe bands, canonicals) confirmed serving
@@ -47,9 +49,10 @@ The canonical plan is **Roadmap v4** (`docs/ROADMAP.md`). A file circulating as
    the digest's Index line and starts the Phase 5 impressions gate.
 3. **Taren, anytime**: subscribe one feed in a real calendar app (last 6.1 verify) ·
    Sever's true end date (extend the card's `multi_day_end`; the two Oct weekend rows
-   then fold automatically next run) · spot-check admin-edited event times (rule 9) ·
-   roadmap 1.3 bio link · 1.4 paste a real card to lock `formatCard` · 1.5 phone checks ·
-   reword `FOR_VENUES` to taste.
+   then fold automatically next run) · roadmap 1.3 bio link · 1.4 paste a real card to
+   lock `formatCard` · 1.5 phone checks · reword `FOR_VENUES` to taste.
+   *(The rule-9 admin-edit spot check closed Jul 20 by evidence: `admin_audit` has zero
+   `edit` actions ever, so no hand-edited times exist to fix.)*
 4. **Mid-August** — build 4.1 (demand column), then 4.2 (trending calibration), then 4.3.
 
 ## Environment notes (this machine, learned the hard way — details in memory files)

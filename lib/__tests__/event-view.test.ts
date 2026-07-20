@@ -48,16 +48,39 @@ describe("dayKeyOf", () => {
   });
 });
 
-describe("isEnded", () => {
-  const now = new Date("2026-07-16T12:00:00");
-  it("true when end is in the past", () => {
+describe("isEnded (R0.1 — Chicago frame, true spans)", () => {
+  // Instants below are explicit UTC; event times are Chicago wall strings.
+  it("the live bug, as regression: tonight's show is NOT ended at 6 PM CT (23:00Z)", () => {
+    // Old code parsed end "22:00" as 22:00 UTC → ended at 5 PM CT.
+    const now = new Date("2026-07-20T23:00:00Z"); // 6:00 PM CDT
+    expect(isEnded(ev({ start: "2026-07-20T19:00", end: "2026-07-20T22:00" }), now)).toBe(false);
+  });
+  it("mid-run collapsed event (day-1 end passed, multiDayEnd future) → not ended", () => {
+    const now = new Date("2026-07-19T20:00:00Z");
+    expect(
+      isEnded(ev({ start: "2026-07-18T10:00", end: "2026-07-18T18:00", multiDayEnd: "2026-07-20T23:59" }), now),
+    ).toBe(false);
+  });
+  it("run's final day: not ended during the day, ended after its last minute", () => {
+    const run = ev({ start: "2026-07-18T10:00", end: "", multiDayEnd: "2026-07-20T18:00" });
+    expect(isEnded(run, new Date("2026-07-20T20:00:00Z"))).toBe(false); // 3 PM CDT
+    expect(isEnded(run, new Date("2026-07-21T06:00:00Z"))).toBe(true); // 1:00 AM CDT next day
+  });
+  it("all-day event on its own day → not ended until the day is over (Chicago day)", () => {
+    const fair = ev({ start: "2026-07-20T00:00", end: "", allDay: true });
+    expect(isEnded(fair, new Date("2026-07-21T02:00:00Z"))).toBe(false); // 9 PM CDT same day
+    expect(isEnded(fair, new Date("2026-07-21T06:00:00Z"))).toBe(true); // past midnight CDT
+  });
+  it("genuinely past events are ended; future ones are not", () => {
+    const now = new Date("2026-07-16T17:00:00Z"); // noon CDT Jul 16
     expect(isEnded(ev({ end: "2026-07-15T23:00" }), now)).toBe(true);
-  });
-  it("false when end is in the future", () => {
     expect(isEnded(ev({ end: "2026-07-20T23:00" }), now)).toBe(false);
-  });
-  it("falls back to start when end is empty", () => {
     expect(isEnded(ev({ start: "2026-07-10T20:00", end: "" }), now)).toBe(true);
+  });
+  it("CST (winter) frame: offset is 6 hours, not 5", () => {
+    const now = new Date("2027-01-10T18:30:00Z"); // 12:30 PM CST
+    expect(isEnded(ev({ start: "2027-01-10T11:00", end: "" }), now)).toBe(true);
+    expect(isEnded(ev({ start: "2027-01-10T13:00", end: "" }), now)).toBe(false);
   });
 });
 
