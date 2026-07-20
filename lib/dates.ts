@@ -67,6 +67,11 @@ export function rangeWindow(now: Date, view: ViewState): DateWindow {
       const fri = new Date(today0);
       if (dow === 5 || dow === 6) {
         fri.setDate(today0.getDate() - (dow - 5)); // already in the weekend
+      } else if (dow === 0) {
+        // R1.7 (Taren's call): Sunday is STILL the weekend — one philosophy
+        // with /this-weekend. A Sunday-evening tap on "Weekend" means
+        // tonight, not five days from now. (Past days clipped below.)
+        fri.setDate(today0.getDate() - 2);
       } else {
         fri.setDate(today0.getDate() + ((5 - dow + 7) % 7)); // upcoming Friday
       }

@@ -18,6 +18,8 @@
  * (cost ≈ categories × bands that run that week).
  */
 
+import { chiDayKey } from "./clock";
+
 export interface HorizonBand {
   label: string;
   startDay: number; // days from today, inclusive
@@ -40,9 +42,9 @@ export interface HorizonWindow {
 }
 
 function addDaysISO(now: Date, days: number): string {
-  const d = new Date(now);
-  d.setDate(d.getDate() + days);
-  return d.toISOString().slice(0, 10);
+  // R1.7a: one frame (rule 10). The old local-setDate + toISOString (UTC
+  // read) mix started the research window a day late on evening local runs.
+  return chiDayKey(new Date(now.getTime() + days * 86_400_000));
 }
 
 /** Whole-week counter since the epoch, in UTC — used for band cadence. */

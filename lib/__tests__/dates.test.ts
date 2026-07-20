@@ -35,10 +35,12 @@ describe("rangeWindow", () => {
     expect(dkey(w.end)).toBe("2026-06-14");
   });
 
-  it("weekend rolls to the upcoming Fri–Sun (Jun 19–21) since now is Sunday", () => {
+  it("weekend on a Sunday is STILL this weekend (today only) — aligned with /this-weekend (R1.7)", () => {
+    // Taren's call, Jul 20: one weekend philosophy everywhere. A Sunday tap
+    // on "Weekend" means tonight; past Fri/Sat are clipped as always.
     const w = rangeWindow(NOW, view("weekend"));
-    expect(dkey(w.start)).toBe("2026-06-19");
-    expect(dkey(w.end)).toBe("2026-06-21");
+    expect(dkey(w.start)).toBe("2026-06-14");
+    expect(dkey(w.end)).toBe("2026-06-14");
   });
 
   it("week = today through +6 days (Jun 14–20)", () => {
@@ -66,8 +68,15 @@ describe("eventsInWindow (sample data)", () => {
     expect(idsFor("today")).toEqual([1, 2, 3]);
   });
 
-  it("weekend = 8 events, all on Jun 19–21", () => {
-    const ids = idsFor("weekend");
+  it("weekend from Sunday = today's events only (R1.7 alignment)", () => {
+    expect(idsFor("weekend")).toEqual(idsFor("today"));
+  });
+
+  it("weekend from a Wednesday = 8 events, all on Jun 19–21", () => {
+    const wed = new Date("2026-06-17T12:00:00");
+    const ids = eventsInWindow(sampleEvents, ALL, rangeWindow(wed, view("weekend")))
+      .map((e) => Number(e.id))
+      .sort((a, b) => a - b);
     expect(ids.length).toBe(8);
     for (const id of ids) {
       const ev = sampleEvents.find((e) => Number(e.id) === id)!;
@@ -105,15 +114,17 @@ describe("eventsInWindow (sample data)", () => {
 });
 
 describe("spotlight classification (weekend window)", () => {
-  const w = rangeWindow(NOW, view("weekend"));
-  it("June 14 is out of range", () => {
-    expect(classifyDay(2026, 5, 14, w)).toBe("outrange");
+  it("Sunday's weekend window spotlights today only (R1.7 alignment)", () => {
+    const w = rangeWindow(NOW, view("weekend"));
+    expect(classifyDay(2026, 5, 13, w)).toBe("outrange");
+    expect(classifyDay(2026, 5, 14, w)).toBe("inrange");
+    expect(classifyDay(2026, 5, 15, w)).toBe("outrange");
   });
-  it("June 19 and 21 are in range", () => {
+  it("a mid-week window spotlights the coming Fri–Sun and nothing beyond", () => {
+    const w = rangeWindow(new Date("2026-06-17T12:00:00"), view("weekend"));
+    expect(classifyDay(2026, 5, 18, w)).toBe("outrange");
     expect(classifyDay(2026, 5, 19, w)).toBe("inrange");
     expect(classifyDay(2026, 5, 21, w)).toBe("inrange");
-  });
-  it("June 22 is out of range", () => {
     expect(classifyDay(2026, 5, 22, w)).toBe("outrange");
   });
 });

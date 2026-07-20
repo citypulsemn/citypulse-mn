@@ -165,10 +165,12 @@ export async function getEventsForDay(dayKey: string): Promise<EventRecord[]> {
               then end_at end) is not null
             and to_char(start_at at time zone 'America/Chicago', 'YYYY-MM-DD') <= ${dayKey}
             and to_char(coalesce(multi_day_end, end_at) at time zone 'America/Chicago', 'YYYY-MM-DD') >= ${dayKey}
-            -- Same cap as the client (EXPAND_MAX_DAYS): spans longer than 14
-            -- days are ongoing attractions, shown on their start day only.
+            -- Same cap as the client (EXPAND_MAX_DAYS = 14 days INCLUSIVE of
+            -- the start day, so the date DIFF is <= 13). R1.7b: this was
+            -- <= 14, letting 15-day spans onto server day pages while the
+            -- SPA day panel (daysSpanned) refused them — the two disagreed.
             and (coalesce(multi_day_end, end_at) at time zone 'America/Chicago')::date
-              - (start_at at time zone 'America/Chicago')::date <= 14
+              - (start_at at time zone 'America/Chicago')::date <= 13
           )
         )
       order by start_at asc

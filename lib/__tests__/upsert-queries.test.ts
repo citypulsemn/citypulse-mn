@@ -50,6 +50,15 @@ describe("dedupeNearDuplicates (R0.3) — same-day means the same CHICAGO day", 
   });
 });
 
+describe("getEventsForDay expansion cap (R1.7b) — SQL agrees with EXPAND_MAX_DAYS", () => {
+  const eventsSrc = readFileSync(join(__dirname, "..", "events.ts"), "utf8");
+
+  it("the SQL date-diff cap is <= 13 (14 days inclusive), matching daysSpanned", () => {
+    expect(eventsSrc).toContain("::date <= 13");
+    expect(eventsSrc).not.toMatch(/::date <= 14/);
+  });
+});
+
 describe("getDuplicatePairs (admin view) — same R0.3 predicate", () => {
   const body = fnBody("getDuplicatePairs", adminSrc);
 
