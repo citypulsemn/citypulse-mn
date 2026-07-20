@@ -65,6 +65,26 @@ describe("selectRelated — more at this venue", () => {
     const pool = [current, ev({ venue: "First Avenue", status: "draft", start: "2026-07-22T20:00" })];
     expect(selectRelated(pool, current, NOW)).toBeNull();
   });
+
+  it("regression (R1.3): tonight's show stays in the strip all afternoon (walls to walls)", () => {
+    // 3:30 PM CDT = 20:30Z. The old naive parse read the 7 PM wall as 7 PM UTC
+    // (= 2 PM CT) and the strip rendered null from early afternoon onward.
+    const afternoon = new Date("2026-07-20T20:30:00Z");
+    const current = ev({ id: "me", venue: "First Avenue" });
+    const tonight = ev({ id: "tonight", venue: "First Avenue", start: "2026-07-20T19:00" });
+    const thisMorning = ev({ id: "gone", venue: "First Avenue", start: "2026-07-20T09:00" });
+    const r = selectRelated([current, tonight, thisMorning], current, afternoon)!;
+    expect(r.events.map((e) => e.id)).toEqual(["tonight"]); // in; the morning show is honestly past
+  });
+
+  it("regression (R1.3): winter frame uses the CST offset, not CDT", () => {
+    const noonCST = new Date("2027-01-10T18:30:00Z"); // 12:30 PM CST
+    const current = ev({ id: "me", venue: "First Avenue" });
+    const at1pm = ev({ id: "in", venue: "First Avenue", start: "2027-01-10T13:00" });
+    const at11am = ev({ id: "out", venue: "First Avenue", start: "2027-01-10T11:00" });
+    const r = selectRelated([current, at1pm, at11am], current, noonCST)!;
+    expect(r.events.map((e) => e.id)).toEqual(["in"]);
+  });
 });
 
 describe("editorial intros — the drift guard", () => {

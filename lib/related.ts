@@ -1,5 +1,6 @@
 import type { EventRecord } from "./types";
 import { matchVenueSlug } from "./venue-pages";
+import { chiWallClock } from "./clock";
 
 /**
  * "MORE AT THIS VENUE" (roadmap 3.2) — internal links that earn their place.
@@ -21,11 +22,11 @@ export interface Related {
 }
 
 export function selectRelated(all: EventRecord[], current: EventRecord, now: Date): Related | null {
-  const nowMs = now.getTime();
+  // R1.3 (rule 10): walls to walls. The old naive-parse-vs-real-now compare
+  // hid tonight's shows from the strip every afternoon on UTC servers.
+  const nowWall = chiWallClock(now);
   const upcoming = (e: EventRecord) =>
-    e.status === "published" &&
-    e.id !== current.id &&
-    new Date(e.start).getTime() >= nowMs;
+    e.status === "published" && e.id !== current.id && e.start >= nowWall;
 
   const slug = matchVenueSlug(current.venue);
   if (slug) {
