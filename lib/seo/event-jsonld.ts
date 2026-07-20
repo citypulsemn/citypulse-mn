@@ -19,25 +19,19 @@ export function jsonLdSafe(obj: unknown): string {
   return JSON.stringify(obj).replace(/</g, "\\u003c");
 }
 
-/** Central Time UTC offset for a given YYYY-MM-DD (handles CST/CDT). */
-export function chicagoOffset(dayKey: string): "-05:00" | "-06:00" {
-  // Noon UTC on that calendar day is safely outside DST-transition edges.
-  const noonUTC = new Date(`${dayKey}T12:00:00Z`);
-  const name =
-    new Intl.DateTimeFormat("en-US", {
-      timeZone: "America/Chicago",
-      timeZoneName: "shortOffset",
-    })
-      .formatToParts(noonUTC)
-      .find((p) => p.type === "timeZoneName")?.value ?? "GMT-6";
-  return name.includes("-5") ? "-05:00" : "-06:00";
-}
+// R1.1: chicagoOffset's implementation moved to lib/clock.ts (the shared
+// Chicago clock), upgraded to probe the ACTUAL hour — the old noon probe was
+// an hour off for small-hours times on DST-transition days. Re-exported here
+// for compatibility (ics.ts and tests import it from this module).
+import { chicagoOffset } from "../clock";
+export { chicagoOffset };
 
 /** Turn a wall-clock event string ("2026-07-15T20:00") into an ISO w/ offset. */
 export function toIsoWithOffset(local: string): string {
   const dayKey = local.slice(0, 10);
   const time = local.length >= 16 ? local.slice(11, 16) : "00:00";
-  return `${dayKey}T${time}:00${chicagoOffset(dayKey)}`;
+  // Full wall string → the offset of the actual moment (R1.7c fix rides R1.1).
+  return `${dayKey}T${time}:00${chicagoOffset(`${dayKey}T${time}`)}`;
 }
 
 /** Lowest dollar amount mentioned in a price string, or null. */

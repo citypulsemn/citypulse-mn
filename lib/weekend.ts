@@ -25,10 +25,10 @@ import { daysSpanned } from "./dates";
 
 const CHI = "America/Chicago";
 
-/** YYYY-MM-DD for a Date in Chicago. */
-export function chiDayKey(d: Date): string {
-  return new Intl.DateTimeFormat("en-CA", { timeZone: CHI }).format(d);
-}
+// R1.1: chiDayKey's implementation moved to lib/clock.ts (the shared Chicago
+// clock); re-exported here so existing imports (feeds, ongoing, admin) hold.
+import { chiDayKey } from "./clock";
+export { chiDayKey };
 
 /** 0=Sun … 6=Sat for a Date, evaluated in Chicago. */
 function chiWeekday(d: Date): number {

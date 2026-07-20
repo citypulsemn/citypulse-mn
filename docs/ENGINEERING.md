@@ -35,6 +35,20 @@ cd /home/claude/citypulse-mn && rm -f /mnt/user-data/outputs/citypulse-mn.zip \
 ```
 Quality gate per item: pure logic in lib/ + golden tests · idempotent additive schema · tsc clean · build clean · audit 0 · one smoke cycle · deploy guide.
 
+## 10. Never compare a wall string against a real instant
+Event times are naive Chicago wall strings. `new Date(wallString).getTime()` vs
+`Date.now()` reads 7 PM Chicago as 7 PM UTC — five/six hours early on every Vercel and
+Actions runner — and it is the single bug class behind Roadmap v5's R0.1 and all six R1
+findings (evening events vanishing from collections, related strips, digests, and
+event-page status every afternoon). All "is it past?"/window logic goes through
+**`lib/clock.ts`** (R1.1): convert *now* into the wall frame (`chiNow`, `chiWallClock`)
+and compare strings or day keys; `wallToInstant` exists only for true serialization
+boundaries (ICS, JSON-LD, SQL params). In SQL, the same rule is rule 9's sibling:
+compare `(col at time zone 'America/Chicago')::date`-style expressions, never bare casts.
+**Origin:** the Jul 20 audit — six modules compared frames against each other; the
+Minnehaha Falls Art Fair's page called the fair "already happened" on its own final day,
+live on prod.
+
 ## 9. Timestamp params cross the driver as timestamptz — cast ::text first
 Any SQL that interprets a *parameterized* ISO-shaped string as a Chicago wall time must cast
 `::text` before `::timestamp at time zone 'America/Chicago'`. postgres.js infers timestamptz

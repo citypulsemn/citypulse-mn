@@ -1,5 +1,6 @@
 import type { EventRecord, EventStatus } from "./types";
 import { DOW, MONTHS } from "./dates";
+import { chiWallClock } from "./clock";
 
 /** Publicly viewable = anything except an unpublished draft. */
 export function isPublicStatus(status: EventStatus): boolean {
@@ -11,21 +12,9 @@ export function dayKeyOf(event: Pick<EventRecord, "start">): string {
   return event.start.slice(0, 10);
 }
 
-/**
- * Chicago wall-clock "YYYY-MM-DDTHH:MM" for a real instant. The Intl pattern
- * proven in lib/trending.ts. Interim home — R1.1 moves this into lib/clock.ts
- * as the shared Chicago clock; keep the shape identical when it does.
- */
-export function chiWallClock(now: Date): string {
-  const date = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Chicago" }).format(now);
-  const time = new Intl.DateTimeFormat("en-GB", {
-    timeZone: "America/Chicago",
-    hour: "2-digit",
-    minute: "2-digit",
-    hourCycle: "h23",
-  }).format(now);
-  return `${date}T${time}`;
-}
+// R1.1: chiWallClock moved to its permanent home in lib/clock.ts (the shared
+// Chicago clock). Re-exported here for compatibility with R0.1-era imports.
+export { chiWallClock } from "./clock";
 
 /**
  * True if the event is over (R0.1). Compares WALL CLOCK to WALL CLOCK —
