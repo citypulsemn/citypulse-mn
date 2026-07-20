@@ -1,5 +1,6 @@
 import type { EventRecord } from "./types";
 import { daysSpanned } from "./dates";
+import { spanEnd, dayOf } from "./multiday";
 
 /**
  * THE EVERGREEN WEEKEND (roadmap 6.3) — pure logic.
@@ -106,8 +107,13 @@ export function selectWeekend(events: EventRecord[], now: Date): WeekendSection[
     // grid; but on THIS page a 17-day fair overlapping Saturday absolutely
     // counts (test-caught: the State Fair would otherwise be invisible on
     // the weekend page). Day keys are ISO, so string compare is date compare.
+    // R1.5: spanEnd() reads BOTH span sources — multiDayEnd AND a row's own
+    // long end_at. The previous line only read multiDayEnd, so a self-spanned
+    // 31-day exhibition fell through the cap and vanished from this page
+    // while the this-weekend ICS feed (spansDay, same spanEnd) included it.
     const startDay = span[0];
-    const endDay = e.multiDayEnd ? e.multiDayEnd.slice(0, 10) : span[span.length - 1];
+    const trueEnd = spanEnd(e);
+    const endDay = trueEnd ? dayOf(trueEnd) : span[span.length - 1];
     if (startDay > lastDay || endDay < firstDay) continue;
 
     if (daySet.has(startDay)) {

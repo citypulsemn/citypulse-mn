@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { weekendDays, weekendLabel, dayHeading, selectWeekend } from "../weekend";
+import { spansDay } from "../multiday";
 import type { EventRecord } from "../types";
 
 // Noon Chicago (17:00 UTC in July, CDT) — no midnight ambiguity in these anchors.
@@ -90,5 +91,36 @@ describe("selectWeekend — grouping without duplicate cards", () => {
   it("drafts/cancelled excluded; empty input → no sections", () => {
     expect(selectWeekend([ev({ status: "draft" })], WED)).toEqual([]);
     expect(selectWeekend([], WED)).toEqual([]);
+  });
+});
+
+describe("selectWeekend — self-spanned runs past the cap (R1.5, rule 5)", () => {
+  it("a 31-day exhibition spanned by its OWN end_at appears in the ongoing section", () => {
+    // No multiDayEnd — the span source is the row's end_at, longer than
+    // EXPAND_MAX_DAYS. The old code read the capped expansion, saw a
+    // single-day event from Jul 1, and dropped it — while the this-weekend
+    // ICS feed (spansDay) correctly included it. Page and feed now agree.
+    const exhibition = ev({
+      id: "expo",
+      start: "2026-07-01T10:00",
+      end: "2026-07-31T17:00",
+      multiDayEnd: null,
+    });
+    const sections = selectWeekend([exhibition], WED);
+    expect(sections).toHaveLength(1);
+    expect(sections[0].key).toBe("ongoing");
+    expect(sections[0].events.map((e) => e.id)).toEqual(["expo"]);
+  });
+
+  it("parity fixture: the same row passes feeds.ts spansDay for every weekend day", () => {
+    const exhibition = ev({ id: "expo", start: "2026-07-01T10:00", end: "2026-07-31T17:00" });
+    for (const day of weekendDays(WED)) {
+      expect(spansDay(exhibition, day), `spansDay(${day})`).toBe(true);
+    }
+  });
+
+  it("a run that truly ended before the weekend stays out", () => {
+    const over = ev({ id: "over", start: "2026-07-01T10:00", end: "2026-07-10T17:00" });
+    expect(selectWeekend([over], WED)).toEqual([]);
   });
 });
