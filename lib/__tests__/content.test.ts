@@ -137,3 +137,20 @@ describe("templates", () => {
     expect(cap).toContain("citypulsemn.com");
   });
 });
+
+describe("weeklyPicks — send-morning boundary (R1.4, rule 10)", () => {
+  it("send-day afternoon events are IN the picks window on a UTC runner", () => {
+    // Digest sends Thu 15:00 UTC = 10:00 AM CDT. A 1 PM CT event the same day
+    // was dropped by the old epoch compare (13:00 fake-UTC < 15:00Z).
+    const sendMorning = new Date("2026-07-16T15:00:00Z");
+    const todayLunch = ev({ id: "lunch", start: "2026-07-16T13:00" });
+    const picks = weeklyPicks([todayLunch], sendMorning);
+    expect(picks.all.map((e) => e.id)).toContain("lunch");
+  });
+  it("the +7d end and week keys stay in the Chicago frame", () => {
+    const sendMorning = new Date("2026-07-16T15:00:00Z");
+    const picks = weeklyPicks([], sendMorning);
+    expect(picks.weekStartKey).toBe("2026-07-16");
+    expect(picks.weekEndKey).toBe("2026-07-23");
+  });
+});

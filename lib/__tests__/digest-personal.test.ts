@@ -128,3 +128,15 @@ describe("renderDigestEmail with a personal section", () => {
     expect(standard.html).not.toContain("You saved these");
   });
 });
+
+describe("selectSavedUpcoming — send-morning boundary (R1.4, rule 10)", () => {
+  it("a saved event later on send day survives the Thursday 10 AM CT send", () => {
+    const sendMorning = new Date("2026-07-16T15:00:00Z"); // 10 AM CDT
+    const saved = [
+      ev({ id: "today1pm", start: "2026-07-16T13:00" }), // old code dropped this
+      ev({ id: "run", start: "2026-07-01T10:00", multiDayEnd: "2026-07-20T23:59" }),
+      ev({ id: "over", start: "2026-07-01T10:00", multiDayEnd: "2026-07-15T23:59" }),
+    ];
+    expect(selectSavedUpcoming(saved, sendMorning).map((e) => e.id)).toEqual(["run", "today1pm"]);
+  });
+});

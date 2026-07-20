@@ -1,5 +1,6 @@
 import type { CategoryKey, EventRecord } from "./types";
 import { CATEGORY_KEYS } from "./categories";
+import { chiWallClock } from "./clock";
 
 /**
  * PERSONALIZED DIGEST (roadmap 5.3) — pure logic.
@@ -29,22 +30,19 @@ export function selectSavedUpcoming(
   now: Date,
   days = PERSONAL_WINDOW_DAYS,
 ): EventRecord[] {
-  const from = now.getTime();
-  const to = from + days * 86_400_000;
+  // R1.4 (rule 10): walls to walls — the old epoch compare hid the send-day
+  // afternoon from the "you saved these" block every Thursday morning.
+  const fromWall = chiWallClock(now);
+  const toWall = chiWallClock(new Date(now.getTime() + days * 86_400_000));
 
   return saved
     .filter((e) => e.status === "published")
     .filter((e) => {
-      const start = new Date(e.start).getTime();
-      if (Number.isNaN(start)) return false;
-      if (start >= from && start <= to) return true;
+      if (!e.start) return false;
+      if (e.start >= fromWall && e.start <= toWall) return true;
       // A multi-day run still in progress counts — they can still go.
       const end = e.multiDayEnd ?? e.end;
-      if (end && start < from) {
-        const endT = new Date(end).getTime();
-        return !Number.isNaN(endT) && endT >= from;
-      }
-      return false;
+      return Boolean(end && e.start < fromWall && end >= fromWall);
     })
     .sort((a, b) => a.start.localeCompare(b.start))
     .slice(0, PERSONAL_MAX_SAVED);

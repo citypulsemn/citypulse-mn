@@ -1,4 +1,5 @@
-import { dkey, evDate } from "../dates";
+import { evDate } from "../dates";
+import { chiWallClock, chiDayKey } from "../clock";
 import type { EventRecord } from "../types";
 
 /**
@@ -46,15 +47,15 @@ export function weeklyPicks(
 ): WeeklyPicks {
   const days = opts.days ?? 7;
   const regularCount = opts.regularCount ?? 5;
-  const start = now.getTime();
-  const end = start + days * DAY_MS;
+  // R1.4 (rule 10): window in the Chicago wall frame. The old epoch compare
+  // dropped everything between send time (10 AM CT on the Actions runner) and
+  // ~3 PM CT wall from the send-day picks.
+  const nowWall = chiWallClock(now);
+  const endWall = chiWallClock(new Date(now.getTime() + days * DAY_MS));
 
   const inWindow = events
     .filter((e) => e.status === "published")
-    .filter((e) => {
-      const t = evDate(e).getTime();
-      return t >= start && t <= end;
-    })
+    .filter((e) => e.start >= nowWall && e.start <= endWall)
     .sort(byRank);
 
   const family = inWindow.find((e) => e.category === "family") ?? null;
@@ -72,7 +73,7 @@ export function weeklyPicks(
     if (regular.length >= regularCount) break;
     if (taken.has(e.id)) continue;
     const venueKey = e.venue.trim().toLowerCase();
-    const day = dkey(evDate(e));
+    const day = e.start.slice(0, 10); // the event's wall day, frame-pure
     if (venueKey && perVenue.has(venueKey)) continue;
     if ((perDay.get(day) ?? 0) >= 2) continue;
     regular.push(e);
@@ -81,8 +82,8 @@ export function weeklyPicks(
   }
 
   return {
-    weekStartKey: dkey(now),
-    weekEndKey: dkey(new Date(end)),
+    weekStartKey: chiDayKey(now),
+    weekEndKey: endWall.slice(0, 10),
     regular,
     family,
     unique,
