@@ -79,12 +79,15 @@ export async function mergeAndRestore(
   if (!restored) return "invalid"; // link outlived the identity (e.g. unsubscribed)
 
   // MERGE-DON'T-LOSE: saves made on this device before restoring come along.
+  // saved_events keys on user_token (subscribers is the table with a
+  // saver_token column) — R0.4: this insert shipped with the wrong column
+  // name and 500'd the flagship merge case for its whole life.
   const current = await getSaverToken();
   if (current && current !== restored) {
     await sql`
-      insert into saved_events (saver_token, event_id)
+      insert into saved_events (user_token, event_id)
       select ${restored}, event_id from saved_events
-      where saver_token = ${current}
+      where user_token = ${current}
       on conflict do nothing
     `;
   }
