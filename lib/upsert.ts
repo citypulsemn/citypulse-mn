@@ -99,14 +99,26 @@ export async function upsertEvents(events: DbEventInput[]): Promise<number> {
   return rows.length;
 }
 
-/** Archive published events that have already ended. Returns rows changed. */
+/**
+ * Archive published events whose run is FULLY over (R0.2). Two rules:
+ *  - TRUE span: coalesce(multi_day_end, end_at, start_at) — the old predicate
+ *    ignored multi_day_end, so the first pipeline run after a collapsed
+ *    festival's day-1 end would archive it mid-run (Ramsey County Fair would
+ *    have vanished Jul 27 with two days left). Same coalesce trending.ts uses.
+ *  - End-of-day grace in the CHICAGO frame: archive only once the effective
+ *    end's Chicago DAY is behind us, so all-day events (midnight start, no
+ *    end) and no-end evening shows survive through their own night instead of
+ *    being archived mid-day by a UTC clock.
+ * Returns rows changed.
+ */
 export async function archivePastEvents(): Promise<number> {
   const sql = requireSql();
   const res = await sql`
     update events
     set status = 'archived'
     where status = 'published'
-      and coalesce(end_at, start_at) < now()
+      and (coalesce(multi_day_end, end_at, start_at) at time zone 'America/Chicago')::date
+          < (now() at time zone 'America/Chicago')::date
   `;
   return res.count;
 }
