@@ -33,18 +33,25 @@ function ev(overrides: Partial<EventRecord> = {}): EventRecord {
   };
 }
 
-describe("collectionWindow", () => {
-  it("week is a 7-day window", () => {
+describe("collectionWindow — Chicago wall frame (R1.2)", () => {
+  it("week runs from the wall-clock now through the 7th Chicago day", () => {
     const w = collectionWindow("week", NOW);
-    expect(w.end - w.start).toBe(7 * 86_400_000);
+    expect(w.fromWall).toBe("2026-07-13T09:00");
+    expect(w.endKey).toBe("2026-07-20");
+    expect(w.days).toBeNull();
   });
-  it("weekend covers the coming Fri–Sun", () => {
+  it("weekend covers the coming Fri–Sun as Chicago day keys", () => {
     // From Monday 7/13, the coming weekend is Fri 7/17 – Sun 7/19.
     const w = collectionWindow("weekend", NOW);
-    const start = new Date(w.start);
-    const end = new Date(w.end);
-    expect(start.getDate()).toBe(17); // Friday
-    expect(end.getDate()).toBe(19); // Sunday
+    expect([...w.days!].sort()).toEqual(["2026-07-17", "2026-07-18", "2026-07-19"]);
+    expect(w.endKey).toBe("2026-07-19");
+  });
+  it("regression (R1.2): Sunday EVENING stays this weekend — no jump to next week", () => {
+    // Sunday Jul 19, 8:00 PM CDT = Monday 01:00Z: the old server-frame getDay()
+    // math saw Monday and produced NEXT weekend's window.
+    const sundayEvening = new Date("2026-07-20T01:00:00Z");
+    const w = collectionWindow("weekend", sundayEvening);
+    expect([...w.days!]).toEqual(["2026-07-19"]);
   });
 });
 
@@ -76,6 +83,25 @@ describe("selectCollection", () => {
     // satArts is on the weekend; wedMusic is Wednesday (not weekend)
     expect(out.map((e) => e.id)).toContain("satArts");
     expect(out.map((e) => e.id)).not.toContain("wedMusic");
+  });
+
+  it("regression (R1.2): tonight's show is IN this afternoon — walls compared to walls", () => {
+    // 3:30 PM CDT = 20:30Z. The old code parsed the 7 PM wall as 7 PM UTC
+    // (= 2 PM CT) and dropped it from every collection after ~2 PM.
+    const afternoon = new Date("2026-07-13T20:30:00Z");
+    const tonight = ev({ id: "tonight", category: "music", start: "2026-07-13T19:00" });
+    const earlier = ev({ id: "thisMorning", category: "music", start: "2026-07-13T09:00" });
+    const ids = selectCollection([tonight, earlier], getCollection("live-music")!, afternoon).map((e) => e.id);
+    expect(ids).toContain("tonight");
+    expect(ids).not.toContain("thisMorning"); // already past — floor intact
+  });
+
+  it("regression (R1.2): Sunday-evening date-night shows tonight, not next weekend", () => {
+    const sundayEvening = new Date("2026-07-20T01:00:00Z"); // Sun 7/19 8 PM CDT
+    const tonight = ev({ id: "sunShow", category: "music", start: "2026-07-19T21:00" });
+    const nextSat = ev({ id: "nextSat", category: "arts", start: "2026-07-25T19:00" });
+    const ids = selectCollection([tonight, nextSat], getCollection("date-night")!, sundayEvening).map((e) => e.id);
+    expect(ids).toEqual(["sunShow"]);
   });
 
   it("results are sorted chronologically", () => {

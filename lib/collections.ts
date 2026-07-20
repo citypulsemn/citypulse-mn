@@ -1,6 +1,7 @@
 import { matchesQuery } from "./search";
 import { matchesPrice, matchesArea } from "./filters";
-import { evDate } from "./dates";
+import { chiWallClock, chiDayKey } from "./clock";
+import { weekendDays } from "./weekend";
 import type { EventRecord, CategoryKey, PriceTier } from "./types";
 import type { AreaKey } from "./areas";
 
@@ -81,24 +82,31 @@ export function getCollection(slug: string): CollectionSpec | undefined {
 
 const DAY_MS = 86_400_000;
 
-/** Time window (ms) for a collection kind, relative to `now`. */
-export function collectionWindow(kind: CollectionWindow, now: Date): { start: number; end: number } {
-  const start = now.getTime();
-  if (kind === "week") return { start, end: start + 7 * DAY_MS };
-  if (kind === "month") return { start, end: start + 30 * DAY_MS };
-  if (kind === "all") return { start, end: start + 365 * DAY_MS };
+/**
+ * Collection window in the CHICAGO WALL FRAME (rule 10, R1.2). The old
+ * version compared fake-UTC epochs from naive wall strings against real
+ * `now.getTime()` — on UTC servers every evening event fell out of its
+ * collection from ~1–2 PM CT onward, and its weekend math ran `getDay()` in
+ * the server-local frame, jumping to NEXT weekend on Sunday evenings.
+ *
+ * `fromWall` is the "not already past" floor; `days` (weekend kind) or
+ * `endKey` (day-granular horizon) bound the far edge. The weekend kind reuses
+ * weekendDays(), which owns the "Sunday is still the weekend" philosophy.
+ */
+export interface CollectionWindowKeys {
+  fromWall: string;
+  endKey: string;
+  days: Set<string> | null;
+}
 
-  // weekend: from Friday 00:00 through Sunday 23:59 of the coming weekend.
-  const d = new Date(now);
-  const dow = d.getDay(); // 0 Sun … 6 Sat
-  const daysToSun = dow === 0 ? 0 : 7 - dow;
-  const sun = new Date(d);
-  sun.setDate(d.getDate() + daysToSun);
-  sun.setHours(23, 59, 59, 999);
-  const fri = new Date(sun);
-  fri.setDate(sun.getDate() - 2);
-  fri.setHours(0, 0, 0, 0);
-  return { start: Math.max(start, fri.getTime()), end: sun.getTime() };
+export function collectionWindow(kind: CollectionWindow, now: Date): CollectionWindowKeys {
+  const fromWall = chiWallClock(now);
+  if (kind === "weekend") {
+    const days = weekendDays(now);
+    return { fromWall, endKey: days[days.length - 1], days: new Set(days) };
+  }
+  const ahead = kind === "week" ? 7 : kind === "month" ? 30 : 365;
+  return { fromWall, endKey: chiDayKey(new Date(now.getTime() + ahead * DAY_MS)), days: null };
 }
 
 export function selectCollection(
@@ -106,7 +114,7 @@ export function selectCollection(
   spec: CollectionSpec,
   now: Date,
 ): EventRecord[] {
-  const { start, end } = collectionWindow(spec.window ?? "all", now);
+  const w = collectionWindow(spec.window ?? "all", now);
   const cats = spec.categories ? new Set(spec.categories) : null;
   const prices = new Set(spec.prices ?? []);
   const areas = new Set(spec.areas ?? []);
@@ -114,12 +122,13 @@ export function selectCollection(
   return events
     .filter((e) => e.status === "published")
     .filter((e) => {
-      const t = evDate(e).getTime();
-      return t >= start && t <= end;
+      if (e.start < w.fromWall) return false; // walls to walls, never epochs
+      const day = e.start.slice(0, 10);
+      return w.days ? w.days.has(day) : day <= w.endKey;
     })
     .filter((e) => (cats ? cats.has(e.category) : true))
     .filter((e) => matchesPrice(e, prices))
     .filter((e) => matchesArea(e, areas))
     .filter((e) => (spec.query ? matchesQuery(e, spec.query) : true))
-    .sort((a, b) => evDate(a).getTime() - evDate(b).getTime());
+    .sort((a, b) => a.start.localeCompare(b.start));
 }
