@@ -248,7 +248,12 @@ export function planCollapse(rows: CollapseRow[]): CollapseAction[] {
 
     for (const row of sorted) {
       const s = dayNumber(row.start);
-      const e = rowEndNum(row);
+      // Sports rows are ALWAYS single-day intervals, even if the row carries a
+      // (bad) multi_day_end: a corrupted span would otherwise absorb — and
+      // archive — every real game the pipeline inserts inside its window,
+      // defeating the sports rule from the inside. (Found Jul 20: 14 legacy
+      // sports rows with spans written by the pre-reclassify collapse era.)
+      const e = sports ? s : rowEndNum(row);
       const gap = sports ? 0 : 1; // sports: same-day only, as in groupRuns
       if (current.length > 0 && s <= curEnd + gap) {
         current.push(row);
@@ -315,7 +320,12 @@ export function planCollapse(rows: CollapseRow[]): CollapseAction[] {
     if (extras.length === 0) continue;
 
     const startDay = dayOf(keep.start);
-    const endNum = Math.max(...cluster.rows.map(rowEndNum));
+    // Sports clusters never produce spans (see the interval guard above) —
+    // without this, deduping a same-day pair where one row carries a legacy
+    // bad span would write a fresh multi_day_end onto the survivor.
+    const endNum = cluster.sports
+      ? Math.max(...cluster.rows.map((r) => dayNumber(r.start)))
+      : Math.max(...cluster.rows.map(rowEndNum));
     const endDay = new Date(endNum * DAY_MS).toISOString().slice(0, 10);
     const multiDay = endDay > startDay;
     const keepEnd = keep.endDay && keep.endDay > startDay ? keep.endDay : null;

@@ -171,6 +171,29 @@ describe("planCollapse — span-aware clustering", () => {
     ).toEqual([]);
   });
 
+  it("a corrupted sports span can NOT absorb real games inside its window (Jul 20 legacy-span guard)", () => {
+    // Legacy data bug: sports rows carrying multi_day_end from the
+    // pre-reclassify collapse era. Interval clustering must ignore the span —
+    // otherwise every per-game row the pipeline inserts inside the window
+    // would be archived as part of the "run".
+    const actions = planCollapse([
+      row({ id: "bad-span", title: "St. Paul Saints vs. Louisville Bats", start: "2026-08-04T19:05", endDay: "2026-08-10", category: "sports", city: "St Paul" }),
+      row({ id: "game2", title: "St. Paul Saints vs. Louisville Bats", start: "2026-08-05T19:05", category: "sports", city: "St Paul" }),
+      row({ id: "game3", title: "St. Paul Saints vs. Louisville Bats", start: "2026-08-06T19:05", category: "sports", city: "St Paul" }),
+    ]);
+    expect(actions).toEqual([]);
+  });
+
+  it("deduping a same-day sports pair never writes a span onto the survivor", () => {
+    const actions = planCollapse([
+      row({ id: "spanned", title: "Minnesota Twins vs. Kansas City Royals", start: "2026-07-28T18:40", endDay: "2026-07-31", category: "sports" }),
+      row({ id: "clean", title: "Minnesota Twins vs. Kansas City Royals", start: "2026-07-28T18:40", category: "sports" }),
+    ]);
+    expect(actions).toHaveLength(1);
+    expect(actions[0].kind).toBe("duplicate");
+    expect(actions[0].setEnd).toBeNull();
+  });
+
   it("true spans: a row attesting a day just past the span end EXTENDS it", () => {
     const actions = planCollapse([
       row({ id: "card", title: "Uptown Art Fair", start: "2026-08-22T10:00", endDay: "2026-08-30" }),
