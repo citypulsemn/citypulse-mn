@@ -235,6 +235,35 @@ describe("R2.3 — gather-side tripwires (script source)", () => {
   });
 });
 
+describe("R2.4 — the operator email escapes what it interpolates", () => {
+  it("a markup-bearing title renders as text in HTML, untouched in plain text", () => {
+    const { html, text } = composeOpsDigest(
+      healthy({
+        engagement: {
+          ...healthy().engagement,
+          top: [{ title: "Beauty & the Beast <Preview>" } as never],
+        },
+        trending: { count: 3, top: ['<script>alert(1)</script>', "B", "C"] },
+      }),
+      NOW,
+    );
+    expect(html).toContain("Beauty &amp; the Beast &lt;Preview&gt;");
+    expect(html).toContain("&lt;script&gt;");
+    expect(html).not.toContain("<script>");
+    expect(html).not.toContain("<Preview>");
+    expect(text).toContain("Beauty & the Beast <Preview>"); // plain text stays plain
+  });
+
+  it("a markup-bearing DB error string cannot inject into the inbox", () => {
+    const { html } = composeOpsDigest(
+      healthy({ errors: { pipeline: 'boom <img src=x onerror="steal()">' } }),
+      NOW,
+    );
+    expect(html).toContain("&lt;img src=x onerror=&quot;steal()&quot;&gt;");
+    expect(html).not.toContain("<img src=x");
+  });
+});
+
 describe("quiet states that are NOT alerts", () => {
   it("dark trending is expected while stats accumulate — no alarm", () => {
     const sections = buildSections(healthy({ trending: { count: 0, top: [] } }));

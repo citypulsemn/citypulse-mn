@@ -1,4 +1,5 @@
 import type { Engagement } from "./stats";
+import { esc } from "./digest";
 
 /**
  * OPS DIGEST (roadmap 2.1) — the cockpit, delivered.
@@ -287,12 +288,12 @@ export function composeOpsDigest(
   const html = `<!doctype html><html><head><meta charset="utf-8"></head><body style="margin:0;padding:24px;background:#0d1526;font-family:Georgia,serif;color:#f2ecdd;">
 <div style="max-width:560px;margin:0 auto;">
 <h1 style="font-size:18px;letter-spacing:0.06em;color:#c9a961;margin:0 0 4px;">CITY PULSE — OPS</h1>
-<p style="margin:0 0 20px;font-size:13px;color:#9aa3b5;">${dateLabel} · ${alerts === 0 ? "all green" : `${alerts} alert${alerts > 1 ? "s" : ""}`}</p>
+<p style="margin:0 0 20px;font-size:13px;color:#9aa3b5;">${esc(dateLabel)} · ${alerts === 0 ? "all green" : `${alerts} alert${alerts > 1 ? "s" : ""}`}</p>
 ${sections
   .map(
     (s) => `<div style="margin:0 0 16px;padding:12px 16px;border:1px solid ${s.alert ? "#a05c3b" : "#2a3550"};border-radius:10px;background:#131d33;">
-<div style="font-size:12px;letter-spacing:0.08em;text-transform:uppercase;color:${s.alert ? "#e0b070" : "#c9a961"};margin:0 0 6px;">${s.title}${s.alert ? " ⚠️" : ""}</div>
-${s.lines.map((l) => `<div style="font-size:13.5px;line-height:1.55;">${l}</div>`).join("")}
+<div style="font-size:12px;letter-spacing:0.08em;text-transform:uppercase;color:${s.alert ? "#e0b070" : "#c9a961"};margin:0 0 6px;">${esc(s.title)}${s.alert ? " ⚠️" : ""}</div>
+${s.lines.map((l) => `<div style="font-size:13.5px;line-height:1.55;">${esc(l)}</div>`).join("")}
 </div>`,
   )
   .join("")}

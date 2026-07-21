@@ -71,7 +71,9 @@ function whenLabel(e: EventRecord): string {
   return `${DOW[d.getDay()]}, ${MONTHS[d.getMonth()]} ${d.getDate()} · ${timeLabel(e)}`;
 }
 
-function esc(s: string): string {
+/** HTML-escape for email templates. Exported since R2.4 — the ops digest
+ *  interpolates scraped titles and raw error strings into its HTML too. */
+export function esc(s: string): string {
   return (s ?? "")
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
