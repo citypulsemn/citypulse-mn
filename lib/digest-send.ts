@@ -10,8 +10,9 @@ import { SITE_URL } from "./seo/site";
 /**
  * Sends the weekly digest via the Resend batch API (no SDK — plain fetch, so
  * npm audit stays clean). Each recipient gets their own unsubscribe link and a
- * List-Unsubscribe header for one-click + deliverability. Without a key, or in
- * dry-run, it logs instead of sending. Every run records a digest_sends row.
+ * List-Unsubscribe header for one-click + deliverability. Dry-run logs instead
+ * of sending; a REAL run without a key fails (ok:false → exit 1 → red workflow,
+ * R2.2). Every run records a digest_sends row.
  */
 
 const RESEND_BATCH_ENDPOINT = "https://api.resend.com/emails/batch";
@@ -38,6 +39,17 @@ export async function sendWeeklyDigest(opts: { dryRun?: boolean } = {}): Promise
   const from = process.env.DIGEST_FROM ?? "City Pulse MN <hello@citypulsemn.com>";
   const siteUrl = process.env.SITE_URL ?? SITE_URL;
   const secret = unsubSecret();
+
+  // R2.2 — a REAL run without a key can never succeed, so fail first and
+  // loudly, before composing anything. The old behavior folded this into the
+  // dry-run branch: ok true, exit 0, green workflow — and zero subscribers
+  // mailed for as many weeks as it took someone to notice. send-ops-digest.ts
+  // already exits 1 on this exact condition; now both senders agree.
+  if (!dryRun && !apiKey) {
+    const note = "no RESEND_API_KEY — NOTHING SENT";
+    console.error(`[digest] ${note}`);
+    return record({ attempted: 0, sent: 0, dryRun: false, ok: false, note });
+  }
 
   const now = new Date();
   const picks = digestEvents(await getEvents(), now);
@@ -94,9 +106,8 @@ export async function sendWeeklyDigest(opts: { dryRun?: boolean } = {}): Promise
     };
   });
 
-  if (dryRun || !apiKey) {
-    const base = dryRun ? "dry run" : "no RESEND_API_KEY — logged only";
-    const note = `${base} · ${personalized} personalized`;
+  if (dryRun) {
+    const note = `dry run · ${personalized} personalized`;
     console.log(`[digest] ${note}: ${messages.length} emails, subject="${messages[0].subject}"`);
     return record({ attempted: recipients.length, sent: 0, dryRun: true, ok: true, note });
   }
