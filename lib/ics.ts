@@ -10,7 +10,10 @@ import type { EventRecord } from "./types";
  * app converts correctly to the viewer's local zone — no VTIMEZONE needed.
  */
 
-const DEFAULT_DURATION_MS = 2 * 60 * 60 * 1000; // 2h when the event has no end
+/** 2h assumed duration when an event has no recorded end — the convention
+ *  every export uses, and (F2.1) what the page's "Happening now" honors so
+ *  the site never contradicts its own calendar files. */
+export const DEFAULT_DURATION_MS = 2 * 60 * 60 * 1000;
 
 /** Central wall-clock ("2026-07-15T20:00") → UTC basic "YYYYMMDDTHHMMSSZ". */
 export function icsBasicUTC(centralWallClock: string): string {

@@ -3,6 +3,8 @@ import {
   isPublicStatus,
   dayKeyOf,
   isEnded,
+  eventTimeState,
+  timeStateLabel,
   eventMetaDescription,
   staticMapUrl,
   longDate,
@@ -81,6 +83,63 @@ describe("isEnded (R0.1 — Chicago frame, true spans)", () => {
     const now = new Date("2027-01-10T18:30:00Z"); // 12:30 PM CST
     expect(isEnded(ev({ start: "2027-01-10T11:00", end: "" }), now)).toBe(true);
     expect(isEnded(ev({ start: "2027-01-10T13:00", end: "" }), now)).toBe(false);
+  });
+});
+
+describe("eventTimeState (F2.1 — three honest states, riding R0.1's fixtures)", () => {
+  // Tonight's show: 7–10 PM CDT, Jul 20.
+  const show = ev({ start: "2026-07-20T19:00", end: "2026-07-20T22:00" });
+
+  it("the countdown: 5 PM → 'in 2 hours', 6:35 PM → 'in 25 minutes'", () => {
+    const at5 = eventTimeState(show, new Date("2026-07-20T22:00:00Z"));
+    expect(at5).toEqual({ kind: "soon", minutesUntil: 120 });
+    expect(timeStateLabel(at5)).toBe("Starts in 2 hours");
+    const at635 = eventTimeState(show, new Date("2026-07-20T23:35:00Z"));
+    expect(at635).toEqual({ kind: "soon", minutesUntil: 25 });
+    expect(timeStateLabel(at635)).toBe("Starts in 25 minutes");
+  });
+
+  it("during the show it's happening now; after the last minute it's ended", () => {
+    expect(eventTimeState(show, new Date("2026-07-21T01:00:00Z")).kind).toBe("now"); // 8 PM
+    expect(eventTimeState(show, new Date("2026-07-21T03:01:00Z")).kind).toBe("ended"); // 10:01 PM
+  });
+
+  it("beyond the 12h horizon there is NO countdown — the date row is the answer", () => {
+    expect(eventTimeState(show, new Date("2026-07-20T11:00:00Z")).kind).toBe("upcoming"); // 6 AM
+    expect(eventTimeState(show, new Date("2026-07-20T12:01:00Z")).kind).toBe("soon"); // 7:01 AM, 11h59m out
+  });
+
+  it("no recorded end: happening for the 2h the .ics already promises, then ended", () => {
+    const noEnd = ev({ start: "2026-07-20T19:00", end: "" });
+    expect(eventTimeState(noEnd, new Date("2026-07-21T01:30:00Z")).kind).toBe("now"); // +1h30
+    expect(eventTimeState(noEnd, new Date("2026-07-21T02:01:00Z")).kind).toBe("ended"); // +2h01
+  });
+
+  it("mid-run collapsed event is happening now on day 2 (true spans, rule 5)", () => {
+    const run = ev({ start: "2026-07-18T10:00", end: "2026-07-18T18:00", multiDayEnd: "2026-07-20T23:59" });
+    expect(eventTimeState(run, new Date("2026-07-19T20:00:00Z")).kind).toBe("now");
+  });
+
+  it("all-day fair: upcoming the evening before (never a midnight countdown), now during, ended after", () => {
+    const fair = ev({ start: "2026-07-20T00:00", end: "", allDay: true, multiDayEnd: "2026-07-21T23:59" });
+    expect(eventTimeState(fair, new Date("2026-07-20T02:00:00Z")).kind).toBe("upcoming"); // 9 PM Jul 19
+    expect(eventTimeState(fair, new Date("2026-07-21T02:00:00Z")).kind).toBe("now"); // 9 PM day 1
+    expect(eventTimeState(fair, new Date("2026-07-22T03:00:00Z")).kind).toBe("now"); // 10 PM day 2
+    expect(eventTimeState(fair, new Date("2026-07-22T06:00:00Z")).kind).toBe("ended"); // past midnight
+  });
+
+  it("labels: singular forms, and upcoming renders nothing", () => {
+    expect(timeStateLabel({ kind: "soon", minutesUntil: 1 })).toBe("Starts in 1 minute");
+    expect(timeStateLabel({ kind: "soon", minutesUntil: 65 })).toBe("Starts in 1 hour");
+    expect(timeStateLabel({ kind: "now" })).toBe("Happening now");
+    expect(timeStateLabel({ kind: "ended" })).toBe("This event has already happened.");
+    expect(timeStateLabel({ kind: "upcoming" })).toBeNull();
+  });
+
+  it("winter frame: the countdown math survives CST (rule 10 via wallToInstant)", () => {
+    const jan = ev({ start: "2027-01-10T19:00", end: "" });
+    const state = eventTimeState(jan, new Date("2027-01-10T23:00:00Z")); // 5 PM CST
+    expect(state).toEqual({ kind: "soon", minutesUntil: 120 });
   });
 });
 

@@ -12,10 +12,12 @@ import { eventJsonLd, jsonLdSafe } from "@/lib/seo/event-jsonld";
 import { SITE_URL } from "@/lib/seo/site";
 import {
   dayKeyOf,
-  isEnded,
+  eventTimeState,
+  timeStateLabel,
   eventMetaDescription,
   staticMapUrl,
   longDate,
+  type EventTimeState,
 } from "@/lib/event-view";
 
 export const revalidate = 300;
@@ -64,7 +66,15 @@ export default async function EventPage({
 
   const now = new Date();
   const cancelled = event.status === "cancelled";
-  const ended = !cancelled && (event.status === "archived" || isEnded(event, now));
+  // F2.1 — three honest states instead of the ended/not binary. An archived
+  // row is always "ended" regardless of clock; cancelled outranks everything.
+  const timeState: EventTimeState | null = cancelled
+    ? null
+    : event.status === "archived"
+      ? { kind: "ended" }
+      : eventTimeState(event, now);
+  const bannerClass =
+    timeState?.kind === "ended" ? "ended" : timeState?.kind === "now" ? "live" : "soon";
 
   const dayKey = dayKeyOf(event);
   const all = await getEvents();
@@ -99,8 +109,8 @@ export default async function EventPage({
           {cancelled && (
             <div className="evt-banner cancelled">This event has been cancelled.</div>
           )}
-          {ended && (
-            <div className="evt-banner ended">This event has already happened.</div>
+          {timeState && timeStateLabel(timeState) && (
+            <div className={`evt-banner ${bannerClass}`}>{timeStateLabel(timeState)}</div>
           )}
           {/* First-party view counter (roadmap 5.1): client-side so
               prefetches and non-JS crawlers do not inflate the numbers. */}
