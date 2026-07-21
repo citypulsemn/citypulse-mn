@@ -1,6 +1,8 @@
 "use server";
 
+import { headers } from "next/headers";
 import { validateSubmission, addSubmission, type SubmissionInput } from "./submissions";
+import { rateAllow, ipBucket, firstForwardedIp, RATE_LIMITS } from "./rate-limit";
 import type { SubmitState } from "./submit-types";
 
 // A "use server" module must export ONLY async server actions.
@@ -13,6 +15,17 @@ export async function submitEventAction(
   // Honeypot: bots fill hidden fields. Silently "succeed" without storing.
   if (String(formData.get("company") || "").trim()) {
     return { status: "success", message: "Thanks — we'll take a look!" };
+  }
+
+  // R2.1 — per-IP cap, after the honeypot. Honest error: someone typing in
+  // real submissions deserves to know the queue said no, not a fake thanks.
+  const ip = firstForwardedIp((await headers()).get("x-forwarded-for"));
+  const perIp = RATE_LIMITS.submitPerIp;
+  if (!(await rateAllow(ipBucket("submit", ip), perIp.limit, perIp.windowMinutes))) {
+    return {
+      status: "error",
+      message: "Too many submissions right now — please try again in a bit.",
+    };
   }
 
   const input: SubmissionInput = {

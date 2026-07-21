@@ -24,6 +24,7 @@ import { VENUES_PER_SHARD, VENUE_SWEEP_SEARCHES } from "../lib/pipeline-config";
 import { geocode } from "../lib/geocode";
 import { computeEventKey, normalizeTier } from "../lib/event-key";
 import { upsertEvents, archivePastEvents, markCancelled, dedupeNearDuplicates, collapseMultiDayRuns } from "../lib/upsert";
+import { pruneRateEvents } from "../lib/rate-limit";
 import { partitionCancellations } from "../lib/cancellations";
 import { dueWindows } from "../lib/horizon";
 import { NEW_EVENT_STATUS } from "../lib/pipeline-config";
@@ -204,6 +205,10 @@ async function main() {
       `[pipeline] multi-day: collapsed ${runs.collapsed} run(s), merged ${runs.merged} duplicate(s), folded ${runs.folded} sub-event group(s)`,
     );
   }
+
+  // R2.1 — rate-limit counters idle 2+ days are dead weight; sweep weekly.
+  const pruned = await pruneRateEvents();
+  if (pruned > 0) console.log(`[pipeline] pruned ${pruned} stale rate-limit bucket(s)`);
 
   const archived = await archivePastEvents();
   console.log(

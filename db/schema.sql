@@ -294,3 +294,16 @@ create table if not exists ops_digest_runs (
   totals  jsonb not null
 );
 alter table ops_digest_runs enable row level security;
+
+-- ── Rate limiting (roadmap v5 R2.1) ──────────────────────────────────────────
+-- Fixed-window counters for the public write paths (subscribe, submit, the
+-- keep-list email, the beacon). One row per bucket ("subscribe:ip:1.2.3.4"),
+-- reset in place when the window lapses; the weekly pipeline prunes rows idle
+-- 2+ days. Holds IPs/emails transiently for abuse control only — never joined
+-- to content tables, never reported on.
+create table if not exists rate_events (
+  bucket       text primary key,
+  window_start timestamptz not null default now(),
+  n            integer not null default 1
+);
+alter table rate_events enable row level security;

@@ -1,7 +1,9 @@
 "use server";
 
+import { headers } from "next/headers";
 import { addSubscriber } from "./subscribe";
 import { getSaverToken } from "./saver";
+import { rateAllow, ipBucket, firstForwardedIp, RATE_LIMITS } from "./rate-limit";
 import type { SubscribeState } from "./subscribe-types";
 
 // A "use server" module must export ONLY async server actions.
@@ -14,6 +16,18 @@ export async function subscribeAction(
   // Honeypot: bots fill hidden fields. Silently "succeed" without storing.
   if (String(formData.get("company") || "").trim()) {
     return { status: "success", message: "Thanks — you're on the list." };
+  }
+
+  // R2.1 — per-IP cap, checked AFTER the honeypot so bot noise it already
+  // eats never counts. Unlike the keep-list path this failure is HONEST: a
+  // silently dropped subscriber thinks they're on the list and never retries.
+  const ip = firstForwardedIp((await headers()).get("x-forwarded-for"));
+  const perIp = RATE_LIMITS.subscribePerIp;
+  if (!(await rateAllow(ipBucket("subscribe", ip), perIp.limit, perIp.windowMinutes))) {
+    return {
+      status: "error",
+      message: "A lot of signups from this network right now — please try again in a bit.",
+    };
   }
 
   const email = String(formData.get("email") || "");

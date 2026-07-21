@@ -1,6 +1,8 @@
 "use server";
 
+import { headers } from "next/headers";
 import { requestSavedLink } from "./saved-restore";
+import { rateAllow, ipBucket, firstForwardedIp, RATE_LIMITS } from "./rate-limit";
 import type { SubscribeState } from "./subscribe-types";
 
 /**
@@ -15,6 +17,15 @@ export async function requestSavedLinkAction(
 ): Promise<SubscribeState> {
   // Honeypot: bots fill hidden fields. Silently "succeed" without storing.
   if (String(formData.get("company") || "").trim()) {
+    return { status: "success", message: "Check your inbox — your link is on the way." };
+  }
+
+  // R2.1 — per-IP cap, checked AFTER the honeypot (honeypot bots never count)
+  // and answered with the same generic success as everything else on this
+  // path: throttling is part of the no-enumeration surface here.
+  const ip = firstForwardedIp((await headers()).get("x-forwarded-for"));
+  const perIp = RATE_LIMITS.savedLinkPerIp;
+  if (!(await rateAllow(ipBucket("saved-link", ip), perIp.limit, perIp.windowMinutes))) {
     return { status: "success", message: "Check your inbox — your link is on the way." };
   }
 

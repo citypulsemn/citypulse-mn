@@ -3,6 +3,7 @@ import { getSaverToken, setSaverToken } from "./saver";
 import { restoreUrl, verifyRestoreToken, RESTORE_TTL_DAYS } from "./restore-token";
 import { unsubSecret } from "./unsubscribe-token";
 import { normalizeEmail, isValidEmail } from "./subscribe";
+import { rateAllow, emailBucket, RATE_LIMITS } from "./rate-limit";
 import { SITE_URL } from "./seo/site";
 
 /**
@@ -37,6 +38,17 @@ export async function requestSavedLink(rawEmail: string): Promise<RequestLinkRes
 
   if (!sql) {
     console.warn(`[saved-link] no DATABASE_URL — dev no-op for ${email}`);
+    return "sent";
+  }
+
+  // R2.1 — the email-bomb gate: at most 3 restore links per TARGET address
+  // per hour, counted before any row is written. Over the cap we answer the
+  // generic success and send nothing: the no-enumeration rule extends to
+  // throttling (a blocked attacker learns nothing), and a real requester's
+  // first 3 links are already in their inbox.
+  const perEmail = RATE_LIMITS.savedLinkPerEmail;
+  if (!(await rateAllow(emailBucket("saved-link", email), perEmail.limit, perEmail.windowMinutes))) {
+    console.warn(`[saved-link] per-email rate limit hit for ${email} — not sending`);
     return "sent";
   }
 
