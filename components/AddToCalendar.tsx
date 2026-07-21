@@ -9,6 +9,12 @@ import type { EventRecord } from "@/lib/types";
  * "Add to calendar" — offers an .ics download (Apple/Outlook/etc.) and a Google
  * Calendar link. Uses a <details> disclosure so no JS state is needed; both
  * options fire the ics_download analytics event (the seam from roadmap 1.4).
+ *
+ * Both options also fire the first-party 'calendar' stat on the HUMAN click
+ * (5.1). The .ics link used to be counted server-side in its download route,
+ * but crawlers and calendar-app pollers hit that route ~11× per real view, so
+ * counting moved here to the click — bounded by the R2.1 beacon cap, like
+ * view/ticket_click.
  */
 export function AddToCalendar({ event }: { event: EventRecord }) {
   const icsHref = `/event/${event.id}/calendar`;
@@ -21,7 +27,10 @@ export function AddToCalendar({ event }: { event: EventRecord }) {
         <a
           href={icsHref}
           download={`citypulse-${event.id}.ics`}
-          onClick={() => track("ics_download", { id: event.id, target: "ics" })}
+          onClick={() => {
+            track("ics_download", { id: event.id, target: "ics" });
+            sendStat(event.id, "calendar");
+          }}
         >
           Apple · Outlook (.ics)
         </a>
@@ -31,8 +40,6 @@ export function AddToCalendar({ event }: { event: EventRecord }) {
           rel="noopener noreferrer"
           onClick={() => {
             track("ics_download", { id: event.id, target: "google" });
-            // First-party count (5.1). The .ics link above is counted in its
-            // download route instead — beaconing it here too would double-count.
             sendStat(event.id, "calendar");
           }}
         >

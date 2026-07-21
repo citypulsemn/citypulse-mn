@@ -13,9 +13,11 @@ import { sql } from "./db";
  * about. Days are bucketed in America/Chicago, like everything on the site.
  *
  * WRITE PATHS (asymmetric on purpose):
- *  - view / ticket_click / calendar(Google) — public beacon endpoint, because
- *    they happen in the browser and some end on external pages.
- *  - calendar(.ics) — counted server-side in the download route itself.
+ *  - view / ticket_click / calendar — public beacon endpoint, because they
+ *    happen in the browser. Both add-to-calendar options (.ics AND Google)
+ *    beacon on the human click; the .ics download ROUTE no longer counts,
+ *    because crawlers and calendar-app pollers hit it ~11× per real view
+ *    (Jul 2026). The R2.1 per-IP beacon cap bounds the whole surface.
  *  - save — counted ONLY inside the save server-action, never accepted from
  *    the beacon: the one metric tied to real user state shouldn't be the one
  *    a bored person with curl can inflate.

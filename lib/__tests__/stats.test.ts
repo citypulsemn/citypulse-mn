@@ -1,4 +1,6 @@
 import { describe, it, expect } from "vitest";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import {
   parseBeacon,
   ctr,
@@ -9,6 +11,31 @@ import {
 } from "../stats";
 
 const UUID = "1d87aa63-e89d-42d2-9944-54fa593f1fa9"; // shape of a real event id
+
+/**
+ * CALENDAR COUNTING MOVED TO THE CLICK (Jul 2026). The .ics download route was
+ * counting ~11 non-human fetches (crawlers, calendar-app pollers) per real
+ * view, poisoning the 'calendar' engagement metric. Both add-to-calendar
+ * options now beacon on the human click instead; the route just serves bytes.
+ * These source tripwires keep the fix from silently regressing.
+ */
+describe("calendar stat is click-counted, not fetch-counted (Jul 2026)", () => {
+  const root = join(__dirname, "..", "..");
+  const routeSrc = readFileSync(join(root, "app", "event", "[id]", "calendar", "route.ts"), "utf8");
+  const addCalSrc = readFileSync(join(root, "components", "AddToCalendar.tsx"), "utf8");
+
+  it("the .ics download route no longer counts the fetch", () => {
+    expect(routeSrc).not.toContain("recordStat");
+  });
+
+  it("BOTH add-to-calendar options beacon 'calendar' on the human click", () => {
+    expect(addCalSrc.match(/sendStat\(event\.id, "calendar"\)/g)).toHaveLength(2);
+  });
+
+  it("'calendar' is a public beacon action (so the click actually records)", () => {
+    expect(parseBeacon({ id: UUID, action: "calendar" })).toEqual({ id: UUID, action: "calendar" });
+  });
+});
 
 describe("parseBeacon — the public surface", () => {
   it("accepts the three public actions with a valid UUID", () => {
