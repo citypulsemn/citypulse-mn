@@ -1,5 +1,6 @@
 import { toIsoWithOffset } from "./seo/event-jsonld";
 import { SITE_URL } from "./seo/site";
+import { spanEnd } from "./multiday";
 import type { EventRecord } from "./types";
 
 /**
@@ -30,22 +31,38 @@ export function escapeICS(text: string): string {
     .replace(/\r?\n/g, "\\n");
 }
 
-/** Fold a content line to ≤75 chars with CRLF + space continuations. */
+const byteLen = (s: string) => Buffer.byteLength(s, "utf8");
+
+/**
+ * Fold a content line to ≤75 OCTETS (RFC 5545 §3.1 — the limit is bytes, not
+ * characters) with CRLF + space continuations. Iterates code points, so a
+ * surrogate pair (emoji — venue listings have them) is never split into
+ * invalid bytes mid-character (R2.5c; the old fold counted UTF-16 units).
+ */
 export function foldLine(line: string): string {
-  if (line.length <= 75) return line;
+  if (byteLen(line) <= 75) return line;
   const parts: string[] = [];
-  let i = 0;
-  // First chunk 75, subsequent chunks 74 (they carry a leading space).
-  parts.push(line.slice(0, 75));
-  i = 75;
-  while (i < line.length) {
-    parts.push(" " + line.slice(i, i + 74));
-    i += 74;
+  let cur = "";
+  for (const cp of line) {
+    // Continuations carry a leading space that counts toward their 75.
+    const limit = parts.length === 0 ? 75 : 74;
+    if (byteLen(cur + cp) > limit) {
+      parts.push(cur);
+      cur = cp;
+    } else {
+      cur += cp;
+    }
   }
-  return parts.join("\r\n");
+  if (cur) parts.push(cur);
+  return parts.map((p, i) => (i === 0 ? p : " " + p)).join("\r\n");
 }
 
 function endStamp(event: EventRecord): string {
+  // R2.5a — TRUE spans (rule 5): a timed collapsed run must end on its LAST
+  // day, not day 1. spanEnd reads multiDayEnd (collapse writes last-day 23:59)
+  // or a genuinely later end; a same-day end falls through unchanged.
+  const span = spanEnd(event);
+  if (span) return icsBasicUTC(span);
   if (event.end && event.end !== event.start) return icsBasicUTC(event.end);
   const start = new Date(toIsoWithOffset(event.start));
   return stampFromDate(new Date(start.getTime() + DEFAULT_DURATION_MS));
@@ -133,10 +150,16 @@ export function feedICS(name: string, events: EventRecord[], opts: IcsOptions = 
 export function googleCalendarUrl(event: EventRecord, opts: IcsOptions = {}): string {
   const baseUrl = opts.baseUrl ?? SITE_URL;
   const url = `${baseUrl}/event/${event.id}`;
+  // R2.5b — all-day events use Google's DATE form (end-exclusive, same as
+  // DTEND;VALUE=DATE): a fair renders as a banner across its days, not a
+  // 12:00 AM–2:00 AM appointment invented from a midnight wall time.
+  const dates = event.allDay
+    ? `${dateBasic(event.start)}/${dateBasic(nextDay(spanLastDay(event)))}`
+    : `${icsBasicUTC(event.start)}/${endStamp(event)}`;
   const params = new URLSearchParams({
     action: "TEMPLATE",
     text: event.title,
-    dates: `${icsBasicUTC(event.start)}/${endStamp(event)}`,
+    dates,
     details: [event.description, `More: ${url}`].filter(Boolean).join("\n\n"),
     location: locationOf(event),
   });
