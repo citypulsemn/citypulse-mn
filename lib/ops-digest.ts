@@ -46,6 +46,8 @@ export interface OpsInputs {
     bySource7?: { source: string; count: number }[];
   };
   lastDigestNote: string | null; // digest_sends.note — carries "N personalized"
+  /** F2.5 — calendar-subscribe clicks on the iCal feeds in the last 7 days. */
+  feeds: { clicks7: number; top: { label: string; count: number }[] };
   /** Live sitemap URL count (fetched from SITE_URL/sitemap.xml — the number
    *  Google actually sees; zero drift by construction) + last week's. */
   sitemapUrls: number | null;
@@ -71,6 +73,7 @@ const SECTION_KEYS = [
   "trending",
   "subscribers",
   "index",
+  "feeds",
 ] as const;
 
 function unavailable(reason: string): string[] {
@@ -260,6 +263,27 @@ export function buildSections(inputs: OpsInputs): OpsSection[] {
       else if (err("digest_note")) lines.push("(last digest note unavailable)");
     }
     out.push({ title: "Subscribers", lines, alert });
+  }
+
+  // 8 — Feeds (F2.5). Zero clicks is NOT an alert — the feeds are new and
+  // adoption is a slow signal (honest emptiness, like dark trending). This
+  // line is what tells us whether the public API (6.2) ever earns building.
+  {
+    let lines: string[];
+    let alert = false;
+    if (err("feeds")) {
+      lines = unavailable(err("feeds"));
+      alert = true;
+    } else if (inputs.feeds.clicks7 === 0) {
+      lines = ["no calendar-subscribe clicks in the last 7 days (feeds are new)"];
+    } else {
+      const c = inputs.feeds.clicks7;
+      lines = [
+        `${c} calendar-subscribe click${c === 1 ? "" : "s"} (7d)`,
+        ...inputs.feeds.top.slice(0, 3).map((t) => `${t.label}: ${t.count}`),
+      ];
+    }
+    out.push({ title: "Feeds", lines, alert });
   }
 
   return out;

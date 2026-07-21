@@ -307,3 +307,19 @@ create table if not exists rate_events (
   n            integer not null default 1
 );
 alter table rate_events enable row level security;
+
+-- ── Feed adoption (roadmap v5 F2.5) ──────────────────────────────────────────
+-- Counts calendar-subscribe clicks on the iCal feeds, one counter per
+-- (feed slug, source surface, Chicago-day). Aggregate-only by design, exactly
+-- like event_stats: no user identifiers, no IPs — it answers "how many clicked
+-- Subscribe on the venue pages this week", never "who". Tells us whether the
+-- feeds earn the public API (6.2) before we build it.
+create table if not exists feed_events (
+  slug    text not null,
+  source  text not null,
+  day     date not null,
+  count   integer not null default 0,
+  primary key (slug, source, day)
+);
+create index if not exists idx_feed_events_day on feed_events (day);
+alter table feed_events enable row level security;

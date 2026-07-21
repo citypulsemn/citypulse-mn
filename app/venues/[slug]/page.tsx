@@ -158,7 +158,7 @@ export default async function VenuePage({
           </>
         )}
 
-        <FeedSubscribe slug={`venue-${v.slug}`} />
+        <FeedSubscribe slug={`venue-${v.slug}`} source="venue" />
 
         <p className="feed-subscribe">
           <a href="/for-venues">Is this your venue? Get your events listed — free →</a>

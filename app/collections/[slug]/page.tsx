@@ -97,7 +97,7 @@ export default async function CollectionPage({
           <div className="dayhdr-eyebrow">Collection</div>
           <h1 className="dayhdr-title">{collection.title}</h1>
           <p className="coll-tagline">{collection.tagline}</p>
-          <FeedSubscribe slug={collection.slug} />
+          <FeedSubscribe slug={collection.slug} source="collection" />
           <div className="dayhdr-count">
             {selected.length === 0
               ? "Nothing here right now — check back soon."

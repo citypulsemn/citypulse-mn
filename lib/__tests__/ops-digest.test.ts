@@ -24,6 +24,7 @@ function healthy(overrides: Partial<OpsInputs> = {}): OpsInputs {
     trending: { count: 6, top: ["Aquatennial Fireworks", "Trampled by Turtles", "Como Family Day"] },
     subscribers: { total: 84, delta7: 6 },
     lastDigestNote: "84 sent, 17 personalized",
+    feeds: { clicks7: 9, top: [{ label: "venue-first-avenue", count: 5 }, { label: "live-music", count: 3 }] },
     sitemapUrls: 121,
     prevSitemapUrls: 118,
     errors: {},
@@ -70,8 +71,8 @@ describe("composeOpsDigest — the healthy week", () => {
   it("subject is green with the Chicago date", () => {
     expect(subject).toBe("✅ City Pulse ops — all green (Jul 20)");
   });
-  it("all six sections render in both formats", () => {
-    for (const title of ["Pipeline", "Coverage", "Verification", "Engagement (7d)", "Trending", "Index surface", "Subscribers"]) {
+  it("all eight sections render in both formats", () => {
+    for (const title of ["Pipeline", "Coverage", "Verification", "Engagement (7d)", "Trending", "Index surface", "Subscribers", "Feeds"]) {
       expect(text).toContain(title);
       expect(html).toContain(title);
     }
@@ -138,13 +139,13 @@ describe("the resilience contract", () => {
     expect(text).toContain("Trending"); // the rest of the cockpit still reports
   });
 
-  it("every section can fail and the email still composes with six unavailable notices", () => {
+  it("every section can fail and the email still composes with all unavailable notices", () => {
     const errs = Object.fromEntries(
-      ["pipeline", "coverage", "verify", "engagement", "trending", "subscribers", "index"].map((k) => [k, "db down"]),
+      ["pipeline", "coverage", "verify", "engagement", "trending", "subscribers", "index", "feeds"].map((k) => [k, "db down"]),
     );
     const { subject, text } = composeOpsDigest(healthy({ errors: errs }), NOW);
-    expect(subject).toContain("7 alerts");
-    expect(text.match(/section unavailable: db down/g)).toHaveLength(7);
+    expect(subject).toContain("8 alerts");
+    expect(text.match(/section unavailable: db down/g)).toHaveLength(8);
   });
 });
 
@@ -261,6 +262,31 @@ describe("R2.4 — the operator email escapes what it interpolates", () => {
     );
     expect(html).toContain("&lt;img src=x onerror=&quot;steal()&quot;&gt;");
     expect(html).not.toContain("<img src=x");
+  });
+});
+
+describe("Feeds section (F2.5)", () => {
+  it("reports total clicks and the top feeds", () => {
+    const { text } = composeOpsDigest(healthy(), NOW);
+    expect(text).toContain("9 calendar-subscribe clicks (7d)");
+    expect(text).toContain("venue-first-avenue: 5");
+  });
+  it("zero clicks reads as a quiet 'feeds are new', NOT an alert", () => {
+    const sections = buildSections(healthy({ feeds: { clicks7: 0, top: [] } }));
+    const feeds = sections.find((s) => s.title === "Feeds")!;
+    expect(feeds.alert).toBe(false);
+    expect(feeds.lines[0]).toContain("feeds are new");
+  });
+  it("singular click grammar", () => {
+    const sections = buildSections(healthy({ feeds: { clicks7: 1, top: [{ label: "uptown", count: 1 }] } }));
+    const feeds = sections.find((s) => s.title === "Feeds")!;
+    expect(feeds.lines[0]).toBe("1 calendar-subscribe click (7d)");
+  });
+  it("a gather failure is an unavailable alert, not a crash", () => {
+    const sections = buildSections(healthy({ errors: { feeds: "db down" } }));
+    const feeds = sections.find((s) => s.title === "Feeds")!;
+    expect(feeds.alert).toBe(true);
+    expect(feeds.lines[0]).toContain("unavailable");
   });
 });
 

@@ -14,6 +14,7 @@ import { assessCoverage, formatCoverageAlerts } from "../lib/coverage";
 import { getEngagementStrict, type Engagement } from "../lib/stats";
 import { getTrendingEvents } from "../lib/trending";
 import { getDigestSends } from "../lib/digest-send";
+import { getFeedAdoption } from "../lib/feed-stats";
 
 const dryRun = process.argv.includes("--dry-run");
 
@@ -84,6 +85,10 @@ async function gather(): Promise<OpsInputs> {
     return { count: ranked.length, top: ranked.slice(0, 3).map((r) => r.event.title) };
   });
 
+  const feeds = await wrap("feeds", { clicks7: 0, top: [] as { label: string; count: number }[] }, () =>
+    getFeedAdoption(7),
+  );
+
   const subscribers = await wrap("subscribers", { total: 0, delta7: 0, bySource7: [] as { source: string; count: number }[] }, async () => {
     if (!sql) throw new Error("no database connection");
     const [row] = await sql<{ total: number; delta7: number }[]>`
@@ -130,6 +135,7 @@ async function gather(): Promise<OpsInputs> {
     trending,
     subscribers,
     lastDigestNote,
+    feeds,
     sitemapUrls,
     prevSitemapUrls,
     errors,

@@ -78,7 +78,7 @@ export default async function ThisWeekendPage() {
               ? TAGLINE
               : `${total} event${total > 1 ? "s" : ""} worth leaving the house for`}
           </div>
-          <FeedSubscribe slug="this-weekend" />
+          <FeedSubscribe slug="this-weekend" source="weekend" />
         </div>
 
         {total === 0 ? (

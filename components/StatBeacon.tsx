@@ -26,8 +26,17 @@ export function StatBeacon({ eventId, action }: { eventId: string; action: Beaco
 
 /** Shared fire-and-forget sender — also used by click handlers. */
 export function sendStat(eventId: string, action: BeaconAction): void {
+  postBeacon(JSON.stringify({ id: eventId, action }));
+}
+
+/** F2.5 — a feed-adoption click ("Subscribe to this calendar"), tagged with
+ *  the page surface it fired from. Same fire-and-forget contract. */
+export function sendFeedClick(slug: string, source: string): void {
+  postBeacon(JSON.stringify({ feed: slug, source }));
+}
+
+function postBeacon(body: string): void {
   try {
-    const body = JSON.stringify({ id: eventId, action });
     if (navigator.sendBeacon) {
       navigator.sendBeacon("/api/beacon", new Blob([body], { type: "application/json" }));
     } else {

@@ -14,6 +14,7 @@ function base(sub: Partial<OpsInputs["subscribers"]>): OpsInputs {
     trending: { count: 0, top: [] },
     subscribers: { total: 100, delta7: 8, ...sub },
     lastDigestNote: null,
+    feeds: { clicks7: 0, top: [] },
     sitemapUrls: 120,
     prevSitemapUrls: 120,
     errors: {},

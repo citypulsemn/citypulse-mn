@@ -84,7 +84,7 @@ export default async function NeighborhoodPage({
               ` — ${events.length} upcoming event${events.length > 1 ? "s" : ""}`}
           </div>
           {NEIGHBORHOOD_INTROS[n.key] && <p className="page-intro">{NEIGHBORHOOD_INTROS[n.key]}</p>}
-          <FeedSubscribe slug={n.key} />
+          <FeedSubscribe slug={n.key} source="neighborhood" />
         </div>
 
         {events.length === 0 ? (
