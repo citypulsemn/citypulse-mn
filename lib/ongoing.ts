@@ -69,3 +69,42 @@ export function throughLabel(endDay: string, now: Date): string {
   const d = new Date(`${endDay}T12:00:00Z`);
   return `Through ${d.toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" })}`;
 }
+
+// ── Last chance (roadmap v5 F2.2) ────────────────────────────────────────────
+// The urgent slice of ongoing: runs whose TRUE final day lands within the
+// next week. "Last weekend for X" is a query people actually type.
+
+export const LAST_CHANCE_DAYS = 7; // today counts — endDay ≤ today + 6
+export const MIN_LAST_CHANCE = 3; // honest emptiness: hide the section under 3
+
+/**
+ * The ongoing items closing within LAST_CHANCE_DAYS. Input comes from
+ * selectOngoing, which sorts ending-soonest — so the result is always a
+ * PREFIX of it, and callers may render "the rest" as `ongoing.slice(n)`.
+ */
+export function selectLastChance(ongoing: OngoingEvent[], now: Date): OngoingEvent[] {
+  const cutoff = dayNum(chiDayKey(now)) + LAST_CHANCE_DAYS - 1;
+  return ongoing.filter((o) => dayNum(o.endDay) <= cutoff);
+}
+
+export interface OngoingStripPlan {
+  /** True → the strip wears the "Last chance / Ends this week" labels and
+   *  shows ONLY items that genuinely close within the week. */
+  lastChance: boolean;
+  items: OngoingEvent[];
+}
+
+/** What the homepage strip should show. The label swap obeys the honesty
+ *  rule twice over: it happens only with MIN_LAST_CHANCE closing soon, and a
+ *  swapped strip never pads itself with items that aren't actually closing. */
+export function ongoingStripPlan(
+  ongoing: OngoingEvent[],
+  now: Date,
+  cap = 6,
+): OngoingStripPlan {
+  const lastChance = selectLastChance(ongoing, now);
+  if (lastChance.length >= MIN_LAST_CHANCE) {
+    return { lastChance: true, items: lastChance.slice(0, cap) };
+  }
+  return { lastChance: false, items: ongoing.slice(0, cap) };
+}

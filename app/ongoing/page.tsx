@@ -3,7 +3,7 @@ import { Logo } from "@/components/Logo";
 import { SiteFooter } from "@/components/SiteFooter";
 import { EventDayCard } from "@/components/EventDayCard";
 import { getEvents } from "@/lib/events";
-import { selectOngoing, throughLabel } from "@/lib/ongoing";
+import { selectOngoing, selectLastChance, throughLabel, MIN_LAST_CHANCE } from "@/lib/ongoing";
 
 export const revalidate = 300;
 
@@ -26,6 +26,13 @@ export default async function OngoingPage() {
   const events = await getEvents();
   const now = new Date();
   const ongoing = selectOngoing(events, now);
+  // F2.2 — the urgent slice gets its own header when there's enough of it
+  // (honest emptiness: under MIN_LAST_CHANCE the page renders exactly as
+  // before). lastChance is always a PREFIX of ongoing (both sort by endDay),
+  // so "the rest" is a simple slice — no card ever renders twice.
+  const lastChance = selectLastChance(ongoing, now);
+  const split = lastChance.length >= MIN_LAST_CHANCE;
+  const rest = split ? ongoing.slice(lastChance.length) : ongoing;
 
   return (
     <>
@@ -53,14 +60,30 @@ export default async function OngoingPage() {
             <a href="/this-weekend">See what's on this weekend →</a>
           </div>
         ) : (
-          <div className="day-list">
-            {ongoing.map(({ event, endDay }) => (
-              <div className="ongoing-item" key={event.id}>
-                <div className="ongoing-through">{throughLabel(endDay, now)}</div>
-                <EventDayCard event={event} />
-              </div>
-            ))}
-          </div>
+          <>
+            {split && (
+              <>
+                <h2 className="ongoing-split lastchance">Last chance — closing within a week</h2>
+                <div className="day-list">
+                  {lastChance.map(({ event, endDay }) => (
+                    <div className="ongoing-item" key={event.id}>
+                      <div className="ongoing-through">{throughLabel(endDay, now)}</div>
+                      <EventDayCard event={event} />
+                    </div>
+                  ))}
+                </div>
+                {rest.length > 0 && <h2 className="ongoing-split">Also running</h2>}
+              </>
+            )}
+            <div className="day-list">
+              {rest.map(({ event, endDay }) => (
+                <div className="ongoing-item" key={event.id}>
+                  <div className="ongoing-through">{throughLabel(endDay, now)}</div>
+                  <EventDayCard event={event} />
+                </div>
+              ))}
+            </div>
+          </>
         )}
 
         <SiteFooter source="ongoing" />

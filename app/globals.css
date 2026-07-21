@@ -305,6 +305,9 @@ a:focus-visible, button:focus-visible, .cell:focus-visible, .chip:focus-visible 
 .evt-banner.live { background: rgba(201, 169, 97, 0.16); color: #e0c88f; border: 1px solid rgba(201, 169, 97, 0.55); }
 .evt-banner.soon { background: rgba(201, 169, 97, 0.07); color: #cbb987; border: 1px solid rgba(201, 169, 97, 0.3); }
 
+.ongoing-split { font-family: "Oswald"; font-weight: 600; font-size: 14px; letter-spacing: 0.07em; text-transform: uppercase; color: var(--cream-dim); margin: 22px 2px 12px; }
+.ongoing-split.lastchance { color: #c9a961; }
+
 .evt-map { display: block; margin: 0 7px 7px; border-radius: 11px; overflow: hidden; border: 1px solid var(--line); }
 .evt-map img { display: block; width: 100%; height: auto; }
 
