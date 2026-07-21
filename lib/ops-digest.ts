@@ -27,12 +27,37 @@ export interface PipelineRow {
   upserted: number | null;
   cancelled: number | null;
   archived: number | null;
-  collapsed: number | null;
+  collapsed: number | null; // the DEDUPE count (near-duplicate merges)
+  collapsed_runs: number | null; // F2.6: multi-day runs folded into spans
   error: string | null;
+}
+
+/**
+ * Stampede thresholds (F2.6) — "how R0.2 would have announced itself." A weekly
+ * run archives events that fully passed and dedupes a handful of near-copies;
+ * a flood of either is the fingerprint of a predicate gone wrong (festivals
+ * wrongly archived mid-run, or an over-eager dedupe). Above these, the Pipeline
+ * section raises an alert.
+ *
+ * Calibrated ABOVE the observed Jul 2026 baseline (a healthy run did 43 deduped
+ * / 52 archived), so a normal cleanup week doesn't cry wolf — the per-stage
+ * DIFF line is the finer human signal below these. Tune as more weeks accrue.
+ */
+export const PIPELINE_STAMPEDE = { archived: 100, deduped: 80 };
+
+/** " (+12)" / " (-3)" / " (±0)" for a run-over-run delta; "" when either side
+ *  is unknown (a stage with no prior number, e.g. a brand-new column). */
+export function deltaTag(cur: number | null | undefined, prev: number | null | undefined): string {
+  if (cur == null || prev == null) return "";
+  const d = cur - prev;
+  return d === 0 ? " (±0)" : ` (${d > 0 ? "+" : ""}${d})`;
 }
 
 export interface OpsInputs {
   pipeline: PipelineRow | null;
+  /** F2.6 — the run BEFORE `pipeline`, for run-over-run stage diffs. Null on
+   *  the first-ever run. */
+  prevPipeline: PipelineRow | null;
   coverageHealthy: boolean;
   coverageAlerts: string[]; // formatCoverageAlerts() output, verbatim
   verify: { verified7: number; neverVerifiedUpcoming: number };
@@ -145,10 +170,25 @@ export function buildSections(inputs: OpsInputs): OpsSection[] {
         ];
         alert = true;
       } else {
+        // F2.6 — per-stage counts WITH diffs vs the previous run. deltaTag
+        // shows nothing until a stage has a prior number, so brand-new metrics
+        // (collapsed_runs on historical rows) stay quiet rather than lying.
+        const pv = inputs.prevPipeline;
+        const stage = (label: string, cur: number | null, prev: number | null | undefined) =>
+          `${cur ?? 0} ${label}${deltaTag(cur, prev)}`;
         lines = [
-          `ok ✓ — ${p.upserted ?? 0} upserted · ${p.cancelled ?? 0} cancelled · ${p.archived ?? 0} archived · ${p.collapsed ?? 0} collapsed`,
-          `started ${p.started_at} · duration ${fmtDuration(p.started_at, p.finished_at)}`,
+          `ok ✓ — ${stage("upserted", p.upserted, pv?.upserted)} · ${stage("deduped", p.collapsed, pv?.collapsed)} · ${stage("collapsed", p.collapsed_runs, pv?.collapsed_runs)} · ${stage("archived", p.archived, pv?.archived)}`,
+          `started ${p.started_at} · duration ${fmtDuration(p.started_at, p.finished_at)}${pv ? " · Δ vs last run" : ""}`,
         ];
+        // Stampede tripwire — the R0.2 fingerprint (a flood of archives/dedupes).
+        const arch = p.archived ?? 0;
+        const dedup = p.collapsed ?? 0;
+        if (arch > PIPELINE_STAMPEDE.archived || dedup > PIPELINE_STAMPEDE.deduped) {
+          lines.push(
+            `⚠️ stampede check — ${arch} archived / ${dedup} deduped this run is unusually high; confirm no live event was wrongly removed (R0.2 territory)`,
+          );
+          alert = true;
+        }
       }
     }
     out.push({ title: "Pipeline", lines, alert });

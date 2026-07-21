@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { composeOpsDigest, buildSections, parseStoredTotals, wowLabel, type OpsInputs } from "../ops-digest";
+import { composeOpsDigest, buildSections, parseStoredTotals, wowLabel, deltaTag, type OpsInputs } from "../ops-digest";
 
 const NOW = new Date("2026-07-20T15:30:00Z"); // a Monday, 10:30am Chicago
 
@@ -9,7 +9,14 @@ function healthy(overrides: Partial<OpsInputs> = {}): OpsInputs {
       started_at: "2026-07-20T13:00:00Z",
       finished_at: "2026-07-20T13:22:10Z",
       ok: true,
-      upserted: 148, cancelled: 3, archived: 12, collapsed: 5,
+      upserted: 148, cancelled: 3, archived: 12, collapsed: 5, collapsed_runs: 4,
+      error: null,
+    },
+    prevPipeline: {
+      started_at: "2026-07-13T13:00:00Z",
+      finished_at: "2026-07-13T13:20:00Z",
+      ok: true,
+      upserted: 136, cancelled: 2, archived: 15, collapsed: 8, collapsed_runs: 6,
       error: null,
     },
     coverageHealthy: true,
@@ -77,11 +84,71 @@ describe("composeOpsDigest — the healthy week", () => {
       expect(html).toContain(title);
     }
   });
-  it("carries the run counters, WoW deltas, trending top 3, and the personalized note", () => {
-    expect(text).toContain("148 upserted");
+  it("carries the run counters WITH run-over-run diffs, WoW deltas, trending, personalized note", () => {
+    expect(text).toContain("148 upserted (+12)"); // 148 vs prev 136
+    expect(text).toContain("12 archived (-3)"); // 12 vs prev 15
+    expect(text).toContain("Δ vs last run");
     expect(text).toContain("views 412 (+18% WoW)");
     expect(text).toContain("1. Aquatennial Fireworks");
     expect(text).toContain("17 personalized");
+  });
+});
+
+describe("deltaTag (F2.6) — run-over-run delta formatting", () => {
+  it("signs the delta and marks a flat run", () => {
+    expect(deltaTag(148, 136)).toBe(" (+12)");
+    expect(deltaTag(12, 15)).toBe(" (-3)");
+    expect(deltaTag(5, 5)).toBe(" (±0)");
+  });
+  it("stays silent when either side is unknown (no fake baseline)", () => {
+    expect(deltaTag(4, null)).toBe("");
+    expect(deltaTag(null, 6)).toBe("");
+    expect(deltaTag(4, undefined)).toBe("");
+  });
+});
+
+describe("pipeline diffs & stampede tripwire (F2.6)", () => {
+  it("labels the dedupe count 'deduped' and the multi-day fold 'collapsed', each diffed", () => {
+    const { text } = composeOpsDigest(healthy(), NOW);
+    expect(text).toContain("5 deduped (-3)"); // collapsed column 5 vs prev 8
+    expect(text).toContain("4 collapsed (-2)"); // collapsed_runs 4 vs prev 6
+  });
+
+  it("shows NO diff on the first-ever run (prevPipeline null) — never a fake delta", () => {
+    const sections = buildSections(healthy({ prevPipeline: null }));
+    const pipe = sections.find((s) => s.title === "Pipeline")!;
+    expect(pipe.lines[0]).toContain("148 upserted");
+    expect(pipe.lines[0]).not.toMatch(/\([+-]?\d/); // no "(+12)" etc.
+    expect(pipe.lines[1]).not.toContain("Δ vs last run");
+    expect(pipe.alert).toBe(false);
+  });
+
+  it("a new column with no prior number stays quiet (collapsed_runs vs a null-column prev)", () => {
+    const prev = { ...healthy().prevPipeline!, collapsed_runs: null };
+    const sections = buildSections(healthy({ prevPipeline: prev }));
+    const pipe = sections.find((s) => s.title === "Pipeline")!;
+    expect(pipe.lines[0]).toContain("4 collapsed"); // count shown
+    expect(pipe.lines[0]).not.toContain("4 collapsed ("); // but no delta tag
+  });
+
+  it("a flood of archives raises the stampede alert (the R0.2 fingerprint)", () => {
+    const sections = buildSections(
+      healthy({ pipeline: { ...healthy().pipeline!, archived: 140 } }),
+    );
+    const pipe = sections.find((s) => s.title === "Pipeline")!;
+    expect(pipe.alert).toBe(true);
+    expect(pipe.lines.join("\n")).toContain("stampede check");
+  });
+
+  it("a flood of dedupes also trips it", () => {
+    const sections = buildSections(
+      healthy({ pipeline: { ...healthy().pipeline!, collapsed: 90 } }),
+    );
+    expect(sections.find((s) => s.title === "Pipeline")!.alert).toBe(true);
+  });
+
+  it("normal counts do NOT trip it", () => {
+    expect(buildSections(healthy()).find((s) => s.title === "Pipeline")!.alert).toBe(false);
   });
 });
 

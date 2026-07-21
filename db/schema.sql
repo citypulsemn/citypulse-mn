@@ -323,3 +323,10 @@ create table if not exists feed_events (
 );
 create index if not exists idx_feed_events_day on feed_events (day);
 alter table feed_events enable row level security;
+
+-- ── Pipeline observability (roadmap v5 F2.6) ─────────────────────────────────
+-- The multi-day collapse count (runs folded into spans) was logged but never
+-- persisted, so the freshly-rewritten collapse stage (R0.2/R0.3) couldn't be
+-- diffed run-over-run or tripwired. Additive, nullable — historical rows read
+-- null (shown as "no prior number", never a fake zero).
+alter table pipeline_runs add column if not exists collapsed_runs int;

@@ -25,6 +25,7 @@ import { geocode } from "../lib/geocode";
 import { computeEventKey, normalizeTier } from "../lib/event-key";
 import { upsertEvents, archivePastEvents, markCancelled, dedupeNearDuplicates, collapseMultiDayRuns } from "../lib/upsert";
 import { pruneRateEvents } from "../lib/rate-limit";
+import { deltaTag, PIPELINE_STAMPEDE } from "../lib/ops-digest";
 import { partitionCancellations } from "../lib/cancellations";
 import { dueWindows } from "../lib/horizon";
 import { NEW_EVENT_STATUS } from "../lib/pipeline-config";
@@ -211,10 +212,31 @@ async function main() {
   if (pruned > 0) console.log(`[pipeline] pruned ${pruned} stale rate-limit bucket(s)`);
 
   const archived = await archivePastEvents();
+
+  // F2.6 — per-stage counts WITH diffs vs the previous run, plus the stampede
+  // tripwire (a flood of archives/dedupes is how R0.2 would have announced
+  // itself). The previous run is the newest row that isn't this one.
+  let prevRun: { upserted: number | null; collapsed: number | null; collapsed_runs: number | null; archived: number | null } | undefined;
+  if (sql && runId != null) {
+    // Baseline = last SUCCESSFUL run (a failed run's zeros would fake the diff).
+    [prevRun] = await sql<{ upserted: number | null; collapsed: number | null; collapsed_runs: number | null; archived: number | null }[]>`
+      select upserted, collapsed, collapsed_runs, archived
+      from pipeline_runs where id <> ${runId} and ok = true order by started_at desc limit 1`;
+  }
+  const dd = (cur: number, prev: number | null | undefined) => deltaTag(cur, prev ?? null);
   console.log(
-    `\n[pipeline] done — upserted ${totalUpserted}, archived ${archived}, reclassified ${reclassified}, venue-swept ${venueSwept}, times normalized ${timeNormalized}, improbable ${improbableTimes}`,
+    `\n[pipeline] done — upserted ${totalUpserted}${dd(totalUpserted, prevRun?.upserted)}, ` +
+      `deduped ${collapsed}${dd(collapsed, prevRun?.collapsed)}, ` +
+      `collapsed ${runs.collapsed}${dd(runs.collapsed, prevRun?.collapsed_runs)}, ` +
+      `archived ${archived}${dd(archived, prevRun?.archived)}, reclassified ${reclassified}, ` +
+      `venue-swept ${venueSwept}, times normalized ${timeNormalized}, improbable ${improbableTimes}`,
     perBand,
   );
+  if (archived > PIPELINE_STAMPEDE.archived || collapsed > PIPELINE_STAMPEDE.deduped) {
+    console.warn(
+      `[pipeline] ⚠️ stampede check — ${archived} archived / ${collapsed} deduped this run is unusually high; confirm no live event was wrongly removed (R0.2 territory)`,
+    );
+  }
 
   // ROADMAP 4.3 — coverage check. The pipeline finishing "successfully" says
   // nothing about whether its OUTPUT is any good: the Live Music collection sat
@@ -247,6 +269,7 @@ async function main() {
         finished_at = now(), ok = true,
         upserted = ${totalUpserted}, cancelled = ${totalCancelled},
         archived = ${archived}, collapsed = ${collapsed},
+        collapsed_runs = ${runs.collapsed},
         bands = ${sql.json(perBand)}
       where id = ${runId}
     `;

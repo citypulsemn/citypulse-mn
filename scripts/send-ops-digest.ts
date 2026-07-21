@@ -29,15 +29,20 @@ async function gather(): Promise<OpsInputs> {
     }
   };
 
-  const pipeline = await wrap<PipelineRow | null>("pipeline", null, async () => {
+  // F2.6 — recent runs: [0] is current; the diff baseline is the most recent
+  // SUCCESSFUL run before it (a failed run recorded zeros — diffing against
+  // those would fake a huge swing).
+  const pipelineRows = await wrap<PipelineRow[]>("pipeline", [], async () => {
     if (!sql) throw new Error("no database connection");
     const rows = await sql<PipelineRow[]>`
       select to_char(started_at at time zone 'America/Chicago', 'YYYY-MM-DD HH24:MI') as started_at,
              to_char(finished_at at time zone 'America/Chicago', 'YYYY-MM-DD HH24:MI') as finished_at,
-             ok, upserted, cancelled, archived, collapsed, error
-      from pipeline_runs order by started_at desc limit 1`;
-    return rows[0] ?? null;
+             ok, upserted, cancelled, archived, collapsed, collapsed_runs, error
+      from pipeline_runs order by started_at desc limit 6`;
+    return [...rows];
   });
+  const pipeline = pipelineRows[0] ?? null;
+  const prevPipeline = pipelineRows.slice(1).find((r) => r.ok) ?? null;
 
   const coverage = await wrap("coverage", { healthy: true, alerts: ["section gathered nothing"] }, async () => {
     if (!sql) throw new Error("no database connection");
@@ -127,6 +132,7 @@ async function gather(): Promise<OpsInputs> {
 
   return {
     pipeline,
+    prevPipeline,
     coverageHealthy: coverage.healthy,
     coverageAlerts: coverage.alerts,
     verify,

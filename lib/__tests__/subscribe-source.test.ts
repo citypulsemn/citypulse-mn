@@ -5,7 +5,7 @@ const NOW = new Date("2026-07-20T15:30:00Z");
 
 function base(sub: Partial<OpsInputs["subscribers"]>): OpsInputs {
   return {
-    pipeline: { started_at: "2026-07-20 08:00", finished_at: "2026-07-20 08:22", ok: true, upserted: 1, cancelled: 0, archived: 0, collapsed: 0, error: null },
+    pipeline: { started_at: "2026-07-20 08:00", finished_at: "2026-07-20 08:22", ok: true, upserted: 1, cancelled: 0, archived: 0, collapsed: 0, collapsed_runs: 0, error: null },
     coverageHealthy: true,
     coverageAlerts: ["ok"],
     verify: { verified7: 0, neverVerifiedUpcoming: 0 },
@@ -15,6 +15,7 @@ function base(sub: Partial<OpsInputs["subscribers"]>): OpsInputs {
     subscribers: { total: 100, delta7: 8, ...sub },
     lastDigestNote: null,
     feeds: { clicks7: 0, top: [] },
+    prevPipeline: null,
     sitemapUrls: 120,
     prevSitemapUrls: 120,
     errors: {},
