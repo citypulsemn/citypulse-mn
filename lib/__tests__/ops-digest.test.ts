@@ -164,6 +164,77 @@ describe("the Index surface section (roadmap 3.1)", () => {
   });
 });
 
+describe("R2.3 — aux failures degrade; they don't kill their section", () => {
+  it("a failed BASELINE read leaves Engagement fully reporting, WoW as first report, no alert", () => {
+    const sections = buildSections(
+      healthy({ prevTotals: null, errors: { engagement_prev: "db down" } }),
+    );
+    const eng = sections.find((s) => s.title === "Engagement (7d)")!;
+    expect(eng.alert).toBe(false);
+    expect(eng.lines.join("\n")).toContain("views 412 (first report)");
+    expect(eng.lines.join("\n")).not.toContain("unavailable");
+    expect(eng.lines.join("\n")).toContain("last baseline unreadable");
+  });
+
+  it("a failed digest-note read leaves Subscribers reporting, note line degraded, no alert", () => {
+    const sections = buildSections(
+      healthy({ lastDigestNote: null, errors: { digest_note: "db down" } }),
+    );
+    const subs = sections.find((s) => s.title === "Subscribers")!;
+    expect(subs.alert).toBe(false);
+    expect(subs.lines.join("\n")).toContain("84 subscribed");
+    expect(subs.lines.join("\n")).not.toContain("last digest:");
+    expect(subs.lines.join("\n")).toContain("last digest note unavailable");
+  });
+
+  it("a failed prev-sitemap read leaves Index reporting the live count, no alert", () => {
+    const sections = buildSections(
+      healthy({ prevSitemapUrls: null, errors: { index_prev: "db down" } }),
+    );
+    const idx = sections.find((s) => s.title === "Index surface")!;
+    expect(idx.alert).toBe(false);
+    expect(idx.lines.join("\n")).toContain("121 URLs in the live sitemap (first report)");
+    expect(idx.lines.join("\n")).toContain("last count unreadable");
+  });
+
+  it("REAL engagement failure is still unavailable + alert — zeros are never reported as fact", () => {
+    const sections = buildSections(
+      healthy({
+        engagement: { totals: { view: 0, ticket_click: 0, save: 0, calendar: 0 }, daily: [], top: [] },
+        errors: { engagement: "connection refused" },
+      }),
+    );
+    const eng = sections.find((s) => s.title === "Engagement (7d)")!;
+    expect(eng.alert).toBe(true);
+    expect(eng.lines.join("\n")).toContain("section unavailable");
+    expect(eng.lines.join("\n")).not.toContain("views 0");
+  });
+});
+
+describe("R2.3 — gather-side tripwires (script source)", () => {
+  const src = ((): string => {
+    const { readFileSync } = require("node:fs") as typeof import("node:fs");
+    const { join } = require("node:path") as typeof import("node:path");
+    return readFileSync(join(__dirname, "..", "..", "scripts", "send-ops-digest.ts"), "utf8");
+  })();
+
+  it("engagement goes through wrap with the STRICT read (failure-zeros can't pose as data)", () => {
+    expect(src).toContain('wrap("engagement", emptyEngagement, () => getEngagementStrict(7))');
+    expect(src).not.toContain("await getEngagement(7)");
+  });
+
+  it("aux reads carry their own keys — no more collisions with real sections", () => {
+    expect(src).toContain('"engagement_prev"');
+    expect(src).toContain('"digest_note"');
+    expect(src).toContain('"index_prev"');
+  });
+
+  it("a failed engagement run never writes the WoW baseline", () => {
+    expect(src.indexOf("inputs.errors.engagement")).toBeGreaterThan(-1);
+    expect(src.indexOf("inputs.errors.engagement")).toBeLessThan(src.indexOf("insert into ops_digest_runs"));
+  });
+});
+
 describe("quiet states that are NOT alerts", () => {
   it("dark trending is expected while stats accumulate — no alarm", () => {
     const sections = buildSections(healthy({ trending: { count: 0, top: [] } }));

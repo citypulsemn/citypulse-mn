@@ -11,7 +11,7 @@
 import { sql } from "../lib/db";
 import { composeOpsDigest, parseStoredTotals, type OpsInputs, type PipelineRow } from "../lib/ops-digest";
 import { assessCoverage, formatCoverageAlerts } from "../lib/coverage";
-import { getEngagement } from "../lib/stats";
+import { getEngagementStrict, type Engagement } from "../lib/stats";
 import { getTrendingEvents } from "../lib/trending";
 import { getDigestSends } from "../lib/digest-send";
 
@@ -57,9 +57,22 @@ async function gather(): Promise<OpsInputs> {
     return { verified7: row?.verified7 ?? 0, neverVerifiedUpcoming: row?.never_upcoming ?? 0 };
   });
 
-  const engagement = await getEngagement(7); // carries its own never-break contract
+  // R2.3 — the STRICT read, threaded through wrap like every other section.
+  // getEngagement's swallow returns zeros on failure; a cockpit that reports
+  // failure-zeros as fact ("views 0, -100% WoW") also poisons next week's
+  // baseline with them. Failure here now renders "unavailable" instead.
+  const emptyEngagement: Engagement = {
+    totals: { view: 0, ticket_click: 0, save: 0, calendar: 0 },
+    daily: [],
+    top: [],
+  };
+  const engagement = await wrap("engagement", emptyEngagement, () => getEngagementStrict(7));
 
-  const prevTotals = await wrap<OpsInputs["prevTotals"]>("engagement", null, async () => {
+  // R2.3 — aux reads get their OWN keys. These used to share "engagement" /
+  // "subscribers" / "index" with the main sections, so a failed read of LAST
+  // week's numbers rendered THIS week's perfectly good section "unavailable".
+  // Aux failures degrade instead: null → "first report" / an omitted line.
+  const prevTotals = await wrap<OpsInputs["prevTotals"]>("engagement_prev", null, async () => {
     if (!sql) throw new Error("no database connection");
     const rows = await sql<{ totals: unknown }[]>`
       select totals from ops_digest_runs order by sent_at desc limit 1`;
@@ -86,7 +99,7 @@ async function gather(): Promise<OpsInputs> {
     return { total: row?.total ?? 0, delta7: row?.delta7 ?? 0, bySource7: [...bySource7] };
   });
 
-  const lastDigestNote = await wrap<string | null>("subscribers", null, async () => {
+  const lastDigestNote = await wrap<string | null>("digest_note", null, async () => {
     const sends = await getDigestSends(1);
     return sends[0]?.note ?? null;
   });
@@ -100,7 +113,7 @@ async function gather(): Promise<OpsInputs> {
     return (xml.match(/<loc>/g) ?? []).length;
   });
 
-  const prevSitemapUrls = await wrap<number | null>("index", null, async () => {
+  const prevSitemapUrls = await wrap<number | null>("index_prev", null, async () => {
     if (!sql) throw new Error("no database connection");
     const rows = await sql<{ totals: unknown }[]>`
       select totals from ops_digest_runs order by sent_at desc limit 1`;
@@ -154,7 +167,11 @@ async function main() {
   }
   console.log("[ops-digest] sent ✓");
 
-  if (sql) {
+  // R2.3 — never write a poisoned baseline: if engagement failed this run,
+  // the last GOOD baseline stands and next week compares against that.
+  if (inputs.errors.engagement) {
+    console.warn("[ops-digest] engagement failed this run — baseline NOT written (last good baseline stands)");
+  } else if (sql) {
     try {
       // Baseline for next week's WoW: engagement totals + sitemap size in one
       // jsonb (additive key — old rows without sitemap_urls read as null,

@@ -49,7 +49,10 @@ export interface OpsInputs {
    *  Google actually sees; zero drift by construction) + last week's. */
   sitemapUrls: number | null;
   prevSitemapUrls: number | null;
-  /** Sections that failed to gather: section key -> reason. */
+  /** Sections that failed to gather: section key -> reason. Aux reads carry
+   *  their own keys (R2.3: `engagement_prev`, `digest_note`, `index_prev`) so
+   *  a failed read of LAST week's numbers degrades to "first report" / an
+   *  omitted line instead of rendering this week's section unavailable. */
   errors: Record<string, string>;
 }
 
@@ -194,6 +197,7 @@ export function buildSections(inputs: OpsInputs): OpsSection[] {
       ];
       const top = inputs.engagement.top[0];
       if (top) lines.push(`most viewed: ${top.title}`);
+      if (err("engagement_prev")) lines.push("(last baseline unreadable — WoW shown as first report)");
     }
     out.push({ title: "Engagement (7d)", lines, alert });
   }
@@ -233,6 +237,7 @@ export function buildSections(inputs: OpsInputs): OpsSection[] {
         `${inputs.sitemapUrls} URLs in the live sitemap (${wowLabel(inputs.sitemapUrls, inputs.prevSitemapUrls)})`,
         "demand side: check GSC Pages + Performance for indexed count & impressions",
       ];
+      if (err("index_prev")) lines.push("(last count unreadable — WoW shown as first report)");
     }
     out.push({ title: "Index surface", lines, alert });
   }
@@ -251,6 +256,7 @@ export function buildSections(inputs: OpsInputs): OpsSection[] {
         lines.push(`new by placement: ${s.bySource7.map((r) => `${r.source} ${r.count}`).join(" · ")}`);
       }
       if (inputs.lastDigestNote) lines.push(`last digest: ${inputs.lastDigestNote}`);
+      else if (err("digest_note")) lines.push("(last digest note unavailable)");
     }
     out.push({ title: "Subscribers", lines, alert });
   }

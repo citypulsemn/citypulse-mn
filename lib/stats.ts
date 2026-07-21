@@ -145,6 +145,18 @@ export async function getEngagement(days: number): Promise<Engagement> {
   }
 }
 
+/**
+ * Strict variant for callers that must tell "zero engagement" apart from
+ * "stats broke" (the ops digest, R2.3): throws instead of returning zeros.
+ * getEngagement's swallow is right for /admin/stats — a page should degrade —
+ * but a COCKPIT that reports failure-zeros as fact poisons next week's
+ * baseline with them. The digest wraps this in its own never-break contract.
+ */
+export async function getEngagementStrict(days: number): Promise<Engagement> {
+  if (!sql) throw new Error("no database connection");
+  return queryEngagement(days);
+}
+
 async function queryEngagement(days: number): Promise<Engagement> {
   if (!sql) return EMPTY;
   const window = Math.max(1, Math.min(days, 90));
