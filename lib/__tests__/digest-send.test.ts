@@ -54,3 +54,24 @@ describe("wiring tripwires", () => {
     expect(script).toContain("process.exit(result.ok ? 0 : 1)");
   });
 });
+
+describe("R2.7 — digest_sends bookkeeping honesty", () => {
+  const src = readFileSync(join(__dirname, "..", "digest-send.ts"), "utf8");
+  const recordBody = src.slice(src.indexOf("async function record"));
+
+  it("dry runs leave NO row (a rehearsal must never pose as the last digest)", () => {
+    const skip = recordBody.indexOf("if (result.dryRun) return result;");
+    const insert = recordBody.indexOf("insert into digest_sends");
+    expect(skip).toBeGreaterThan(-1);
+    expect(skip).toBeLessThan(insert);
+  });
+
+  it("the recipients column records ATTEMPTED, not the possibly-partial sent count", () => {
+    expect(recordBody).toContain("values (${result.attempted}");
+    expect(recordBody).not.toContain("values (${result.sent}");
+  });
+
+  it("a partial failure names how far it got", () => {
+    expect(src).toContain("sent ${sent} of ${recipients.length} before failure");
+  });
+});

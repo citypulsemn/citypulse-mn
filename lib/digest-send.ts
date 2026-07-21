@@ -12,7 +12,8 @@ import { SITE_URL } from "./seo/site";
  * npm audit stays clean). Each recipient gets their own unsubscribe link and a
  * List-Unsubscribe header for one-click + deliverability. Dry-run logs instead
  * of sending; a REAL run without a key fails (ok:false → exit 1 → red workflow,
- * R2.2). Every run records a digest_sends row.
+ * R2.2). Real runs record a digest_sends row; dry runs leave no trace (R2.7,
+ * same philosophy as ops_digest_runs — the record must mean "this happened").
  */
 
 const RESEND_BATCH_ENDPOINT = "https://api.resend.com/emails/batch";
@@ -124,7 +125,8 @@ export async function sendWeeklyDigest(opts: { dryRun?: boolean } = {}): Promise
     });
     if (!res.ok) {
       ok = false;
-      note = `resend ${res.status}: ${(await res.text().catch(() => "")).slice(0, 200)}`;
+      // R2.7 — a partial failure names how far it got, not just why it stopped.
+      note = `resend ${res.status}: ${(await res.text().catch(() => "")).slice(0, 200)} · sent ${sent} of ${recipients.length} before failure`;
       console.error("[digest]", note);
       break;
     }
@@ -134,9 +136,14 @@ export async function sendWeeklyDigest(opts: { dryRun?: boolean } = {}): Promise
 }
 
 async function record(result: SendResult): Promise<SendResult> {
+  // R2.7 — dry runs leave no row: the ops digest reads the latest note as
+  // "the last digest", and a rehearsal must never pose as one. The recipients
+  // column records ATTEMPTED (who we tried to mail — partial failures no
+  // longer under-report); the note carries the sent count when they differ.
+  if (result.dryRun) return result;
   try {
     if (sql) {
-      await sql`insert into digest_sends (recipients, ok, note) values (${result.sent}, ${result.ok}, ${result.note ?? null})`;
+      await sql`insert into digest_sends (recipients, ok, note) values (${result.attempted}, ${result.ok}, ${result.note ?? null})`;
     }
   } catch (err) {
     console.error("[digest] failed to record send:", err);

@@ -2,6 +2,7 @@ import { getEvents } from "@/lib/events";
 import { getSubscribedRecipients } from "@/lib/subscribe";
 import { digestEvents, renderDigestEmail, digestWeekLabel } from "@/lib/digest";
 import { getDigestSends } from "@/lib/digest-send";
+import { SITE_URL } from "@/lib/seo/site";
 
 export const dynamic = "force-dynamic";
 
@@ -15,7 +16,7 @@ export default async function AdminDigestPage() {
     events,
     weekLabel: digestWeekLabel(now),
     unsubscribeUrl: "#preview",
-    siteUrl: "https://citypulsemn.com",
+    siteUrl: SITE_URL,
   });
 
   return (

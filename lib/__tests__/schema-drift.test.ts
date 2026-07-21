@@ -83,7 +83,11 @@ export function extractRefs(
       const col = raw.trim();
       if (/^\w+$/.test(col)) refs.push({ file, table, column: col, context: "insert columns" });
     }
-    const tail = src.slice(m.index, m.index + 700);
+    // Look ahead only within THIS template literal — the closing backtick
+    // ends the statement, and the next statement's conflict clause must not
+    // be attributed to this insert's table.
+    const closeTick = src.indexOf("`", m.index + m[0].length);
+    const tail = src.slice(m.index, closeTick === -1 ? m.index + 700 : closeTick);
     const oc = tail.match(/on conflict\s*\((\w+)\)/);
     if (oc) refs.push({ file, table, column: oc[1], context: "on conflict target" });
     const du = tail.match(/do update\s+set\s+([\s\S]*?)(?:\bwhere\b|\breturning\b|`)/);

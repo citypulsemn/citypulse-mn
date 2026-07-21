@@ -8,11 +8,12 @@ const nextConfig: NextConfig = {
       { source: "/collections/this-weekend", destination: "/this-weekend", permanent: true },
     ];
   },
-  // Event images come from external sources (venue sites, agent-supplied URLs).
-  // Allow any https host; tighten to specific domains for production if desired.
-  images: {
-    remotePatterns: [{ protocol: "https", hostname: "**" }],
-  },
+  // R2.7 — no remote image hosts. Event artwork renders as CSS backgrounds;
+  // nothing routes remote URLs through next/image, so the wide-open
+  // `https://**` remotePatterns was pure SSRF surface (a crafted event.image
+  // could aim the server-side optimizer at any URL). Default config refuses
+  // remote images. If event images ever ship through next/image, allowlist
+  // the specific venue/CDN hosts here — never "**".
 };
 
 export default nextConfig;

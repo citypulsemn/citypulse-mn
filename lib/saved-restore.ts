@@ -52,6 +52,24 @@ export async function requestSavedLink(rawEmail: string): Promise<RequestLinkRes
     return "sent";
   }
 
+  // R2.7 merge-on-request (Taren's call, Jul 20): if this email already
+  // points at a DIFFERENT device's list, fold that list into this device's
+  // token BEFORE repointing — the emailed link then restores the union, and
+  // a failure mid-flight leaves the old pointer intact. Without this, typing
+  // your email on a 1-save phone orphaned the 100-save laptop list.
+  const [prior] = await sql<{ saver_token: string | null }[]>`
+    select saver_token from subscribers where email = ${email}
+  `;
+  const priorToken = prior?.saver_token;
+  if (priorToken && priorToken !== token) {
+    await sql`
+      insert into saved_events (user_token, event_id)
+      select ${token}, event_id from saved_events
+      where user_token = ${priorToken}
+      on conflict do nothing
+    `;
+  }
+
   // Find-or-create, storing THIS browser's token. New emails are 'pending':
   // keeping a list is not consenting to a newsletter.
   const rows = await sql<{ id: number }[]>`

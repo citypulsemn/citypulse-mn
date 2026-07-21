@@ -81,7 +81,7 @@ describe("eventToICS", () => {
   it("includes summary, location, and the event URL", () => {
     expect(ics).toContain("SUMMARY:Trampled by Turtles");
     expect(ics).toContain("LOCATION:First Avenue\\, 701 1st Ave N\\, Minneapolis\\, MN");
-    expect(ics).toContain("URL:https://citypulsemn.com/event/abc");
+    expect(ics).toContain("URL:https://www.citypulsemn.com/event/abc");
   });
   it("defaults to a 2-hour duration when there's no end", () => {
     const noEnd = eventToICS(ev({ end: "" }));

@@ -92,12 +92,14 @@ export async function addSubscriber(
 
 export async function getSubscriberStats(): Promise<SubscriberStats> {
   if (!sql) return { total: 0, last7d: 0 };
+  // R2.7 — count who actually gets mailed. 'pending' rows (keep-list emails
+  // that never subscribed) inflated "total" while the sender skips them.
   const [row] = await sql<{ total: number; last7d: number }[]>`
     select
       count(*)::int as total,
       count(*) filter (where created_at >= now() - interval '7 days')::int as last7d
     from subscribers
-    where status <> 'unsubscribed'
+    where status = 'subscribed'
   `;
   return row ?? { total: 0, last7d: 0 };
 }

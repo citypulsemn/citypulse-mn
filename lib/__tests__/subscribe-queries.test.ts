@@ -26,3 +26,13 @@ describe("addSubscriber (R0.5) — explicit subscribe promotes status", () => {
     expect(src).toContain("coalesce(excluded.saver_token, subscribers.saver_token)");
   });
 });
+
+describe("getSubscriberStats (R2.7) — count who actually gets mailed", () => {
+  it("totals are status = 'subscribed', not everyone-but-unsubscribed", () => {
+    const start = src.indexOf("export async function getSubscriberStats");
+    const next = src.indexOf("export async function", start + 1);
+    const body = src.slice(start, next === -1 ? undefined : next);
+    expect(body).toContain("where status = 'subscribed'");
+    expect(body).not.toContain("status <> 'unsubscribed'");
+  });
+});

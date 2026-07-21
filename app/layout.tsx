@@ -1,10 +1,11 @@
 import type { Metadata, Viewport } from "next";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
+import { SITE_URL } from "@/lib/seo/site";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://citypulsemn.com"),
+  metadataBase: new URL(SITE_URL),
   title: "City Pulse MN — Twin Cities Events",
   description:
     "The pulse of the Twin Cities. Concerts, sports, family outings, festivals, and the wonderfully unique — all across the Minneapolis–St. Paul metro.",

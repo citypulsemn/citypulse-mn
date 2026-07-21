@@ -24,3 +24,26 @@ describe("mergeAndRestore (R0.4) — saved_events keys on user_token", () => {
     expect(src).toContain("insert into subscribers (email, source, status, saver_token)");
   });
 });
+
+describe("requestSavedLink (R2.7) — merge-on-request, merge BEFORE repoint", () => {
+  const body = src.slice(
+    src.indexOf("export async function requestSavedLink"),
+    src.indexOf("export type RestoreResult"),
+  );
+
+  it("folds the prior device's list into this token (the union survives)", () => {
+    expect(body).toContain("where user_token = ${priorToken}");
+    expect(body).toContain("on conflict do nothing");
+  });
+
+  it("the merge runs BEFORE the subscribers upsert — a failure never orphans a list", () => {
+    const merge = body.indexOf("insert into saved_events");
+    const repoint = body.indexOf("insert into subscribers");
+    expect(merge).toBeGreaterThan(-1);
+    expect(merge).toBeLessThan(repoint);
+  });
+
+  it("only a genuinely different prior token triggers the merge", () => {
+    expect(body).toContain("priorToken && priorToken !== token");
+  });
+});

@@ -1,4 +1,4 @@
-# Handoff — current state (July 20, 2026, end of day)
+# Handoff — current state (July 20, 2026, end of night)
 
 Originally written at the move from chat-based development to Claude Code on the local
 repo; rewritten after the July 20 session, which closed every open loop the original
@@ -7,9 +7,21 @@ version listed. Read alongside `CLAUDE.md`.
 ## Where the roadmap stands
 
 The canonical plan is **Roadmap v5, Repair & Ripen** (`docs/ROADMAP-v5.md`, adopted Jul 20
-evening) — two repair sprints (R0 data-loss/trust, R1 the Chicago clock, R2 hardening),
+evening) — three repair sprints (R0 data-loss/trust, R1 the Chicago clock, R2 hardening),
 then v4's ripening schedule unchanged. v4 (`docs/ROADMAP.md`) stands as history; an earlier
 file circulating as "CITYPULSE-ROADMAP-v5.md" was identical to v4 and is superseded too.
+
+**ALL THREE SPRINTS SHIPPED the same night they were adopted** (commits `R0.1` … `R2.7`,
+one deploy guide each in `docs/deploy-history/`): R0 killed the live data-loss bugs
+(ended-banner, archive predicate, dedupe frame, restore column, resubscribe, JSON-LD
+escape, sports-span repair) · R1 unified every "is it past?" on `lib/clock.ts` (rule 10)
+· R2 hardened the perimeter — rate limits on all public write paths (`rate_events`
+table live in prod), red-digest on missing key, ops-digest key collisions +
+zero-poisoning + HTML escaping, true-span ICS + Google DATE links + octet folding, the
+schema drift guard (109 refs swept), and the housekeeping batch (SSRF remotePatterns
+closed, canonical origin aligned to `www`, `digest_sends` honesty, keep-list
+merge-on-request per Taren's call). Suite went 556 → 684 tests today. **Next code work:
+F1 ripening (mid-August) or the F2 proposals — nothing is urgent.**
 
 - **Phases 1–3: COMPLETE and verified live.** Cockpit sends (twice so far), Phase 3
   surfaces (editorial intros, OG cards, subscribe bands, canonicals) confirmed serving
@@ -44,7 +56,11 @@ file circulating as "CITYPULSE-ROADMAP-v5.md" was identical to v4 and is superse
 
 1. **Mon Jul 21** — pipeline + digest. Check: `folded N sub-event group(s)` in the log,
    festivals still one card each, WoW percentages (not "first report"), a sitemap count
-   in the Index line.
+   in the Index line. **New (R2.7): open the delivered digest in Gmail → "Show
+   original" → confirm `List-Unsubscribe` + `List-Unsubscribe-Post` headers survived
+   Resend's batch endpoint** — if absent, switch to per-recipient sends (noted in
+   DEPLOY-R2.7). Also glance at `rate_events` (`select * from rate_events limit 10`) —
+   human-sized numbers mean R2.1 is breathing normally.
 2. **~Jul 27** — first Search Console Pages numbers. Report the indexed count; it seeds
    the digest's Index line and starts the Phase 5 impressions gate.
 3. **Taren, anytime**: subscribe one feed in a real calendar app (last 6.1 verify) ·
