@@ -6,7 +6,20 @@ import { sql } from "./db";
  * bypasses RLS (the subscribers table is sealed from the public API).
  */
 
-export type SubscribeResult = "added" | "resubscribed" | "already" | "invalid" | "error";
+export type SubscribeResult =
+  | "added"
+  | "resubscribed"
+  | "reconfirm" // F2.3: was unsubscribed → now pending, caller sends confirm email
+  | "already"
+  | "invalid"
+  | "error";
+
+/** addSubscriber's outcome plus the row id (needed to build a confirm link on
+ *  the "reconfirm" path; null when there's no row, e.g. invalid/error/dev). */
+export interface AddSubscriberResult {
+  result: SubscribeResult;
+  id: number | null;
+}
 
 export interface SubscriberRow {
   email: string;
@@ -41,14 +54,14 @@ export async function addSubscriber(
   rawEmail: string,
   source = "site",
   saverToken: string | null = null,
-): Promise<SubscribeResult> {
+): Promise<AddSubscriberResult> {
   const email = normalizeEmail(rawEmail);
-  if (!isValidEmail(email)) return "invalid";
+  if (!isValidEmail(email)) return { result: "invalid", id: null };
 
   if (!sql) {
     // Dev/local without a database: accept so the UI can be exercised.
     console.warn(`[subscribe] no DATABASE_URL — dev no-op for ${email}`);
-    return "added";
+    return { result: "added", id: null };
   }
 
   try {
@@ -59,12 +72,17 @@ export async function addSubscriber(
     // once from the browser they save in).
     //
     // R0.5 — an explicit form submit is consent, so the conflict path PROMOTES
-    // status back to 'subscribed' (an unsubscribed or pending row previously
-    // stayed dead forever while the UI said "already subscribed"). The `prior`
-    // CTE reads the pre-statement snapshot, so we can report honestly:
-    // added (new) / resubscribed (was unsubscribed or pending) / already.
-    // Confirmation-email policy is F2.3, deliberately separate.
-    const rows = await sql<{ inserted: boolean; prior_status: string | null }[]>`
+    // status back to 'subscribed'. F2.3 adds ONE exception (Taren's policy
+    // call): a row that EXPLICITLY UNSUBSCRIBED (unsubscribed_at set and not
+    // currently subscribed) goes to 'pending' instead, keeping unsubscribed_at
+    // as the "not back until confirmed" signal — the caller then emails a
+    // confirm link. Everything else is single opt-in, unchanged: brand-new
+    // emails and keep-list `pending` rows (which never unsubscribed) subscribe
+    // immediately. The `prior` CTE reads the pre-statement snapshot so we can
+    // report honestly: added / resubscribed / reconfirm / already.
+    const rows = await sql<
+      { id: number; inserted: boolean; new_status: string; prior_status: string | null }[]
+    >`
       with prior as (
         select status from subscribers where email = ${email}
       ),
@@ -72,22 +90,58 @@ export async function addSubscriber(
         insert into subscribers (email, source, saver_token)
         values (${email}, ${source}, ${saverToken})
         on conflict (email) do update
-          set status = 'subscribed',
-              unsubscribed_at = null,
+          set status = case
+                when subscribers.unsubscribed_at is not null and subscribers.status <> 'subscribed'
+                  then 'pending'
+                else 'subscribed'
+              end,
+              unsubscribed_at = case
+                when subscribers.unsubscribed_at is not null and subscribers.status <> 'subscribed'
+                  then subscribers.unsubscribed_at
+                else null
+              end,
               saver_token = coalesce(excluded.saver_token, subscribers.saver_token)
-        returning (xmax = 0) as inserted
+        returning id, (xmax = 0) as inserted, status as new_status
       )
-      select ins.inserted, prior.status as prior_status
+      select ins.id, ins.inserted, ins.new_status, prior.status as prior_status
       from ins left join prior on true
     `;
     const row = rows[0];
-    if (!row) return "error";
-    if (row.inserted) return "added";
-    return row.prior_status === "subscribed" ? "already" : "resubscribed";
+    if (!row) return { result: "error", id: null };
+    if (row.inserted) return { result: "added", id: row.id };
+    if (row.new_status === "pending") return { result: "reconfirm", id: row.id };
+    return { result: row.prior_status === "subscribed" ? "already" : "resubscribed", id: row.id };
   } catch (err) {
     console.error("[subscribe] insert failed:", err);
-    return "error";
+    return { result: "error", id: null };
   }
+}
+
+export type ConfirmResult = "confirmed" | "already" | "expired";
+
+/**
+ * F2.3 — promote a reconfirming subscriber from 'pending' to 'subscribed'.
+ * Scoped to `status = 'pending'` so a stale confirm link can NEVER resurrect a
+ * row that has since unsubscribed again; a double-click reads back as 'already'.
+ */
+export async function confirmSubscriber(id: number | string): Promise<ConfirmResult> {
+  if (!sql) return "expired";
+  if (!/^\d+$/.test(String(id))) return "expired";
+  const rows = await sql<{ promoted: number; current_status: string | null }[]>`
+    with upd as (
+      update subscribers
+      set status = 'subscribed', confirmed_at = now(), unsubscribed_at = null
+      where id = ${id} and status = 'pending'
+      returning id
+    )
+    select
+      (select count(*) from upd)::int as promoted,
+      (select status from subscribers where id = ${id}) as current_status
+  `;
+  const row = rows[0];
+  if (row && row.promoted > 0) return "confirmed";
+  if (row && row.current_status === "subscribed") return "already";
+  return "expired";
 }
 
 export async function getSubscriberStats(): Promise<SubscriberStats> {

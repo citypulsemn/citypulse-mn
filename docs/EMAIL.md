@@ -18,13 +18,23 @@ Roadmap 2.2. Converts the audience Instagram drives into an **owned** email list
 
 The **Stats** tab shows subscriber **total** and **new-in-7-days**, plus a **Download CSV** button. The export lives at `/admin/subscribers/export` (behind admin auth, with `assertAdmin` defense-in-depth) and is CSV-injection-safe. Use it to move the list into an email tool.
 
-## Status field & what's deferred
+## Consent policy (F2.3, decided Jul 21 2026)
 
-The table carries `status` (`subscribed` / `pending` / `unsubscribed`) and `confirmed_at` / `unsubscribed_at` timestamps, so a **double opt-in** and one-click **unsubscribe** can be added when the digest ships — both require an email-sending provider (e.g. Resend/Postmark), which is a Phase 3 concern. Today's capture is single opt-in.
+The table carries `status` (`subscribed` / `pending` / `unsubscribed`) and `confirmed_at` / `unsubscribed_at` timestamps. The policy on top of them (Taren's call):
+
+- **New signups are single opt-in.** An explicit form submit is consent; the row goes straight to `subscribed`. No friction, growth stays easy.
+- **Resubscribe-after-unsubscribe is reconfirmed.** A row that *explicitly unsubscribed* (`unsubscribed_at` set and not currently `subscribed`) does **not** get promoted on a form submit — it goes to `pending`, keeping `unsubscribed_at` as the "not back until confirmed" flag, and we email a signed, 14-day **confirm link** (`/subscribe/confirm`). Clicking it sets `subscribed` + `confirmed_at`. This protects sender reputation and blocks a malicious re-add of someone who opted out. The confirm send is capped per target address (R2.1 helpers), same email-bomb guard as the keep-list link.
+- **Keep-list `pending` rows are NOT reconfirmed** — they never unsubscribed, so submitting the newsletter form subscribes them immediately (single opt-in).
+- One-click **unsubscribe** (`/unsubscribe`, RFC 8058) has shipped since Phase 3.
+
+`confirmed_at` is now written (on reconfirmation); it was carried-but-unused before F2.3.
 
 ## Files
 
-- `lib/subscribe.ts` — pure validators + DB boundary (`addSubscriber`, `getSubscriberStats`, `listSubscribers`).
-- `lib/subscribe-actions.ts` — the public `subscribeAction` (honeypot + result mapping).
+- `lib/subscribe.ts` — pure validators + DB boundary (`addSubscriber` → reconfirm state machine, `confirmSubscriber`, `getSubscriberStats`, `listSubscribers`).
+- `lib/subscribe-actions.ts` — the public `subscribeAction` (honeypot + rate limit + result mapping + reconfirm send).
+- `lib/confirm-token.ts` — HMAC confirm tokens (namespace `subscribe-confirm:`, 14-day TTL).
+- `lib/confirm-send.ts` — the "confirm you're back" email (render + Resend send).
+- `app/subscribe/confirm/route.ts` — the confirmation landing.
 - `components/SubscribeForm.tsx`, `components/SiteFooter.tsx`.
 - `app/admin/subscribers/export/route.ts` — CSV export.

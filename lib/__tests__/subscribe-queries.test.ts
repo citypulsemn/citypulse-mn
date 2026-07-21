@@ -36,3 +36,71 @@ describe("getSubscriberStats (R2.7) — count who actually gets mailed", () => {
     expect(body).not.toContain("status <> 'unsubscribed'");
   });
 });
+
+function fnBody(name: string): string {
+  const start = src.indexOf(`export async function ${name}`);
+  expect(start, `${name} exists`).toBeGreaterThan(-1);
+  const next = src.indexOf("export async function", start + 1);
+  return src.slice(start, next === -1 ? undefined : next);
+}
+
+describe("addSubscriber (F2.3) — only an EXPLICIT unsubscribe forces reconfirm", () => {
+  const body = fnBody("addSubscriber");
+
+  it("the reconfirm predicate is unsubscribed_at set AND not currently subscribed", () => {
+    // both the status and unsubscribed_at CASE arms guard on the same condition
+    const arms = body.match(
+      /subscribers\.unsubscribed_at is not null and subscribers\.status <> 'subscribed'/g,
+    );
+    expect(arms?.length).toBe(2);
+  });
+
+  it("that branch parks the row at 'pending' and KEEPS unsubscribed_at (not back until confirmed)", () => {
+    expect(body).toContain("then 'pending'");
+    expect(body).toContain("then subscribers.unsubscribed_at");
+  });
+
+  it("every other conflict promotes to subscribed and clears unsubscribed_at (single opt-in intact)", () => {
+    expect(body).toContain("else 'subscribed'");
+    expect(body).toContain("else null");
+  });
+
+  it("reports reconfirm off the POST-update status, resubscribed/already off the prior snapshot", () => {
+    expect(body).toContain('row.new_status === "pending"');
+    expect(body).toContain('row.prior_status === "subscribed" ? "already" : "resubscribed"');
+  });
+});
+
+describe("confirmSubscriber (F2.3) — a stale link can't resurrect the departed", () => {
+  const body = fnBody("confirmSubscriber");
+
+  it("promotes ONLY a pending row (scoped update), setting confirmed_at", () => {
+    expect(body).toContain("where id = ${id} and status = 'pending'");
+    expect(body).toContain("confirmed_at = now()");
+    expect(body).toContain("unsubscribed_at = null");
+  });
+
+  it("distinguishes confirmed / already / expired from the actual row state", () => {
+    expect(body).toContain('return "confirmed"');
+    expect(body).toContain('current_status === "subscribed") return "already"');
+    expect(body).toContain('return "expired"');
+  });
+
+  it("guards the id shape before touching SQL", () => {
+    expect(body).toContain('/^\\d+$/.test(String(id))');
+  });
+});
+
+describe("subscribe-actions (F2.3) — the reconfirm send is bomb-guarded", () => {
+  const actions = readFileSync(join(__dirname, "..", "subscribe-actions.ts"), "utf8");
+
+  it("caps confirm emails per TARGET address before sending", () => {
+    expect(actions).toContain('emailBucket("subscribe-confirm"');
+    // the cap gates the send; throttled path sends nothing
+    expect(actions.indexOf("emailBucket")).toBeLessThan(actions.indexOf("sendConfirmEmail"));
+  });
+
+  it("only builds a confirm link when there's a row id", () => {
+    expect(actions).toContain("if (id == null)");
+  });
+});
