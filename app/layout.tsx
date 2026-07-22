@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { SITE_URL } from "@/lib/seo/site";
+import { ServiceWorkerRegistration } from "@/components/ServiceWorkerRegistration";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -9,6 +10,22 @@ export const metadata: Metadata = {
   title: "City Pulse MN — Twin Cities Events",
   description:
     "The pulse of the Twin Cities. Concerts, sports, family outings, festivals, and the wonderfully unique — all across the Minneapolis–St. Paul metro.",
+  // PWA: Next links the manifest (app/manifest.ts) itself; these cover the
+  // icon set and iOS's home-screen behaviour.
+  icons: {
+    icon: [
+      { url: "/icon.svg", type: "image/svg+xml" },
+      { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
+    ],
+    apple: [{ url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
+  },
+  appleWebApp: {
+    capable: true,
+    title: "City Pulse",
+    // Pairs with viewportFit "cover" below: the navy chrome runs under the
+    // status bar instead of leaving a white strip.
+    statusBarStyle: "black-translucent",
+  },
 };
 
 export const viewport: Viewport = {
@@ -40,6 +57,7 @@ export default function RootLayout({
       </head>
       <body>
         {children}
+        <ServiceWorkerRegistration />
         <Analytics />
         <SpeedInsights />
       </body>
