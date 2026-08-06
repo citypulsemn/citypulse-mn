@@ -22,6 +22,7 @@ import { SearchBox } from "./SearchBox";
 import { CategoryChips } from "./CategoryChips";
 import { FilterPanel } from "./FilterPanel";
 import { CalendarView } from "./CalendarView";
+import { ListView } from "./ListView";
 import { DayPanel } from "./DayPanel";
 import { EventDetail } from "./EventDetail";
 
@@ -38,7 +39,7 @@ export function EventsExplorer({
   nowISO: string;
 }) {
   const [now, setNow] = useState(() => new Date(nowISO));
-  const [view, setView] = useState<"calendar" | "map">("calendar");
+  const [view, setView] = useState<"list" | "calendar" | "map">("calendar");
   const [range, setRange] = useState<RangeKey>("month");
   const [year, setYear] = useState(() => new Date(nowISO).getFullYear());
   const [month, setMonth] = useState(() => new Date(nowISO).getMonth());
@@ -68,6 +69,14 @@ export function EventsExplorer({
   // Refresh "now" to the client clock after hydration (keeps "today" accurate).
   useEffect(() => {
     setNow(new Date());
+    // UX4 — the calendar hides event titles below 820px; the chronological list
+    // reads on a phone. Default mobile viewers to it, opening on "this week"
+    // rather than a ~400-event month — a phone wants "what's on soon", and the
+    // month/other presets are one tap away. Once, on mount (SSR can't know width).
+    if (typeof window !== "undefined" && window.innerWidth < 820) {
+      setView("list");
+      setRange("week");
+    }
   }, []);
 
   const viewState = useMemo(() => ({ range, year, month }), [range, year, month]);
@@ -197,6 +206,12 @@ export function EventsExplorer({
             <SavedLink />
             <div className="viewtoggle">
               <button
+                className={view === "list" ? "active" : ""}
+                onClick={() => setView("list")}
+              >
+                List
+              </button>
+              <button
                 className={view === "calendar" ? "active" : ""}
                 onClick={() => setView("calendar")}
               >
@@ -266,6 +281,8 @@ export function EventsExplorer({
             now={now}
             onOpenDay={setDayKey}
           />
+        ) : view === "list" ? (
+          <ListView events={windowedEvents} windowStartKey={dkey(win.start)} />
         ) : (
           <MapView events={windowedEvents} win={win} onPick={(ev) => openDetail(ev, "map")} />
         )}
