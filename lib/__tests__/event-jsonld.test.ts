@@ -95,6 +95,35 @@ describe("eventJsonLd", () => {
     expect(d.endDate).toBeUndefined();
   });
 
+  // UX8 — structured dates mirror the R2.5 ICS fix: all-day events emit
+  // schema.org DATE values, and end follows the TRUE span (rule 5).
+  it("all-day single-day emits a DATE start and no endDate", () => {
+    const d = eventJsonLd(
+      ev({ allDay: true, start: "2026-07-20T00:00", end: "2026-07-20T23:59" }),
+      { baseUrl: BASE },
+    );
+    expect(d.startDate).toBe("2026-07-20"); // DATE, not "…T00:00:00-05:00"
+    expect(d.endDate).toBeUndefined();
+  });
+
+  it("all-day multi-day emits DATE start and DATE endDate from the span", () => {
+    const d = eventJsonLd(
+      ev({ allDay: true, start: "2026-07-20T00:00", multiDayEnd: "2026-07-28T23:59" }),
+      { baseUrl: BASE },
+    );
+    expect(d.startDate).toBe("2026-07-20");
+    expect(d.endDate).toBe("2026-07-28");
+  });
+
+  it("timed multi-day uses multiDayEnd for endDate, not the day-one end", () => {
+    const d = eventJsonLd(
+      ev({ start: "2026-08-01T18:00", end: "2026-08-01T23:00", multiDayEnd: "2026-08-03T22:00" }),
+      { baseUrl: BASE },
+    );
+    expect(d.startDate).toBe("2026-08-01T18:00:00-05:00");
+    expect(d.endDate).toBe("2026-08-03T22:00:00-05:00"); // the whole festival, not night one
+  });
+
   it("suburb address carries locality + region + country", () => {
     const d = eventJsonLd(ev({ city: "Plymouth", address: "3400 Plymouth Blvd" }), { baseUrl: BASE });
     const addr = (d.location as any).address;

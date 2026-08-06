@@ -54,7 +54,34 @@ export type ValidateResult =
 
 const isDate = (s: string) => /^\d{4}-\d{2}-\d{2}$/.test(s) && !Number.isNaN(Date.parse(s));
 const isTime = (s: string) => /^([01]\d|2[0-3]):[0-5]\d$/.test(s);
-const isHttpUrl = (s: string) => /^https?:\/\/\S+$/i.test(s);
+// A real web address: scheme, then a DOTTED host ("x.com", not "notaurl").
+// The dot is what separates a genuine bare-domain paste from a stray word once
+// normalizeUrl has prepended the scheme.
+const isHttpUrl = (s: string) => /^https?:\/\/[^\s/]+\.[^\s]+$/i.test(s);
+
+/** UX8 — accept the bare domains people actually paste ("powderhornartfair.com",
+ *  "facebook.com/event/…") by adding the scheme they omit, then validate. */
+export function normalizeUrl(u: string): string {
+  const s = (u ?? "").trim();
+  if (!s) return "";
+  return /^https?:\/\//i.test(s) ? s : `https://${s}`;
+}
+
+/** Add one calendar day to a YYYY-MM-DD key (noon-UTC anchored, DST-safe). */
+function nextDayKey(dateKey: string): string {
+  const d = new Date(`${dateKey}T12:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + 1);
+  return d.toISOString().slice(0, 10);
+}
+
+/** UX8 — a 9pm–1am show ends the NEXT day. Pinning the end to the start date
+ *  stored a backwards (negative-duration) span, common for this metro's
+ *  nightlife. Only an end strictly BEFORE the start crosses midnight. */
+export function endLocal(date: string, time: string, endTime: string): string | null {
+  if (!endTime) return null;
+  const endDate = endTime < time ? nextDayKey(date) : date;
+  return `${endDate}T${endTime}`;
+}
 
 export function validateSubmission(input: SubmissionInput, now = new Date()): ValidateResult {
   const errors: Record<string, string> = {};
@@ -95,8 +122,10 @@ export function validateSubmission(input: SubmissionInput, now = new Date()): Va
   const address = t(input.address);
   if (address.length > 160) errors.address = "Address is too long.";
 
-  const ticketUrl = t(input.ticketUrl);
-  if (ticketUrl && !isHttpUrl(ticketUrl)) errors.ticketUrl = "Link must start with http:// or https://";
+  // UX8 — normalize a bare domain to https:// before validating, so the common
+  // paste ("powderhornartfair.com") isn't rejected on an optional field.
+  const ticketUrl = normalizeUrl(input.ticketUrl ?? "");
+  if (ticketUrl && !isHttpUrl(ticketUrl)) errors.ticketUrl = "That link doesn't look like a valid web address.";
   else if (ticketUrl.length > 300) errors.ticketUrl = "Link is too long.";
 
   const description = t(input.description);
@@ -118,7 +147,7 @@ export function validateSubmission(input: SubmissionInput, now = new Date()): Va
       city,
       address,
       start_local: `${date}T${time}`,
-      end_local: endTime ? `${date}T${endTime}` : null,
+      end_local: endLocal(date, time, endTime),
       price: t(input.price) || "See listing",
       ticket_url: ticketUrl,
       description,

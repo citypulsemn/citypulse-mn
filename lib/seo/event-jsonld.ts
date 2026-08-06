@@ -1,4 +1,5 @@
 import type { EventRecord } from "../types";
+import { spanEnd } from "../multiday";
 
 /**
  * schema.org structured data for events — this is what puts City Pulse into
@@ -83,7 +84,6 @@ export function eventJsonLd(event: EventRecord, opts: JsonLdOptions): Record<str
     "@context": "https://schema.org",
     "@type": "Event",
     name: event.title,
-    startDate: toIsoWithOffset(event.start),
     eventStatus:
       event.status === "cancelled"
         ? "https://schema.org/EventCancelled"
@@ -92,7 +92,23 @@ export function eventJsonLd(event: EventRecord, opts: JsonLdOptions): Record<str
     location,
     url,
   };
-  if (event.end && event.end !== event.start) data.endDate = toIsoWithOffset(event.end);
+
+  // Structured dates (UX8), mirroring the R2.5 ICS fix that never reached here:
+  //  - all-day events emit schema.org DATE values (YYYY-MM-DD), never a
+  //    fabricated midnight time that renders as "12:00 AM" in a rich result;
+  //  - end uses the TRUE span (multiDayEnd or a genuinely-later end, rule 5),
+  //    so Google sees a multi-day festival as multi-day, not single-day.
+  const span = spanEnd(event); // true span end wall string, or null
+  if (event.allDay) {
+    const startDay = event.start.slice(0, 10);
+    data.startDate = startDay;
+    const lastDay = (span ?? event.end ?? "").slice(0, 10);
+    if (lastDay && lastDay > startDay) data.endDate = lastDay;
+  } else {
+    data.startDate = toIsoWithOffset(event.start);
+    const endWall = span ?? (event.end && event.end !== event.start ? event.end : null);
+    if (endWall) data.endDate = toIsoWithOffset(endWall);
+  }
   if (event.description) data.description = event.description;
   if (opts.imageUrl) data.image = [opts.imageUrl];
   if (offers) data.offers = offers;

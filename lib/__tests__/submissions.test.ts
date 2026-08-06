@@ -2,6 +2,8 @@ import { describe, it, expect } from "vitest";
 import {
   validateSubmission,
   submissionToDbEvent,
+  normalizeUrl,
+  endLocal,
   METRO_CENTER,
   type SubmissionInput,
   type SubmissionEventFields,
@@ -78,6 +80,33 @@ describe("validateSubmission", () => {
     expect(validateSubmission(base({ submitterEmail: "a@b.com" }), NOW).ok).toBe(true);
   });
 
+  // UX8 — accept the bare-domain paste ("powderhornartfair.com") people
+  // actually submit, but still reject a stray word ("notaurl").
+  it("accepts a bare domain and stores it with a scheme", () => {
+    const r = validateSubmission(base({ ticketUrl: "powderhornartfair.com" }), NOW);
+    expect(r.ok).toBe(true);
+    if (r.ok) {
+      expect(r.value.ticket_url).toBe("https://powderhornartfair.com");
+      expect(r.value.source_url).toBe("https://powderhornartfair.com");
+    }
+  });
+
+  it("accepts a bare domain with a path, and still rejects a bare word", () => {
+    expect(validateSubmission(base({ ticketUrl: "facebook.com/events/123" }), NOW).ok).toBe(true);
+    expect(validateSubmission(base({ ticketUrl: "notaurl" }), NOW).ok).toBe(false);
+  });
+
+  // UX8 — a 9pm–1am show ends the NEXT day; pinning end to the start date
+  // stored a backwards span.
+  it("rolls a past-midnight end time to the next day", () => {
+    const r = validateSubmission(base({ time: "21:00", endTime: "01:00" }), NOW);
+    expect(r.ok).toBe(true);
+    if (r.ok) {
+      expect(r.value.start_local).toBe("2026-07-18T21:00");
+      expect(r.value.end_local).toBe("2026-07-19T01:00");
+    }
+  });
+
   it("enforces length limits", () => {
     expect(validateSubmission(base({ title: "x".repeat(141) }), NOW).ok).toBe(false);
     expect(validateSubmission(base({ description: "x".repeat(1001) }), NOW).ok).toBe(false);
@@ -90,6 +119,36 @@ describe("validateSubmission", () => {
       expect(r.value.source_url).toBe("https://x.com");
       expect(r.value.submitter_email).toBe("a@b.com");
     }
+  });
+});
+
+describe("normalizeUrl", () => {
+  it("prepends https:// to a bare domain", () => {
+    expect(normalizeUrl("powderhornartfair.com")).toBe("https://powderhornartfair.com");
+    expect(normalizeUrl("facebook.com/events/1")).toBe("https://facebook.com/events/1");
+  });
+  it("leaves an existing scheme untouched", () => {
+    expect(normalizeUrl("https://x.com")).toBe("https://x.com");
+    expect(normalizeUrl("http://x.com")).toBe("http://x.com");
+  });
+  it("trims and passes through empty", () => {
+    expect(normalizeUrl("  x.com  ")).toBe("https://x.com");
+    expect(normalizeUrl("")).toBe("");
+  });
+});
+
+describe("endLocal", () => {
+  it("keeps a same-day end on the start date", () => {
+    expect(endLocal("2026-07-18", "10:00", "17:00")).toBe("2026-07-18T17:00");
+  });
+  it("rolls a before-start end to the next day (midnight crossing)", () => {
+    expect(endLocal("2026-07-18", "21:00", "01:00")).toBe("2026-07-19T01:00");
+  });
+  it("returns null when there's no end time", () => {
+    expect(endLocal("2026-07-18", "21:00", "")).toBeNull();
+  });
+  it("advances the month boundary correctly", () => {
+    expect(endLocal("2026-07-31", "22:00", "02:00")).toBe("2026-08-01T02:00");
   });
 });
 
