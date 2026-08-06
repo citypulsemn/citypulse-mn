@@ -51,12 +51,17 @@ describe("scoreRows — the intent ladder", () => {
     expect(scoreRows(recent, TODAY)).toBeGreaterThan(scoreRows(stale, TODAY));
   });
 
-  it("computes the documented example: one click + three views today ≈ 8", () => {
+  it("computes the ladder exactly: one ticket click (5) + three views (3) = 8", () => {
     const rows: StatRow[] = [
       { day: TODAY, action: "ticket_click", count: 1 },
       { day: TODAY, action: "view", count: 3 },
     ];
     expect(scoreRows(rows, TODAY)).toBe(8);
+  });
+
+  it("one ticket click alone clears the recalibrated floor (F1.2: MIN_SCORE 5)", () => {
+    expect(scoreRows([{ day: TODAY, action: "ticket_click", count: 1 }], TODAY)).toBe(5);
+    expect(5).toBeGreaterThanOrEqual(TREND_MIN_SCORE);
   });
 
   it("no rows → zero", () => {
@@ -70,11 +75,21 @@ describe("rankTrending — the cold-start honesty policy", () => {
     score,
   });
 
-  it("ALL-OR-NOTHING: fewer than MIN_LIST qualifiers renders nothing", () => {
-    // Three events clear the floor — that's noise wearing a crown, not a trend.
-    const few = [scored(20), scored(15), scored(12), scored(2)];
-    expect(rankTrending(few)).toEqual([]);
-    expect(TREND_MIN_LIST).toBeGreaterThan(3);
+  it("ALL-OR-NOTHING boundary: one short of MIN_LIST is dark; exactly MIN_LIST renders", () => {
+    const strong = TREND_MIN_SCORE + 10;
+    // One short of the minimum cluster is noise wearing a crown, not a trend.
+    const justUnder = Array.from({ length: TREND_MIN_LIST - 1 }, () => scored(strong));
+    expect(rankTrending(justUnder)).toEqual([]);
+    // Exactly MIN_LIST qualifiers is the moment it earns its place.
+    const justEnough = Array.from({ length: TREND_MIN_LIST }, () => scored(strong));
+    expect(rankTrending(justEnough)).toHaveLength(TREND_MIN_LIST);
+    // A sub-floor event never counts toward the minimum.
+    const padded = [...justEnough.slice(0, TREND_MIN_LIST - 1), scored(TREND_MIN_SCORE - 1)];
+    expect(rankTrending(padded)).toEqual([]);
+  });
+
+  it("the recalibrated cluster size stays a real minimum (≥ 3)", () => {
+    expect(TREND_MIN_LIST).toBeGreaterThanOrEqual(3);
   });
 
   it("the floor drops low-signal events even in a big list", () => {

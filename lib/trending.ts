@@ -15,11 +15,20 @@ import type { StatAction } from "./stats";
  *  - Eligibility: published events you can still attend (upcoming, or a
  *    multi-day run still in progress).
  *
- * COLD-START HONESTY: stats collection just started. Three events with two
- * views each is not "trending" — it's noise wearing a crown. So there is a
- * score floor per event AND a minimum list size: unless at least MIN_LIST
- * events clear the floor, trending renders NOTHING. The surface earns its
- * place or it hides.
+ * COLD-START HONESTY: a few events with a couple of views each is not
+ * "trending" — it's noise wearing a crown. So there is a score floor per event
+ * AND a minimum list size: unless at least MIN_LIST events clear the floor,
+ * trending renders NOTHING. The surface earns its place or it hides.
+ *
+ * F1.2 RECALIBRATION (Aug 2026): the floor was originally 8, tuned while the
+ * `calendar` stat was inflated by bots (counted server-side per .ics fetch,
+ * weight 4). De-botting that stat (now a human beacon click) dropped real
+ * scores sharply — a replay of a live week showed one event at 13.2 and a
+ * steep fall-off, with only one clearing the old floor. So the floor was
+ * re-derived for the HONEST regime: MIN_SCORE 5 (one genuine ticket click, or
+ * ~5 views today) and MIN_LIST 3. At low traffic this correctly stays dark and
+ * lights up as engagement grows — never crowning near-noise. Weights and the
+ * half-life were replay-checked and left unchanged.
  */
 
 export const TREND_WEIGHTS: Record<StatAction, number> = {
@@ -35,12 +44,13 @@ export const TREND_HALF_LIFE_DAYS = 3;
 /** Stats window considered (matches the admin's short window). */
 export const TREND_WINDOW_DAYS = 7;
 
-/** An event must score at least this to qualify (≈ 8 views today, or one
- *  ticket click + three views — enough to mean something). */
-export const TREND_MIN_SCORE = 8;
+/** An event must score at least this to qualify (≈ 5 views today, or one
+ *  ticket click — a genuine signal of intent). Re-derived in F1.2 for the
+ *  honest, post-de-botting score regime. */
+export const TREND_MIN_SCORE = 5;
 
 /** Fewer than this many qualifying events ⇒ show nothing at all. */
-export const TREND_MIN_LIST = 4;
+export const TREND_MIN_LIST = 3;
 
 /** Never show more than this many. */
 export const TREND_CAP = 12;
