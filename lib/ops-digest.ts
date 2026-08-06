@@ -34,17 +34,58 @@ export interface PipelineRow {
 }
 
 /**
- * Stampede thresholds (F2.6) — "how R0.2 would have announced itself." A weekly
- * run archives events that fully passed and dedupes a handful of near-copies;
- * a flood of either is the fingerprint of a predicate gone wrong (festivals
- * wrongly archived mid-run, or an over-eager dedupe). Above these, the Pipeline
- * section raises an alert.
+ * Stampede detection (F2.6, recalibrated Aug 2026) — "how R0.2 would have
+ * announced itself." A weekly run archives events that fully passed and dedupes
+ * near-copies; a FLOOD of either is the fingerprint of a predicate gone wrong.
  *
- * Calibrated ABOVE the observed Jul 2026 baseline (a healthy run did 43 deduped
- * / 52 archived), so a normal cleanup week doesn't cry wolf — the per-stage
- * DIFF line is the finer human signal below these. Tune as more weeks accrue.
+ * The original absolute threshold (archived > 100) cried wolf: the weekly
+ * archive count climbs as the calendar grows — 52 → 94 → 115 over Jul–Aug 2026
+ * — so Aug 3's healthy 115 tripped a fixed 100. A stampede is a SPIKE, not a
+ * fixed number. So fire on either:
+ *   - an absolute CEILING (a flood no organic trend could explain), OR
+ *   - a SPIKE: well above the FLOOR *and* a large multiple of the last
+ *     successful run (the diff the section already shows, promoted to a gate).
+ * The floor stops a small week from ratio-spiking (5 → 15 is not a stampede);
+ * the ceiling still catches a flood even if the baseline crept up under it.
  */
-export const PIPELINE_STAMPEDE = { archived: 100, deduped: 80 };
+export const PIPELINE_STAMPEDE = {
+  archivedFloor: 80,
+  archivedCeiling: 250,
+  dedupedFloor: 60,
+  dedupedCeiling: 200,
+  ratio: 2.5,
+};
+
+/** One stage's stampede test: an absolute ceiling, or a spike well above the
+ *  floor and ≥ `ratio`× the last successful run. Pure. `prev` null (first run)
+ *  → only the ceiling can fire. */
+export function isStampede(
+  current: number,
+  prev: number | null | undefined,
+  floor: number,
+  ceiling: number,
+  ratio = PIPELINE_STAMPEDE.ratio,
+): boolean {
+  if (current >= ceiling) return true;
+  if (prev == null || prev <= 0) return false; // no baseline → ceiling only
+  return current >= floor && current >= ratio * prev;
+}
+
+/** Human reason string if this run looks like a stampede, else null. Shared by
+ *  the ops digest and the pipeline log so they agree. */
+export function stampedeReason(
+  archived: number,
+  deduped: number,
+  prevArchived: number | null | undefined,
+  prevDeduped: number | null | undefined,
+): string | null {
+  const S = PIPELINE_STAMPEDE;
+  const hits: string[] = [];
+  if (isStampede(archived, prevArchived, S.archivedFloor, S.archivedCeiling)) hits.push(`${archived} archived`);
+  if (isStampede(deduped, prevDeduped, S.dedupedFloor, S.dedupedCeiling)) hits.push(`${deduped} deduped`);
+  if (hits.length === 0) return null;
+  return `${hits.join(" / ")} this run is unusually high vs recent runs; confirm no live event was wrongly removed (R0.2 territory)`;
+}
 
 /** " (+12)" / " (-3)" / " (±0)" for a run-over-run delta; "" when either side
  *  is unknown (a stage with no prior number, e.g. a brand-new column). */
@@ -185,13 +226,10 @@ export function buildSections(inputs: OpsInputs): OpsSection[] {
           `ok ✓ — ${stage("upserted", p.upserted, pv?.upserted)} · ${stage("deduped", p.collapsed, pv?.collapsed)} · ${stage("collapsed", p.collapsed_runs, pv?.collapsed_runs)} · ${stage("archived", p.archived, pv?.archived)}`,
           `started ${p.started_at} · duration ${fmtDuration(p.started_at, p.finished_at)}${pv ? " · Δ vs last run" : ""}`,
         ];
-        // Stampede tripwire — the R0.2 fingerprint (a flood of archives/dedupes).
-        const arch = p.archived ?? 0;
-        const dedup = p.collapsed ?? 0;
-        if (arch > PIPELINE_STAMPEDE.archived || dedup > PIPELINE_STAMPEDE.deduped) {
-          lines.push(
-            `⚠️ stampede check — ${arch} archived / ${dedup} deduped this run is unusually high; confirm no live event was wrongly removed (R0.2 territory)`,
-          );
+        // Stampede tripwire — spike vs the last run, not a fixed number.
+        const reason = stampedeReason(p.archived ?? 0, p.collapsed ?? 0, pv?.archived, pv?.collapsed);
+        if (reason) {
+          lines.push(`⚠️ stampede check — ${reason}`);
           alert = true;
         }
       }

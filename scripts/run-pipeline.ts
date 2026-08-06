@@ -25,7 +25,7 @@ import { geocode } from "../lib/geocode";
 import { computeEventKey, normalizeTier } from "../lib/event-key";
 import { upsertEvents, archivePastEvents, markCancelled, dedupeNearDuplicates, collapseMultiDayRuns } from "../lib/upsert";
 import { pruneRateEvents } from "../lib/rate-limit";
-import { deltaTag, PIPELINE_STAMPEDE } from "../lib/ops-digest";
+import { deltaTag, stampedeReason } from "../lib/ops-digest";
 import { partitionCancellations } from "../lib/cancellations";
 import { dueWindows } from "../lib/horizon";
 import { NEW_EVENT_STATUS } from "../lib/pipeline-config";
@@ -232,11 +232,8 @@ async function main() {
       `venue-swept ${venueSwept}, times normalized ${timeNormalized}, improbable ${improbableTimes}`,
     perBand,
   );
-  if (archived > PIPELINE_STAMPEDE.archived || collapsed > PIPELINE_STAMPEDE.deduped) {
-    console.warn(
-      `[pipeline] ⚠️ stampede check — ${archived} archived / ${collapsed} deduped this run is unusually high; confirm no live event was wrongly removed (R0.2 territory)`,
-    );
-  }
+  const stampede = stampedeReason(archived, collapsed, prevRun?.archived, prevRun?.collapsed);
+  if (stampede) console.warn(`[pipeline] ⚠️ stampede check — ${stampede}`);
 
   // ROADMAP 4.3 — coverage check. The pipeline finishing "successfully" says
   // nothing about whether its OUTPUT is any good: the Live Music collection sat

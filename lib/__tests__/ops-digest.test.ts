@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { composeOpsDigest, buildSections, parseStoredTotals, wowLabel, deltaTag, type OpsInputs } from "../ops-digest";
+import { composeOpsDigest, buildSections, parseStoredTotals, wowLabel, deltaTag, isStampede, stampedeReason, PIPELINE_STAMPEDE, type OpsInputs } from "../ops-digest";
 
 const NOW = new Date("2026-07-20T15:30:00Z"); // a Monday, 10:30am Chicago
 
@@ -151,6 +151,57 @@ describe("pipeline diffs & stampede tripwire (F2.6)", () => {
 
   it("normal counts do NOT trip it", () => {
     expect(buildSections(healthy()).find((s) => s.title === "Pipeline")!.alert).toBe(false);
+  });
+
+  it("organic growth no longer cries wolf — the Aug 2026 false positive is fixed", () => {
+    // The real sequence: 52 -> 94 -> 115 archived as the calendar grew. Aug 3's
+    // 115 tripped the old fixed-100 threshold; against prev 94 it must not.
+    const grow = healthy({
+      pipeline: { ...healthy().pipeline!, archived: 115, collapsed: 6 },
+      prevPipeline: { ...healthy().prevPipeline!, archived: 94, collapsed: 5 },
+    });
+    expect(buildSections(grow).find((s) => s.title === "Pipeline")!.alert).toBe(false);
+  });
+});
+
+describe("isStampede (F2.6 recal) — spike, not a fixed number", () => {
+  const { archivedFloor: F, archivedCeiling: C } = PIPELINE_STAMPEDE;
+
+  it("organic week-over-week growth is quiet (115 vs 94, 94 vs 52)", () => {
+    expect(isStampede(115, 94, F, C)).toBe(false);
+    expect(isStampede(94, 52, F, C)).toBe(false);
+  });
+
+  it("a real spike fires — above the floor AND ≥ 2.5× the last run", () => {
+    expect(isStampede(200, 60, F, C)).toBe(true); // 3.3×, below the ceiling
+  });
+
+  it("an absolute flood fires regardless of trend (ceiling backstop)", () => {
+    expect(isStampede(300, 100, F, C)).toBe(true); // even at only 3× a high base
+    expect(isStampede(C, null, F, C)).toBe(true); // and on the first-ever run
+  });
+
+  it("a small week can't ratio-spike below the floor (5 → 15 is not a stampede)", () => {
+    expect(isStampede(15, 3, F, C)).toBe(false); // 5× but under the floor
+  });
+
+  it("no baseline (first run) → only the ceiling can fire", () => {
+    expect(isStampede(90, null, F, C)).toBe(false);
+    expect(isStampede(90, undefined, F, C)).toBe(false);
+  });
+});
+
+describe("stampedeReason — names the offending stage(s), or null", () => {
+  it("null when both stages are within trend", () => {
+    expect(stampedeReason(115, 40, 94, 43)).toBeNull();
+  });
+  it("names archived when it spikes", () => {
+    expect(stampedeReason(300, 40, 90, 43)).toContain("300 archived");
+  });
+  it("names both when both flood", () => {
+    const r = stampedeReason(300, 250, 90, 40);
+    expect(r).toContain("300 archived");
+    expect(r).toContain("250 deduped");
   });
 });
 
