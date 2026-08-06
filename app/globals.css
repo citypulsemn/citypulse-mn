@@ -328,6 +328,23 @@ a.daycard { text-decoration: none; }
 .day-list { max-width: 620px; margin: 0 auto; }
 .day-empty { max-width: 620px; margin: 0 auto; text-align: center; color: var(--cream-dim); font-size: 14px; line-height: 1.7; padding: 30px 16px; border: 1px dashed var(--line); border-radius: 14px; }
 
+/* Screen-reader-only utility (UX2). */
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+
+/* Error boundary retry (UX2). */
+.retry-btn { font: inherit; font-size: 14px; color: var(--navy-900); background: var(--gold); border: 0; border-radius: 8px; padding: 9px 18px; cursor: pointer; }
+.retry-btn:hover { filter: brightness(1.08); }
+
+/* Route-level loading skeletons (UX2). Shimmer is disabled by the global
+   prefers-reduced-motion reset, degrading to a flat placeholder. */
+.skel { background: linear-gradient(90deg, var(--navy-700) 25%, var(--navy-600) 40%, var(--navy-700) 60%); background-size: 300% 100%; animation: skel-shimmer 1.4s ease infinite; border-radius: 10px; }
+@keyframes skel-shimmer { from { background-position: 100% 0; } to { background-position: -100% 0; } }
+.skel-title { height: 26px; width: 42%; max-width: 260px; margin: 6px auto 18px; }
+.skel-row { height: 74px; margin: 10px 0; }
+.skel-hero { height: 150px; max-width: 620px; margin: 6px auto 16px; }
+.skel-line { height: 16px; margin: 10px auto; max-width: 620px; }
+.skel-cta { height: 48px; max-width: 620px; margin: 20px auto 0; }
+
 @media (max-width: 820px) {
   .page-card, .more-day, .dayhdr, .day-list, .day-empty { max-width: 100%; }
 }
