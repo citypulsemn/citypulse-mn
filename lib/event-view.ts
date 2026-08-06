@@ -132,6 +132,29 @@ export function eventMetaDescription(event: EventRecord): string {
   return (base + desc).replace(/\s+/g, " ").trim().slice(0, 200);
 }
 
+/**
+ * A directions deep-link to the venue (UX5) — opens the native maps app on a
+ * phone, the most common "now what?" action on an event. Prefers the street
+ * address (a destination the user recognizes) and falls back to coordinates,
+ * then the venue name. Null only when there is nothing to route to.
+ * `?api=1` is Google's cross-platform Directions form (works on iOS too).
+ */
+export function directionsUrl(
+  event: Pick<EventRecord, "venue" | "address" | "city" | "lat" | "lng">,
+): string | null {
+  const addr = [event.address, event.city ? `${event.city}, MN` : ""]
+    .filter(Boolean)
+    .join(", ")
+    .trim();
+  const hasCoords =
+    Number.isFinite(event.lat) &&
+    Number.isFinite(event.lng) &&
+    !(event.lat === 0 && event.lng === 0);
+  const destination = addr || (hasCoords ? `${event.lat},${event.lng}` : (event.venue || "").trim());
+  if (!destination) return null;
+  return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(destination)}`;
+}
+
 /** A Mapbox Static Images URL for a gold pin at the venue, or null if unusable. */
 export function staticMapUrl(
   lat: number,

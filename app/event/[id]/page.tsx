@@ -14,6 +14,7 @@ import {
   dayKeyOf,
   eventMetaDescription,
   staticMapUrl,
+  directionsUrl,
   longDate,
 } from "@/lib/event-view";
 
@@ -70,6 +71,9 @@ export default async function EventPage({
     .slice(0, 3);
 
   const mapUrl = staticMapUrl(event.lat, event.lng, process.env.NEXT_PUBLIC_MAPBOX_TOKEN);
+  // UX5 — tapping the venue map should get you THERE (native maps directions),
+  // not dump you on the site-wide map of every event.
+  const directions = directionsUrl(event);
 
   const imageUrl = event.image?.startsWith("http")
     ? event.image
@@ -101,7 +105,12 @@ export default async function EventPage({
             actions={<ShareButton url={`/event/${event.id}`} title={event.title} eventId={event.id} />}
           />
           {mapUrl && (
-            <a className="evt-map" href="/?view=map" aria-label="Open the map view">
+            <a
+              className="evt-map"
+              href={directions ?? "/?view=map"}
+              aria-label={directions ? `Get directions to ${event.venue}` : "Open the map view"}
+              {...(directions ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+            >
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={mapUrl}

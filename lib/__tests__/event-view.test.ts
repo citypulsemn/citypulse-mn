@@ -10,6 +10,7 @@ import {
   isDeadEvent,
   eventMetaDescription,
   staticMapUrl,
+  directionsUrl,
   longDate,
   isValidDayKey,
 } from "../event-view";
@@ -167,6 +168,45 @@ describe("isDeadEvent (UX1) — when the detail page must hide live actions", ()
   it("a multi-day run still in progress is NOT dead (true spans)", () => {
     const run = ev({ start: "2026-07-18T10:00", end: "2026-07-18T18:00", multiDayEnd: "2026-07-25T23:59" });
     expect(isDeadEvent(run, now)).toBe(false);
+  });
+});
+
+describe("directionsUrl (UX5) — the get-me-there deep-link", () => {
+  it("prefers the street address as a recognizable destination", () => {
+    const url = directionsUrl(ev({ address: "701 1st Ave N", city: "Minneapolis", lat: 44.9, lng: -93.2 }))!;
+    expect(url).toContain("https://www.google.com/maps/dir/?api=1&destination=");
+    expect(decodeURIComponent(url.split("destination=")[1])).toBe("701 1st Ave N, Minneapolis, MN");
+  });
+
+  it("url-encodes the destination (spaces, commas)", () => {
+    const url = directionsUrl(ev({ address: "701 1st Ave N", city: "St. Paul", lat: 44.9, lng: -93.2 }))!;
+    expect(url).not.toContain(" ");
+    expect(url).toContain("St.%20Paul%2C%20MN");
+  });
+
+  it("falls back to coordinates when there's no address", () => {
+    const url = directionsUrl(ev({ address: "", city: "", venue: "Somewhere", lat: 44.9785, lng: -93.2762 }))!;
+    expect(decodeURIComponent(url.split("destination=")[1])).toBe("44.9785,-93.2762");
+  });
+
+  it("falls back to the venue name when there's neither address nor real coords", () => {
+    const url = directionsUrl(ev({ address: "", city: "", venue: "First Avenue", lat: 0, lng: 0 }))!;
+    expect(decodeURIComponent(url.split("destination=")[1])).toBe("First Avenue");
+  });
+
+  it("is null only when there is nothing at all to route to", () => {
+    expect(directionsUrl(ev({ address: "", city: "", venue: "", lat: 0, lng: 0 }))).toBeNull();
+  });
+
+  it("wiring: the body's address is a directions link, and the page map opens directions", () => {
+    const root = join(__dirname, "..", "..");
+    const body = readFileSync(join(root, "components", "EventDetailBody.tsx"), "utf8");
+    const page = readFileSync(join(root, "app", "event", "[id]", "page.tsx"), "utf8");
+    expect(body).toContain("const dir = directionsUrl(event)");
+    expect(body).toContain('className="dir-link"');
+    // the page map no longer just opens the site-wide map
+    expect(page).toContain("const directions = directionsUrl(event)");
+    expect(page).toContain('href={directions ?? "/?view=map"}');
   });
 });
 

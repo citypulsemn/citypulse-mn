@@ -6,7 +6,7 @@ import { SaveButton } from "./SaveButton";
 import { isMultiDay, multiDayLabel, runLength } from "@/lib/multiday";
 import { neighborhoodByKey } from "@/lib/neighborhoods";
 import { matchVenueSlug } from "@/lib/venue-pages";
-import { eventTimeState, timeStateLabel, isDeadEvent } from "@/lib/event-view";
+import { eventTimeState, timeStateLabel, isDeadEvent, directionsUrl } from "@/lib/event-view";
 import type { EventRecord } from "@/lib/types";
 import type { ReactNode } from "react";
 
@@ -45,6 +45,8 @@ export function EventDetailBody({
   const bannerClass =
     timeState?.kind === "ended" ? "ended" : timeState?.kind === "now" ? "live" : "soon";
   const dead = isDeadEvent(event, now);
+  const dir = directionsUrl(event); // UX5 — the "get me there" deep-link
+  const whereLine = [event.address, event.city ? `${event.city}, MN` : ""].filter(Boolean).join(", ");
 
   return (
     <>
@@ -108,8 +110,14 @@ export function EventDetailBody({
                   </span>
                 ) : null}
                 <br />
-                {event.address}
-                {event.city ? `, ${event.city}, MN` : ""}
+                {dir ? (
+                  <a className="dir-link" href={dir} target="_blank" rel="noopener noreferrer">
+                    {whereLine || "Get directions"}
+                    <span className="dir-go"> · Directions ↗</span>
+                  </a>
+                ) : (
+                  whereLine
+                )}
               </div>
             </div>
           </div>
