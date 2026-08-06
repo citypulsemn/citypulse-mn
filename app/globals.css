@@ -4,7 +4,7 @@
   --navy-700: #1b2a4a;
   --navy-600: #22335a;
   --gold: #c9a961;
-  --gold-dim: #8c7544;
+  --gold-dim: #b89a5e; /* UX7 — was #8c7544 (3.98:1 on navy, failed AA); now ≥4.5:1 */
   --cream: #f1ece0;
   --cream-dim: #b8b2a4;
   --pop-meta: #d7d1c3;
@@ -66,22 +66,24 @@ body::before {
 .viewtoggle button {
   font-family: "Oswald"; font-weight: 500; letter-spacing: 0.12em; text-transform: uppercase; font-size: 12px;
   color: var(--cream-dim); background: transparent; border: 0; padding: 9px 22px; border-radius: 999px; cursor: pointer; transition: 0.2s;
+  display: inline-flex; align-items: center; justify-content: center; min-height: 44px; box-sizing: border-box; /* UX7 touch target */
 }
 .viewtoggle button.active { background: var(--gold); color: var(--navy-900); }
 .viewtoggle button:not(.active):hover { color: var(--cream); }
 
 /* ---------- Controls ---------- */
 .controls { display: flex; flex-wrap: wrap; gap: 16px; align-items: center; justify-content: space-between; padding: 22px 0 14px; }
-.presets { display: flex; gap: 8px; flex-wrap: wrap; }
+.presets { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; } /* UX7 — items keep their 44px height, never stretch */
 .preset {
   font-family: "Inter"; font-size: 13px; font-weight: 500; color: var(--cream-dim);
   background: rgba(255, 255, 255, 0.03); border: 1px solid var(--line); padding: 8px 16px; border-radius: 8px; cursor: pointer; transition: 0.18s;
+  display: inline-flex; align-items: center; min-height: 44px; box-sizing: border-box; /* UX7 touch target */
 }
 .preset:hover { border-color: var(--gold); color: var(--cream); }
 .preset.active { background: var(--navy-700); border-color: var(--gold); color: var(--cream); }
 
 .monthnav { display: flex; align-items: center; gap: 10px; }
-.monthnav button { background: transparent; border: 1px solid var(--line); color: var(--cream); width: 34px; height: 34px; border-radius: 8px; cursor: pointer; font-size: 16px; transition: 0.18s; }
+.monthnav button { background: transparent; border: 1px solid var(--line); color: var(--cream); width: 44px; height: 44px; border-radius: 8px; cursor: pointer; font-size: 16px; transition: 0.18s; } /* UX7 touch target */
 .monthnav button:hover { border-color: var(--gold); }
 .monthnav .label { font-family: "Oswald"; font-weight: 500; font-size: clamp(17px, 1vw + 12px, 20px); letter-spacing: 0.04em; min-width: clamp(150px, 16vw, 190px); text-align: center; }
 
@@ -92,6 +94,7 @@ body::before {
   font-size: 12.5px; font-weight: 500; letter-spacing: 0.02em;
   background: rgba(255, 255, 255, 0.03); border: 1px solid var(--line); color: var(--cream-dim);
   padding: 7px 14px 7px 11px; border-radius: 999px; transition: 0.16s;
+  min-height: 44px; box-sizing: border-box; /* UX7 touch target */
 }
 .chip .dot { width: 9px; height: 9px; border-radius: 50%; }
 .chip:hover { color: var(--cream); }
@@ -170,7 +173,7 @@ body::before {
 .marquee-head { text-align: center; padding: 26px 24px 18px; border-bottom: 1px solid var(--line); position: relative; }
 .marquee-head .dow { font-family: "Oswald"; letter-spacing: 0.3em; font-size: 12px; color: var(--gold); text-transform: uppercase; }
 .marquee-head .big { font-family: "Oswald"; font-weight: 600; font-size: clamp(24px, 2vw + 16px, 30px); letter-spacing: 0.02em; margin-top: 4px; }
-.closebtn { position: absolute; top: 14px; right: 16px; background: transparent; border: 1px solid var(--line); color: var(--cream); width: 30px; height: 30px; border-radius: 8px; cursor: pointer; font-size: 15px; z-index: 2; }
+.closebtn { position: absolute; top: 12px; right: 12px; display: inline-flex; align-items: center; justify-content: center; background: transparent; border: 1px solid var(--line); color: var(--cream); width: 44px; height: 44px; border-radius: 10px; cursor: pointer; font-size: 16px; z-index: 2; } /* UX7 touch target */
 .closebtn:hover { border-color: var(--gold); }
 .marquee-body { padding: 10px 22px 24px; display: flex; flex-direction: column; gap: 2px; }
 .daycard { display: flex; gap: 14px; padding: 15px 6px; border-bottom: 1px solid rgba(201, 169, 97, 0.13); cursor: pointer; transition: 0.15s; border-radius: 8px; text-align: left; width: 100%; background: transparent; border-left: 0; border-right: 0; border-top: 0; color: inherit; font: inherit; }
@@ -290,7 +293,7 @@ button, a, .cell, .chip, .daycard, .preset { -webkit-tap-highlight-color: transp
 .cell:active { transform: scale(0.99); }
 
 /* Keyboard focus ring for laptop/keyboard users (hidden on mouse click). */
-a:focus-visible, button:focus-visible, .cell:focus-visible, .chip:focus-visible {
+a:focus-visible, button:focus-visible, .cell:focus-visible, .chip:focus-visible, .cp-marker:focus-visible {
   outline: 2px solid var(--gold); outline-offset: 2px; border-radius: 8px;
 }
 
@@ -369,7 +372,7 @@ a.daycard { text-decoration: none; }
 .search-input { flex: 1; min-width: 0; background: transparent; border: none; outline: none; color: var(--cream); font-family: "Inter", sans-serif; font-size: 15px; }
 .search-input::placeholder { color: var(--cream-dim); }
 .search-input::-webkit-search-cancel-button { -webkit-appearance: none; appearance: none; }
-.search-clear { flex: none; width: 26px; height: 26px; border-radius: 50%; border: none; background: rgba(255, 255, 255, 0.06); color: var(--cream-dim); font-size: 12px; cursor: pointer; line-height: 1; }
+.search-clear { flex: none; display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 50%; border: none; background: rgba(255, 255, 255, 0.06); color: var(--cream-dim); font-size: 13px; cursor: pointer; line-height: 1; } /* UX7 touch target */
 .search-clear:hover { background: rgba(201, 169, 97, 0.18); color: var(--gold); }
 .search-count { margin-top: 8px; font-size: 12.5px; color: var(--cream-dim); letter-spacing: 0.02em; min-height: 18px; }
 .linklike { background: none; border: none; padding: 0; color: var(--gold); font: inherit; cursor: pointer; text-decoration: underline; }
@@ -534,7 +537,7 @@ a.daycard { text-decoration: none; }
 
 /* ---------- Price/Area filters (roadmap 2.5) ---------- */
 .filterpanel { margin: 4px 0 14px; }
-.filter-toggle { display: inline-flex; align-items: center; gap: 7px; padding: 8px 15px; border: 1px solid var(--line); border-radius: 999px; background: rgba(255,255,255,0.02); color: var(--cream-dim); font-family: "Oswald"; font-weight: 500; letter-spacing: 0.03em; font-size: 13px; cursor: pointer; min-height: 38px; }
+.filter-toggle { display: inline-flex; align-items: center; gap: 7px; padding: 8px 15px; border: 1px solid var(--line); border-radius: 999px; background: rgba(255,255,255,0.02); color: var(--cream-dim); font-family: "Oswald"; font-weight: 500; letter-spacing: 0.03em; font-size: 13px; cursor: pointer; min-height: 44px; } /* UX7 touch target */
 .filter-toggle:hover { color: var(--cream); border-color: var(--cream-dim); }
 .filter-toggle.on { color: var(--gold); border-color: var(--gold); }
 .filter-caret { font-size: 9px; }
@@ -542,7 +545,7 @@ a.daycard { text-decoration: none; }
 .filter-group { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
 .filter-label { width: 44px; flex: none; font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--cream-dim); }
 .filter-pills { display: flex; gap: 7px; flex-wrap: wrap; }
-.filter-pill { padding: 7px 13px; border: 1px solid var(--line); border-radius: 999px; background: transparent; color: var(--cream-dim); font-size: 13px; cursor: pointer; min-height: 36px; }
+.filter-pill { display: inline-flex; align-items: center; padding: 7px 14px; border: 1px solid var(--line); border-radius: 999px; background: transparent; color: var(--cream-dim); font-size: 13px; cursor: pointer; min-height: 44px; } /* UX7 touch target */
 .filter-pill:hover { color: var(--cream); border-color: var(--cream-dim); }
 .filter-pill.active { background: var(--gold); border-color: var(--gold); color: var(--navy-900); font-weight: 600; }
 .filter-clear { align-self: flex-start; font-size: 12.5px; }

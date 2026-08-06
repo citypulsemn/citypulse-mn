@@ -2,6 +2,7 @@
 
 import { CATEGORIES } from "@/lib/categories";
 import { DOW, MONTHS, timeLabel } from "@/lib/dates";
+import { useModalA11y } from "./useModalA11y";
 import type { EventRecord } from "@/lib/types";
 
 export function DayPanel({
@@ -17,16 +18,17 @@ export function DayPanel({
 }) {
   const [y, m, d] = dateKey.split("-").map(Number);
   const dateObj = new Date(y, m - 1, d);
+  const dialogRef = useModalA11y<HTMLDivElement>();
 
   return (
     <div className="overlay" onClick={(ev) => ev.target === ev.currentTarget && onClose()}>
-      <div className="marquee" role="dialog" aria-modal="true">
+      <div className="marquee" role="dialog" aria-modal="true" aria-labelledby="daypanel-heading" ref={dialogRef}>
         <div className="marquee-head">
           <button className="closebtn" onClick={onClose} aria-label="Close">
             ✕
           </button>
           <div className="dow">{DOW[dateObj.getDay()]}</div>
-          <div className="big">
+          <div className="big" id="daypanel-heading">
             {MONTHS[m - 1]} {d}
           </div>
         </div>

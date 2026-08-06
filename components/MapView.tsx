@@ -87,6 +87,12 @@ export function MapView({
       const el = document.createElement("div");
       el.className = "cp-marker";
       el.style.background = color;
+      // UX7 — keyboard-accessible marker with a name (was a bare, unfocusable
+      // div; the calendar/list are the accessible alternatives, but the map
+      // shouldn't be a keyboard dead-end either).
+      el.setAttribute("role", "button");
+      el.setAttribute("tabindex", "0");
+      el.setAttribute("aria-label", `${ev.title}, ${ev.venue}`);
 
       const node = buildPopupNode(ev, color);
       const popup = new mapboxgl.Popup({ offset: 18, closeButton: true, maxWidth: "300px" }).setDOMContent(node);
@@ -95,6 +101,13 @@ export function MapView({
         .setLngLat([ev.lng, ev.lat])
         .setPopup(popup)
         .addTo(map);
+
+      el.addEventListener("keydown", (e: KeyboardEvent) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          marker.togglePopup();
+        }
+      });
 
       markersRef.current.push(marker);
       bounds.extend([ev.lng, ev.lat]);
