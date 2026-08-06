@@ -23,12 +23,18 @@ export function SavedList({ events: initial }: { events: EventRecord[] }) {
   if (events.length === 0) {
     return (
       <div className="day-empty">
-        You haven&apos;t saved any events yet. Tap <strong>♡ Save</strong> on any event to
+        You haven&apos;t saved any events yet. Tap the <strong>♡</strong> on any event to
         keep it here.
         <br />
         <a className="more-day-all" href="/">
           Browse events →
         </a>
+        {/* UX3 — a cleared-cookie visitor who once emailed themselves a link
+            reads "nothing saved" as data loss; point them at the way back. */}
+        <p className="saved-restore-hint">
+          Emailed yourself a keep-list link before? Open it on this device to bring your
+          saved events back.
+        </p>
       </div>
     );
   }
@@ -38,7 +44,8 @@ export function SavedList({ events: initial }: { events: EventRecord[] }) {
       {events.map((e) => (
         <div key={e.id} className="saved-row">
           <div className="saved-row-card">
-            <EventDayCard event={e} />
+            {/* The row's own ✕ is the remove control here — no card overlay. */}
+            <EventDayCard event={e} showSave={false} />
           </div>
           <button
             type="button"

@@ -4,7 +4,20 @@ import { useEffect, useState, useTransition } from "react";
 import { toggleSaveAction } from "@/lib/saved-actions";
 import { track } from "@/lib/track";
 
-export function SaveButton({ eventId, saved: savedProp }: { eventId: string; saved?: boolean }) {
+/** Broadcast a save/unsave so the header count (and the first-save nudge) can
+ *  react anywhere on the page — UX3. Detail carries the confirmed state. */
+export const SAVE_EVENT = "citypulse:save";
+
+export function SaveButton({
+  eventId,
+  saved: savedProp,
+  variant = "default",
+}: {
+  eventId: string;
+  saved?: boolean;
+  /** "compact" = icon-only, for the overlay on event cards. */
+  variant?: "default" | "compact";
+}) {
   const [saved, setSaved] = useState(savedProp ?? false);
   const [pending, start] = useTransition();
 
@@ -33,11 +46,29 @@ export function SaveButton({ eventId, saved: savedProp }: { eventId: string; sav
     track("save_toggle", { id: eventId, saved: optimistic });
     start(async () => {
       try {
-        setSaved(await toggleSaveAction(eventId));
+        const confirmed = await toggleSaveAction(eventId);
+        setSaved(confirmed);
+        // Broadcast AFTER the write lands so listeners re-read authoritative state.
+        window.dispatchEvent(new CustomEvent(SAVE_EVENT, { detail: { id: eventId, saved: confirmed } }));
       } catch {
         setSaved(!optimistic); // revert on failure
       }
     });
+  }
+
+  if (variant === "compact") {
+    return (
+      <button
+        type="button"
+        className={`savebtn-compact ${saved ? "on" : ""}`}
+        onClick={toggle}
+        disabled={pending}
+        aria-pressed={saved}
+        aria-label={saved ? "Saved — tap to remove" : "Save this event"}
+      >
+        <span aria-hidden="true">{saved ? "♥" : "♡"}</span>
+      </button>
+    );
   }
 
   return (

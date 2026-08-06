@@ -16,6 +16,7 @@ import type { AreaKey } from "@/lib/areas";
 import { track } from "@/lib/track";
 import type { CategoryKey, EventRecord, PriceTier, RangeKey } from "@/lib/types";
 import { Logo } from "./Logo";
+import { SavedLink } from "./SavedLink";
 import { ControlBar } from "./ControlBar";
 import { SearchBox } from "./SearchBox";
 import { CategoryChips } from "./CategoryChips";
@@ -192,19 +193,22 @@ export function EventsExplorer({
       <header className="topbar">
         <div className="topbar-inner">
           <Logo />
-          <div className="viewtoggle">
-            <button
-              className={view === "calendar" ? "active" : ""}
-              onClick={() => setView("calendar")}
-            >
-              Calendar
-            </button>
-            <button
-              className={view === "map" ? "active" : ""}
-              onClick={() => setView("map")}
-            >
-              Map
-            </button>
+          <div className="topbar-actions">
+            <SavedLink />
+            <div className="viewtoggle">
+              <button
+                className={view === "calendar" ? "active" : ""}
+                onClick={() => setView("calendar")}
+              >
+                Calendar
+              </button>
+              <button
+                className={view === "map" ? "active" : ""}
+                onClick={() => setView("map")}
+              >
+                Map
+              </button>
+            </div>
           </div>
         </div>
       </header>

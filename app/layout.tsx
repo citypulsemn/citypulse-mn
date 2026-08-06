@@ -3,6 +3,7 @@ import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { SITE_URL } from "@/lib/seo/site";
 import { ServiceWorkerRegistration } from "@/components/ServiceWorkerRegistration";
+import { FirstSaveNudge } from "@/components/FirstSaveNudge";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -57,6 +58,7 @@ export default function RootLayout({
       </head>
       <body>
         {children}
+        <FirstSaveNudge />
         <ServiceWorkerRegistration />
         <Analytics />
         <SpeedInsights />
