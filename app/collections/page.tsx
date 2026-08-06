@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { getEvents } from "@/lib/events";
 import { COLLECTIONS, selectCollection } from "@/lib/collections";
 import { getTrendingEvents } from "@/lib/trending";
-import { Logo } from "@/components/Logo";
+import { TopBar } from "@/components/TopBar";
 import { SiteFooter } from "@/components/SiteFooter";
 
 // Render on-demand rather than prerendering at build. Like the slug pages, this
@@ -46,14 +46,7 @@ export default async function CollectionsIndex() {
 
   return (
     <>
-      <header className="topbar">
-        <div className="topbar-inner">
-          <Logo />
-          <a className="page-back" href="/">
-            ← All events
-          </a>
-        </div>
-      </header>
+      <TopBar />
 
       <main className="wrap page">
         <div className="dayhdr">

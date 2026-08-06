@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { Logo } from "@/components/Logo";
+import { TopBar } from "@/components/TopBar";
 import { SiteFooter } from "@/components/SiteFooter";
 import { EventDayCard } from "@/components/EventDayCard";
 import { getEvents } from "@/lib/events";
@@ -67,12 +67,7 @@ export default async function CityPage({
 
   return (
     <>
-      <header className="topbar">
-        <div className="topbar-inner">
-          <Logo />
-          <a className="page-back" href="/cities">← Cities</a>
-        </div>
-      </header>
+      <TopBar />
 
       <main className="wrap page">
         <div className="dayhdr">

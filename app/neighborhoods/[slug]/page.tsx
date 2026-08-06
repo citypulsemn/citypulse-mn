@@ -1,7 +1,7 @@
 import { NEIGHBORHOOD_INTROS } from "@/lib/editorial";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { Logo } from "@/components/Logo";
+import { TopBar } from "@/components/TopBar";
 import { SiteFooter } from "@/components/SiteFooter";
 import { EventDayCard } from "@/components/EventDayCard";
 import { FeedSubscribe } from "@/components/FeedSubscribe";
@@ -65,12 +65,7 @@ export default async function NeighborhoodPage({
 
   return (
     <>
-      <header className="topbar">
-        <div className="topbar-inner">
-          <Logo />
-          <a className="page-back" href="/neighborhoods">← Neighborhoods</a>
-        </div>
-      </header>
+      <TopBar />
 
       <main className="wrap page">
         <div className="dayhdr">

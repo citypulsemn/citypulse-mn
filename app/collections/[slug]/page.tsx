@@ -4,7 +4,7 @@ import { getEvents } from "@/lib/events";
 import { getCollection, selectCollection } from "@/lib/collections";
 import { EventDayCard } from "@/components/EventDayCard";
 import { FeedSubscribe } from "@/components/FeedSubscribe";
-import { Logo } from "@/components/Logo";
+import { TopBar } from "@/components/TopBar";
 import { SiteFooter } from "@/components/SiteFooter";
 import { dayItemListJsonLd, jsonLdSafe } from "@/lib/seo/event-jsonld";
 import { SITE_URL } from "@/lib/seo/site";
@@ -83,14 +83,7 @@ export default async function CollectionPage({
           }}
         />
       )}
-      <header className="topbar">
-        <div className="topbar-inner">
-          <Logo />
-          <a className="page-back" href="/collections">
-            ← All collections
-          </a>
-        </div>
-      </header>
+      <TopBar />
 
       <main className="wrap page">
         <div className="dayhdr">

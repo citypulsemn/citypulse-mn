@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Logo } from "@/components/Logo";
+import { TopBar } from "@/components/TopBar";
 import { SiteFooter } from "@/components/SiteFooter";
 import { getEvents } from "@/lib/events";
 import { CITY_PAGES, matchCitySlug, areaLabel } from "@/lib/cities";
@@ -46,12 +46,7 @@ export default async function CitiesPage() {
 
   return (
     <>
-      <header className="topbar">
-        <div className="topbar-inner">
-          <Logo />
-          <a className="page-back" href="/">← All events</a>
-        </div>
-      </header>
+      <TopBar />
 
       <main className="wrap page">
         <div className="dayhdr">

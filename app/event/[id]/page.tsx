@@ -6,7 +6,7 @@ import { EventDetailBody } from "@/components/EventDetailBody";
 import { StatBeacon } from "@/components/StatBeacon";
 import { EventDayCard } from "@/components/EventDayCard";
 import { ShareButton } from "@/components/ShareButton";
-import { Logo } from "@/components/Logo";
+import { TopBar } from "@/components/TopBar";
 import { SiteFooter } from "@/components/SiteFooter";
 import { eventJsonLd, jsonLdSafe } from "@/lib/seo/event-jsonld";
 import { SITE_URL } from "@/lib/seo/site";
@@ -86,14 +86,7 @@ export default async function EventPage({
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: jsonLdSafe(jsonLd) }}
       />
-      <header className="topbar">
-        <div className="topbar-inner">
-          <Logo />
-          <a className="page-back" href="/">
-            ← All events
-          </a>
-        </div>
-      </header>
+      <TopBar />
 
       <main className="wrap page">
         <article className="marquee page-card">

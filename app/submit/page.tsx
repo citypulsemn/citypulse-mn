@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Logo } from "@/components/Logo";
+import { TopBar } from "@/components/TopBar";
 import { SiteFooter } from "@/components/SiteFooter";
 import { SubmitForm } from "@/components/SubmitForm";
 
@@ -20,14 +20,7 @@ export const metadata: Metadata = {
 export default function SubmitPage() {
   return (
     <>
-      <header className="topbar">
-        <div className="topbar-inner">
-          <Logo />
-          <a className="page-back" href="/">
-            ← All events
-          </a>
-        </div>
-      </header>
+      <TopBar />
 
       <main className="wrap page">
         <div className="dayhdr">

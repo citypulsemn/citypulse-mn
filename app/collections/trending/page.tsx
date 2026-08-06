@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { getTrendingEvents } from "@/lib/trending";
 import { EventDayCard } from "@/components/EventDayCard";
-import { Logo } from "@/components/Logo";
+import { TopBar } from "@/components/TopBar";
 import { SiteFooter } from "@/components/SiteFooter";
 
 // Trending is volatile by nature — short cache, regenerated on demand.
@@ -30,14 +30,7 @@ export default async function TrendingPage() {
 
   return (
     <>
-      <header className="topbar">
-        <div className="topbar-inner">
-          <Logo />
-          <nav className="topnav">
-            <a className="backlink" href="/collections">← Collections</a>
-          </nav>
-        </div>
-      </header>
+      <TopBar />
 
       <main className="wrap page">
         <div className="dayhdr">

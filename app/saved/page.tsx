@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Logo } from "@/components/Logo";
+import { TopBar } from "@/components/TopBar";
 import { SiteFooter } from "@/components/SiteFooter";
 import { SavedList } from "@/components/SavedList";
 import { getSaverToken } from "@/lib/saver";
@@ -26,14 +26,7 @@ export default async function SavedPage({
 
   return (
     <>
-      <header className="topbar">
-        <div className="topbar-inner">
-          <Logo />
-          <a className="page-back" href="/">
-            ← All events
-          </a>
-        </div>
-      </header>
+      <TopBar />
 
       <main className="wrap page">
         <div className="dayhdr">

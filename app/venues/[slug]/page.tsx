@@ -1,7 +1,7 @@
 import { VENUE_INTROS } from "@/lib/editorial";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { Logo } from "@/components/Logo";
+import { TopBar } from "@/components/TopBar";
 import { SiteFooter } from "@/components/SiteFooter";
 import { SubscribeBand } from "@/components/SubscribeBand";
 import { EventDayCard } from "@/components/EventDayCard";
@@ -100,12 +100,7 @@ export default async function VenuePage({
 
   return (
     <>
-      <header className="topbar">
-        <div className="topbar-inner">
-          <Logo />
-          <a className="page-back" href="/venues">← Venues</a>
-        </div>
-      </header>
+      <TopBar />
 
       <main className="wrap page">
         <script

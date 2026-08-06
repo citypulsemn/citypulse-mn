@@ -50,6 +50,12 @@ body::before {
   border-bottom: 1px solid var(--line);
 }
 .topbar-inner { max-width: 1240px; margin: 0 auto; padding: 14px max(20px, env(safe-area-inset-right)) 14px max(20px, env(safe-area-inset-left)); display: flex; align-items: center; gap: 24px; justify-content: space-between; }
+/* UX6 — persistent, horizontally-scrollable section nav */
+.topbar.has-nav .topbar-inner { padding-bottom: 6px; }
+.section-nav { display: flex; gap: 4px; overflow-x: auto; scrollbar-width: none; max-width: 1240px; margin: 0 auto; padding: 0 max(14px, env(safe-area-inset-left)) 8px; -webkit-overflow-scrolling: touch; }
+.section-nav::-webkit-scrollbar { display: none; }
+.section-nav-link { flex: none; white-space: nowrap; text-decoration: none; color: var(--cream-dim); font-family: "Oswald"; font-weight: 500; font-size: 13px; letter-spacing: 0.03em; padding: 6px 12px; min-height: 40px; display: inline-flex; align-items: center; border-radius: 999px; border: 1px solid transparent; }
+.section-nav-link:hover { color: var(--gold); border-color: var(--line); }
 .brand { display: flex; align-items: center; gap: 14px; text-decoration: none; color: var(--cream); }
 .brand svg { display: block; }
 .brand .word { display: flex; flex-direction: column; line-height: 1; }
