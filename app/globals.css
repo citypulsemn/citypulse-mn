@@ -620,6 +620,8 @@ a.daycard { text-decoration: none; }
 .cov-cell.thin { color: #e6c66e; background: rgba(224,179,65,0.12); }
 .cov-cell.empty { color: #f0938c; background: rgba(224,115,107,0.16); }
 .cov-floor, .cov-total { text-align: center; color: var(--cream-dim); font-variant-numeric: tabular-nums; }
+.cov-num { text-align: center; color: var(--cream); font-variant-numeric: tabular-nums; }
+.cov-intensity { font-weight: 600; color: var(--gold); }
 .cov-legend { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 14px; font-size: 12.5px; color: var(--cream-dim); }
 .cov-legend .cov-cell { padding: 3px 9px; }
 

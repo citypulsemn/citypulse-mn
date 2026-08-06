@@ -175,3 +175,88 @@ export function formatCoverageAlerts(report: CoverageReport): string[] {
       `[coverage] ${a.status === "empty" ? "EMPTY" : "thin "} ${a.label.padEnd(14)} week of ${a.week}: ${a.count}/${a.floor}`,
   );
 }
+
+// ── Evidence-based coverage (roadmap F1.1) ───────────────────────────────────
+// Coverage-so-far answers "do we have enough events?" It can't answer "does
+// anyone want them?" A category can meet its floor and still be dead weight —
+// or be thin on supply while readers hunt for it. This adds the DEMAND side:
+// 30-day views/clicks per category, and the ratio that matters — views per
+// upcoming event. Sorting by that ratio floats the under-served categories
+// (readers want more than we supply) to the top, where a supply decision lives.
+
+/** Per-category engagement over the demand window (from event_stats). */
+export interface CategoryDemand {
+  category: CategoryKey;
+  views: number;
+  clicks: number; // ticket clicks
+  saves: number;
+}
+
+export interface DemandCell {
+  category: CategoryKey;
+  label: string;
+  published: number; // upcoming supply, for the intensity denominator
+  views: number;
+  clicks: number;
+  saves: number;
+  /** views per upcoming published event — the demand-vs-supply signal. Null
+   *  when there's no upcoming supply (intensity is undefined, not zero). */
+  intensity: number | null;
+  /** ticket-click-through on views (0..1); 0 when there were no views. */
+  ctr: number;
+}
+
+export interface DemandReport {
+  /** Sorted by intensity desc (under-served first); no-supply rows last. */
+  cells: DemandCell[];
+  totalViews: number;
+  totalClicks: number;
+  totalSaves: number;
+  /** False until there's enough signal to read — honest emptiness: don't
+   *  render a grid of near-zeros and imply it means something. */
+  hasSignal: boolean;
+}
+
+/** Minimum total views before the demand table is worth showing. */
+export const DEMAND_MIN_VIEWS = 50;
+
+export function assessDemand(
+  demand: CategoryDemand[],
+  publishedByCategory: Record<CategoryKey, number>,
+): DemandReport {
+  const byCat = new Map<CategoryKey, CategoryDemand>();
+  for (const d of demand) {
+    if (CATEGORY_KEYS.includes(d.category)) byCat.set(d.category, d);
+  }
+
+  const cells: DemandCell[] = CATEGORY_KEYS.map((category) => {
+    const d = byCat.get(category) ?? { category, views: 0, clicks: 0, saves: 0 };
+    const published = publishedByCategory[category] ?? 0;
+    return {
+      category,
+      label: CATEGORIES[category].label,
+      published,
+      views: d.views,
+      clicks: d.clicks,
+      saves: d.saves,
+      intensity: published > 0 ? d.views / published : null,
+      ctr: d.views > 0 ? d.clicks / d.views : 0,
+    };
+  });
+
+  cells.sort((a, b) => {
+    if (a.intensity === null && b.intensity === null) return b.views - a.views;
+    if (a.intensity === null) return 1; // no-supply rows sink
+    if (b.intensity === null) return -1;
+    return b.intensity - a.intensity;
+  });
+
+  const totalViews = cells.reduce((s, c) => s + c.views, 0);
+  return {
+    cells,
+    totalViews,
+    totalClicks: cells.reduce((s, c) => s + c.clicks, 0),
+    totalSaves: cells.reduce((s, c) => s + c.saves, 0),
+    hasSignal: totalViews >= DEMAND_MIN_VIEWS,
+  };
+}

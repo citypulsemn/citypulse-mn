@@ -1,15 +1,20 @@
 import { describe, it, expect } from "vitest";
 import {
   assessCoverage,
+  assessDemand,
   weekBuckets,
   weekStart,
   statusFor,
   formatCoverageAlerts,
   WEEKLY_FLOORS,
+  DEMAND_MIN_VIEWS,
   type CoverageInput,
+  type CategoryDemand,
 } from "../coverage";
 import { CATEGORY_KEYS } from "../categories";
 import type { CategoryKey } from "../types";
+
+const emptyPublished = Object.fromEntries(CATEGORY_KEYS.map((k) => [k, 0])) as Record<CategoryKey, number>;
 
 const NOW = new Date("2026-07-15T09:00:00-05:00"); // a Wednesday
 
@@ -165,5 +170,70 @@ describe("WEEKLY_FLOORS", () => {
       if (c === "music") continue;
       expect(WEEKLY_FLOORS.music).toBeGreaterThanOrEqual(WEEKLY_FLOORS[c]);
     }
+  });
+});
+
+describe("assessDemand (F1.1) — the demand side, from real Aug 2026 shapes", () => {
+  const demand: CategoryDemand[] = [
+    { category: "music", views: 126, clicks: 11, saves: 0 },
+    { category: "weird", views: 68, clicks: 7, saves: 0 },
+    { category: "festival", views: 136, clicks: 35, saves: 1 },
+    { category: "food", views: 145, clicks: 30, saves: 0 },
+  ];
+  const published = { ...emptyPublished, music: 114, weird: 11, festival: 40, food: 45 };
+
+  it("intensity = views per upcoming event, and sorts under-served categories first", () => {
+    const { cells } = assessDemand(demand, published);
+    // weird: 68/11 = 6.2 (highest); music: 126/114 = 1.1 (lowest of the four).
+    const order = cells.filter((c) => c.views > 0).map((c) => c.category);
+    expect(order[0]).toBe("weird");
+    expect(order.indexOf("weird")).toBeLessThan(order.indexOf("music"));
+    const weird = cells.find((c) => c.category === "weird")!;
+    expect(weird.intensity).toBeCloseTo(68 / 11, 4);
+  });
+
+  it("derives CTR from clicks/views, guarded against divide-by-zero", () => {
+    const { cells } = assessDemand(demand, published);
+    expect(cells.find((c) => c.category === "festival")!.ctr).toBeCloseTo(35 / 136, 6);
+    // a category with no views → ctr 0, never NaN
+    expect(cells.find((c) => c.category === "arts")!.ctr).toBe(0);
+  });
+
+  it("intensity is null (not 0) when a category has demand but no upcoming supply, and such rows sink", () => {
+    // sports: real views but nothing upcoming → intensity null. music: measurable.
+    const report = assessDemand(
+      [
+        { category: "sports", views: 40, clicks: 2, saves: 0 },
+        { category: "music", views: 30, clicks: 3, saves: 0 },
+      ],
+      { ...emptyPublished, music: 20 }, // only music has upcoming supply
+    );
+    const sports = report.cells.find((c) => c.category === "sports")!;
+    expect(sports.intensity).toBeNull();
+    // a measurable row (music) must rank ABOVE the null-intensity sports row,
+    // even though sports has more views — you can't act on unmeasurable demand.
+    expect(report.cells.findIndex((c) => c.category === "music"))
+      .toBeLessThan(report.cells.findIndex((c) => c.category === "sports"));
+  });
+
+  it("every category appears exactly once, even with sparse input", () => {
+    const { cells } = assessDemand(demand, published);
+    expect(cells).toHaveLength(CATEGORY_KEYS.length);
+    expect(new Set(cells.map((c) => c.category)).size).toBe(CATEGORY_KEYS.length);
+  });
+
+  it("honest emptiness: below the view floor, hasSignal is false", () => {
+    const thin = assessDemand([{ category: "music", views: 5, clicks: 0, saves: 0 }], { ...emptyPublished, music: 10 });
+    expect(thin.hasSignal).toBe(false);
+    const real = assessDemand(demand, published);
+    expect(real.totalViews).toBe(475);
+    expect(real.hasSignal).toBe(true); // 475 ≥ DEMAND_MIN_VIEWS
+    expect(DEMAND_MIN_VIEWS).toBeGreaterThan(0);
+  });
+
+  it("totals sum every category's engagement", () => {
+    const r = assessDemand(demand, published);
+    expect(r.totalClicks).toBe(11 + 7 + 35 + 30);
+    expect(r.totalSaves).toBe(1);
   });
 });

@@ -1,5 +1,5 @@
-import { getCoverageEvents } from "@/lib/admin";
-import { assessCoverage, WEEKLY_FLOORS } from "@/lib/coverage";
+import { getCoverageEvents, getCategoryDemand } from "@/lib/admin";
+import { assessCoverage, assessDemand, WEEKLY_FLOORS } from "@/lib/coverage";
 import { CATEGORIES, CATEGORY_KEYS } from "@/lib/categories";
 
 export const dynamic = "force-dynamic";
@@ -7,6 +7,9 @@ export const dynamic = "force-dynamic";
 export default async function AdminCoveragePage() {
   const events = await getCoverageEvents();
   const report = assessCoverage(events, new Date(), 4);
+  // F1.1 — the demand side: 30-day views/clicks per category, against upcoming
+  // supply (report.totals is the 4-week published count, one shared source).
+  const demand = assessDemand(await getCategoryDemand(30), report.totals);
 
   const empties = report.alerts.filter((a) => a.status === "empty");
   const thins = report.alerts.filter((a) => a.status === "thin");
@@ -90,6 +93,59 @@ export default async function AdminCoveragePage() {
             Pipeline tab for agent failures in that category.
           </p>
         </>
+      )}
+
+      {/* F1.1 — demand: is the supply we have earning its keep? */}
+      <h3 className="admin-subhead">Demand (last 30 days)</h3>
+      {demand.hasSignal ? (
+        <>
+          <p className="admin-note">
+            Views and ticket clicks per category, against upcoming supply. Sorted by
+            <strong> views per upcoming event</strong> — the top rows are where readers
+            want more than we currently offer; the bottom rows are well-supplied but
+            quiet. This is a supply signal, not a verdict.
+          </p>
+          <div className="cov-wrap">
+            <table className="cov-table">
+              <thead>
+                <tr>
+                  <th>Category</th>
+                  <th>Upcoming</th>
+                  <th>Views</th>
+                  <th>Ticket clicks</th>
+                  <th>CTR</th>
+                  <th>Views / event</th>
+                </tr>
+              </thead>
+              <tbody>
+                {demand.cells.map((c) => (
+                  <tr key={c.category}>
+                    <td className="cov-cat">
+                      <span className="dot" style={{ background: CATEGORIES[c.category].color }} />
+                      {c.label}
+                    </td>
+                    <td className="cov-num">{c.published}</td>
+                    <td className="cov-num">{c.views}</td>
+                    <td className="cov-num">{c.clicks}</td>
+                    <td className="cov-num">{c.views > 0 ? `${Math.round(c.ctr * 100)}%` : "—"}</td>
+                    <td className="cov-num cov-intensity">
+                      {c.intensity === null ? "—" : c.intensity.toFixed(1)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div className="cov-legend">
+            {demand.totalViews} views · {demand.totalClicks} ticket clicks · {demand.totalSaves} saves
+            {" "}across all categories (30 days).
+          </div>
+        </>
+      ) : (
+        <p className="admin-note">
+          Not enough engagement data yet to read demand ({demand.totalViews} views in 30
+          days). This fills in as visits accumulate — check back once the numbers climb.
+        </p>
       )}
     </div>
   );

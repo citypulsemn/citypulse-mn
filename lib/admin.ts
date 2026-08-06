@@ -4,7 +4,7 @@ import { sampleEvents } from "./sample-events";
 import { searchEvents } from "./search";
 import { parseBasicAuth, safeEqual } from "./admin-auth";
 import type { EventRecord, EventStatus } from "./types";
-import type { CoverageInput } from "./coverage";
+import type { CoverageInput, CategoryDemand } from "./coverage";
 
 export type AdminEvent = EventRecord & { createdLabel?: string };
 
@@ -325,4 +325,31 @@ export async function getCoverageEvents(days = 35): Promise<CoverageInput[]> {
       and start_at >= now() - interval '7 days'
       and start_at <= now() + (${days} || ' days')::interval
   `;
+}
+
+/**
+ * Per-category engagement over the last `days` days (roadmap F1.1) — the demand
+ * side of the coverage grid. Counts stats for events REGARDLESS of current
+ * status (a view on a now-archived event still measures interest in the
+ * category). Never-break: [] on no-DB or failure, so /admin/coverage degrades
+ * to its honest "not enough data" state rather than 500ing.
+ */
+export async function getCategoryDemand(days = 30): Promise<CategoryDemand[]> {
+  if (!sql) return [];
+  try {
+    return await sql<CategoryDemand[]>`
+      select
+        e.category,
+        coalesce(sum(s.count) filter (where s.action = 'view'), 0)::int as views,
+        coalesce(sum(s.count) filter (where s.action = 'ticket_click'), 0)::int as clicks,
+        coalesce(sum(s.count) filter (where s.action = 'save'), 0)::int as saves
+      from event_stats s
+      join events e on e.id = s.event_id
+      where s.day >= (now() at time zone 'America/Chicago')::date - (${days - 1})::int
+      group by e.category
+    `;
+  } catch (err) {
+    console.error("[admin] getCategoryDemand failed (empty demand):", err);
+    return [];
+  }
 }
