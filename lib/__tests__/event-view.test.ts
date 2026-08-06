@@ -13,6 +13,7 @@ import {
   directionsUrl,
   longDate,
   isValidDayKey,
+  adjacentDayKeys,
 } from "../event-view";
 import type { EventRecord } from "../types";
 
@@ -275,5 +276,21 @@ describe("isValidDayKey", () => {
     expect(isValidDayKey("2026-13-01")).toBe(false);
     expect(isValidDayKey("2026-02-30")).toBe(false);
     expect(isValidDayKey("garbage")).toBe(false);
+  });
+});
+
+describe("adjacentDayKeys (UX9 day prev/next)", () => {
+  it("steps one day either side", () => {
+    expect(adjacentDayKeys("2026-07-15")).toEqual({ prev: "2026-07-14", next: "2026-07-16" });
+  });
+  it("crosses a month boundary", () => {
+    expect(adjacentDayKeys("2026-07-31")).toEqual({ prev: "2026-07-30", next: "2026-08-01" });
+    expect(adjacentDayKeys("2026-08-01")).toEqual({ prev: "2026-07-31", next: "2026-08-02" });
+  });
+  it("crosses a year boundary", () => {
+    expect(adjacentDayKeys("2026-12-31")).toEqual({ prev: "2026-12-30", next: "2027-01-01" });
+  });
+  it("handles a leap day", () => {
+    expect(adjacentDayKeys("2028-02-29")).toEqual({ prev: "2028-02-28", next: "2028-03-01" });
   });
 });

@@ -6,7 +6,7 @@ import { EventDayCard } from "@/components/EventDayCard";
 import { getEvents } from "@/lib/events";
 import { cityBySlug, matchCitySlug } from "@/lib/cities";
 import { NEIGHBORHOODS } from "@/lib/neighborhoods";
-import { daysSpanned } from "@/lib/dates";
+import { isUpcoming } from "@/lib/dates";
 
 export const revalidate = 300;
 
@@ -45,15 +45,10 @@ export default async function CityPage({
   const c = cityBySlug(slug);
   if (!c) notFound();
 
-  const now = Date.now();
+  const now = new Date();
   const events = (await getEvents())
     .filter((e) => e.status === "published" && matchCitySlug(e.city) === c.slug)
-    .filter((e) => {
-      const start = new Date(e.start).getTime();
-      const spanEnd = daysSpanned(e).at(-1);
-      const end = spanEnd ? new Date(`${spanEnd}T23:59`).getTime() : start;
-      return !Number.isNaN(start) && Math.max(start, end) >= now;
-    })
+    .filter((e) => isUpcoming(e, now)) // UX9 — same predicate as the index count
     .sort((a, b) => a.start.localeCompare(b.start));
 
   // Core cities: which of their districts have something coming up?

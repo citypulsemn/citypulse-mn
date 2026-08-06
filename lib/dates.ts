@@ -103,6 +103,27 @@ export function eventsInWindow(
     .sort((a, b) => evDate(a).getTime() - evDate(b).getTime());
 }
 
+/**
+ * UX9 — cross-month search. When the current window shows no matches, are there
+ * matching events in a LATER window? Returns the count of matches whose start is
+ * after `win.end` and the earliest such date, so the UI can offer "N matches
+ * starting September →" instead of a dead-end "no matches". `events` should
+ * already be query/price/area-narrowed; category (`active`) is applied here to
+ * mirror eventsInWindow. Null when nothing lies ahead.
+ */
+export function matchesAfterWindow(
+  events: EventRecord[],
+  active: Set<CategoryKey>,
+  win: DateWindow,
+): { count: number; firstDate: Date } | null {
+  const ahead = events
+    .filter((ev) => active.has(ev.category))
+    .filter((ev) => evDate(ev) > win.end)
+    .sort((a, b) => evDate(a).getTime() - evDate(b).getTime());
+  if (ahead.length === 0) return null;
+  return { count: ahead.length, firstDate: evDate(ahead[0]) };
+}
+
 /** Group a month's events by day key, filtered by active categories. */
 export function eventsByDay(
   events: EventRecord[],
@@ -191,6 +212,25 @@ export function daysSpanned(ev: EventRecord): string[] {
   // its start day only instead of flooding the calendar.
   if (cur <= end) return [start];
   return out;
+}
+
+/**
+ * UX9 — is an event still upcoming/live as of `now`, accounting for multi-day
+ * span? THE single source of truth for "does this event still count today",
+ * shared by the place INDEX counts and their DETAIL lists. They had diverged:
+ * the indexes read only `multiDayEnd` (`e.multiDayEnd ? … : start`), so a slice
+ * whose only live event was on the CLOSING day of an `end`-carried span (no
+ * collapse `multiDayEnd`) counted 0 and vanished, while the detail page — using
+ * daysSpanned — still showed it. daysSpanned derives the span from BOTH sources
+ * (multiDayEnd and a genuinely-later `end`), so routing both through it here
+ * makes the count and the list agree by construction.
+ */
+export function isUpcoming(ev: EventRecord, now: Date): boolean {
+  const startMs = new Date(ev.start).getTime();
+  if (Number.isNaN(startMs)) return false;
+  const lastDay = daysSpanned(ev).at(-1)!; // always ≥ 1 entry (the start day)
+  const endMs = new Date(`${lastDay}T23:59`).getTime();
+  return Math.max(startMs, endMs) >= now.getTime();
 }
 
 /**

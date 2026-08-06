@@ -15,7 +15,8 @@ import {
   staticMapUrl,
 } from "@/lib/venue-pages";
 import { neighborhoodOf } from "@/lib/neighborhoods";
-import { daysSpanned } from "@/lib/dates";
+import { matchCitySlug } from "@/lib/cities";
+import { isUpcoming } from "@/lib/dates";
 import { SITE_URL } from "@/lib/seo/site";
 import { jsonLdSafe } from "@/lib/seo/event-jsonld";
 
@@ -62,15 +63,14 @@ export default async function VenuePage({
     (e) => e.status === "published" && matchVenueSlug(e.venue) === v.slug,
   );
 
-  const now = Date.now();
+  const now = new Date();
   const upcoming = all
-    .filter((e) => {
-      const start = new Date(e.start).getTime();
-      const spanEnd = daysSpanned(e).at(-1);
-      const end = spanEnd ? new Date(`${spanEnd}T23:59`).getTime() : start;
-      return !Number.isNaN(start) && Math.max(start, end) >= now;
-    })
+    .filter((e) => isUpcoming(e, now)) // UX9 — same predicate as the index count
     .sort((a, b) => a.start.localeCompare(b.start));
+
+  // UX9 — cross-link the venue's city to its city page (when one exists), the
+  // sibling of the neighborhood link that was already here.
+  const citySlug = matchCitySlug(v.city);
 
   // Derived facts about the room (from ALL its events, past included —
   // history knows where the building is even in a quiet week).
@@ -112,7 +112,9 @@ export default async function VenuePage({
           <div className="dayhdr-eyebrow">{v.city} · venue</div>
           <h1 className="dayhdr-title">{v.name}</h1>
           <div className="dayhdr-count">
-            {address ? `${address}, ${v.city}, MN` : `${v.city}, MN`}
+            {address ? `${address}, ` : ""}
+            {citySlug ? <a href={`/cities/${citySlug}`}>{v.city}</a> : v.city}
+            {", MN"}
             {nbhd && (
               <span className="nbhd-chip">
                 <a href={`/neighborhoods/${nbhd.key}`}>{nbhd.label}</a>

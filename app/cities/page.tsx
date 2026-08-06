@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { TopBar } from "@/components/TopBar";
 import { SiteFooter } from "@/components/SiteFooter";
 import { getEvents } from "@/lib/events";
+import { isUpcoming } from "@/lib/dates";
 import { CITY_PAGES, matchCitySlug, areaLabel } from "@/lib/cities";
 import type { AreaKey } from "@/lib/areas";
 
@@ -24,13 +25,12 @@ export const metadata: Metadata = {
  */
 export default async function CitiesPage() {
   const events = await getEvents();
-  const now = Date.now();
+  const now = new Date();
   const counts = new Map<string, number>();
   for (const e of events) {
     if (e.status !== "published") continue;
-    const start = new Date(e.start).getTime();
-    const end = e.multiDayEnd ? new Date(e.multiDayEnd).getTime() : start;
-    if (Number.isNaN(start) || Math.max(start, end) < now) continue;
+    // UX9 — span-aware, shared with the detail page (see lib/dates isUpcoming).
+    if (!isUpcoming(e, now)) continue;
     const slug = matchCitySlug(e.city);
     if (slug) counts.set(slug, (counts.get(slug) ?? 0) + 1);
   }

@@ -2,13 +2,15 @@ import { describe, it, expect } from "vitest";
 import {
   rangeWindow,
   eventsInWindow,
+  matchesAfterWindow,
   classifyDay,
   isFocus,
   dkey,
 } from "../dates";
 import { sampleEvents } from "../sample-events";
 import { CATEGORY_KEYS } from "../categories";
-import type { CategoryKey, ViewState } from "../types";
+import type { CategoryKey, EventRecord, ViewState } from "../types";
+import { isUpcoming } from "../dates";
 
 // Deterministic "now": Sunday, June 14, 2026, noon.
 const NOW = new Date("2026-06-14T12:00:00");
@@ -135,5 +137,71 @@ describe("isFocus", () => {
     expect(isFocus("today")).toBe(true);
     expect(isFocus("weekend")).toBe(true);
     expect(isFocus("week")).toBe(true);
+  });
+});
+
+describe("isUpcoming (UX9 span-aware index/detail predicate)", () => {
+  const NOWD = new Date("2026-08-06T15:00:00");
+  const mk = (over: Partial<EventRecord>): EventRecord => ({ ...sampleEvents[0], ...over });
+
+  it("an end-carried span counts on its CLOSING day (the vanishing-slice bug)", () => {
+    // start is 5 days past, no collapse multiDayEnd — the span lives in `end`.
+    // The old index predicate (multiDayEnd ? … : start) dropped this to count 0.
+    const ev = mk({ start: "2026-08-01T19:00", end: "2026-08-06T18:00", multiDayEnd: null });
+    expect(isUpcoming(ev, NOWD)).toBe(true);
+  });
+
+  it("a collapse multiDayEnd span also counts on its closing day", () => {
+    const ev = mk({ start: "2026-08-01T00:00", end: "2026-08-01T23:59", multiDayEnd: "2026-08-06T23:59" });
+    expect(isUpcoming(ev, NOWD)).toBe(true);
+  });
+
+  it("a single-day event yesterday is not upcoming", () => {
+    const ev = mk({ start: "2026-08-05T20:00", end: "2026-08-05T23:00", multiDayEnd: null });
+    expect(isUpcoming(ev, NOWD)).toBe(false);
+  });
+
+  it("a single-day event later today is upcoming through end of day", () => {
+    const ev = mk({ start: "2026-08-06T20:00", end: "2026-08-06T23:00", multiDayEnd: null });
+    expect(isUpcoming(ev, NOWD)).toBe(true);
+  });
+
+  it("a future event is upcoming", () => {
+    const ev = mk({ start: "2026-09-01T20:00", end: "2026-09-01T23:00", multiDayEnd: null });
+    expect(isUpcoming(ev, NOWD)).toBe(true);
+  });
+
+  it("an invalid start is never upcoming", () => {
+    const ev = mk({ start: "not-a-date", end: "", multiDayEnd: null });
+    expect(isUpcoming(ev, NOWD)).toBe(false);
+  });
+});
+
+describe("matchesAfterWindow (UX9 cross-month search)", () => {
+  it("returns null when nothing starts after the window", () => {
+    // Sample data is entirely June → a June-month window has no 'after'.
+    const w = rangeWindow(NOW, view("month"));
+    expect(matchesAfterWindow(sampleEvents, ALL, w)).toBeNull();
+  });
+
+  it("counts matches after a narrow window and points at the earliest", () => {
+    const w = rangeWindow(NOW, view("today")); // Jun 14
+    const ahead = matchesAfterWindow(sampleEvents, ALL, w);
+    expect(ahead).not.toBeNull();
+    const after = sampleEvents.filter((e) => new Date(e.start) > w.end);
+    expect(ahead!.count).toBe(after.length);
+    const earliest = Math.min(...after.map((e) => new Date(e.start).getTime()));
+    expect(ahead!.firstDate.getTime()).toBe(earliest);
+    expect(ahead!.firstDate.getTime()).toBeGreaterThan(w.end.getTime());
+  });
+
+  it("respects the active category set", () => {
+    const w = rangeWindow(NOW, view("today"));
+    const onlySports = new Set<CategoryKey>(["sports"]);
+    const ahead = matchesAfterWindow(sampleEvents, onlySports, w);
+    const after = sampleEvents.filter(
+      (e) => e.category === "sports" && new Date(e.start) > w.end,
+    );
+    expect(ahead?.count ?? 0).toBe(after.length);
   });
 });

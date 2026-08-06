@@ -179,6 +179,20 @@ export function longDate(dayKey: string): string {
   return `${DOW[dt.getDay()]}, ${MONTHS[dt.getMonth()]} ${d}, ${y}`;
 }
 
+/**
+ * UX9 — the day pages had no way to step to the day on either side; a visitor
+ * who landed on one via search or a share was stranded. The previous/next day
+ * keys (noon-UTC anchored so DST never shifts the date), for prev/next links.
+ */
+export function adjacentDayKeys(dayKey: string): { prev: string; next: string } {
+  const at = (delta: number) => {
+    const d = new Date(`${dayKey}T12:00:00Z`);
+    d.setUTCDate(d.getUTCDate() + delta);
+    return d.toISOString().slice(0, 10);
+  };
+  return { prev: at(-1), next: at(1) };
+}
+
 /** Validates a YYYY-MM-DD route param corresponds to a real date. */
 export function isValidDayKey(s: string): boolean {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) return false;

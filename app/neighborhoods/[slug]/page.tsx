@@ -7,7 +7,7 @@ import { EventDayCard } from "@/components/EventDayCard";
 import { FeedSubscribe } from "@/components/FeedSubscribe";
 import { getEvents } from "@/lib/events";
 import { neighborhoodByKey } from "@/lib/neighborhoods";
-import { daysSpanned } from "@/lib/dates";
+import { isUpcoming } from "@/lib/dates";
 import { matchCitySlug } from "@/lib/cities";
 
 export const revalidate = 300;
@@ -52,15 +52,10 @@ export default async function NeighborhoodPage({
   const n = neighborhoodByKey(slug);
   if (!n) notFound();
 
-  const now = Date.now();
+  const now = new Date();
   const events = (await getEvents())
     .filter((e) => e.status === "published" && e.neighborhood === n.key)
-    .filter((e) => {
-      const start = new Date(e.start).getTime();
-      const spanEnd = daysSpanned(e).at(-1);
-      const end = spanEnd ? new Date(`${spanEnd}T23:59`).getTime() : start;
-      return !Number.isNaN(start) && Math.max(start, end) >= now;
-    })
+    .filter((e) => isUpcoming(e, now)) // UX9 — same predicate as the index count
     .sort((a, b) => a.start.localeCompare(b.start));
 
   return (

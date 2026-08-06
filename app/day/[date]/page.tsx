@@ -6,7 +6,7 @@ import { TopBar } from "@/components/TopBar";
 import { SiteFooter } from "@/components/SiteFooter";
 import { dayItemListJsonLd, jsonLdSafe } from "@/lib/seo/event-jsonld";
 import { SITE_URL } from "@/lib/seo/site";
-import { isValidDayKey, longDate } from "@/lib/event-view";
+import { isValidDayKey, longDate, adjacentDayKeys } from "@/lib/event-view";
 
 export const revalidate = 300;
 
@@ -41,6 +41,7 @@ export default async function DayPage({
   if (!isValidDayKey(date)) notFound();
 
   const events = await getEventsForDay(date);
+  const { prev, next } = adjacentDayKeys(date);
 
   return (
     <>
@@ -63,6 +64,16 @@ export default async function DayPage({
               ? "No events listed for this day yet."
               : `${events.length} event${events.length > 1 ? "s" : ""}`}
           </div>
+          {/* UX9 — step to the neighbouring day; a day page is no longer a
+              dead-end when someone arrives on it from search or a share. */}
+          <nav className="day-nav" aria-label="Nearby days">
+            <a className="day-nav-link" href={`/day/${prev}`} rel="prev">
+              ← {longDate(prev)}
+            </a>
+            <a className="day-nav-link" href={`/day/${next}`} rel="next">
+              {longDate(next)} →
+            </a>
+          </nav>
         </div>
 
         {events.length > 0 ? (

@@ -7,8 +7,10 @@ import {
   dkey,
   evDate,
   eventsInWindow,
+  matchesAfterWindow,
   rangeWindow,
   daysSpanned,
+  MONTHS,
 } from "@/lib/dates";
 import { searchEvents } from "@/lib/search";
 import { applyPriceArea } from "@/lib/filters";
@@ -91,6 +93,14 @@ export function EventsExplorer({
   const isFiltering = isSearching || filtersActive;
   const matchCount = windowedEvents.length;
 
+  // UX9 — cross-month search: when the current window is empty but the query
+  // (or filters) DO match events further out, offer a jump instead of a
+  // dead-end "no matches". Only computed when the window is empty.
+  const ahead = useMemo(
+    () => (isFiltering && matchCount === 0 ? matchesAfterWindow(filtered, active, win) : null),
+    [isFiltering, matchCount, filtered, active, win],
+  );
+
   const dayEvents = useMemo(() => {
     if (!dayKey) return [];
     // MUST match the calendar cells' rule (eventsByDay → daysSpanned): the cell
@@ -164,6 +174,15 @@ export function EventsExplorer({
   function openDetail(ev: EventRecord, surface: "calendar" | "map") {
     track("event_open", { id: ev.id, category: ev.category, surface });
     setDetail(ev);
+  }
+
+  // UX9 — jump the window to the month holding the next matching event, keeping
+  // the query/filters in place so those matches are what shows on arrival.
+  function jumpToMonth(target: Date) {
+    track("search_jump", { to: dkey(target) });
+    setRange("month");
+    setYear(target.getFullYear());
+    setMonth(target.getMonth());
   }
 
   function handleMonth(delta: number) {
@@ -245,10 +264,30 @@ export function EventsExplorer({
                   ) : (
                     <>No events match these filters</>
                   )}
-                  {view === "calendar" ? " in this range" : ""} ·{" "}
-                  <button className="linklike" onClick={clearAll}>
-                    clear all
-                  </button>
+                  {view === "calendar" ? " in this range" : ""}
+                  {ahead ? (
+                    <>
+                      {" · "}
+                      <button
+                        className="linklike"
+                        onClick={() => jumpToMonth(ahead.firstDate)}
+                      >
+                        {ahead.count} match{ahead.count === 1 ? "" : "es"} in{" "}
+                        {MONTHS[ahead.firstDate.getMonth()]}
+                        {ahead.firstDate.getFullYear() !== now.getFullYear()
+                          ? ` ${ahead.firstDate.getFullYear()}`
+                          : ""}{" "}
+                        →
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      {" · "}
+                      <button className="linklike" onClick={clearAll}>
+                        clear all
+                      </button>
+                    </>
+                  )}
                 </>
               )}
             </div>

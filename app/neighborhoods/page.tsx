@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { TopBar } from "@/components/TopBar";
 import { SiteFooter } from "@/components/SiteFooter";
 import { getEvents } from "@/lib/events";
+import { isUpcoming } from "@/lib/dates";
 import { NEIGHBORHOODS } from "@/lib/neighborhoods";
 
 export const revalidate = 300;
@@ -22,13 +23,13 @@ export const metadata: Metadata = {
  */
 export default async function NeighborhoodsPage() {
   const events = await getEvents();
-  const now = Date.now();
+  const now = new Date();
   const counts = new Map<string, number>();
   for (const e of events) {
     if (e.status !== "published" || !e.neighborhood) continue;
-    const start = new Date(e.start).getTime();
-    const end = e.multiDayEnd ? new Date(e.multiDayEnd).getTime() : start;
-    if (Number.isNaN(start) || Math.max(start, end) < now) continue;
+    // UX9 — span-aware, shared with the detail page: a festival still running
+    // on its closing day counts here too, so the district card doesn't vanish.
+    if (!isUpcoming(e, now)) continue;
     counts.set(e.neighborhood, (counts.get(e.neighborhood) ?? 0) + 1);
   }
 
