@@ -6,6 +6,7 @@ import { SaveButton } from "./SaveButton";
 import { isMultiDay, multiDayLabel, runLength } from "@/lib/multiday";
 import { neighborhoodByKey } from "@/lib/neighborhoods";
 import { matchVenueSlug } from "@/lib/venue-pages";
+import { eventTimeState, timeStateLabel, isDeadEvent } from "@/lib/event-view";
 import type { EventRecord } from "@/lib/types";
 import type { ReactNode } from "react";
 
@@ -31,8 +32,28 @@ export function EventDetailBody({
   const d = new Date(event.start);
   const hasRange = Boolean(event.end) && event.end !== event.start;
 
+  // UX1 — the body owns the event's status so the page AND the modal agree
+  // (the modal never had a time-state banner before this). A dead event —
+  // cancelled, or already ended/archived — must not offer live actions.
+  const now = new Date();
+  const cancelled = event.status === "cancelled";
+  const timeState = cancelled
+    ? null
+    : event.status === "archived"
+      ? ({ kind: "ended" } as const)
+      : eventTimeState(event, now);
+  const bannerClass =
+    timeState?.kind === "ended" ? "ended" : timeState?.kind === "now" ? "live" : "soon";
+  const dead = isDeadEvent(event, now);
+
   return (
     <>
+      {cancelled && (
+        <div className="evt-banner cancelled">This event has been cancelled.</div>
+      )}
+      {timeState && timeStateLabel(timeState) && (
+        <div className={`evt-banner ${bannerClass}`}>{timeStateLabel(timeState)}</div>
+      )}
       <div className="detail-img" style={{ background: bgStyle(event.image) }} />
       <div className="detail-body">
         <div className="detail-cat" style={{ color: cat.color }}>
@@ -92,17 +113,21 @@ export function EventDetailBody({
               </div>
             </div>
           </div>
-          <div className="drow">
-            <div className="ic">＄</div>
-            <div>
-              <div className="dk">Price</div>
-              <div className="dv">{event.price}</div>
+          {event.price && (
+            <div className="drow">
+              <div className="ic">＄</div>
+              <div>
+                <div className="dk">Price</div>
+                <div className="dv">{event.price}</div>
+              </div>
             </div>
-          </div>
+          )}
         </div>
         {event.description && <div className="detail-desc">{event.description}</div>}
-        <TicketButton event={event} />
-        {event.status !== "archived" && (
+        {/* UX1 — a dead event shows no live CTA; the banner above explains why.
+            Share (in `actions`) stays so the page is still useful when shared. */}
+        {!dead && <TicketButton event={event} />}
+        {!dead && (
           <div className="detail-save-row">
             <SaveButton eventId={event.id} />
             <AddToCalendar event={event} />

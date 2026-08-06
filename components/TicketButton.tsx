@@ -11,11 +11,9 @@ import type { EventRecord } from "@/lib/types";
  */
 export function TicketButton({ event }: { event: EventRecord }) {
   if (!event.ticketUrl) {
-    return (
-      <span className="ticket-btn" style={{ opacity: 0.5, cursor: "default" }}>
-        Details to come
-      </span>
-    );
+    // UX1 — a quiet, clearly non-interactive note, not a faded gold button
+    // (which read as broken / disabled).
+    return <p className="ticket-note">Ticket details coming soon.</p>;
   }
   return (
     <a

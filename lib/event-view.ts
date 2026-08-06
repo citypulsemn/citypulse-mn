@@ -108,6 +108,20 @@ export function timeStateLabel(state: EventTimeState): string | null {
   }
 }
 
+/**
+ * "Dead" = the event can no longer be attended, so the detail page must NOT
+ * offer live actions (buy tickets, save, add-to-calendar). True when cancelled,
+ * archived, or already ended by the clock (UX1). The banner still explains
+ * WHICH — this is only the gate for the action buttons.
+ */
+export function isDeadEvent(
+  event: Pick<EventRecord, "status" | "start" | "end" | "multiDayEnd" | "allDay">,
+  now: Date,
+): boolean {
+  if (event.status === "cancelled" || event.status === "archived") return true;
+  return eventTimeState(event, now).kind === "ended";
+}
+
 /** A ~200-char meta/OG description for an event page. */
 export function eventMetaDescription(event: EventRecord): string {
   const d = new Date(event.start);

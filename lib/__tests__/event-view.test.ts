@@ -1,10 +1,13 @@
 import { describe, it, expect } from "vitest";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import {
   isPublicStatus,
   dayKeyOf,
   isEnded,
   eventTimeState,
   timeStateLabel,
+  isDeadEvent,
   eventMetaDescription,
   staticMapUrl,
   longDate,
@@ -140,6 +143,53 @@ describe("eventTimeState (F2.1 — three honest states, riding R0.1's fixtures)"
     const jan = ev({ start: "2027-01-10T19:00", end: "" });
     const state = eventTimeState(jan, new Date("2027-01-10T23:00:00Z")); // 5 PM CST
     expect(state).toEqual({ kind: "soon", minutesUntil: 120 });
+  });
+});
+
+describe("isDeadEvent (UX1) — when the detail page must hide live actions", () => {
+  const now = new Date("2026-07-20T23:00:00Z"); // 6 PM CDT, Jul 20
+
+  it("cancelled and archived are always dead, regardless of clock", () => {
+    expect(isDeadEvent(ev({ status: "cancelled", start: "2026-08-01T19:00" }), now)).toBe(true);
+    expect(isDeadEvent(ev({ status: "archived", start: "2026-08-01T19:00" }), now)).toBe(true);
+  });
+
+  it("a published event already past its end is dead", () => {
+    expect(isDeadEvent(ev({ start: "2026-07-19T20:00", end: "2026-07-19T23:00" }), now)).toBe(true);
+  });
+
+  it("a live or upcoming published event is NOT dead", () => {
+    // happening now (7-10 PM, it's 6 PM... upcoming) and clearly future
+    expect(isDeadEvent(ev({ start: "2026-07-20T19:00", end: "2026-07-20T22:00" }), now)).toBe(false);
+    expect(isDeadEvent(ev({ start: "2026-08-01T19:00", end: "2026-08-01T22:00" }), now)).toBe(false);
+  });
+
+  it("a multi-day run still in progress is NOT dead (true spans)", () => {
+    const run = ev({ start: "2026-07-18T10:00", end: "2026-07-18T18:00", multiDayEnd: "2026-07-25T23:59" });
+    expect(isDeadEvent(run, now)).toBe(false);
+  });
+});
+
+describe("UX1 wiring — the body owns status; dead events show no live CTA", () => {
+  const root = join(__dirname, "..", "..");
+  const body = readFileSync(join(root, "components", "EventDetailBody.tsx"), "utf8");
+  const page = readFileSync(join(root, "app", "event", "[id]", "page.tsx"), "utf8");
+
+  it("EventDetailBody gates the ticket CTA and the save/calendar row on !dead", () => {
+    expect(body).toContain("const dead = isDeadEvent(event, now)");
+    expect(body).toContain("{!dead && <TicketButton");
+    expect(body).toContain("{!dead && (");
+    // the old archived-only gate is gone
+    expect(body).not.toContain('event.status !== "archived"');
+  });
+
+  it("the banner moved into the body (page no longer renders its own)", () => {
+    expect(body).toContain("evt-banner cancelled");
+    expect(page).not.toContain("evt-banner cancelled");
+  });
+
+  it("the price row is omitted when price is empty (honest emptiness)", () => {
+    expect(body).toContain("{event.price && (");
   });
 });
 

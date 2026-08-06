@@ -12,12 +12,9 @@ import { eventJsonLd, jsonLdSafe } from "@/lib/seo/event-jsonld";
 import { SITE_URL } from "@/lib/seo/site";
 import {
   dayKeyOf,
-  eventTimeState,
-  timeStateLabel,
   eventMetaDescription,
   staticMapUrl,
   longDate,
-  type EventTimeState,
 } from "@/lib/event-view";
 
 export const revalidate = 300;
@@ -64,18 +61,8 @@ export default async function EventPage({
   const event = await getEvent(id);
   if (!event) notFound();
 
-  const now = new Date();
-  const cancelled = event.status === "cancelled";
-  // F2.1 — three honest states instead of the ended/not binary. An archived
-  // row is always "ended" regardless of clock; cancelled outranks everything.
-  const timeState: EventTimeState | null = cancelled
-    ? null
-    : event.status === "archived"
-      ? { kind: "ended" }
-      : eventTimeState(event, now);
-  const bannerClass =
-    timeState?.kind === "ended" ? "ended" : timeState?.kind === "now" ? "live" : "soon";
-
+  // UX1 — the cancelled/time-state banner and the dead-event action gating now
+  // live inside EventDetailBody, so the page and the in-app modal never drift.
   const dayKey = dayKeyOf(event);
   const all = await getEvents();
   const siblings = (await getEventsForDay(dayKey))
@@ -106,12 +93,6 @@ export default async function EventPage({
 
       <main className="wrap page">
         <article className="marquee page-card">
-          {cancelled && (
-            <div className="evt-banner cancelled">This event has been cancelled.</div>
-          )}
-          {timeState && timeStateLabel(timeState) && (
-            <div className={`evt-banner ${bannerClass}`}>{timeStateLabel(timeState)}</div>
-          )}
           {/* First-party view counter (roadmap 5.1): client-side so
               prefetches and non-JS crawlers do not inflate the numbers. */}
           <StatBeacon eventId={event.id} action="view" />
