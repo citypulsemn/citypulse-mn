@@ -18,6 +18,8 @@ function base(sub: Partial<OpsInputs["subscribers"]>): OpsInputs {
     prevPipeline: null,
     sitemapUrls: 120,
     prevSitemapUrls: 120,
+    search: null,
+    prevSearchImpressions: null,
     errors: {},
   };
 }

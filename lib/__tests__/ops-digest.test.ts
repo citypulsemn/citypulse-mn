@@ -34,6 +34,8 @@ function healthy(overrides: Partial<OpsInputs> = {}): OpsInputs {
     feeds: { clicks7: 9, top: [{ label: "venue-first-avenue", count: 5 }, { label: "live-music", count: 3 }] },
     sitemapUrls: 121,
     prevSitemapUrls: 118,
+    search: null, // default: not wired → manual GSC line (today's state)
+    prevSearchImpressions: null,
     errors: {},
     ...overrides,
   };
@@ -229,6 +231,30 @@ describe("the Index surface section (roadmap 3.1)", () => {
     const { subject, text } = composeOpsDigest(healthy({ sitemapUrls: null }), NOW);
     expect(text).toContain("sitemap not fetched");
     expect(subject).toContain("alert");
+  });
+
+  it("F2.4 not wired (search null): keeps the manual GSC glance line", () => {
+    const { text } = composeOpsDigest(healthy({ search: null }), NOW);
+    expect(text).toContain("demand side: check GSC Pages + Performance");
+    expect(text).not.toContain("GSC impressions");
+  });
+
+  it("F2.4 wired: the demand number reads itself, with WoW, and no manual line", () => {
+    const { text } = composeOpsDigest(
+      healthy({ search: { impressions: 2100, clicks: 84, ctr: 0.04 }, prevSearchImpressions: 1800 }),
+      NOW,
+    );
+    expect(text).toContain("2100 GSC impressions · 84 clicks (7d) (+17% WoW)");
+    expect(text).toContain("indexed count: check GSC Pages");
+    expect(text).not.toContain("demand side: check GSC Pages + Performance");
+  });
+
+  it("F2.4 wired, first impressions week: WoW is 'first report', not a fake delta", () => {
+    const { text } = composeOpsDigest(
+      healthy({ search: { impressions: 2100, clicks: 84, ctr: 0.04 }, prevSearchImpressions: null }),
+      NOW,
+    );
+    expect(text).toContain("2100 GSC impressions · 84 clicks (7d) (first report)");
   });
 });
 

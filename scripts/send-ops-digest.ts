@@ -15,6 +15,7 @@ import { getEngagementStrict, type Engagement } from "../lib/stats";
 import { getTrendingEvents } from "../lib/trending";
 import { getDigestSends } from "../lib/digest-send";
 import { getFeedAdoption } from "../lib/feed-stats";
+import { getSearchImpressions } from "../lib/search-console";
 
 const dryRun = process.argv.includes("--dry-run");
 
@@ -130,6 +131,16 @@ async function gather(): Promise<OpsInputs> {
     return parseStoredTotals(rows[0]?.totals)?.sitemap_urls ?? null;
   });
 
+  // F2.4 — GSC impressions. getSearchImpressions returns null (→ manual line)
+  // when the service account isn't configured, so this is safe pre-wire.
+  const search = await wrap("search", null, () => getSearchImpressions(7));
+  const prevSearchImpressions = await wrap<number | null>("search_prev", null, async () => {
+    if (!sql) throw new Error("no database connection");
+    const rows = await sql<{ totals: unknown }[]>`
+      select totals from ops_digest_runs order by sent_at desc limit 1`;
+    return parseStoredTotals(rows[0]?.totals)?.search_impressions ?? null;
+  });
+
   return {
     pipeline,
     prevPipeline,
@@ -144,6 +155,8 @@ async function gather(): Promise<OpsInputs> {
     feeds,
     sitemapUrls,
     prevSitemapUrls,
+    search,
+    prevSearchImpressions,
     errors,
   };
 }
@@ -188,7 +201,12 @@ async function main() {
       // Baseline for next week's WoW: engagement totals + sitemap size in one
       // jsonb (additive key — old rows without sitemap_urls read as null,
       // which wowLabel renders as "first report").
-      const baseline = { ...inputs.engagement.totals, sitemap_urls: inputs.sitemapUrls ?? undefined };
+      const baseline = {
+        ...inputs.engagement.totals,
+        sitemap_urls: inputs.sitemapUrls ?? undefined,
+        // F2.4 — additive key; absent on old rows → next-week WoW "first report".
+        search_impressions: inputs.search?.impressions ?? undefined,
+      };
       await sql`insert into ops_digest_runs (totals) values (${sql.json(baseline)})`;
       console.log("[ops-digest] WoW baseline recorded");
     } catch (err) {

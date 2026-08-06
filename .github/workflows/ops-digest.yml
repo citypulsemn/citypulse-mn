@@ -38,3 +38,9 @@ jobs:
           # Without this the Index-surface section can never fetch the sitemap
           # in CI — it silently rendered "sitemap not fetched" on every send.
           SITE_URL: https://www.citypulsemn.com
+          # F2.4 — GSC impressions. Empty until the secret is added (Actions
+          # resolves a missing secret to ""), and getSearchImpressions treats an
+          # empty key as "not wired" → the digest's manual GSC line. Adding the
+          # secret in GitHub is the ONLY step to go live. GSC_PROPERTY defaults
+          # to sc-domain:citypulsemn.com; set it only to override.
+          GSC_SERVICE_ACCOUNT_JSON: ${{ secrets.GSC_SERVICE_ACCOUNT_JSON }}

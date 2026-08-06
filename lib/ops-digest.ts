@@ -1,4 +1,5 @@
 import type { Engagement } from "./stats";
+import type { SearchStats } from "./search-console";
 import { esc } from "./digest";
 
 /**
@@ -77,6 +78,10 @@ export interface OpsInputs {
    *  Google actually sees; zero drift by construction) + last week's. */
   sitemapUrls: number | null;
   prevSitemapUrls: number | null;
+  /** F2.4 — GSC impressions/clicks (7d), the Phase 5 demand gate reading
+   *  itself. Null until the service account is wired → the manual GSC line. */
+  search: SearchStats | null;
+  prevSearchImpressions: number | null;
   /** Sections that failed to gather: section key -> reason. Aux reads carry
    *  their own keys (R2.3: `engagement_prev`, `digest_note`, `index_prev`) so
    *  a failed read of LAST week's numbers degrades to "first report" / an
@@ -264,9 +269,9 @@ export function buildSections(inputs: OpsInputs): OpsSection[] {
     out.push({ title: "Trending", lines, alert });
   }
 
-  // 6 — Index surface (roadmap 3.1: the supply side of the indexing loop,
-  // measured automatically; the demand side — indexed count, impressions —
-  // is your weekly GSC glance, per the loop's manual-first design)
+  // 6 — Index surface (roadmap 3.1). Supply side (sitemap URL count) is
+  // measured automatically; the demand side is impressions — automated by F2.4
+  // when the GSC service account is wired, else the manual-glance line.
   {
     let lines: string[];
     let alert = false;
@@ -279,8 +284,18 @@ export function buildSections(inputs: OpsInputs): OpsSection[] {
     } else {
       lines = [
         `${inputs.sitemapUrls} URLs in the live sitemap (${wowLabel(inputs.sitemapUrls, inputs.prevSitemapUrls)})`,
-        "demand side: check GSC Pages + Performance for indexed count & impressions",
       ];
+      if (inputs.search) {
+        // F2.4 — the demand number reads itself. Indexed count stays manual
+        // (not a bulk API read), so the glance line still points at it.
+        const s = inputs.search;
+        lines.push(
+          `${s.impressions} GSC impressions · ${s.clicks} clicks (7d) (${wowLabel(s.impressions, inputs.prevSearchImpressions)})`,
+          "indexed count: check GSC Pages (not API-exposed)",
+        );
+      } else {
+        lines.push("demand side: check GSC Pages + Performance for indexed count & impressions");
+      }
       if (err("index_prev")) lines.push("(last count unreadable — WoW shown as first report)");
     }
     out.push({ title: "Index surface", lines, alert });
