@@ -435,6 +435,17 @@ export function placeBySlug(slug: string): Place | null {
   return PLACES.find((p) => p.slug === slug) ?? null;
 }
 
+/**
+ * Group a set of places by kind, in KIND_META order, dropping empty kinds. For
+ * the "Places in {neighborhood}" strip (P2.2) — the bridge that makes the events
+ * and Places halves of the site feed each other.
+ */
+export function groupPlacesByKind(places: Place[]): { meta: KindMeta; places: Place[] }[] {
+  return (Object.keys(KIND_META) as PlaceKind[])
+    .map((k) => ({ meta: KIND_META[k], places: places.filter((p) => p.kind === k) }))
+    .filter((g) => g.places.length > 0);
+}
+
 /** The kinds that currently have at least one place, with counts and open state
  *  — drives the /places index (no empty kind cards; honest emptiness). */
 export function kindsWithPlaces(now: Date): { meta: KindMeta; count: number; open: boolean }[] {

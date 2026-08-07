@@ -5,6 +5,7 @@ import { TopBar } from "@/components/TopBar";
 import { SiteFooter } from "@/components/SiteFooter";
 import { EventDayCard } from "@/components/EventDayCard";
 import { FeedSubscribe } from "@/components/FeedSubscribe";
+import { NeighborhoodPlaces } from "@/components/NeighborhoodPlaces";
 import { getEvents } from "@/lib/events";
 import { neighborhoodByKey } from "@/lib/neighborhoods";
 import { isUpcoming } from "@/lib/dates";
@@ -89,6 +90,8 @@ export default async function NeighborhoodPage({
             ))}
           </div>
         )}
+
+        <NeighborhoodPlaces neighborhoodKey={n.key} label={n.label} />
 
         <SiteFooter source={`neighborhood-${n.key}`} />
       </main>

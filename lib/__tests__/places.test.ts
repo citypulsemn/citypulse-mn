@@ -7,6 +7,7 @@ import {
   placesByKind,
   placesByNeighborhood,
   placeBySlug,
+  groupPlacesByKind,
   kindsWithPlaces,
   openNow,
   placesStaticMapUrl,
@@ -235,6 +236,43 @@ describe("kind page + components wiring (tripwires)", () => {
   it("the index and kind pages set a canonical", () => {
     expect(read("app/places/page.tsx")).toContain('canonical: "/places"');
     expect(read("app/places/[kind]/page.tsx")).toContain("canonical: path");
+  });
+});
+
+describe("groupPlacesByKind (P2.2 neighborhood strip)", () => {
+  it("groups a neighborhood's places by kind, in KIND_META order, non-empty only", () => {
+    const swl = placesByNeighborhood("southwest-lakes"); // all beaches
+    const groups = groupPlacesByKind(swl);
+    expect(groups.length).toBe(1);
+    expect(groups[0].meta.kind).toBe("beach");
+    expect(groups[0].places.length).toBe(swl.length);
+  });
+
+  it("keeps kinds in KIND_META order and drops empties", () => {
+    const mixed = [placeBySlug("phelps-field-splash-pad")!, placeBySlug("lake-harriet-north-beach")!];
+    const groups = groupPlacesByKind(mixed);
+    // beach is declared before splash-pad in KIND_META
+    expect(groups.map((g) => g.meta.kind)).toEqual(["beach", "splash-pad"]);
+  });
+
+  it("empty in → empty out (honest emptiness)", () => {
+    expect(groupPlacesByKind([])).toEqual([]);
+  });
+});
+
+describe("P2.2 wire-in (tripwires)", () => {
+  const read = (p: string) => readFileSync(join(__dirname, "..", "..", p), "utf8");
+
+  it("the neighborhood page renders the Places strip", () => {
+    expect(read("app/neighborhoods/[slug]/page.tsx")).toContain("<NeighborhoodPlaces");
+  });
+
+  it("the strip links each place into its kind page and honours emptiness", () => {
+    const src = read("components/NeighborhoodPlaces.tsx");
+    expect(src).toContain("placesByNeighborhood");
+    expect(src).toContain("groupPlacesByKind");
+    expect(src).toContain("/places/${p.kind}#${p.slug}");
+    expect(src).toContain("if (places.length === 0) return null");
   });
 });
 
