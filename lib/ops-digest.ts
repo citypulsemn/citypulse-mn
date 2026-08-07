@@ -34,55 +34,81 @@ export interface PipelineRow {
 }
 
 /**
- * Stampede detection (F2.6, recalibrated Aug 2026) — "how R0.2 would have
- * announced itself." A weekly run archives events that fully passed and dedupes
- * near-copies; a FLOOD of either is the fingerprint of a predicate gone wrong.
+ * Stampede detection (F2.6 → recal Aug 2026 → rolling baseline Aug 2026) — "how
+ * R0.2 would have announced itself." A weekly run archives events that fully
+ * passed and dedupes near-copies; a FLOOD of either is the fingerprint of a
+ * predicate gone wrong.
  *
- * The original absolute threshold (archived > 100) cried wolf: the weekly
- * archive count climbs as the calendar grows — 52 → 94 → 115 over Jul–Aug 2026
- * — so Aug 3's healthy 115 tripped a fixed 100. A stampede is a SPIKE, not a
- * fixed number. So fire on either:
- *   - an absolute CEILING (a flood no organic trend could explain), OR
- *   - a SPIKE: well above the FLOOR *and* a large multiple of the last
- *     successful run (the diff the section already shows, promoted to a gate).
- * The floor stops a small week from ratio-spiking (5 → 15 is not a stampede);
- * the ceiling still catches a flood even if the baseline crept up under it.
+ * History of the threshold, each fix paid for in a false signal:
+ *  1. Fixed `archived > 100` cried wolf — the weekly archive count climbs as the
+ *     calendar grows (52 → 94 → 115 over Jul–Aug 2026), so a healthy 115 tripped
+ *     a fixed 100. A stampede is a SPIKE, not a fixed number.
+ *  2. Spike vs the SINGLE previous run was fragile: one anomalous week (a partial
+ *     run that archived almost nothing) made the next normal week look like a
+ *     multiple, or a high prior week masked a real spike.
+ *
+ * Now the baseline is the BUSIEST of the last N successful runs (their max), and
+ * the test is:
+ *   - with a baseline → purely RELATIVE: above the FLOOR *and* ≥ `ratio`× the
+ *     busiest recent week. No fixed number, so it can never go stale as the
+ *     calendar grows.
+ *   - no baseline yet (first run) → the absolute CEILING is the only backstop.
+ * Max, not median: during a growth phase the window reaches back to smaller
+ * early weeks, and a median of those would lag BELOW the current level and flag
+ * healthy growth as a spike (observed on the real 52→94→115 series). The max
+ * tracks the recent high, so organic growth stays quiet, while a single LOW
+ * outlier week (a partial run that archived almost nothing) can't fake a spike
+ * the way a single-prior-run baseline would. The multiplier is 2.0× — a
+ * doubling of the busiest recent week is worth a human look. Truly GRADUAL drift
+ * (a climb that stays under the ratio week over week) is indistinguishable from
+ * growth by count alone — that stays the human verify pass's job, which the
+ * reason names.
  */
 export const PIPELINE_STAMPEDE = {
   archivedFloor: 80,
-  archivedCeiling: 250,
+  archivedCeiling: 250, // no-history backstop only (see isStampede)
   dedupedFloor: 60,
-  dedupedCeiling: 200,
-  ratio: 2.5,
+  dedupedCeiling: 200, // no-history backstop only
+  ratio: 2.0,
+  baselineWindow: 4, // baseline = max over the last N successful runs
 };
 
-/** One stage's stampede test: an absolute ceiling, or a spike well above the
- *  floor and ≥ `ratio`× the last successful run. Pure. `prev` null (first run)
- *  → only the ceiling can fire. */
+/** Rolling stampede baseline: the busiest (max) of the recent successful-run
+ *  counts, or null when there are none. Max — not median — so a growth-phase
+ *  window of smaller early weeks doesn't deflate the baseline and flag healthy
+ *  growth, while a lone low-outlier week still can't fake a spike. Pure. */
+export function recentBaseline(nums: number[]): number | null {
+  const xs = nums.filter((n) => Number.isFinite(n));
+  return xs.length === 0 ? null : Math.max(...xs);
+}
+
+/** One stage's stampede test. With a `baseline` (busiest of recent runs): a spike
+ *  above the floor and ≥ `ratio`× the baseline — purely relative, so growth-proof.
+ *  Without one (first run): only the absolute ceiling can fire. Pure. */
 export function isStampede(
   current: number,
-  prev: number | null | undefined,
+  baseline: number | null | undefined,
   floor: number,
   ceiling: number,
   ratio = PIPELINE_STAMPEDE.ratio,
 ): boolean {
-  if (current >= ceiling) return true;
-  if (prev == null || prev <= 0) return false; // no baseline → ceiling only
-  return current >= floor && current >= ratio * prev;
+  if (baseline == null || baseline <= 0) return current >= ceiling; // no history → absolute backstop
+  return current >= floor && current >= ratio * baseline; // spike vs the recent norm
 }
 
 /** Human reason string if this run looks like a stampede, else null. Shared by
- *  the ops digest and the pipeline log so they agree. */
+ *  the ops digest and the pipeline log so they agree. `recent*` are the last N
+ *  successful runs' counts; their busiest (max) is the baseline. */
 export function stampedeReason(
   archived: number,
   deduped: number,
-  prevArchived: number | null | undefined,
-  prevDeduped: number | null | undefined,
+  recentArchived: number[],
+  recentDeduped: number[],
 ): string | null {
   const S = PIPELINE_STAMPEDE;
   const hits: string[] = [];
-  if (isStampede(archived, prevArchived, S.archivedFloor, S.archivedCeiling)) hits.push(`${archived} archived`);
-  if (isStampede(deduped, prevDeduped, S.dedupedFloor, S.dedupedCeiling)) hits.push(`${deduped} deduped`);
+  if (isStampede(archived, recentBaseline(recentArchived), S.archivedFloor, S.archivedCeiling)) hits.push(`${archived} archived`);
+  if (isStampede(deduped, recentBaseline(recentDeduped), S.dedupedFloor, S.dedupedCeiling)) hits.push(`${deduped} deduped`);
   if (hits.length === 0) return null;
   return `${hits.join(" / ")} this run is unusually high vs recent runs; confirm no live event was wrongly removed (R0.2 territory)`;
 }
@@ -100,6 +126,9 @@ export interface OpsInputs {
   /** F2.6 — the run BEFORE `pipeline`, for run-over-run stage diffs. Null on
    *  the first-ever run. */
   prevPipeline: PipelineRow | null;
+  /** The last N SUCCESSFUL runs before `pipeline` (most-recent first) — their
+   *  median is the stampede baseline. Empty on the first-ever run. */
+  recentPipeline: PipelineRow[];
   coverageHealthy: boolean;
   coverageAlerts: string[]; // formatCoverageAlerts() output, verbatim
   verify: { verified7: number; neverVerifiedUpcoming: number };
@@ -226,8 +255,14 @@ export function buildSections(inputs: OpsInputs): OpsSection[] {
           `ok ✓ — ${stage("upserted", p.upserted, pv?.upserted)} · ${stage("deduped", p.collapsed, pv?.collapsed)} · ${stage("collapsed", p.collapsed_runs, pv?.collapsed_runs)} · ${stage("archived", p.archived, pv?.archived)}`,
           `started ${p.started_at} · duration ${fmtDuration(p.started_at, p.finished_at)}${pv ? " · Δ vs last run" : ""}`,
         ];
-        // Stampede tripwire — spike vs the last run, not a fixed number.
-        const reason = stampedeReason(p.archived ?? 0, p.collapsed ?? 0, pv?.archived, pv?.collapsed);
+        // Stampede tripwire — spike vs the MEDIAN of recent runs, not a fixed
+        // number and not a single (possibly noisy) prior run.
+        const reason = stampedeReason(
+          p.archived ?? 0,
+          p.collapsed ?? 0,
+          inputs.recentPipeline.map((r) => r.archived ?? 0),
+          inputs.recentPipeline.map((r) => r.collapsed ?? 0),
+        );
         if (reason) {
           lines.push(`⚠️ stampede check — ${reason}`);
           alert = true;

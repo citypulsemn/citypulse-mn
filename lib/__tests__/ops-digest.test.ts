@@ -1,7 +1,13 @@
 import { describe, it, expect } from "vitest";
-import { composeOpsDigest, buildSections, parseStoredTotals, wowLabel, deltaTag, isStampede, stampedeReason, PIPELINE_STAMPEDE, type OpsInputs } from "../ops-digest";
+import { composeOpsDigest, buildSections, parseStoredTotals, wowLabel, deltaTag, isStampede, stampedeReason, recentBaseline, PIPELINE_STAMPEDE, type OpsInputs, type PipelineRow } from "../ops-digest";
 
 const NOW = new Date("2026-07-20T15:30:00Z"); // a Monday, 10:30am Chicago
+
+/** A recent successful run carrying just the counts the stampede baseline uses. */
+const recentRow = (archived: number, collapsed: number): PipelineRow => ({
+  started_at: "2026-07-06T13:00:00Z", finished_at: "2026-07-06T13:20:00Z", ok: true,
+  upserted: 130, cancelled: 2, archived, collapsed, collapsed_runs: 5, error: null,
+});
 
 function healthy(overrides: Partial<OpsInputs> = {}): OpsInputs {
   return {
@@ -19,6 +25,9 @@ function healthy(overrides: Partial<OpsInputs> = {}): OpsInputs {
       upserted: 136, cancelled: 2, archived: 15, collapsed: 8, collapsed_runs: 6,
       error: null,
     },
+    // Rolling stampede baseline: the last few successful runs (archived ~15,
+    // deduped ~8) — the healthy run's 12/5 sit well under both floor and ratio.
+    recentPipeline: [recentRow(15, 8), recentRow(14, 7), recentRow(16, 9)],
     coverageHealthy: true,
     coverageAlerts: ["[coverage] all categories meet their weekly floor ✓"],
     verify: { verified7: 41, neverVerifiedUpcoming: 12 },
@@ -117,7 +126,7 @@ describe("pipeline diffs & stampede tripwire (F2.6)", () => {
   });
 
   it("shows NO diff on the first-ever run (prevPipeline null) — never a fake delta", () => {
-    const sections = buildSections(healthy({ prevPipeline: null }));
+    const sections = buildSections(healthy({ prevPipeline: null, recentPipeline: [] }));
     const pipe = sections.find((s) => s.title === "Pipeline")!;
     expect(pipe.lines[0]).toContain("148 upserted");
     expect(pipe.lines[0]).not.toMatch(/\([+-]?\d/); // no "(+12)" etc.
@@ -154,54 +163,77 @@ describe("pipeline diffs & stampede tripwire (F2.6)", () => {
   });
 
   it("organic growth no longer cries wolf — the Aug 2026 false positive is fixed", () => {
-    // The real sequence: 52 -> 94 -> 115 archived as the calendar grew. Aug 3's
-    // 115 tripped the old fixed-100 threshold; against prev 94 it must not.
+    // The real sequence: 52 -> 94 -> 115 archived as the calendar grew. Against
+    // the busiest recent run (94), 115 is 1.22× — well under the ratio. (A median
+    // would deflate to ~73 and wrongly flag it — the reason the baseline is max.)
     const grow = healthy({
       pipeline: { ...healthy().pipeline!, archived: 115, collapsed: 6 },
-      prevPipeline: { ...healthy().prevPipeline!, archived: 94, collapsed: 5 },
+      recentPipeline: [recentRow(94, 5), recentRow(52, 4)],
     });
     expect(buildSections(grow).find((s) => s.title === "Pipeline")!.alert).toBe(false);
   });
 });
 
-describe("isStampede (F2.6 recal) — spike, not a fixed number", () => {
+describe("recentBaseline — the busiest recent week", () => {
+  it("is the max, so a growth window doesn't deflate it", () => {
+    expect(recentBaseline([94, 52, 40])).toBe(94); // NOT the median (52)
+  });
+  it("ignores a lone low-outlier week (a near-empty partial run)", () => {
+    expect(recentBaseline([94, 3, 100, 96])).toBe(100);
+  });
+  it("empty → null (no baseline yet)", () => {
+    expect(recentBaseline([])).toBeNull();
+  });
+});
+
+describe("isStampede (rolling baseline) — relative spike, growth-proof", () => {
   const { archivedFloor: F, archivedCeiling: C } = PIPELINE_STAMPEDE;
 
-  it("organic week-over-week growth is quiet (115 vs 94, 94 vs 52)", () => {
-    expect(isStampede(115, 94, F, C)).toBe(false);
-    expect(isStampede(94, 52, F, C)).toBe(false);
+  it("organic week-over-week growth is quiet (115 vs a 94 peak)", () => {
+    expect(isStampede(115, 94, F, C)).toBe(false); // 1.22×
+    expect(isStampede(94, 52, F, C)).toBe(false); // 1.81×, still under 2.0×
   });
 
-  it("a real spike fires — above the floor AND ≥ 2.5× the last run", () => {
-    expect(isStampede(200, 60, F, C)).toBe(true); // 3.3×, below the ceiling
+  it("a real spike fires — above the floor AND ≥ 2.0× the busiest recent week", () => {
+    expect(isStampede(200, 90, F, C)).toBe(true); // 2.2×
   });
 
-  it("an absolute flood fires regardless of trend (ceiling backstop)", () => {
-    expect(isStampede(300, 100, F, C)).toBe(true); // even at only 3× a high base
-    expect(isStampede(C, null, F, C)).toBe(true); // and on the first-ever run
+  it("is growth-proof: a fixed count that used to trip the ceiling is fine once the baseline is high", () => {
+    // 300 archived was a hard-ceiling alert; against a 200-archive norm it's only
+    // 1.5× — normal for a calendar that big, so NO alert. No fixed number stales.
+    expect(isStampede(300, 200, F, C)).toBe(false);
   });
 
   it("a small week can't ratio-spike below the floor (5 → 15 is not a stampede)", () => {
     expect(isStampede(15, 3, F, C)).toBe(false); // 5× but under the floor
   });
 
-  it("no baseline (first run) → only the ceiling can fire", () => {
-    expect(isStampede(90, null, F, C)).toBe(false);
+  it("no baseline (first run) → only the absolute ceiling can fire", () => {
+    expect(isStampede(90, null, F, C)).toBe(false); // under the ceiling, no history
+    expect(isStampede(C, null, F, C)).toBe(true); // a flood on the very first run
     expect(isStampede(90, undefined, F, C)).toBe(false);
   });
 });
 
-describe("stampedeReason — names the offending stage(s), or null", () => {
-  it("null when both stages are within trend", () => {
-    expect(stampedeReason(115, 40, 94, 43)).toBeNull();
+describe("stampedeReason — max baseline, names the offending stage(s)", () => {
+  it("null when both stages are within trend of recent runs", () => {
+    expect(stampedeReason(115, 40, [94, 90, 100], [43, 41, 40])).toBeNull();
   });
-  it("names archived when it spikes", () => {
-    expect(stampedeReason(300, 40, 90, 43)).toContain("300 archived");
+  it("robust: one anomalously LOW prior week doesn't fake a spike", () => {
+    // Old prev-run logic: 115 vs a partial 40 = 2.9× → false alarm. Max holds (100).
+    expect(stampedeReason(115, 40, [40, 94, 100, 96], [43, 41, 42, 40])).toBeNull();
+  });
+  it("names archived when it spikes above 2.0× the busiest recent week", () => {
+    expect(stampedeReason(300, 40, [90, 94, 88], [43, 41, 40])).toContain("300 archived");
   });
   it("names both when both flood", () => {
-    const r = stampedeReason(300, 250, 90, 40);
+    const r = stampedeReason(300, 250, [90, 94, 88], [40, 42, 41]);
     expect(r).toContain("300 archived");
     expect(r).toContain("250 deduped");
+  });
+  it("first-ever run (no recent runs) → ceiling backstop only", () => {
+    expect(stampedeReason(300, 10, [], [])).toContain("300 archived"); // 300 ≥ 250 ceiling
+    expect(stampedeReason(100, 10, [], [])).toBeNull(); // under both ceilings, no history
   });
 });
 

@@ -25,7 +25,7 @@ import { geocode } from "../lib/geocode";
 import { computeEventKey, normalizeTier } from "../lib/event-key";
 import { upsertEvents, archivePastEvents, markCancelled, dedupeNearDuplicates, collapseMultiDayRuns } from "../lib/upsert";
 import { pruneRateEvents } from "../lib/rate-limit";
-import { deltaTag, stampedeReason } from "../lib/ops-digest";
+import { deltaTag, stampedeReason, PIPELINE_STAMPEDE } from "../lib/ops-digest";
 import { partitionCancellations } from "../lib/cancellations";
 import { dueWindows } from "../lib/horizon";
 import { NEW_EVENT_STATUS } from "../lib/pipeline-config";
@@ -216,13 +216,19 @@ async function main() {
   // F2.6 — per-stage counts WITH diffs vs the previous run, plus the stampede
   // tripwire (a flood of archives/dedupes is how R0.2 would have announced
   // itself). The previous run is the newest row that isn't this one.
-  let prevRun: { upserted: number | null; collapsed: number | null; collapsed_runs: number | null; archived: number | null } | undefined;
+  // Baseline = the last N SUCCESSFUL runs (a failed run's zeros would fake it);
+  // their median is the stampede baseline, and the newest is the diff prev.
+  type BaseRow = { upserted: number | null; collapsed: number | null; collapsed_runs: number | null; archived: number | null };
+  let recentRuns: BaseRow[] = [];
   if (sql && runId != null) {
-    // Baseline = last SUCCESSFUL run (a failed run's zeros would fake the diff).
-    [prevRun] = await sql<{ upserted: number | null; collapsed: number | null; collapsed_runs: number | null; archived: number | null }[]>`
-      select upserted, collapsed, collapsed_runs, archived
-      from pipeline_runs where id <> ${runId} and ok = true order by started_at desc limit 1`;
+    recentRuns = [
+      ...(await sql<BaseRow[]>`
+        select upserted, collapsed, collapsed_runs, archived
+        from pipeline_runs where id <> ${runId} and ok = true
+        order by started_at desc limit ${PIPELINE_STAMPEDE.baselineWindow}`),
+    ];
   }
+  const prevRun = recentRuns[0];
   const dd = (cur: number, prev: number | null | undefined) => deltaTag(cur, prev ?? null);
   console.log(
     `\n[pipeline] done — upserted ${totalUpserted}${dd(totalUpserted, prevRun?.upserted)}, ` +
@@ -232,7 +238,12 @@ async function main() {
       `venue-swept ${venueSwept}, times normalized ${timeNormalized}, improbable ${improbableTimes}`,
     perBand,
   );
-  const stampede = stampedeReason(archived, collapsed, prevRun?.archived, prevRun?.collapsed);
+  const stampede = stampedeReason(
+    archived,
+    collapsed,
+    recentRuns.map((r) => r.archived ?? 0),
+    recentRuns.map((r) => r.collapsed ?? 0),
+  );
   if (stampede) console.warn(`[pipeline] ⚠️ stampede check — ${stampede}`);
 
   // ROADMAP 4.3 — coverage check. The pipeline finishing "successfully" says

@@ -9,7 +9,7 @@
  * Usage: npm run ops-digest [-- --dry-run]
  */
 import { sql } from "../lib/db";
-import { composeOpsDigest, parseStoredTotals, type OpsInputs, type PipelineRow } from "../lib/ops-digest";
+import { composeOpsDigest, parseStoredTotals, PIPELINE_STAMPEDE, type OpsInputs, type PipelineRow } from "../lib/ops-digest";
 import { assessCoverage, formatCoverageAlerts } from "../lib/coverage";
 import { getEngagementStrict, type Engagement } from "../lib/stats";
 import { getTrendingEvents } from "../lib/trending";
@@ -43,7 +43,10 @@ async function gather(): Promise<OpsInputs> {
     return [...rows];
   });
   const pipeline = pipelineRows[0] ?? null;
-  const prevPipeline = pipelineRows.slice(1).find((r) => r.ok) ?? null;
+  const priorSuccessful = pipelineRows.slice(1).filter((r) => r.ok);
+  const prevPipeline = priorSuccessful[0] ?? null;
+  // Stampede baseline = the median of the last N successful runs (rolling).
+  const recentPipeline = priorSuccessful.slice(0, PIPELINE_STAMPEDE.baselineWindow);
 
   const coverage = await wrap("coverage", { healthy: true, alerts: ["section gathered nothing"] }, async () => {
     if (!sql) throw new Error("no database connection");
@@ -144,6 +147,7 @@ async function gather(): Promise<OpsInputs> {
   return {
     pipeline,
     prevPipeline,
+    recentPipeline,
     coverageHealthy: coverage.healthy,
     coverageAlerts: coverage.alerts,
     verify,
