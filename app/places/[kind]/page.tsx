@@ -37,8 +37,8 @@ export async function generateMetadata({
   if (!k) return { title: "Not found — City Pulse MN" };
 
   const meta = KIND_META[k];
-  const title = `${meta.plural} in Minneapolis & St. Paul — Every One, Mapped | City Pulse MN`;
-  const description = `${meta.blurb} A complete, mapped list across the Twin Cities metro — locations, cost, and the details that matter.`;
+  const title = `${meta.plural} in the Twin Cities, Mapped | City Pulse MN`;
+  const description = `${meta.blurb} A hand-checked, mapped list across the Minneapolis–St. Paul metro — locations, cost, and the details that matter.`;
   const path = `/places/${k}`;
 
   return {

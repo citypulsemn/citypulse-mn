@@ -18,7 +18,7 @@ export default async function Image({ params }: { params: Promise<{ kind: string
     OgCard({
       eyebrow: "Twin Cities · Places",
       title: valid ? meta.plural : "Places",
-      subtitle: "Every one, mapped · Minneapolis–St. Paul",
+      subtitle: "Mapped across the Minneapolis–St. Paul metro",
     }),
     { ...OG_SIZE, fonts: ogFonts },
   );

@@ -86,11 +86,14 @@ describe("places registry — drift guards (the honesty anchors)", () => {
   });
 
   it("coordinates land inside the Twin Cities metro (catches a transposed lat/lng)", () => {
+    // A generous 7-county-metro box — wide enough for the far suburbs (Lakeville
+    // to the south, Coon Rapids to the north) but still catches a swapped or
+    // garbage lat/lng.
     for (const p of PLACES) {
-      expect(p.lat, p.slug).toBeGreaterThan(44.7);
-      expect(p.lat, p.slug).toBeLessThan(45.2);
-      expect(p.lng, p.slug).toBeGreaterThan(-93.7);
-      expect(p.lng, p.slug).toBeLessThan(-92.9);
+      expect(p.lat, p.slug).toBeGreaterThan(44.5);
+      expect(p.lat, p.slug).toBeLessThan(45.4);
+      expect(p.lng, p.slug).toBeGreaterThan(-94.0);
+      expect(p.lng, p.slug).toBeLessThan(-92.6);
     }
   });
 
