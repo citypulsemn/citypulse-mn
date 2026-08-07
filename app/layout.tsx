@@ -1,10 +1,18 @@
 import type { Metadata, Viewport } from "next";
+import { Inter, Oswald } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { SITE_URL } from "@/lib/seo/site";
 import { ServiceWorkerRegistration } from "@/components/ServiceWorkerRegistration";
 import { FirstSaveNudge } from "@/components/FirstSaveNudge";
+import { BackToTop } from "@/components/BackToTop";
 import "./globals.css";
+
+// UX10 — self-hosted via next/font (no render-blocking Google Fonts request,
+// and the size-adjusted fallback kills the Oswald swap CLS). Exposed as CSS
+// variables so globals.css keeps referring to them by name.
+const inter = Inter({ subsets: ["latin"], display: "swap", variable: "--font-inter" });
+const oswald = Oswald({ subsets: ["latin"], display: "swap", variable: "--font-oswald" });
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
@@ -42,22 +50,17 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
+    <html lang="en" className={`${inter.variable} ${oswald.variable}`}>
       <head>
-        {/* Google Fonts via <link>. For production you can swap to next/font. */}
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         {/* Vitals (roadmap 3.5): the Mapbox static map is the LCP asset on event
             and venue pages. dns-prefetch (not preconnect) warms DNS without
-            holding a TCP/TLS handshake open on the many pages that show no map. */}
+            holding a TCP/TLS handshake open on the many pages that show no map.
+            Fonts are now self-hosted via next/font — no Google Fonts request. */}
         <link rel="dns-prefetch" href="https://api.mapbox.com" />
-        <link
-          href="https://fonts.googleapis.com/css2?family=Oswald:wght@300;400;500;600;700&family=Inter:wght@400;500;600;700&display=swap"
-          rel="stylesheet"
-        />
       </head>
       <body>
         {children}
+        <BackToTop />
         <FirstSaveNudge />
         <ServiceWorkerRegistration />
         <Analytics />

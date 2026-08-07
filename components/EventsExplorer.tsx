@@ -29,8 +29,11 @@ import { DayPanel } from "./DayPanel";
 import { EventDetail } from "./EventDetail";
 
 // Map is browser-only (Mapbox GL touches window); never server-render it.
+// UX10 — a sized placeholder holds the map's height while the ~200KB Mapbox
+// chunk loads, so switching to Map doesn't collapse the layout to nothing.
 const MapView = dynamic(() => import("./MapView").then((m) => m.MapView), {
   ssr: false,
+  loading: () => <div className="map-loading skel" aria-busy="true" aria-label="Loading map" />,
 });
 
 export function EventsExplorer({
