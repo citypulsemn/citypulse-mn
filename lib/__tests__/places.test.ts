@@ -148,7 +148,7 @@ describe("selectors", () => {
   });
 
   it("an unseeded kind returns an empty list (honest emptiness)", () => {
-    expect(placesByKind("pool" as PlaceKind)).toEqual([]);
+    expect(placesByKind("park" as PlaceKind)).toEqual([]);
   });
 
   it("placesByNeighborhood finds the in-district places and no suburb/null ones", () => {
@@ -167,7 +167,7 @@ describe("selectors", () => {
   it("kindsWithPlaces lists only seeded kinds, with counts and open state", () => {
     const kinds = kindsWithPlaces(JULY);
     const bySlug = Object.fromEntries(kinds.map((k) => [k.meta.kind, k]));
-    expect(Object.keys(bySlug).sort()).toEqual(["beach", "splash-pad"]);
+    expect(Object.keys(bySlug).sort()).toEqual(["beach", "pool", "splash-pad"]);
     expect(bySlug["beach"].count).toBe(placesByKind("beach").length);
     expect(bySlug["beach"].open).toBe(true); // July → summer beaches open
     // In January the same kinds still list (page persists year-round) but closed.
@@ -236,6 +236,33 @@ describe("kind page + components wiring (tripwires)", () => {
   it("the index and kind pages set a canonical", () => {
     expect(read("app/places/page.tsx")).toContain('canonical: "/places"');
     expect(read("app/places/[kind]/page.tsx")).toContain("canonical: path");
+  });
+});
+
+describe("pools (P2.1 kind)", () => {
+  const pools = placesByKind("pool");
+
+  it("the pool seed exists and is free-first (Webber's free natural pool leads)", () => {
+    expect(pools.length).toBeGreaterThanOrEqual(10);
+    expect(pools[0].cost).toBe("free");
+    expect(pools[0].slug).toBe("webber-natural-swimming-pool");
+    expect(pools.some((p) => p.cost === "paid")).toBe(true);
+  });
+
+  it("carries a season mix — summer, year-round, and an off-season (winter-wrap) pool", () => {
+    const seasons = pools.map((p) => p.season.type);
+    expect(seasons).toContain("year-round"); // the indoor community-center pools
+    expect(seasons).toContain("seasonal");
+    // the St. Paul indoor park runs Sept–May (openMonth > closeMonth = wraps)
+    const gr = pools.find((p) => p.slug === "great-river-water-park")!;
+    expect(gr.season.type).toBe("seasonal");
+    if (gr.season.type === "seasonal") expect(gr.season.openMonth).toBeGreaterThan(gr.season.closeMonth);
+  });
+
+  it("the off-season pool reads closed in summer, open in winter (openNow wrap)", () => {
+    const gr = placeBySlug("great-river-water-park")!;
+    expect(openNow(gr, JULY)).toBe(false); // closed for summer
+    expect(openNow(gr, JANUARY)).toBe(true); // open in the school year
   });
 });
 

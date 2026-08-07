@@ -25,6 +25,8 @@ export const PLACES_KIND_INTRO: Record<string, string> = {
     "Minneapolis alone keeps a dozen guarded lake beaches, and the water's swimmable from Memorial Day to Labor Day. Lifeguards work the afternoons in summer; the sand stays open dawn to dark either way. After a hard rain, check the park board's water-quality map before you load the car.",
   "splash-pad":
     "When it's too hot for the playground and you're not driving to a lake, a splash pad is the move — free, no admission, just cold water on a timer. The metro's are tucked into the neighborhood parks; most run late May into September and shut off at night.",
+  pool:
+    "For actual laps, a real diving board, or a waterslide the kids will make you ride twice, the metro's aquatic centers deliver. Most outdoor pools run June through August for a daily fee; a couple of indoor water parks keep going all winter.",
 };
 
 export const VENUE_INTROS: Record<string, string> = {

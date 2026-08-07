@@ -85,6 +85,12 @@ export const KIND_META: Record<PlaceKind, KindMeta> = {
 // St. Paul beaches and splash pads run Memorial Day to Labor Day. Month-level:
 // the exact lifeguard dates shift yearly (they live on each sourceUrl).
 const SUMMER: PlaceSeason = { type: "seasonal", openMonth: 5, closeMonth: 9, label: "Memorial Day–Labor Day" };
+// Outdoor pools open a bit later than the lakes (schools out) and close end of
+// August — June–August, month-level. Indoor pools run all year; the St. Paul
+// indoor water park runs the OFF-season (Sept–May), which wraps the new year.
+const POOL_SUMMER: PlaceSeason = { type: "seasonal", openMonth: 6, closeMonth: 8, label: "June–August" };
+const YEAR_ROUND: PlaceSeason = { type: "year-round" };
+const OFF_SEASON: PlaceSeason = { type: "seasonal", openMonth: 9, closeMonth: 5, label: "September–May (closed summer)" };
 
 /**
  * The registry. SEED (P1.1): a verified starter set of beaches and splash pads
@@ -409,6 +415,116 @@ export const PLACES: Place[] = [
     tags: [],
     intro: "The splash pad at Cliff Fen Park in Burnsville, open late into the evening through the summer.",
     sourceUrl: "https://burnsvillemn.gov/facilities/facility/details/Cliff-Fen-Park-8",
+    verifiedAt: "2026-08-07", venueSlug: null,
+  },
+
+  // ── Pools (P2.1) ────────────────────────────────────────────────────────
+  {
+    slug: "webber-natural-swimming-pool", name: "Webber Natural Swimming Pool", kind: "pool",
+    lat: 45.0330, lng: -93.2990, address: "4300 Webber Pkwy, Minneapolis, MN 55412",
+    city: "Minneapolis", neighborhood: null, season: POOL_SUMMER, cost: "free",
+    tags: ["outdoor", "free-admission"],
+    intro: "North Minneapolis's chemical-free natural swimming pool — the first of its kind in North America, cleaned by plants in an adjacent pond, and free to swim.",
+    sourceUrl: "https://www.minneapolisparks.org/activities-events/water-activities/webber_natural_swimming_pool/",
+    verifiedAt: "2026-08-07", venueSlug: null,
+  },
+  {
+    slug: "bloomington-family-aquatic-center", name: "Bloomington Family Aquatic Center", kind: "pool",
+    lat: 44.8585, lng: -93.2960, address: "201 E 90th St, Bloomington, MN 55420",
+    city: "Bloomington", neighborhood: null, season: POOL_SUMMER, cost: "paid",
+    tags: ["outdoor", "waterslide", "zero-depth-entry"],
+    intro: "Bloomington's outdoor aquatic center off 90th — a zero-depth entry, waterslides, and shade for a reliable July afternoon.",
+    sourceUrl: "https://www.bloomingtonmn.gov/pr/bloomington-family-aquatic-center",
+    verifiedAt: "2026-08-07", venueSlug: null,
+  },
+  {
+    slug: "cascade-bay-water-park", name: "Cascade Bay Water Park", kind: "pool",
+    lat: 44.8330, lng: -93.1660, address: "1360 Civic Center Dr, Eagan, MN 55122",
+    city: "Eagan", neighborhood: null, season: POOL_SUMMER, cost: "paid",
+    tags: ["outdoor", "waterslide", "zero-depth-entry"],
+    intro: "Eagan's outdoor water park by the Civic Arena, with tube slides and a zero-depth pool — a full-day summer stop.",
+    sourceUrl: "https://cityofeagan.com/cb-plan-your-visit",
+    verifiedAt: "2026-08-07", venueSlug: null,
+  },
+  {
+    slug: "chaska-community-center-pool", name: "Chaska Community Center Pool", kind: "pool",
+    lat: 44.8050, lng: -93.6050, address: "1661 Park Ridge Dr, Chaska, MN 55318",
+    city: "Chaska", neighborhood: null, season: YEAR_ROUND, cost: "paid",
+    tags: ["indoor", "waterslide", "lap-lanes", "diving"],
+    intro: "The indoor pool at the Chaska Community Center — a lap pool, two slides, a rope swing, and a diving platform, open year-round.",
+    sourceUrl: "https://www.chaskamn.gov/674/Aquatics",
+    verifiedAt: "2026-08-07", venueSlug: null,
+  },
+  {
+    slug: "como-regional-park-pool", name: "Como Regional Park Pool", kind: "pool",
+    lat: 44.9850, lng: -93.1520, address: "1151 Wynne Ave, Saint Paul, MN 55108",
+    city: "St. Paul", neighborhood: "como", season: POOL_SUMMER, cost: "paid",
+    tags: ["outdoor", "zero-depth-entry", "waterslide"],
+    intro: "St. Paul's outdoor pool at Como Regional Park, an easy pairing with the zoo and conservatory next door. Open mid-June to late August.",
+    sourceUrl: "https://www.stpaul.gov/departments/parks-and-recreation/aquatics/como-regional-park-pool",
+    verifiedAt: "2026-08-07", venueSlug: null,
+  },
+  {
+    slug: "edina-aquatic-center", name: "Edina Aquatic Center", kind: "pool",
+    lat: 44.8850, lng: -93.3435, address: "4300 W 66th St, Edina, MN 55435",
+    city: "Edina", neighborhood: null, season: POOL_SUMMER, cost: "paid",
+    tags: ["outdoor", "waterslide", "zero-depth-entry", "diving"],
+    intro: "Edina's long-running outdoor aquatic center off 66th, with waterslides, a zero-depth pool, and a diving well.",
+    sourceUrl: "https://www.edinamn.gov/2159/Aquatic-Center",
+    verifiedAt: "2026-08-07", venueSlug: null,
+  },
+  {
+    slug: "great-river-water-park", name: "Great River Water Park", kind: "pool",
+    lat: 44.9560, lng: -93.1470, address: "270 Lexington Pkwy N, Saint Paul, MN 55104",
+    city: "St. Paul", neighborhood: null, season: OFF_SEASON, cost: "paid",
+    tags: ["indoor", "waterslide", "lap-lanes", "zero-depth-entry"],
+    intro: "St. Paul's indoor water park inside the Oxford Community Center — a lap pool, two slides, and a kids' area. It runs the off-season: closed for summer, back in September.",
+    sourceUrl: "https://www.stpaul.gov/departments/parks-and-recreation/aquatics/great-river-water-park",
+    verifiedAt: "2026-08-07", venueSlug: null,
+  },
+  {
+    slug: "new-hope-aquatic-park", name: "New Hope Aquatic Park", kind: "pool",
+    lat: 45.0380, lng: -93.3810, address: "4411 Xylon Ave N, New Hope, MN 55428",
+    city: "New Hope", neighborhood: null, season: POOL_SUMMER, cost: "paid",
+    tags: ["outdoor", "waterslide", "diving", "lap-lanes", "zero-depth-entry"],
+    intro: "New Hope's outdoor aquatic park — an eight-lane, 50-meter pool, diving boards, a drop slide, and a zero-depth rec area with a current channel.",
+    sourceUrl: "https://www.newhopemn.gov/city_hall/parks_and_recreation/aquatic_park",
+    verifiedAt: "2026-08-07", venueSlug: null,
+  },
+  {
+    slug: "redwood-community-pool", name: "Redwood Community Pool", kind: "pool",
+    lat: 44.7345, lng: -93.2180, address: "311 150th St W, Apple Valley, MN 55124",
+    city: "Apple Valley", neighborhood: null, season: POOL_SUMMER, cost: "paid",
+    tags: ["outdoor", "zero-depth-entry", "diving"],
+    intro: "Apple Valley's neighborhood outdoor pool at Redwood Park — a zero-depth entry, a climbing wall, and a diving board.",
+    sourceUrl: "https://www.applevalleymn.gov/1245/Redwood-Community-Pool",
+    verifiedAt: "2026-08-07", venueSlug: null,
+  },
+  {
+    slug: "richfield-outdoor-pool", name: "Richfield Outdoor Pool", kind: "pool",
+    lat: 44.8820, lng: -93.2650, address: "630 E 66th St, Richfield, MN 55423",
+    city: "Richfield", neighborhood: null, season: POOL_SUMMER, cost: "paid",
+    tags: ["outdoor", "zero-depth-entry", "waterslide", "diving", "lap-lanes"],
+    intro: "Richfield's outdoor pool off 66th — a 50-meter main pool, a double waterslide, a diving board, and a zero-depth wading area.",
+    sourceUrl: "https://www.richfieldmn.gov/621/Outdoor-Pool",
+    verifiedAt: "2026-08-07", venueSlug: null,
+  },
+  {
+    slug: "st-louis-park-aquatic-park", name: "St. Louis Park Aquatic Park", kind: "pool",
+    lat: 44.9430, lng: -93.3470, address: "3700 Monterey Dr, St. Louis Park, MN 55416",
+    city: "St. Louis Park", neighborhood: null, season: POOL_SUMMER, cost: "paid",
+    tags: ["outdoor", "waterslide", "zero-depth-entry"],
+    intro: "St. Louis Park's outdoor aquatic park off Monterey, with slides and a zero-depth pool, open early June into late August.",
+    sourceUrl: "https://www.stlouisparkmn.gov/government/departments-divisions/parks-rec/aquatic-park",
+    verifiedAt: "2026-08-07", venueSlug: null,
+  },
+  {
+    slug: "shoreview-tropics-waterpark", name: "The Tropics Indoor Waterpark", kind: "pool",
+    lat: 45.0750, lng: -93.1350, address: "4580 Victoria St N, Shoreview, MN 55126",
+    city: "Shoreview", neighborhood: null, season: YEAR_ROUND, cost: "paid",
+    tags: ["indoor", "waterslide", "lap-lanes", "zero-depth-entry"],
+    intro: "The indoor Tropics water park at the Shoreview Community Center — a four-story slide, a lazy river, and a zero-depth area, open year-round.",
+    sourceUrl: "https://www.shoreviewcommunitycenter.com/Waterpark/Tropics",
     verifiedAt: "2026-08-07", venueSlug: null,
   },
 ];
