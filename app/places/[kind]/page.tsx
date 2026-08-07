@@ -75,7 +75,7 @@ export default async function PlacesKindPage({
           <div className="dayhdr-eyebrow">Twin Cities · places</div>
           <h1 className="dayhdr-title">{meta.plural}</h1>
           <div className="dayhdr-count">
-            {places.length} across Minneapolis–St. Paul
+            {places.length} across the Twin Cities metro
           </div>
         </div>
 

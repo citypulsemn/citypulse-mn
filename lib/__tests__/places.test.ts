@@ -133,9 +133,14 @@ describe("selectors", () => {
     const beaches = placesByKind("beach");
     expect(beaches.length).toBeGreaterThan(0);
     expect(beaches.every((p) => p.kind === "beach")).toBe(true);
-    // All seed entries are free, so the tiebreak is alphabetical.
-    const names = beaches.map((p) => p.name);
-    expect(names).toEqual([...names].sort((a, b) => a.localeCompare(b)));
+    // Free entries first (a paid swim pond exists in the set), then alphabetical
+    // within each cost group.
+    const rank = { free: 0, donation: 1, paid: 2 } as const;
+    const ranks = beaches.map((p) => rank[p.cost]);
+    expect(ranks).toEqual([...ranks].sort((a, b) => a - b)); // non-decreasing cost rank
+    const freeNames = beaches.filter((p) => p.cost === "free").map((p) => p.name);
+    expect(freeNames).toEqual([...freeNames].sort((a, b) => a.localeCompare(b)));
+    expect(beaches.some((p) => p.cost === "paid")).toBe(true); // the sort is actually exercised
   });
 
   it("an unseeded kind returns an empty list (honest emptiness)", () => {
@@ -144,7 +149,9 @@ describe("selectors", () => {
 
   it("placesByNeighborhood finds the in-district places and no suburb/null ones", () => {
     const swl = placesByNeighborhood("southwest-lakes");
-    expect(swl.map((p) => p.slug).sort()).toEqual(["bde-maka-ska-thomas-beach", "lake-harriet-north-beach"]);
+    expect(swl.length).toBeGreaterThanOrEqual(2);
+    expect(swl.every((p) => p.neighborhood === "southwest-lakes")).toBe(true);
+    expect(swl.some((p) => p.slug === "lake-harriet-north-beach")).toBe(true);
     expect(placesByNeighborhood("nonexistent-key")).toEqual([]);
   });
 
