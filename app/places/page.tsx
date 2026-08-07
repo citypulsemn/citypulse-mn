@@ -30,22 +30,27 @@ export default function PlacesIndexPage() {
           <div className="dayhdr-count">{TAGLINE}</div>
         </div>
 
-        {kinds.length === 0 ? (
-          <div className="day-empty">Nothing mapped yet — these pages light up as the registry grows.</div>
-        ) : (
-          <div className="nbhd-grid">
-            {kinds.map(({ meta, count, open }) => (
-              <a key={meta.kind} className="nbhd-card" href={`/places/${meta.kind}`}>
-                <div className="nbhd-name">{meta.plural}</div>
-                <div className="nbhd-blurb">{meta.blurb}</div>
-                <div className="nbhd-count">
-                  {count} spot{count === 1 ? "" : "s"}
-                  {open ? "" : " · seasonal, closed now"} →
-                </div>
-              </a>
-            ))}
-          </div>
-        )}
+        <div className="nbhd-grid">
+          {kinds.map(({ meta, count, open }) => (
+            <a key={meta.kind} className="nbhd-card" href={`/places/${meta.kind}`}>
+              <div className="nbhd-name">{meta.plural}</div>
+              <div className="nbhd-blurb">{meta.blurb}</div>
+              <div className="nbhd-count">
+                {count} spot{count === 1 ? "" : "s"}
+                {open ? "" : " · seasonal, closed now"} →
+              </div>
+            </a>
+          ))}
+          {/* P2.3 — venues already have their own browse (/venues, with live
+              schedules). Places points there rather than duplicating the list. */}
+          <a className="nbhd-card" href="/venues">
+            <div className="nbhd-name">Venues</div>
+            <div className="nbhd-blurb">
+              The metro&apos;s concert halls, clubs, theaters, and arenas — each with its full upcoming schedule.
+            </div>
+            <div className="nbhd-count">Browse all venues →</div>
+          </a>
+        </div>
 
         <SiteFooter source="places" />
       </main>

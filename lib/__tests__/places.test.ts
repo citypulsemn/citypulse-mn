@@ -276,6 +276,16 @@ describe("P2.2 wire-in (tripwires)", () => {
   });
 });
 
+describe("P2.3 venue bridge (tripwire)", () => {
+  const read = (p: string) => readFileSync(join(__dirname, "..", "..", p), "utf8");
+
+  it("the Places index cross-links to the existing /venues (no duplicate page)", () => {
+    // The venue registry is all-venues and /venues already lists them, so Places
+    // points there instead of shipping a second, mislabeled venue list.
+    expect(read("app/places/page.tsx")).toContain('href="/venues"');
+  });
+});
+
 describe("P1.3 wire-in (tripwires)", () => {
   const read = (p: string) => readFileSync(join(__dirname, "..", "..", p), "utf8");
 
