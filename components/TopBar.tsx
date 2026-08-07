@@ -17,6 +17,7 @@ const SECTIONS: { href: string; label: string }[] = [
   { href: "/this-weekend", label: "This Weekend" },
   { href: "/ongoing", label: "Ongoing" },
   { href: "/collections", label: "Collections" },
+  { href: "/places", label: "Places" },
   { href: "/venues", label: "Venues" },
   { href: "/neighborhoods", label: "Neighborhoods" },
   { href: "/cities", label: "Cities" },

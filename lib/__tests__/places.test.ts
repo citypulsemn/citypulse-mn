@@ -227,3 +227,17 @@ describe("kind page + components wiring (tripwires)", () => {
     expect(read("app/places/[kind]/page.tsx")).toContain("canonical: path");
   });
 });
+
+describe("P1.3 wire-in (tripwires)", () => {
+  const read = (p: string) => readFileSync(join(__dirname, "..", "..", p), "utf8");
+
+  it("Places is in the shared nav and the footer", () => {
+    expect(read("components/TopBar.tsx")).toContain('href: "/places"');
+    expect(read("components/SiteFooter.tsx")).toContain('href="/places"');
+  });
+
+  it("index + kind OG image routes use the shared OgCard shell", () => {
+    expect(read("app/places/opengraph-image.tsx")).toContain("OgCard");
+    expect(read("app/places/[kind]/opengraph-image.tsx")).toContain("OgCard");
+  });
+});
