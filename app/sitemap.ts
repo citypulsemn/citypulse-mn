@@ -5,6 +5,7 @@ import { COLLECTIONS } from "@/lib/collections";
 import { NEIGHBORHOODS } from "@/lib/neighborhoods";
 import { VENUE_PAGES } from "@/lib/venue-pages";
 import { matchCitySlug } from "@/lib/cities";
+import { kindsWithPlaces } from "@/lib/places";
 import { SITE_URL } from "@/lib/seo/site";
 
 // Refresh hourly so newly-published events get crawled quickly.
@@ -75,11 +76,23 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     })),
   ];
 
+  // Places (evergreen) — the /places index + one page per seeded kind. Static
+  // registry, so no DB pressure; higher priority as they're built to rank.
+  const placeUrls: MetadataRoute.Sitemap = [
+    { url: `${SITE_URL}/places`, changeFrequency: "weekly", priority: 0.7 },
+    ...kindsWithPlaces(new Date()).map((k) => ({
+      url: `${SITE_URL}/places/${k.meta.kind}`,
+      changeFrequency: "weekly" as const,
+      priority: 0.7,
+    })),
+  ];
+
   return [
     { url: SITE_URL, changeFrequency: "hourly", priority: 1 },
     { url: `${SITE_URL}/submit`, changeFrequency: "monthly", priority: 0.4 },
     { url: `${SITE_URL}/for-venues`, changeFrequency: "monthly", priority: 0.4 },
     ...collectionUrls,
+    ...placeUrls,
     ...dayUrls,
     ...eventUrls,
   ];

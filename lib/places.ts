@@ -253,3 +253,43 @@ export function openNow(place: Place, date: Date): boolean {
     ? month >= openMonth && month <= closeMonth
     : month >= openMonth || month <= closeMonth; // wraps the new year
 }
+
+// ── Kind-page rendering helpers (pure; the page/components are thin shells) ──
+
+/**
+ * A Mapbox Static Images URL with NUMBERED gold pins (1..N) that MATCH the
+ * numbered list beneath, auto-fit to the pins. Null when there's no token or no
+ * places. Distinct from event-view's single-pin `staticMapUrl`. Capped at
+ * `PLACES_MAP_MAX_PINS` so the URL stays under Mapbox's length limit — a kind
+ * bigger than that paginates by area (a later refinement; the seed is far under).
+ */
+export const PLACES_MAP_MAX_PINS = 30;
+export function placesStaticMapUrl(
+  places: { lat: number; lng: number }[],
+  token: string | undefined,
+  size: { w: number; h: number } = { w: 720, h: 480 },
+): string | null {
+  const pts = places
+    .filter((p) => Number.isFinite(p.lat) && Number.isFinite(p.lng))
+    .slice(0, PLACES_MAP_MAX_PINS);
+  if (!token || pts.length === 0) return null;
+  const overlays = pts.map((p, i) => `pin-l-${i + 1}+c9a961(${p.lng},${p.lat})`).join(",");
+  return (
+    `https://api.mapbox.com/styles/v1/mapbox/dark-v11/static/` +
+    `${overlays}/auto/${size.w}x${size.h}@2x?access_token=${token}`
+  );
+}
+
+/**
+ * The closed-season banner for a kind page, or null when at least one place is
+ * open. Honest-emptiness operationalized: never hide the page (its SEO value and
+ * a January planner both persist), but say so plainly up top.
+ */
+export function placesSeasonBanner(places: Place[], now: Date): string | null {
+  if (places.length === 0 || places.some((p) => openNow(p, now))) return null;
+  const seasonal = places.find((p) => p.season.type === "seasonal");
+  const label = seasonal && seasonal.season.type === "seasonal" ? seasonal.season.label : null;
+  return label
+    ? `Closed for the season — these reopen around ${label.split("–")[0].trim()}.`
+    : "Closed for the season right now.";
+}

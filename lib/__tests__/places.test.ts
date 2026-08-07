@@ -1,4 +1,6 @@
 import { describe, it, expect } from "vitest";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import {
   PLACES,
   KIND_META,
@@ -7,6 +9,9 @@ import {
   placeBySlug,
   kindsWithPlaces,
   openNow,
+  placesStaticMapUrl,
+  placesSeasonBanner,
+  PLACES_MAP_MAX_PINS,
   type Place,
   type PlaceKind,
 } from "../places";
@@ -157,5 +162,68 @@ describe("selectors", () => {
     // In January the same kinds still list (page persists year-round) but closed.
     const winter = Object.fromEntries(kindsWithPlaces(JANUARY).map((k) => [k.meta.kind, k]));
     expect(winter["beach"].open).toBe(false);
+  });
+});
+
+describe("placesStaticMapUrl — numbered pins that match the list", () => {
+  const token = "pk.test";
+
+  it("emits gold pins numbered 1..N in list order", () => {
+    const url = placesStaticMapUrl(placesByKind("beach"), token)!;
+    const beaches = placesByKind("beach");
+    // one pin per place, numbered by position, auto-fit
+    for (let i = 0; i < beaches.length; i++) {
+      expect(url).toContain(`pin-l-${i + 1}+c9a961(${beaches[i].lng},${beaches[i].lat})`);
+    }
+    expect(url).toContain("/auto/");
+    expect(url).toContain("access_token=pk.test");
+  });
+
+  it("null without a token or without places (honest emptiness)", () => {
+    expect(placesStaticMapUrl(placesByKind("beach"), undefined)).toBeNull();
+    expect(placesStaticMapUrl([], token)).toBeNull();
+  });
+
+  it("caps pin count so the URL can't blow past Mapbox's length limit", () => {
+    const many = Array.from({ length: PLACES_MAP_MAX_PINS + 10 }, () => ({ lat: 44.98, lng: -93.26 }));
+    const url = placesStaticMapUrl(many, token)!;
+    expect((url.match(/pin-l-/g) ?? []).length).toBe(PLACES_MAP_MAX_PINS);
+    expect(url).toContain(`pin-l-${PLACES_MAP_MAX_PINS}+`);
+    expect(url).not.toContain(`pin-l-${PLACES_MAP_MAX_PINS + 1}+`);
+  });
+});
+
+describe("placesSeasonBanner — closed-season honesty", () => {
+  it("no banner when something's open (summer)", () => {
+    expect(placesSeasonBanner(placesByKind("beach"), JULY)).toBeNull();
+  });
+  it("a plain closed banner off-season, naming the reopen point", () => {
+    const banner = placesSeasonBanner(placesByKind("beach"), JANUARY);
+    expect(banner).toContain("Closed for the season");
+    expect(banner).toContain("Memorial Day");
+  });
+  it("no banner for an empty list", () => {
+    expect(placesSeasonBanner([], JANUARY)).toBeNull();
+  });
+});
+
+describe("kind page + components wiring (tripwires)", () => {
+  const read = (p: string) => readFileSync(join(__dirname, "..", "..", p), "utf8");
+
+  it("the kind page 404s on an unknown/empty kind and is statically generated", () => {
+    const src = read("app/places/[kind]/page.tsx");
+    expect(src).toContain("notFound()");
+    expect(src).toContain("generateStaticParams");
+    expect(src).toContain("export const revalidate");
+  });
+
+  it("PlacesMap uses the numbered-pin builder; PlacesList numbers by position", () => {
+    expect(read("components/PlacesMap.tsx")).toContain("placesStaticMapUrl");
+    expect(read("components/PlacesList.tsx")).toContain("{i + 1}");
+  });
+
+  it("the index and kind pages set a canonical", () => {
+    expect(read("app/places/page.tsx")).toContain('canonical: "/places"');
+    expect(read("app/places/[kind]/page.tsx")).toContain("canonical: path");
   });
 });

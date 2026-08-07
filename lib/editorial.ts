@@ -15,6 +15,18 @@
  * brochure, cut the sentence.
  */
 
+/**
+ * PLACES kind-page header paragraphs (Places roadmap P1.2). Keyed by PlaceKind.
+ * Same rules as the intros below — 2–3 concrete sentences, edit freely; a kind
+ * without one falls back to its KIND_META blurb.
+ */
+export const PLACES_KIND_INTRO: Record<string, string> = {
+  beach:
+    "Minneapolis alone keeps a dozen guarded lake beaches, and the water's swimmable from Memorial Day to Labor Day. Lifeguards work the afternoons in summer; the sand stays open dawn to dark either way. After a hard rain, check the park board's water-quality map before you load the car.",
+  "splash-pad":
+    "When it's too hot for the playground and you're not driving to a lake, a splash pad is the move — free, no admission, just cold water on a timer. The metro's are tucked into the neighborhood parks; most run late May into September and shut off at night.",
+};
+
 export const VENUE_INTROS: Record<string, string> = {
   "first-avenue":
     "The black building with the silver stars, each one a name that's played here since 1970 — Prince's is painted gold. The Mainroom holds about 1,500 and the sound is better than it has any right to be; the 7th St Entry next door is a 250-cap box where you'll catch bands two years before they're on the Mainroom marquee.",
