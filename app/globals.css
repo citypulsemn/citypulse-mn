@@ -71,6 +71,12 @@ body::before {
 .viewtoggle button.active { background: var(--gold); color: var(--navy-900); }
 .viewtoggle button:not(.active):hover { color: var(--cream); }
 
+/* UX11 — "make this my default view" (localStorage-pinned landing state). */
+.default-view-row { display: flex; justify-content: flex-end; margin: -4px 2px 2px; }
+.default-view-btn { background: none; border: 0; color: var(--cream-dim); font-size: 12px; letter-spacing: 0.02em; cursor: pointer; padding: 4px 2px; min-height: 32px; }
+.default-view-btn:hover { color: var(--gold); }
+.default-view-btn[aria-pressed="true"] { color: var(--gold); cursor: default; }
+
 /* ---------- Controls ---------- */
 .controls { display: flex; flex-wrap: wrap; gap: 16px; align-items: center; justify-content: space-between; padding: 22px 0 14px; }
 .presets { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; } /* UX7 — items keep their 44px height, never stretch */

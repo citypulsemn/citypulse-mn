@@ -1,6 +1,6 @@
 "use client";
 
-import { useDeferredValue, useEffect, useMemo, useState } from "react";
+import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { CATEGORY_KEYS } from "@/lib/categories";
 import {
@@ -13,6 +13,14 @@ import {
   MONTHS,
 } from "@/lib/dates";
 import { searchEvents } from "@/lib/search";
+import {
+  serializeExplorer,
+  parseExplorer,
+  type ExplorerState,
+  type ExplorerDefaults,
+  type ExplorerView,
+  type ParsedExplorer,
+} from "@/lib/explorer-url";
 import { applyPriceArea } from "@/lib/filters";
 import type { AreaKey } from "@/lib/areas";
 import { track } from "@/lib/track";
@@ -36,6 +44,35 @@ const MapView = dynamic(() => import("./MapView").then((m) => m.MapView), {
   loading: () => <div className="map-loading skel" aria-busy="true" aria-label="Loading map" />,
 });
 
+// UX11 — "make this my default view": the weekly-returning core can pin the
+// view + range they always want, restored on the next clean visit (a URL with
+// params always wins over it). Just view+range — filters/search stay transient.
+const DEFAULT_VIEW_KEY = "cp_default_view";
+interface SavedDefault {
+  view: ExplorerView;
+  range: RangeKey;
+}
+const VIEW_VALUES: readonly ExplorerView[] = ["list", "calendar", "map"];
+const RANGE_VALUES: readonly RangeKey[] = ["today", "weekend", "week", "month"];
+
+function loadDefaultView(): SavedDefault | null {
+  try {
+    const o = JSON.parse(localStorage.getItem(DEFAULT_VIEW_KEY) ?? "null");
+    if (o && VIEW_VALUES.includes(o.view) && RANGE_VALUES.includes(o.range)) return o;
+  } catch {
+    // corrupt/blocked storage — fall through to no saved default
+  }
+  return null;
+}
+
+function saveDefaultView(v: SavedDefault): void {
+  try {
+    localStorage.setItem(DEFAULT_VIEW_KEY, JSON.stringify(v));
+  } catch {
+    // storage blocked (private mode) — the button just no-ops
+  }
+}
+
 export function EventsExplorer({
   events,
   nowISO,
@@ -56,9 +93,34 @@ export function EventsExplorer({
   const [query, setQuery] = useState("");
   const [prices, setPrices] = useState<Set<PriceTier>>(() => new Set());
   const [areas, setAreas] = useState<Set<AreaKey>>(() => new Set());
+  // UX11 — URL sync is client-only; hold off writing the URL until we've read
+  // the initial state from it (below), so the first paint's default state can't
+  // clobber shared/reloaded params.
+  const [ready, setReady] = useState(false);
+  const [isDefault, setIsDefault] = useState(false); // current view/range == saved default
 
   // Defer the expensive filtering so the input stays responsive while typing.
   const deferredQuery = useDeferredValue(query);
+
+  // UX11 — apply a parsed URL to every piece of state, filling defaults for
+  // absent keys (so Back to a barer URL genuinely resets those axes). Used for
+  // the initial read and for every popstate (Back/Forward).
+  const applyParsed = useCallback(
+    (p: ParsedExplorer) => {
+      const d = new Date();
+      setView(p.view ?? "calendar");
+      setRange(p.range ?? "month");
+      setYear(p.year ?? d.getFullYear());
+      setMonth(p.month ?? d.getMonth());
+      setActive(p.cats ? new Set(p.cats) : new Set(CATEGORY_KEYS));
+      setPrices(p.prices ? new Set(p.prices) : new Set());
+      setAreas(p.areas ? new Set(p.areas) : new Set());
+      setQuery(p.query ?? "");
+      setDayKey(p.day ?? null);
+      setDetail(p.event ? (events.find((e) => e.id === p.event) ?? null) : null);
+    },
+    [events],
+  );
 
   // Search narrows the whole dataset; price/area narrow further; then category
   // chips + window. All compose as AND across every surface.
@@ -71,18 +133,30 @@ export function EventsExplorer({
     [searched, prices, areas],
   );
 
-  // Refresh "now" to the client clock after hydration (keeps "today" accurate).
+  // Mount: refresh "now" to the client clock, then set the initial state from
+  // (in precedence order) the URL, a saved default view, or the mobile default.
   useEffect(() => {
     setNow(new Date());
-    // UX4 — the calendar hides event titles below 820px; the chronological list
-    // reads on a phone. Default mobile viewers to it, opening on "this week"
-    // rather than a ~400-event month — a phone wants "what's on soon", and the
-    // month/other presets are one tap away. Once, on mount (SSR can't know width).
-    if (typeof window !== "undefined" && window.innerWidth < 820) {
-      setView("list");
-      setRange("week");
+    const search = window.location.search.replace(/^\?/, "");
+    if (search) {
+      // A shared link or reload — reproduce exactly what it encodes.
+      applyParsed(parseExplorer(search));
+    } else {
+      const saved = loadDefaultView();
+      if (saved) {
+        // UX11 — the returning core's pinned view/range.
+        setView(saved.view);
+        setRange(saved.range);
+      } else if (window.innerWidth < 820) {
+        // UX4 — the calendar hides event titles below 820px; the chronological
+        // list reads on a phone. Default mobile viewers to it on "this week"
+        // rather than a ~400-event month; the presets are one tap away.
+        setView("list");
+        setRange("week");
+      }
     }
-  }, []);
+    setReady(true);
+  }, [applyParsed]);
 
   const viewState = useMemo(() => ({ range, year, month }), [range, year, month]);
   const win = useMemo(() => rangeWindow(now, viewState), [now, viewState]);
@@ -90,6 +164,51 @@ export function EventsExplorer({
     () => eventsInWindow(filtered, active, win),
     [filtered, active, win],
   );
+
+  // UX11 — the whole explorer state, serialized to a canonical query string.
+  // Current month is the default, so viewing "now" keeps the URL clean.
+  const urlDefaults = useMemo<ExplorerDefaults>(
+    () => ({ view: "calendar", range: "month", year: now.getFullYear(), month: now.getMonth() }),
+    [now],
+  );
+  const stateSig = useMemo(
+    () =>
+      serializeExplorer(
+        { view, range, year, month, cats: active, prices, areas, query, day: dayKey, event: detail?.id ?? null } as ExplorerState,
+        urlDefaults,
+      ),
+    [view, range, year, month, active, prices, areas, query, dayKey, detail, urlDefaults],
+  );
+
+  // Write the URL on state change. When the overlay STACK grows (none→day,
+  // day→day+event), push a history entry so Back peels exactly one layer; every
+  // other change replaces (no Back-button spam while typing/filtering). Overlays
+  // are modal, so filters never change under an open one — the writers can't race.
+  const prevOverlayCount = useRef(0);
+  useEffect(() => {
+    if (!ready) return;
+    const overlayCount = (dayKey ? 1 : 0) + (detail ? 1 : 0);
+    const current = window.location.search.replace(/^\?/, "");
+    if (stateSig !== current) {
+      const url = stateSig ? `?${stateSig}` : window.location.pathname;
+      if (overlayCount > prevOverlayCount.current) window.history.pushState(null, "", url);
+      else window.history.replaceState(null, "", url);
+    }
+    prevOverlayCount.current = overlayCount;
+  }, [ready, stateSig, dayKey, detail]);
+
+  // Back/Forward: re-derive the whole state from wherever the browser landed.
+  useEffect(() => {
+    const onPop = () => applyParsed(parseExplorer(window.location.search));
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+  }, [applyParsed]);
+
+  // Keep the "your default" label truthful as the view/range change.
+  useEffect(() => {
+    const saved = loadDefaultView();
+    setIsDefault(!!saved && saved.view === view && saved.range === range);
+  }, [view, range]);
 
   const isSearching = deferredQuery.trim().length > 0;
   const filtersActive = prices.size > 0 || areas.size > 0;
@@ -219,6 +338,13 @@ export function EventsExplorer({
     );
   }
 
+  // UX11 — pin the current view + range as this browser's default landing state.
+  function makeDefault() {
+    saveDefaultView({ view, range });
+    setIsDefault(true);
+    track("set_default_view", { view, range });
+  }
+
   return (
     <>
       <header className="topbar">
@@ -304,6 +430,18 @@ export function EventsExplorer({
           onRange={handleRange}
           onMonth={handleMonth}
         />
+
+        <div className="default-view-row">
+          <button
+            type="button"
+            className="default-view-btn"
+            onClick={makeDefault}
+            aria-pressed={isDefault}
+            title="Open the site to this view and range next time"
+          >
+            {isDefault ? "✓ Your default view" : "Make this my default"}
+          </button>
+        </div>
 
         <CategoryChips active={active} onToggle={toggleCat} onToggleAll={toggleAll} />
 
