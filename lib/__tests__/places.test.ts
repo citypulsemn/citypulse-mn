@@ -148,7 +148,7 @@ describe("selectors", () => {
   });
 
   it("an unseeded kind returns an empty list (honest emptiness)", () => {
-    expect(placesByKind("rink" as PlaceKind)).toEqual([]);
+    expect(placesByKind("farmers-market" as PlaceKind)).toEqual([]);
   });
 
   it("placesByNeighborhood finds the in-district places and no suburb/null ones", () => {
@@ -167,7 +167,7 @@ describe("selectors", () => {
   it("kindsWithPlaces lists only seeded kinds, with counts and open state", () => {
     const kinds = kindsWithPlaces(JULY);
     const bySlug = Object.fromEntries(kinds.map((k) => [k.meta.kind, k]));
-    expect(Object.keys(bySlug).sort()).toEqual(["beach", "park", "playground", "pool", "splash-pad"]);
+    expect(Object.keys(bySlug).sort()).toEqual(["beach", "park", "playground", "pool", "rink", "sledding", "splash-pad"]);
     expect(bySlug["beach"].count).toBe(placesByKind("beach").length);
     expect(bySlug["beach"].open).toBe(true); // July → summer beaches open
     // In January the same kinds still list (page persists year-round) but closed.
@@ -263,6 +263,31 @@ describe("pools (P2.1 kind)", () => {
     const gr = placeBySlug("great-river-water-park")!;
     expect(openNow(gr, JULY)).toBe(false); // closed for summer
     expect(openNow(gr, JANUARY)).toBe(true); // open in the school year
+  });
+});
+
+describe("winter kinds (P2.1 rinks + sledding)", () => {
+  it("sledding hills all run the winter season — closed in summer, open in winter", () => {
+    const sled = placesByKind("sledding");
+    expect(sled.length).toBeGreaterThan(0);
+    for (const p of sled) {
+      expect(openNow(p, JULY), p.slug).toBe(false); // off-season now
+      expect(openNow(p, JANUARY), p.slug).toBe(true); // open in winter (wrap)
+    }
+  });
+
+  it("the sledding page shows a closed-season banner off-season, none in winter", () => {
+    const sled = placesByKind("sledding");
+    expect(placesSeasonBanner(sled, JULY)).toContain("Closed for the season");
+    expect(placesSeasonBanner(sled, JANUARY)).toBeNull();
+  });
+
+  it("rinks mix winter-outdoor and year-round-indoor (Parade stays open in summer)", () => {
+    const parade = placeBySlug("parade-ice-garden")!;
+    expect(parade.season.type).toBe("year-round");
+    expect(openNow(parade, JULY)).toBe(true); // indoor, open all year
+    const oval = placeBySlug("john-rose-minnesota-oval")!;
+    expect(openNow(oval, JULY)).toBe(false); // outdoor, closed in summer
   });
 });
 

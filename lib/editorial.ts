@@ -31,6 +31,10 @@ export const PLACES_KIND_INTRO: Record<string, string> = {
     "The parks worth crossing town for — the falls at Minnehaha, the conservatory at Como, the reserves with real wilderness on the metro's edge. Most are free and open dawn to dark, year-round.",
   playground:
     "The destination playgrounds — the award-winning creative structures and the fully inclusive parks built for kids of every ability. Free, and worth the drive when the neighborhood swing set won't cut it.",
+  rink:
+    "Free neighborhood rinks, the world's biggest refrigerated oval, and a canal you can skate for a quarter-mile — winter turns the metro into a skating town. Most outdoor ice runs December through February, weather permitting; the indoor sheets keep going year-round.",
+  sledding:
+    "The hills worth hauling the toboggan to — the steep ones, the long ones, the one with the yearly art-sled rally. All free, all bring-your-own-sled, all at your own risk, from the first real snow through February.",
 };
 
 export const VENUE_INTROS: Record<string, string> = {

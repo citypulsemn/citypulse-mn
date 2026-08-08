@@ -91,6 +91,11 @@ const SUMMER: PlaceSeason = { type: "seasonal", openMonth: 5, closeMonth: 9, lab
 const POOL_SUMMER: PlaceSeason = { type: "seasonal", openMonth: 6, closeMonth: 8, label: "June–August" };
 const YEAR_ROUND: PlaceSeason = { type: "year-round" };
 const OFF_SEASON: PlaceSeason = { type: "seasonal", openMonth: 9, closeMonth: 5, label: "September–May (closed summer)" };
+// Winter kinds (outdoor rinks, sledding hills) run the cold months, weather
+// permitting — the Dec–Feb core, month-level. openMonth > closeMonth wraps the
+// new year, so openNow reads them closed all summer and the page shows the
+// "closed for the season" banner. Indoor rinks stay YEAR_ROUND.
+const WINTER: PlaceSeason = { type: "seasonal", openMonth: 12, closeMonth: 2, label: "December–February" };
 
 /**
  * The registry. SEED (P1.1): a verified starter set of beaches and splash pads
@@ -781,6 +786,91 @@ export const PLACES: Place[] = [
     tags: ["fenced"],
     intro: "The playground and bike park at Cottage Grove's Hamlet Park, the east metro's go-to for a long afternoon with ball fields, trails, and shelters alongside.",
     sourceUrl: "https://www.cottagegrovemn.gov/facilities/facility/details/Hamlet-Park-9",
+    verifiedAt: "2026-08-07", venueSlug: null,
+  },
+
+  // ── Ice rinks (P2.1 — winter) ────────────────────────────────────────────
+  {
+    slug: "john-rose-minnesota-oval", name: "John Rose Minnesota Oval", kind: "rink",
+    lat: 45.0100, lng: -93.1550, address: "2660 Civic Center Dr, Roseville, MN 55113",
+    city: "Roseville", neighborhood: null, season: WINTER, cost: "paid",
+    tags: ["outdoor", "skate-rental", "hockey-and-open"],
+    intro: "The world's largest outdoor refrigerated skating surface, in Roseville — a 400-meter speed track wrapping a hockey sheet, lit and open November into March.",
+    sourceUrl: "https://www.cityofroseville.com/3560/John-Rose-MN-OVAL",
+    verifiedAt: "2026-08-07", venueSlug: null,
+  },
+  {
+    slug: "centennial-lakes-skating", name: "Centennial Lakes Park Skating", kind: "rink",
+    lat: 44.8620, lng: -93.3280, address: "7499 France Ave S, Edina, MN 55435",
+    city: "Edina", neighborhood: null, season: WINTER, cost: "free",
+    tags: ["outdoor", "skate-rental"],
+    intro: "Skate a groomed quarter-mile of winding canals across three ponds at Centennial Lakes in Edina — free with your own skates, with rentals and a warming pavilion.",
+    sourceUrl: "https://www.edinamn.gov/700/Ice-Skating",
+    verifiedAt: "2026-08-07", venueSlug: null,
+  },
+  {
+    slug: "groveland-ice-rinks", name: "Groveland Ice Rinks", kind: "rink",
+    lat: 44.9340, lng: -93.1450, address: "2021 St. Clair Ave, Saint Paul, MN 55105",
+    city: "St. Paul", neighborhood: "grand-avenue", season: WINTER, cost: "free",
+    tags: ["outdoor", "skate-rental", "warming-house", "hockey-and-open"],
+    intro: "St. Paul's outdoor skating hub off St. Clair — five rinks (hockey, pond hockey, an oval, and open skating), a warming house, and free skate rentals seven days a week.",
+    sourceUrl: "https://www.stpaul.gov/facilities/groveland-recreation-center",
+    verifiedAt: "2026-08-07", venueSlug: null,
+  },
+  {
+    slug: "parade-ice-garden", name: "Parade Ice Garden", kind: "rink",
+    lat: 44.9690, lng: -93.2900, address: "600 Kenwood Pkwy, Minneapolis, MN 55403",
+    city: "Minneapolis", neighborhood: null, season: YEAR_ROUND, cost: "paid",
+    tags: ["indoor", "skate-rental", "hockey-and-open"],
+    intro: "The city's indoor rinks off Kenwood Parkway, with open skate year-round when the outdoor ice is gone — three sheets, cheap admission, skate rental on site.",
+    sourceUrl: "https://www.minneapolisparks.org/parks-destinations/recreation_centers_program_facilities/parade_ice_garden/",
+    verifiedAt: "2026-08-07", venueSlug: null,
+  },
+
+  // ── Sledding hills (P2.1 — winter) ───────────────────────────────────────
+  {
+    slug: "theodore-wirth-sledding-hill", name: "Theodore Wirth Sledding Hill", kind: "sledding",
+    lat: 44.9980, lng: -93.3180, address: "Theodore Wirth Pkwy, Minneapolis, MN 55422",
+    city: "Minneapolis", neighborhood: null, season: WINTER, cost: "free",
+    tags: ["steep", "parking-nearby"],
+    intro: "The metro's marquee sledding hill, just north of the Wirth Chalet — long runs with a warming chalet steps away, open 7 am to 9 pm all winter.",
+    sourceUrl: "https://www.minneapolisparks.org/activities-events/winter_activities/sledding/",
+    verifiedAt: "2026-08-07", venueSlug: null,
+  },
+  {
+    slug: "columbia-park-sledding-hill", name: "Columbia Park Sledding Hill", kind: "sledding",
+    lat: 45.0200, lng: -93.2460, address: "3300 Central Ave NE, Minneapolis, MN 55418",
+    city: "Minneapolis", neighborhood: null, season: WINTER, cost: "free",
+    tags: ["steep"],
+    intro: "One of the steepest hills in Minneapolis, on the edge of the Columbia golf course in Northeast — not for the timid, and free.",
+    sourceUrl: "https://www.minneapolisparks.org/activities-events/winter_activities/sledding/",
+    verifiedAt: "2026-08-07", venueSlug: null,
+  },
+  {
+    slug: "powderhorn-park-sledding-hill", name: "Powderhorn Park Sledding Hill", kind: "sledding",
+    lat: 44.9380, lng: -93.2640, address: "3400 15th Ave S, Minneapolis, MN 55407",
+    city: "Minneapolis", neighborhood: "south-minneapolis", season: WINTER, cost: "free",
+    tags: ["gentle"],
+    intro: "The west slope above Powderhorn Lake in south Minneapolis — a friendly neighborhood hill, and home each January to the gloriously absurd Art Sled Rally.",
+    sourceUrl: "https://www.minneapolisparks.org/parks-destinations/parks-lakes/powderhorn_park/",
+    verifiedAt: "2026-08-07", venueSlug: null,
+  },
+  {
+    slug: "battle-creek-sledding-hill", name: "Battle Creek Sledding Hill", kind: "sledding",
+    lat: 44.9380, lng: -93.0100, address: "2300 Upper Afton Rd, Maplewood, MN 55119",
+    city: "Maplewood", neighborhood: null, season: WINTER, cost: "free",
+    tags: ["steep", "parking-nearby"],
+    intro: "A big, fast sledding hill in Battle Creek Regional Park on the east side — one of the metro's best, with a warming shelter and parking right there.",
+    sourceUrl: "https://www.ramseycountymn.gov/residents/parks-recreation/parks-trails/find-park/battle-creek-regional-park",
+    verifiedAt: "2026-08-07", venueSlug: null,
+  },
+  {
+    slug: "como-park-sledding-hill", name: "Como Park Sledding Hill", kind: "sledding",
+    lat: 44.9880, lng: -93.1520, address: "Como Park Golf Course, Saint Paul, MN 55103",
+    city: "St. Paul", neighborhood: "como", season: WINTER, cost: "free",
+    tags: ["gentle"],
+    intro: "The gentle hill by the Como golf course — an easy, kid-friendly sled next to the zoo and conservatory.",
+    sourceUrl: "https://www.stpaul.gov/departments/parks-and-recreation/como-regional-park",
     verifiedAt: "2026-08-07", venueSlug: null,
   },
 ];
