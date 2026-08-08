@@ -27,6 +27,10 @@ export const PLACES_KIND_INTRO: Record<string, string> = {
     "When it's too hot for the playground and you're not driving to a lake, a splash pad is the move — free, no admission, just cold water on a timer. The metro's are tucked into the neighborhood parks; most run late May into September and shut off at night.",
   pool:
     "For actual laps, a real diving board, or a waterslide the kids will make you ride twice, the metro's aquatic centers deliver. Most outdoor pools run June through August for a daily fee; a couple of indoor water parks keep going all winter.",
+  park:
+    "The parks worth crossing town for — the falls at Minnehaha, the conservatory at Como, the reserves with real wilderness on the metro's edge. Most are free and open dawn to dark, year-round.",
+  playground:
+    "The destination playgrounds — the award-winning creative structures and the fully inclusive parks built for kids of every ability. Free, and worth the drive when the neighborhood swing set won't cut it.",
 };
 
 export const VENUE_INTROS: Record<string, string> = {
