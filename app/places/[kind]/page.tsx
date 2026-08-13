@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { TopBar } from "@/components/TopBar";
 import { SiteFooter } from "@/components/SiteFooter";
-import { PlacesMap } from "@/components/PlacesMap";
+import { PlacesMapInteractive } from "@/components/PlacesMapInteractive";
 import { PlacesList } from "@/components/PlacesList";
 import {
   KIND_META,
@@ -64,7 +64,6 @@ export default async function PlacesKindPage({
   const now = new Date();
   const banner = placesSeasonBanner(places, now);
   const intro = PLACES_KIND_INTRO[k] ?? meta.blurb;
-  const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
 
   return (
     <>
@@ -83,7 +82,7 @@ export default async function PlacesKindPage({
 
         <p className="page-intro places-intro">{intro}</p>
 
-        <PlacesMap places={places} token={token} />
+        <PlacesMapInteractive places={places} />
         <PlacesList places={places} />
 
         <SiteFooter source="places" />

@@ -745,6 +745,10 @@ a.daycard { text-decoration: none; }
 .places-intro { max-width: 640px; margin: 0 auto 20px; }
 .places-map { margin: 0 auto 20px; max-width: 720px; }
 .places-map img { display: block; width: 100%; height: auto; border-radius: 12px; border: 1px solid var(--line); }
+/* P4.2 — interactive (clustered) Places map. */
+.places-map-canvas { height: clamp(420px, 58vh, 620px); max-width: 720px; margin: 0 auto 20px; border-radius: 14px; border: 1px solid var(--line); overflow: hidden; }
+.places-map-note { max-width: 720px; margin: 0 auto 20px; padding: 16px 18px; text-align: center; color: var(--cream-dim); font-size: 14px; border: 1px dashed var(--line); border-radius: 12px; }
+.pop-place .pop-link { margin-top: 8px; display: inline-block; font-size: 12.5px; font-weight: 600; color: var(--gold); text-decoration: none; }
 .places-list { list-style: none; counter-reset: place; max-width: 720px; margin: 0 auto; padding: 0; display: flex; flex-direction: column; gap: 12px; }
 .place-row { display: flex; gap: 14px; padding: 14px 16px; background: var(--navy-800, #0e1830); border: 1px solid var(--line); border-radius: 12px; scroll-margin-top: 80px; }
 .place-num { flex: none; width: 30px; height: 30px; display: inline-flex; align-items: center; justify-content: center; border-radius: 999px; border: 1px solid var(--gold); color: var(--gold); font-family: var(--font-oswald); font-weight: 600; font-size: 14px; }

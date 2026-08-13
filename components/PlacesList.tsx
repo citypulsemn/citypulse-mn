@@ -4,11 +4,14 @@ import type { Place, PlaceCost } from "@/lib/places";
 const COST_LABEL: Record<PlaceCost, string> = { free: "Free", paid: "Paid", donation: "Donation" };
 
 /**
- * The numbered list beneath the map. Entry N corresponds to map pin N (both take
- * the same free-first-sorted array from placesByKind). Each row: name, cost
- * badge, neighborhood link (the bridge to neighborhood pages) + city, amenity
- * tags, house-voice intro, and the source link — the honesty anchor for hours
- * and exact dates.
+ * The list beneath the map — and the accessible, screen-reader/keyboard path to
+ * every location (the clustered GL map isn't per-point focusable). Rows carry an
+ * `id={slug}` so a map popup can deep-link straight to one via `#slug` (the row
+ * has `scroll-margin-top` so the sticky TopBar doesn't hide it). The leading
+ * number is a plain ordinal now — the interactive map clusters, so the old
+ * "pin N = row N" contract is gone. Each row: name, cost badge, neighborhood
+ * link (the bridge to neighborhood pages) + city, amenity tags, house-voice
+ * intro, and the source link — the honesty anchor for hours and exact dates.
  */
 export function PlacesList({ places }: { places: Place[] }) {
   return (
