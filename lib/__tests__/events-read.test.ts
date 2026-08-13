@@ -1,5 +1,7 @@
 import { describe, it, expect } from "vitest";
-import { getEvent, getEventsForDay } from "../events";
+// getEventsForDay is wrapped in unstable_cache (needs a Next request context);
+// the read LOGIC under test is the uncached variant, so target that directly.
+import { getEvent, getEventsForDayUncached as getEventsForDay } from "../events";
 import { sampleEvents } from "../sample-events";
 import { dayKeyOf } from "../event-view";
 

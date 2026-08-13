@@ -1,9 +1,10 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { sql } from "./db";
 import { assertAdmin, logAudit, parseEventPatch } from "./admin";
 import { normalizeTier } from "./event-key";
+import { EVENTS_TAG } from "./events";
 
 function requireDb() {
   if (!sql) throw new Error("Database not configured");
@@ -12,6 +13,10 @@ function requireDb() {
 
 /** Revalidate the admin views plus the public pages that reflect this event. */
 function refresh(id?: string) {
+  // Bust the shared events data cache (lib/events.ts) so an archived/hidden/
+  // edited event leaves the public pages at once — revalidatePath alone would
+  // regenerate the HTML but re-read the still-cached getEvents() array.
+  revalidateTag(EVENTS_TAG);
   revalidatePath("/admin");
   revalidatePath("/admin/duplicates");
   revalidatePath("/");

@@ -1,4 +1,4 @@
-import { getEvents } from "./events";
+import { getEventsUncached } from "./events";
 import { getSubscribedRecipients } from "./subscribe";
 import { sql } from "./db";
 import { digestEvents, renderDigestEmail, digestWeekLabel } from "./digest";
@@ -53,7 +53,7 @@ export async function sendWeeklyDigest(opts: { dryRun?: boolean } = {}): Promise
   }
 
   const now = new Date();
-  const picks = digestEvents(await getEvents(), now);
+  const picks = digestEvents(await getEventsUncached(), now);
   const recipients = await getSubscribedRecipients();
 
   if (picks.length === 0) {

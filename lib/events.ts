@@ -1,9 +1,35 @@
+import { unstable_cache } from "next/cache";
 import { sql } from "./db";
 import { sampleEvents } from "./sample-events";
 import { isPublicStatus, dayKeyOf } from "./event-view";
 import { cleanEventTitle, displayCity } from "./title-hygiene";
 import { eventNeighborhood } from "./neighborhoods";
 import type { EventRecord, EventStatus, CategoryKey, PriceTier } from "./types";
+
+/**
+ * Shared-cache config for the events read layer (Supabase egress reduction).
+ *
+ * THE PROBLEM: nearly every route calls getEvents() — the full published table —
+ * and filters it in JS. The home page, this-weekend, ongoing, and the per-city /
+ * per-neighborhood / per-collection / per-venue pages all do it, and so does
+ * EVERY /event/[id] page (for its "more at this venue" strip). Without a shared
+ * cache the DB re-shipped the whole table once per route per visitor: one crawler
+ * sweep of the ~950 event pages alone moved ~0.7 GB. That drove the Supabase
+ * fair-use egress alert (12.58 GB vs a 5.5 GB cap).
+ *
+ * THE FIX: wrap the reads in unstable_cache. The DB is now hit at most once per
+ * TTL window, GLOBALLY shared across all routes and requests, instead of once per
+ * route per request. The full payload is ~0.7 MB for 953 events — comfortably
+ * under Vercel's 2 MB data-cache-entry ceiling, so it caches for real.
+ *
+ * Freshness: admin edits bust EVENTS_TAG immediately (lib/admin-actions.ts). The
+ * weekly pipeline writes straight to Postgres out-of-band, so its changes appear
+ * on the next TTL refresh — same behaviour as the old per-route ISR, just a wider
+ * window. Non-request callers (the digest script, unit tests) use the *Uncached
+ * reads below, which never touch the Next cache and are always fresh.
+ */
+export const EVENTS_TAG = "events";
+const EVENTS_TTL_SECONDS = 1800; // 30 min — the Supabase egress knob
 
 /**
  * The events data layer — the single boundary between the pipeline (which
@@ -68,7 +94,7 @@ function rowToEvent(r: Row): EventRecord {
   };
 }
 
-export async function getEvents(): Promise<EventRecord[]> {
+async function readAllPublished(): Promise<EventRecord[]> {
   if (!sql) return sampleEvents;
 
   try {
@@ -127,7 +153,7 @@ export async function getEvent(id: string): Promise<EventRecord | null> {
 }
 
 /** Published events on a given Central-time day (YYYY-MM-DD), earliest first. */
-export async function getEventsForDay(dayKey: string): Promise<EventRecord[]> {
+async function readEventsForDay(dayKey: string): Promise<EventRecord[]> {
   if (!sql) {
     return sampleEvents.filter(
       (e) => isPublicStatus(e.status) && dayKeyOf(e) === dayKey,
@@ -181,6 +207,29 @@ export async function getEventsForDay(dayKey: string): Promise<EventRecord[]> {
     return [];
   }
 }
+
+/**
+ * The page-facing reads: cached and shared across every route and request. See
+ * the EVENTS_TAG note above for why. unstable_cache keys getEventsForDay by its
+ * dayKey argument automatically, so each day caches independently.
+ */
+export const getEvents = unstable_cache(readAllPublished, ["events:all-published"], {
+  revalidate: EVENTS_TTL_SECONDS,
+  tags: [EVENTS_TAG],
+});
+
+export const getEventsForDay = unstable_cache(readEventsForDay, ["events:for-day"], {
+  revalidate: EVENTS_TTL_SECONDS,
+  tags: [EVENTS_TAG],
+});
+
+/**
+ * Uncached direct reads — for contexts that run OUTSIDE a Next request (the
+ * weekly digest script) or must never see a cached value (unit tests). Always
+ * hit the DB (or sample fallback) fresh.
+ */
+export const getEventsUncached = readAllPublished;
+export const getEventsForDayUncached = readEventsForDay;
 
 /**
  * Fetch events by id (used by saved events, roadmap 3.3). Returns records in the
