@@ -9,7 +9,7 @@ import { selectWeekend, weekendDays, weekendLabel } from "@/lib/weekend";
 import { SITE_URL } from "@/lib/seo/site";
 import { jsonLdSafe } from "@/lib/seo/event-jsonld";
 
-export const revalidate = 300;
+export const revalidate = 1800; // 30 min — weekend membership is day-granular; admin edits bust it (lib/admin-actions).
 
 // EVERGREEN by design: the title and URL never carry dates — this page IS
 // "things to do this weekend" forever; only the content rolls with the clock.

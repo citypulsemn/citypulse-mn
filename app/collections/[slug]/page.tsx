@@ -12,7 +12,7 @@ import { dkey, evDate } from "@/lib/dates";
 import { longDate } from "@/lib/event-view";
 import type { EventRecord } from "@/lib/types";
 
-export const revalidate = 300;
+export const revalidate = 1800; // 30 min — collection membership is day-granular; admin edits bust it (lib/admin-actions).
 
 // Render on-demand, not at build. Collection pages read from the database, and
 // prerendering all of them in parallel at build time exhausted Vercel's DB

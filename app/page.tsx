@@ -7,7 +7,8 @@ import { getTrendingEvents } from "@/lib/trending";
 import { CollectionsStrip } from "@/components/CollectionsStrip";
 import { SiteFooter } from "@/components/SiteFooter";
 
-// Re-render at most every 5 minutes (events also revalidate at the data layer).
+// Re-render at most every 30 minutes. The shared events cache (lib/events) is
+// the real DB-freshness floor; admin edits bust both the cache and the pages.
 // 1.2 — the homepage is the site's most important URL; it gets an explicit
 // canonical like every other page type (Search Console judges this). Title and
 // description inherit from the root layout.
@@ -15,7 +16,7 @@ export const metadata = {
   alternates: { canonical: "/" },
 };
 
-export const revalidate = 300;
+export const revalidate = 1800;
 
 export default async function Home() {
   const events = await getEvents();

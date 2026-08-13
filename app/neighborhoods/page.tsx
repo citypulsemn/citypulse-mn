@@ -5,7 +5,7 @@ import { getEvents } from "@/lib/events";
 import { isUpcoming } from "@/lib/dates";
 import { NEIGHBORHOODS } from "@/lib/neighborhoods";
 
-export const revalidate = 300;
+export const revalidate = 3600; // 1 hr — structural page; content changes weekly, admin edits bust it (lib/admin-actions).
 
 const TAGLINE = "Twin Cities events by the places locals actually say — Uptown, Northeast, Lowertown, and the rest.";
 

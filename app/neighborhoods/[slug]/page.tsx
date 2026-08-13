@@ -11,7 +11,7 @@ import { neighborhoodByKey } from "@/lib/neighborhoods";
 import { isUpcoming } from "@/lib/dates";
 import { matchCitySlug } from "@/lib/cities";
 
-export const revalidate = 300;
+export const revalidate = 3600; // 1 hr — structural page; content changes weekly, admin edits bust it (lib/admin-actions).
 
 // NO generateStaticParams — deliberately. Prerendering all 16 districts at
 // build time meant 16 concurrent full getEvents() queries from parallel build

@@ -8,7 +8,7 @@ import { dayItemListJsonLd, jsonLdSafe } from "@/lib/seo/event-jsonld";
 import { SITE_URL } from "@/lib/seo/site";
 import { isValidDayKey, longDate, adjacentDayKeys } from "@/lib/event-view";
 
-export const revalidate = 300;
+export const revalidate = 1800; // 30 min — a day's slate changes weekly; admin edits bust it (lib/admin-actions).
 
 export async function generateMetadata({
   params,

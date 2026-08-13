@@ -8,7 +8,7 @@ import { cityBySlug, matchCitySlug } from "@/lib/cities";
 import { NEIGHBORHOODS } from "@/lib/neighborhoods";
 import { isUpcoming } from "@/lib/dates";
 
-export const revalidate = 300;
+export const revalidate = 3600; // 1 hr — structural page; content changes weekly, admin edits bust it (lib/admin-actions).
 
 // NO generateStaticParams — the recorded rule (5.5 build incident): build-time
 // prerenders of DB-backed pages stampede the connection pool. On-demand ISR.

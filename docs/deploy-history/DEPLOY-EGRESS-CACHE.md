@@ -110,7 +110,48 @@ auto-deploys; the cache begins on the first request after deploy.
       (tag bust working).
 - [ ] Monday's digest still sends the full current slate (uncached path intact).
 
+## Follow-up — raised ISR windows (same workstream)
+
+A second commit widened the page-level `revalidate` on the hot pages. With the
+shared data cache already governing DB reads, this is mostly a **Vercel**
+regeneration + tiny-uncached-read trim, not the main Supabase lever — but it's
+sound hygiene and complements the cache.
+
+Windows chosen by time-sensitivity:
+
+- **1800 s (30 min)** — home, `/this-weekend`, `/ongoing`, `/day/[date]`,
+  `/collections/[slug]`. Home's time labels are client-refined on mount; the
+  others are day-granular (weekend membership, closing dates, a day's slate).
+- **3600 s (1 hr)** — the structural pages `/cities`(+`[slug]`),
+  `/neighborhoods`(+`[slug]`), `/venues`(+`[slug]`). Content changes weekly.
+- **300 s (unchanged)** — `/event/[id]` (its "Starts in N minutes" banner is
+  minute-granular and **server-baked** on the standalone page, so it must stay
+  fresh) and `/collections/trending` (volatile by design — a deliberate note in
+  the file).
+
+**The data-cache clamp (why the static pages read 30m in the build table).**
+Next sets a static page's effective `revalidate` to the *minimum* of the page
+window and any `unstable_cache` TTL used while rendering. Every hot page reads
+`getEvents()` (data cache TTL 1800 s), so the static index pages (`/`, `/cities`,
+`/neighborhoods`, `/venues`, `/ongoing`, `/this-weekend`) show **30m** in the
+build output even where the page constant says 3600 — the data cache is the
+real freshness floor. The 1-hour window still applies to the on-demand dynamic
+detail pages (`ƒ` in the route table), which don't render at build. This is
+correct and intended, not a misconfiguration.
+
+**Moderation stays instant.** Longer windows would let an admin-hidden event
+linger on the secondary pages until their window expired, so
+[lib/admin-actions.ts](../../lib/admin-actions.ts) `refresh()` now clears the
+whole public tree: `revalidateTag("events")` (data) + `revalidatePath("/",
+"layout")` (all page HTML). Admin edits are rare, so a full-tree revalidation is
+cheap and keeps hides/archives/edits visible everywhere immediately.
+
+Verification: build route table shows the new Revalidate column (`/` 30m,
+structural indexes 30m via the clamp, trending 5m unchanged); `tsc` clean, 939
+tests, build clean, audit 0.
+
 ## Rollback
 
-`git revert` the commit. Pure caching layer — reverting restores the direct
-per-request reads; no data or schema implications.
+`git revert` the commit(s). Pure caching + ISR-window config — reverting
+restores the direct per-request reads and 5-minute windows; no data or schema
+implications.

@@ -20,7 +20,7 @@ import { isUpcoming } from "@/lib/dates";
 import { SITE_URL } from "@/lib/seo/site";
 import { jsonLdSafe } from "@/lib/seo/event-jsonld";
 
-export const revalidate = 300;
+export const revalidate = 3600; // 1 hr — structural page; content changes weekly, admin edits bust it (lib/admin-actions).
 
 // NO generateStaticParams — the recorded rule from the 5.5 build incident:
 // build-time prerenders of DB-backed pages stampede the connection pool.

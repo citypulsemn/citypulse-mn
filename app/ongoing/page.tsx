@@ -5,7 +5,7 @@ import { EventDayCard } from "@/components/EventDayCard";
 import { getEvents } from "@/lib/events";
 import { selectOngoing, selectLastChance, throughLabel, MIN_LAST_CHANCE } from "@/lib/ongoing";
 
-export const revalidate = 300;
+export const revalidate = 1800; // 30 min — closing dates are day-granular; admin edits bust it (lib/admin-actions).
 
 const TITLE = "Ongoing in the Twin Cities — Exhibitions, Fairs & Long Runs | City Pulse MN";
 const TAGLINE =

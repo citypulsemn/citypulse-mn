@@ -6,7 +6,7 @@ import { isUpcoming } from "@/lib/dates";
 import { CITY_PAGES, matchCitySlug, areaLabel } from "@/lib/cities";
 import type { AreaKey } from "@/lib/areas";
 
-export const revalidate = 300;
+export const revalidate = 3600; // 1 hr — structural page; content changes weekly, admin edits bust it (lib/admin-actions).
 
 const TAGLINE = "Twin Cities events by city — from the downtowns to the suburbs.";
 

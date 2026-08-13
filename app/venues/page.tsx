@@ -5,7 +5,7 @@ import { getEvents } from "@/lib/events";
 import { isUpcoming } from "@/lib/dates";
 import { VENUE_PAGES, matchVenueSlug } from "@/lib/venue-pages";
 
-export const revalidate = 300;
+export const revalidate = 3600; // 1 hr — structural page; content changes weekly, admin edits bust it (lib/admin-actions).
 
 const TAGLINE = "The Twin Cities rooms worth knowing — schedules, addresses, and what's coming up at each.";
 

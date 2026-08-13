@@ -13,13 +13,15 @@ function requireDb() {
 
 /** Revalidate the admin views plus the public pages that reflect this event. */
 function refresh(id?: string) {
-  // Bust the shared events data cache (lib/events.ts) so an archived/hidden/
-  // edited event leaves the public pages at once — revalidatePath alone would
-  // regenerate the HTML but re-read the still-cached getEvents() array.
+  // Two layers must both clear, or a moderated event lingers:
+  //  1) the shared events DATA cache (lib/events.ts) — else pages re-render but
+  //     re-read the still-cached getEvents() array;
+  //  2) the PAGE cache — with the longer ISR windows (30–60 min) a hidden/
+  //     archived event would otherwise sit on the city/venue/day/etc. pages
+  //     until their window expired. Admin edits are rare, so clearing the whole
+  //     public tree here is cheap and keeps moderation instant everywhere.
   revalidateTag(EVENTS_TAG);
-  revalidatePath("/admin");
-  revalidatePath("/admin/duplicates");
-  revalidatePath("/");
+  revalidatePath("/", "layout");
   if (id) revalidatePath(`/event/${id}`);
 }
 
