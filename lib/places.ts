@@ -1364,6 +1364,84 @@ export const PLACES: Place[] = [
     verifiedAt: "2026-08-07", venueSlug: null,
   },
 
+  // ── Destination playgrounds — curated (Aug 2026, F2.7) ────────────────────
+  // The "worth the drive" playgrounds: inclusive, themed, or unusually big. This
+  // is the CURATED half of playgrounds (with the age-fit / accessibility detail
+  // that can't be scraped); the exhaustive "every playground" map layer is a
+  // separate OSM-sourced build (owner's hybrid call).
+  {
+    slug: "french-regional-playground", name: "French Regional Park Playground", kind: "playground",
+    lat: 45.0306, lng: -93.4390, address: "12605 Rockford Rd, Plymouth, MN 55441",
+    city: "Plymouth", neighborhood: null, season: YEAR_ROUND, cost: "free",
+    tags: ["inclusive", "themed"],
+    intro: "Three Rivers' inclusive playground at French Regional Park in Plymouth, built around a three-story fire tower with slides on every level, plus zip lines and see-saws.",
+    sourceUrl: "https://www.threeriversparks.org/location/french-regional-park",
+    verifiedAt: "2026-08-13", venueSlug: null,
+  },
+  {
+    slug: "roseville-central-park-playground", name: "Central Park Playground (Roseville)", kind: "playground",
+    lat: 45.0200, lng: -93.1470, address: "2540 Lexington Ave N, Roseville, MN 55113",
+    city: "Roseville", neighborhood: null, season: YEAR_ROUND, cost: "free",
+    tags: ["inclusive", "accessible"],
+    intro: "Roseville's Central Park inclusive playground (Victoria West) — a We-Go-Round, a zip line, bucket swings, and ramps so kids of every ability play side by side.",
+    sourceUrl: "https://www.cityofroseville.com/200/Central-Park---Lexington",
+    verifiedAt: "2026-08-13", venueSlug: null,
+  },
+  {
+    slug: "staring-lake-playground", name: "Staring Lake Park Playground", kind: "playground",
+    lat: 44.8530, lng: -93.4650, address: "14800 Pioneer Trail, Eden Prairie, MN 55347",
+    city: "Eden Prairie", neighborhood: null, season: YEAR_ROUND, cost: "free",
+    tags: ["themed"],
+    intro: "Eden Prairie's fire-tower playground at Staring Lake — a three-story metal tower with slides, a telescope and old radio, a log prairie house, and a hollow tree to climb.",
+    sourceUrl: "https://www.edenprairiemn.gov/home/components/facilitydirectory/facilitydirectory/146/1343",
+    verifiedAt: "2026-08-13", venueSlug: null,
+  },
+  {
+    slug: "teddy-bear-park-playground", name: "Teddy Bear Park", kind: "playground",
+    lat: 45.0555, lng: -92.8050, address: "207 Nelson St E, Stillwater, MN 55082",
+    city: "Stillwater", neighborhood: null, season: YEAR_ROUND, cost: "free",
+    tags: ["themed", "toddlers", "shade"],
+    intro: "Stillwater's downtown Teddy Bear Park — a giant granite bear, a treehouse with a log slide, and a Lift Bridge climber, all geared to the seven-and-under crowd.",
+    sourceUrl: "https://www.stillwatermn.gov/Home/Components/FacilityDirectory/FacilityDirectory/10/",
+    verifiedAt: "2026-08-13", venueSlug: null,
+  },
+  {
+    slug: "becker-park-playground", name: "Becker Park Playground", kind: "playground",
+    lat: 45.0565, lng: -93.3642, address: "5530 Douglas Dr N, Crystal, MN 55429",
+    city: "Crystal", neighborhood: null, season: YEAR_ROUND, cost: "free",
+    tags: ["inclusive", "accessible"],
+    intro: "Crystal's Becker Park — a fully inclusive, ramped playground rebuilt in 2020 with poured-in-place surfacing, wrapped around the splash pad and community center.",
+    sourceUrl: "https://parksandrec.crystalmn.gov/recreation/parks_and_trails/becker_park",
+    verifiedAt: "2026-08-13", venueSlug: null,
+  },
+  {
+    slug: "elm-creek-play-area", name: "Elm Creek Play Area", kind: "playground",
+    lat: 45.1300, lng: -93.4400, address: "12400 James Deane Pkwy, Maple Grove, MN 55369",
+    city: "Maple Grove", neighborhood: null, season: YEAR_ROUND, cost: "free",
+    tags: ["destination"],
+    intro: "One of Minnesota's largest playgrounds — Three Rivers' Elm Creek Play Area in Maple Grove, with two three-story slide towers, a climbable fossil, and a spinning web.",
+    sourceUrl: "https://www.threeriversparks.org/location/elm-creek-park-reserve",
+    verifiedAt: "2026-08-13", venueSlug: null,
+  },
+  {
+    slug: "waterford-park-playground", name: "Waterford Park Playground", kind: "playground",
+    lat: 44.8640, lng: -93.8000, address: "1702 Ravencroft Rd, Waconia, MN 55387",
+    city: "Waconia", neighborhood: null, season: YEAR_ROUND, cost: "free",
+    tags: ["inclusive"],
+    intro: "Waconia's Waterford Park — a big, bright inclusive playground built so kids of all abilities can play together, out at the western edge of the metro.",
+    sourceUrl: "https://www.waconiamn.gov/473/Community-Parks",
+    verifiedAt: "2026-08-13", venueSlug: null,
+  },
+  {
+    slug: "shoreview-commons-playground", name: "Shoreview Commons Destination Playground", kind: "playground",
+    lat: 45.0805, lng: -93.1318, address: "4580 Victoria St N, Shoreview, MN 55126",
+    city: "Shoreview", neighborhood: null, season: YEAR_ROUND, cost: "free",
+    tags: ["destination", "inclusive"],
+    intro: "Shoreview Commons' destination playground — a big nature-themed structure with built-in water-spray play, right by the community center.",
+    sourceUrl: "https://www.shoreviewmn.gov/Parks-rec/Parks/Parks-directory/Shoreview-Commons-Destination-Playground",
+    verifiedAt: "2026-08-13", venueSlug: null,
+  },
+
   // ── Ice rinks (P2.1 — winter) ────────────────────────────────────────────
   {
     slug: "john-rose-minnesota-oval", name: "John Rose Minnesota Oval", kind: "rink",
