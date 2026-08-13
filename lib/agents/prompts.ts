@@ -22,7 +22,7 @@ const SOURCE_HINTS: Record<CategoryKey, string> = {
   food:
     "Brewery taprooms (metro-wide, including suburban ones), food halls, Midtown Global Market, Eater Twin Cities, Heavy Table, farmers' markets and food-truck events in the suburbs.",
   weird:
-    "Venue Instagrams and neighborhood newsletters: Can Can Wonderland, The Hook & Ladder, Bauhaus, Pimento, oddity markets — plus suburban oddities (Sever's, novelty pop-ups). Plain APIs won't surface these.",
+    "The wonderfully-unusual — cast a WIDE net; this is our scarcest, highest-interest category, so dig. Local alt outlets surface what plain APIs miss: Racket (racketmn.com), Southwest Voices, Minnesota Monthly and Meet Minneapolis / Visit Saint Paul 'unusual things to do' lists, plus venue Instagrams. Reliable oddity veins: Can Can Wonderland, Bauhaus Brew Labs, Sisyphus Brewing, Bryant-Lake Bowl (cabaret / variety / markets); roller derby (North Star), silent discos, drag brunches, bar trivia and 'nerd nights', vintage / oddity / maker markets, ghost tours, immersive & experiential pop-ups; and seasonal one-offs (Sever's, the Renaissance Festival, Art-A-Whirl, Northern Spark, novelty pop-ups). Look for the genuinely-odd, not the obviously arts/music.",
   festival:
     "City event calendars and chambers of commerce for EACH suburb (e.g. Plymouth, Edina, Maple Grove, Lakeville), neighborhood associations, Meet Minneapolis, Visit Saint Paul, street fests, city 'days' celebrations, and open streets.",
 };

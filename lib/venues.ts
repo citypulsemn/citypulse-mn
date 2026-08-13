@@ -74,6 +74,14 @@ export const VENUES: Venue[] = [
   { name: "Saint Paul Public Library (system-wide events)", city: "St Paul", category: "family" },
   { name: "Three Rivers Park District", city: "Plymouth", category: "family" },
   { name: "Eagan Community Center", city: "Eagan", category: "family" },
+
+  // ── Unique/weird: the reliable oddity rooms (F1.1 — the under-served,
+  //    highest-interest category; anchor it like music so it stops running dry).
+  { name: "Can Can Wonderland", city: "St Paul", category: "weird", calendarHint: "cancanwonderland.com" },
+  { name: "Bauhaus Brew Labs", city: "Minneapolis", category: "weird" },
+  { name: "Sisyphus Brewing", city: "Minneapolis", category: "weird" },
+  { name: "Bryant-Lake Bowl & Theater", city: "Minneapolis", category: "weird" },
+  { name: "Sever's (seasonal festivals)", city: "Shakopee", category: "weird" },
 ];
 
 /** Venues whose primary programming is a given category. */
@@ -81,8 +89,12 @@ export function venuesFor(category: CategoryKey): Venue[] {
   return VENUES.filter((v) => v.category === category);
 }
 
-/** Categories that get venue-anchored sweeps (the fragmented ones). */
-export const VENUE_ANCHORED: CategoryKey[] = ["music", "family"];
+/** Categories that get venue-anchored sweeps IN ADDITION to topic research —
+ *  the ones a generic search can't cover. Music/family are fragmented across
+ *  many calendars; `weird` is scarce and Instagram-buried, so anchoring a few
+ *  reliable oddity rooms (F1.1) stops it running dry the way the coverage check
+ *  keeps flagging. Anchoring is additive: the topic-research agent still runs. */
+export const VENUE_ANCHORED: CategoryKey[] = ["music", "family", "weird"];
 
 export function isVenueAnchored(category: CategoryKey): boolean {
   return VENUE_ANCHORED.includes(category);
