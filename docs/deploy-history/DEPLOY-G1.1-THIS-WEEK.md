@@ -105,14 +105,33 @@ owner's to edit freely; a tripwire would just fight that. Verified rendered:
 home footer + `/this-weekend` band show the new copy, old copy gone. Gate: tsc
 clean, 948 tests, build clean, audit 0.
 
+## Slice 3 (shipped) — subscribe band on the homepage + event pages
+
+The bigger conversion lever than copy: the homepage (most traffic) and event
+pages (highest intent) previously carried only the quiet footer form. Added one
+inline `SubscribeBand` to each — owner-approved placement before going live.
+
+- **[app/page.tsx](../../app/page.tsx)** — band mid-flow, between the Ongoing and
+  Collections strips: `explorer → trending → ongoing → band → collections →
+  footer`. Not over the hero, not stacked on the footer; content below it.
+  `source="home"`.
+- **[app/event/[id]/page.tsx](../../app/event/[id]/page.tsx)** — band right after
+  the event content (detail + ticket CTA + map), above the "more on this day" /
+  "more at this venue" discovery strips. Peak intent. `source="event"`.
+
+Guardrails: **one band per page, no popup** (verified in the rendered DOM); the
+footer form stays (same footer-plus-one-band pattern as this-weekend/venue
+pages); distinct `source` values so the ops digest reports conversion by
+placement. Copy is the sharpened default (slice 2). Tripwires in
+[subscribe-placement.test.ts](../../lib/__tests__/subscribe-placement.test.ts)
+pin one band per page, the right source, and the mid-flow / after-content order.
+Gate: tsc clean, 952 tests, build clean, audit 0.
+
 ## Next G1.1 slices (not yet shipped)
 
-- **Placement, not just copy (recommended next):** the homepage (most traffic)
-  and event pages (highest intent) carry only the quiet footer ask. A single,
-  well-placed subscribe moment there — no popup, still one band — is likely a
-  bigger conversion lever than copy. This is a product call (it touches the
-  homepage's deliberately-clean aesthetic), so it's flagged for the owner.
 - A subscribe line in the **FirstSaveNudge** (a saver is the warmest lead) and in
   the **digest footer** (forward-to-a-friend → /this-week).
-- Link `/this-week` from the homepage subscribe context so on-site traffic finds
+- Link `/this-week` from a homepage subscribe context so on-site traffic finds
   it (kept out of the crowded TopBar deliberately).
+- Watch the ops digest: `source` breakdown (home / event / this-week / this-weekend
+  / venue-page) tells us which placement earns subscribers — then double down.

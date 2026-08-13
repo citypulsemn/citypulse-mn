@@ -5,6 +5,7 @@ import { OngoingStrip } from "@/components/OngoingStrip";
 import { selectOngoing } from "@/lib/ongoing";
 import { getTrendingEvents } from "@/lib/trending";
 import { CollectionsStrip } from "@/components/CollectionsStrip";
+import { SubscribeBand } from "@/components/SubscribeBand";
 import { SiteFooter } from "@/components/SiteFooter";
 
 // Re-render at most every 30 minutes. The shared events cache (lib/events) is
@@ -30,6 +31,9 @@ export default async function Home() {
       <EventsExplorer events={events} nowISO={nowISO} />
       <TrendingStrip trending={trending} />
       <OngoingStrip ongoing={selectOngoing(events, new Date())} now={new Date()} />
+      {/* G1.1 — one inline subscribe ask, mid-flow between editorial strips (not
+          stacked on the footer's form). One band, no popup — the house rule. */}
+      <SubscribeBand source="home" />
       <CollectionsStrip />
       <SiteFooter source="home" />
     </>

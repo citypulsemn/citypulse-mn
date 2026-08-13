@@ -8,6 +8,7 @@ import { EventDayCard } from "@/components/EventDayCard";
 import { ShareButton } from "@/components/ShareButton";
 import { TopBar } from "@/components/TopBar";
 import { SiteFooter } from "@/components/SiteFooter";
+import { SubscribeBand } from "@/components/SubscribeBand";
 import { eventJsonLd, jsonLdSafe } from "@/lib/seo/event-jsonld";
 import { SITE_URL } from "@/lib/seo/site";
 import {
@@ -115,6 +116,10 @@ export default async function EventPage({
             </a>
           )}
         </article>
+
+        {/* G1.1 — one inline subscribe ask at peak intent: right after the event
+            content, above the onward-discovery strips. One band, no popup. */}
+        <SubscribeBand source="event" />
 
         {siblings.length > 0 && (
           <section className="more-day">
