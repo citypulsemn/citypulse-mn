@@ -37,6 +37,8 @@ export const PLACES_KIND_INTRO: Record<string, string> = {
     "The hills worth hauling the toboggan to — the steep ones, the long ones, the one with the yearly art-sled rally. All free, all bring-your-own-sled, all at your own risk, from the first real snow through February.",
   "golf-course":
     "Every public course you can just book a tee time at — the city munis, the daily-fee tracks, and the quick par-3s. Greens fees vary; most open in April and play into October, weather willing. Private members-only clubs aren't here — only where anyone can walk on.",
+  "farmers-market":
+    "Where the metro's growers and makers set up each week — sweet corn and tomatoes in August, greens and rhubarb in June, honey and crafts right through fall. Most run May to October, one morning or evening a week; a few flagships keep an indoor winter market going. Bring cash, though many now take cards and SNAP/EBT.",
 };
 
 export const VENUE_INTROS: Record<string, string> = {
