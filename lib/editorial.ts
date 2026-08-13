@@ -35,6 +35,8 @@ export const PLACES_KIND_INTRO: Record<string, string> = {
     "Free neighborhood rinks, the world's biggest refrigerated oval, and a canal you can skate for a quarter-mile — winter turns the metro into a skating town. Most outdoor ice runs December through February, weather permitting; the indoor sheets keep going year-round.",
   sledding:
     "The hills worth hauling the toboggan to — the steep ones, the long ones, the one with the yearly art-sled rally. All free, all bring-your-own-sled, all at your own risk, from the first real snow through February.",
+  "golf-course":
+    "Every public course you can just book a tee time at — the city munis, the daily-fee tracks, and the quick par-3s. Greens fees vary; most open in April and play into October, weather willing. Private members-only clubs aren't here — only where anyone can walk on.",
 };
 
 export const VENUE_INTROS: Record<string, string> = {
