@@ -182,8 +182,10 @@ describe("placesStaticMapUrl — numbered pins that match the list", () => {
   it("emits gold pins numbered 1..N in list order", () => {
     const url = placesStaticMapUrl(placesByKind("beach"), token)!;
     const beaches = placesByKind("beach");
-    // one pin per place, numbered by position, auto-fit
-    for (let i = 0; i < beaches.length; i++) {
+    // one pin per place, numbered by position, auto-fit — but only up to the
+    // pin cap (the static builder is now unused: the interactive clustered map
+    // carries the full set. Beaches passed 30 once the exhaustive sweep landed.)
+    for (let i = 0; i < Math.min(beaches.length, PLACES_MAP_MAX_PINS); i++) {
       expect(url).toContain(`pin-l-${i + 1}+c9a961(${beaches[i].lng},${beaches[i].lat})`);
     }
     expect(url).toContain("/auto/");
