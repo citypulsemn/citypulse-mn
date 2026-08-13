@@ -8,6 +8,17 @@ import type { Place } from "@/lib/places";
 const TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
 const GOLD = "#c9a961";
 const NAVY = "#0e1830";
+const OSM_GRAY = "#8b93a7";
+
+// Kinds that also get an "every one" bulk layer from OpenStreetMap (public/osm/
+// <kind>.json, built by scripts/build-osm-places.ts). These are unbounded — the
+// registry holds the hand-picked destinations (gold), and this gray, zoom-gated
+// layer shows every community-mapped one. Only playgrounds and parks qualify;
+// the other kinds are already exhaustive in the registry.
+const OSM_KINDS: Record<string, { plural: string; singular: string }> = {
+  playground: { plural: "playgrounds", singular: "playground" },
+  park: { plural: "parks", singular: "park" },
+};
 
 /**
  * The interactive Places map (P4.2). Pan/zoom, and — the load-bearing choice —
@@ -29,6 +40,8 @@ export function PlacesMapInteractive({ places }: { places: Place[] }) {
   const mapRef = useRef<any>(null);
   const placesRef = useRef(places);
   placesRef.current = places;
+  const kind = places[0]?.kind;
+  const osm = kind ? OSM_KINDS[kind] : undefined;
 
   useEffect(() => {
     if (!TOKEN || !containerRef.current || places.length === 0) return;
@@ -130,6 +143,52 @@ export function PlacesMapInteractive({ places }: { places: Place[] }) {
           map.on("mouseenter", layer, () => (map.getCanvas().style.cursor = "pointer"));
           map.on("mouseleave", layer, () => (map.getCanvas().style.cursor = ""));
         }
+
+        // The "every one" OSM bulk layer (playgrounds/parks). Fetched at runtime
+        // from a static file so it never touches the page bundle; rendered as
+        // gray, zoom-gated dots BELOW the gold curated pins (beforeId "clusters").
+        // Community data — labeled as such in the caption and popups.
+        if (osm) {
+          fetch(`/osm/${kind}.json`)
+            .then((r) => (r.ok ? r.json() : null))
+            .then((data) => {
+              if (cancelled || !data || !mapRef.current || map.getSource("osm")) return;
+              map.addSource("osm", { type: "geojson", data });
+              map.addLayer(
+                {
+                  id: "osm-points",
+                  type: "circle",
+                  source: "osm",
+                  minzoom: 11, // hide until zoomed — the curated gold pins lead
+                  paint: {
+                    "circle-color": OSM_GRAY,
+                    "circle-opacity": 0.85,
+                    "circle-radius": ["interpolate", ["linear"], ["zoom"], 11, 2.5, 16, 5.5],
+                    "circle-stroke-width": 1,
+                    "circle-stroke-color": NAVY,
+                  },
+                },
+                "clusters",
+              );
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              map.on("click", "osm-points", (e: any) => {
+                const f = e.features[0];
+                const nm = String(f.properties?.name || "").trim();
+                const html =
+                  `<div class="pop-place">` +
+                  `<div class="pop-title">${esc(nm || `Unnamed ${osm.singular}`)}</div>` +
+                  `<div class="pop-meta">Community-mapped · OpenStreetMap</div>` +
+                  `</div>`;
+                new mapboxgl.Popup({ offset: 10, maxWidth: "240px" })
+                  .setLngLat(f.geometry.coordinates)
+                  .setHTML(html)
+                  .addTo(map);
+              });
+              map.on("mouseenter", "osm-points", () => (map.getCanvas().style.cursor = "pointer"));
+              map.on("mouseleave", "osm-points", () => (map.getCanvas().style.cursor = ""));
+            })
+            .catch(() => {});
+        }
       });
     })();
 
@@ -149,7 +208,21 @@ export function PlacesMapInteractive({ places }: { places: Place[] }) {
     );
   }
   if (places.length === 0) return null;
-  return <div ref={containerRef} className="places-map-canvas" aria-label="Interactive map of these locations" />;
+  return (
+    <>
+      <div ref={containerRef} className="places-map-canvas" aria-label="Interactive map of these locations" />
+      {osm && (
+        <p className="places-map-osm-note">
+          Gold pins are our hand-picked {osm.plural}. <b>Zoom in</b> to see every {osm.singular} in
+          the metro (gray dots) — community-mapped via{" "}
+          <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">
+            OpenStreetMap
+          </a>
+          .
+        </p>
+      )}
+    </>
+  );
 }
 
 function esc(s: string): string {
