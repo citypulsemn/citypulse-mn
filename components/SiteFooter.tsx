@@ -7,7 +7,7 @@ export function SiteFooter({ source = "site" }: { source?: string }) {
         <div className="sf-pitch">
           <div className="sf-title">The week ahead, in your inbox</div>
           <div className="sf-sub">
-            A weekly rundown of the best Twin Cities events. No spam, unsubscribe anytime.
+            The Twin Cities&rsquo; best events, hand-picked and sent every Thursday. No spam, unsubscribe anytime.
           </div>
         </div>
         <SubscribeForm source={source} />

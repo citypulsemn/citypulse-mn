@@ -82,10 +82,36 @@ statically generated and revalidates every 30 min.
 `git revert`. Self-contained new route + one sitemap line; nothing else depends
 on it.
 
-## Next G1.1 slices (not in this deploy)
+## Slice 2 (shipped) — sharpen the site-wide subscribe copy
 
-- Sharpen the **default** SubscribeBand copy site-wide (home, event, venue pages)
-  the way this page's is.
+Recon corrected an assumption: `SubscribeBand` is **not** on the homepage or
+event pages — it's only on `/this-weekend`, `/this-week`, and venue detail. The
+truly **site-wide** subscribe ask is the **`SiteFooter`** pitch (a `SubscribeForm`
+in the footer of every page). So "sharpen the default copy" meant two surfaces:
+
+- **[SiteFooter.tsx](../../components/SiteFooter.tsx)** (every page) — sub copy →
+  "The Twin Cities' best events, **hand-picked and sent every Thursday.** No spam,
+  unsubscribe anytime." Adds the curation signal and the concrete cadence (the
+  digest really sends Thursdays), which sets expectations and builds trust.
+- **[SubscribeBand.tsx](../../components/SubscribeBand.tsx)** default → heading
+  "Get the week's best in your inbox", sub "One email every Thursday — the Twin
+  Cities' best events, hand-picked. Free, no spam." (The old default said "the
+  weekend's best," which under-described the email — it's the whole week's picks.
+  `/this-weekend` inherits the new, more honest default; venue pages keep their
+  context-specific override.)
+
+No test pins this copy on purpose — per the house rule, editorial copy is the
+owner's to edit freely; a tripwire would just fight that. Verified rendered:
+home footer + `/this-weekend` band show the new copy, old copy gone. Gate: tsc
+clean, 948 tests, build clean, audit 0.
+
+## Next G1.1 slices (not yet shipped)
+
+- **Placement, not just copy (recommended next):** the homepage (most traffic)
+  and event pages (highest intent) carry only the quiet footer ask. A single,
+  well-placed subscribe moment there — no popup, still one band — is likely a
+  bigger conversion lever than copy. This is a product call (it touches the
+  homepage's deliberately-clean aesthetic), so it's flagged for the owner.
 - A subscribe line in the **FirstSaveNudge** (a saver is the warmest lead) and in
   the **digest footer** (forward-to-a-friend → /this-week).
 - Link `/this-week` from the homepage subscribe context so on-site traffic finds

@@ -13,8 +13,8 @@ import { SubscribeForm } from "./SubscribeForm";
  */
 export function SubscribeBand({
   source,
-  heading = "Get this in your inbox every week",
-  sub = "The weekend's best, hand-picked. Free, no spam, one email.",
+  heading = "Get the week's best in your inbox",
+  sub = "One email every Thursday — the Twin Cities' best events, hand-picked. Free, no spam.",
 }: {
   source: string;
   heading?: string;
