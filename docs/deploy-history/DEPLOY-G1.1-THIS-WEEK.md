@@ -127,11 +127,31 @@ placement. Copy is the sharpened default (slice 2). Tripwires in
 pin one band per page, the right source, and the mid-flow / after-content order.
 Gate: tsc clean, 952 tests, build clean, audit 0.
 
+## Slice 4 (shipped) — warm-lead surfaces: save-nudge + digest referral
+
+Two cheap, honest asks that catch people at moments of intent:
+
+- **[FirstSaveNudge.tsx](../../components/FirstSaveNudge.tsx)** — a saver is the
+  warmest lead, so the one-time save nudge now offers a soft second link: "…or
+  get the week's best by email" → **/this-week** (which shows the picks + the
+  subscribe band). No form crammed into the strip; still one-time, dismissible,
+  not a popup. The keep-list message stays primary.
+- **[digest.ts](../../lib/digest.ts)** — the weekly email gained a
+  **forward-to-a-friend** line in both HTML and text: "Know someone who'd like
+  this? Send them citypulsemn.com/this-week" (utm `medium=forward`). A subscriber
+  shares the web version; the friend lands on the shop window and converts. A
+  referral loop that costs nothing per send.
+
+Tests: digest render asserts the /this-week link in HTML + text
+([digest.test.ts](../../lib/__tests__/digest.test.ts)); a tripwire pins the
+nudge's /this-week link
+([subscribe-placement.test.ts](../../lib/__tests__/subscribe-placement.test.ts)).
+Gate: tsc clean, 954 tests, build clean, audit 0.
+
 ## Next G1.1 slices (not yet shipped)
 
-- A subscribe line in the **FirstSaveNudge** (a saver is the warmest lead) and in
-  the **digest footer** (forward-to-a-friend → /this-week).
 - Link `/this-week` from a homepage subscribe context so on-site traffic finds
   it (kept out of the crowded TopBar deliberately).
-- Watch the ops digest: `source` breakdown (home / event / this-week / this-weekend
-  / venue-page) tells us which placement earns subscribers — then double down.
+- **Then measure, don't build:** watch the ops digest `source` breakdown (home /
+  event / this-week / this-weekend / venue-page / save-nudge / digest-forward) to
+  see which surface actually earns subscribers, and double down on the winner.

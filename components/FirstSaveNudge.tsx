@@ -47,7 +47,7 @@ export function FirstSaveNudge() {
     <div className="save-nudge" role="status">
       <span>
         Saved to this browser. <a href="/saved">Email yourself a link</a> to keep your
-        list on any device.
+        list on any device — or <a href="/this-week">get the week&rsquo;s best by email</a>.
       </span>
       <button type="button" className="save-nudge-x" onClick={dismiss} aria-label="Dismiss">
         ✕

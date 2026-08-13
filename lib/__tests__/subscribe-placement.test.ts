@@ -42,3 +42,10 @@ describe("event page subscribe placement", () => {
     expect(page.indexOf("<SubscribeBand")).toBeLessThan(page.indexOf("<MoreAtVenue"));
   });
 });
+
+describe("warm-lead subscribe surfaces (G1.1 tail)", () => {
+  it("the first-save nudge points the warm saver at /this-week", () => {
+    const nudge = read("components/FirstSaveNudge.tsx");
+    expect(nudge).toContain('href="/this-week"');
+  });
+});

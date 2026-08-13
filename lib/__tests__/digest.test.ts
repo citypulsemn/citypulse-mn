@@ -114,6 +114,10 @@ describe("renderDigestEmail", () => {
     expect(out.text).toContain("Trampled by Turtles");
     expect(out.text).toContain("Unsubscribe: https://citypulsemn.com/unsubscribe?id=5&t=abc");
   });
+  it("carries a forward-to-a-friend link to /this-week (G1.1 referral loop)", () => {
+    expect(out.html).toContain("https://citypulsemn.com/this-week?utm_source=email&utm_medium=forward");
+    expect(out.text).toContain("https://citypulsemn.com/this-week");
+  });
   it("escapes HTML in titles", () => {
     const risky = renderDigestEmail({
       events: [ev({ id: "x", title: "Rock & <Roll>" })],

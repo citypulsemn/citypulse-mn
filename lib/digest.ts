@@ -138,8 +138,11 @@ export function renderDigestEmail(opts: DigestOptions): DigestData {
         <tr><td style="padding:14px 24px 0;">
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0">${rows}</table>
         </td></tr>
-        <tr><td style="padding:6px 24px 24px;">
+        <tr><td style="padding:6px 24px 16px;">
           <a href="${siteUrl}?utm_source=email&utm_medium=digest" style="font:600 15px/1.2 Arial,Helvetica,sans-serif;color:${NAVY};background:${GOLD};text-decoration:none;display:inline-block;padding:12px 20px;border-radius:8px;">See everything on City Pulse &rarr;</a>
+        </td></tr>
+        <tr><td style="padding:0 24px 22px;">
+          <div style="font:400 13px/1.6 Arial,Helvetica,sans-serif;color:${CREAM_DIM};">Know someone who&rsquo;d like this? Send them <a href="${siteUrl}/this-week?utm_source=email&utm_medium=forward" style="color:${GOLD};text-decoration:underline;">citypulsemn.com/this-week</a>.</div>
         </td></tr>
         <tr><td style="padding:18px 24px 26px;border-top:1px solid rgba(201,169,97,0.2);">
           <div style="font:400 12px/1.6 Arial,Helvetica,sans-serif;color:#7c8398;">
@@ -177,6 +180,7 @@ export function renderDigestEmail(opts: DigestOptions): DigestData {
       "",
     ]),
     `See everything: ${siteUrl}`,
+    `Know someone who'd like this? Send them ${siteUrl}/this-week`,
     "",
     `Unsubscribe: ${unsubscribeUrl}`,
     "City Pulse MN · Twin Cities, Minnesota",
