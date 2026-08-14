@@ -74,11 +74,9 @@ the display label/plural/blurb/intro changed.
 Additive data + a display rename. Revert this commit to restore "Ski Area" (4) —
 the slug/canonical never changed, so nothing external breaks either way.
 
-## Follow-up — one product call for Taren
+## Follow-up — RESOLVED
 
-**Welch Village** (welchvillage.com, Welch MN) is the marquee ski *resort* near the
-Twin Cities — 60+ runs, night skiing, ~50 min SE. It's inside the metro bounding
-box (`44.556`), but the registry has historically excluded it as "out of metro." If
-you want it in (it's a top "ski near Minneapolis" search result), say the word and
-it's a one-entry add. Wild Mountain and Trollhaugen stay out (over the box / in
-Wisconsin) unless you also want to widen the geographic scope to day trips.
+**Welch Village** — Taren's call: **added** (a later commit, `ski-hill` 6 → 7).
+The marquee ski *resort* near the Twin Cities (60+ runs, night skiing, ~50 min SE);
+in-box at `44.556`. Wild Mountain and Trollhaugen stay out (over the box / in
+Wisconsin) unless the geographic scope is ever widened to day trips generally.

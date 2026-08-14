@@ -48,7 +48,7 @@ export const PLACES_KIND_INTRO: Record<string, string> = {
   "garden":
     "Botanical gardens and conservatories across the metro — the glass houses that bloom all winter, the rose and Japanese gardens, and the Arboretum's sprawling grounds. Most are free; a couple charge. Peak color runs May through September, but the conservatories are a green escape in January.",
   "ski-hill":
-    "The metro's downhill ski and snowboard hills — Afton, Buck Hill, Hyland, and Como Park's city-run beginner hill — plus the snow-tubing runs where you don't need to know how to ski to have a good time. Elm Creek and Green Acres handle the tubing; the ski areas add terrain parks and night skiing. The season runs roughly December into March, snow permitting — expect a lift or tubing ticket, and tubing usually wants a reservation.",
+    "The metro's downhill ski and snowboard hills — Afton, Buck Hill, Hyland, and Como Park's city-run beginner hill, plus Welch Village, the full-size resort a day trip down the river valley — and the snow-tubing runs where you don't need to know how to ski to have a good time. Elm Creek and Green Acres handle the tubing; the ski areas add terrain parks and night skiing. The season runs roughly December into March, snow permitting — expect a lift or tubing ticket, and tubing usually wants a reservation.",
   "museum":
     "The metro's museums — world-class art at Mia and the Walker, dinosaurs and a planetarium at the Bell, hands-on science by the river, and a dozen smaller, stranger collections. Some are free (Mia, the Weisman); most charge, though many run a free day each week. Open year-round.",
   "orchard":

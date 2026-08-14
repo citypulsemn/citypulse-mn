@@ -4010,8 +4010,8 @@ export const PLACES: Place[] = [
   // Tubing: Elm Creek (also downhill) and Green Acres. All paid; ski areas run
   // SKI_SEASON (Dec–March). Each verified against its official page. Out of the
   // metro box and excluded: Wild Mountain (lat 45.49, over the north edge) and
-  // Trollhaugen (in Wisconsin); Welch Village is an in-box ~50-min day trip the
-  // registry has historically treated as out-of-metro — held pending a product call.
+  // Trollhaugen (in Wisconsin). Welch Village is included as the in-box ~50-min
+  // day-trip resort (Taren's call, Aug 2026).
   {
     slug: "afton-alps", name: "Afton Alps", kind: "ski-hill",
     lat: 44.8550, lng: -92.7920, address: "6600 Peller Ave S, Hastings, MN 55033",
@@ -4064,6 +4064,15 @@ export const PLACES: Place[] = [
     tags: ["tubing", "reservations"],
     intro: "A snow-tubing hill in Lake Elmo — one open hill, no lanes, with a tow rope to haul you back up. Around $22 a person; you must be 42 inches to ride solo, and weekends fill, so reserve. December into March, snow permitting.",
     sourceUrl: "https://www.greenacresrec.com/",
+    verifiedAt: "2026-08-14", venueSlug: null,
+  },
+  {
+    slug: "welch-village", name: "Welch Village", kind: "ski-hill",
+    lat: 44.5560, lng: -92.7230, address: "26685 County Rd 7 Blvd, Welch, MN 55089",
+    city: "Welch", neighborhood: null, season: SKI_SEASON, cost: "paid",
+    tags: ["downhill", "terrain-park", "night-skiing"],
+    intro: "The biggest true ski resort near the metro — 60-plus runs and terrain parks in the Cannon River valley, with night skiing into the evening. About 50 minutes southeast; a day ticket or a season pass to ride.",
+    sourceUrl: "https://www.welchvillage.com/",
     verifiedAt: "2026-08-14", venueSlug: null,
   },
 
