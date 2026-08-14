@@ -38,8 +38,14 @@ export default async function Home() {
       <TrendingStrip trending={trending} />
       <OngoingStrip ongoing={selectOngoing(events, new Date())} now={new Date()} />
       {/* G1.1 — one inline subscribe ask, mid-flow between editorial strips (not
-          stacked on the footer's form). One band, no popup — the house rule. */}
-      <SubscribeBand source="home" />
+          stacked on the footer's form). One band, no popup — the house rule.
+          Copy is homepage-specific (this is the ~60% conversion surface) and
+          Taren-editable — plain strings, edit freely. */}
+      <SubscribeBand
+        source="home"
+        heading="Every Thursday: the week's best, hand-picked"
+        sub="Skip the scroll — one email a week with the concerts, games, and weekend plans worth your time, chosen from everything here. Free, unsubscribe anytime."
+      />
       <CollectionsStrip />
       <SiteFooter source="home" />
     </>
