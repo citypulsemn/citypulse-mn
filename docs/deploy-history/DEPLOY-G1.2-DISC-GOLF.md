@@ -1,11 +1,21 @@
-# Deploy — G1.2: Disc Golf, a new Places kind (10 courses, initial set)
+# Deploy — G1.2: Disc Golf, a new Places kind (17 courses)
 
 *August 2026. Tier 1 (audience / SEO). Code + data only, no schema.*
+*(Shipped in two commits: the initial 10, then an expansion pass to 17.)*
 
 ## What shipped
 
-A new `/places/disc-golf` page — **10 verified public disc golf courses across the
+A new `/places/disc-golf` page — **17 verified public disc golf courses across the
 metro** — another evergreen, indexable Places URL for the G1.2 SEO push.
+
+## Expansion pass (+7, verified vs official city pages)
+
+Oakwood (Cottage Grove, free 18h) · Red Oak (Burnsville, free 20h — Yelp listed it
+"closed" but the city page confirms it active) · Kenneth Rosland (Edina, free) ·
+Garlough (West St. Paul, free 9h) · Brockway (Rosemount, free 10h) · Kaposia Park
+(South St. Paul, 26 baskets, pass) · North Valley (Inver Grove Heights, 18h,
+seasonal pass). The St. Paul/Ramsey sweep surfaced only regular golf — no honest
+disc-golf additions there beyond Highland.
 
 - **New `PlaceKind` "disc-golf"** in [lib/places.ts](../../lib/places.ts): union +
   `KIND_META` + 10 `Place` rows + editorial intro. Zero page/route code again —
