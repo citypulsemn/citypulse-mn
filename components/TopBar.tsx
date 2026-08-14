@@ -14,6 +14,7 @@ import type { ReactNode } from "react";
  * chips ARE its browse controls, so it doesn't need this section strip.
  */
 const SECTIONS: { href: string; label: string }[] = [
+  { href: "/this-week", label: "This Week" },
   { href: "/this-weekend", label: "This Weekend" },
   { href: "/ongoing", label: "Ongoing" },
   { href: "/collections", label: "Collections" },

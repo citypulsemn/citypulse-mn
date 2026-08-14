@@ -14,8 +14,8 @@ const read = (p: string) => readFileSync(join(ROOT, p), "utf8");
 describe("TopBar component", () => {
   const src = read("components/TopBar.tsx");
 
-  it("carries all six browse sections", () => {
-    for (const href of ["/this-weekend", "/ongoing", "/collections", "/venues", "/neighborhoods", "/cities"]) {
+  it("carries every browse section, incl. /this-week (G1.2 — the email shop window, sitewide-linked)", () => {
+    for (const href of ["/this-week", "/this-weekend", "/ongoing", "/collections", "/places", "/venues", "/neighborhoods", "/cities"]) {
       expect(src).toContain(`href: "${href}"`);
     }
   });
@@ -64,6 +64,17 @@ describe("content pages use the shared TopBar", () => {
       .filter((f) => readFileSync(f, "utf8").includes('className="topbar"'))
       .map((f) => f.replace(join(ROOT, "app"), "").replace(/\\/g, "/"));
     expect(withTopbar.sort()).toEqual(["/error.tsx", "/not-found.tsx", "/offline/page.tsx"]);
+  });
+});
+
+describe("SiteFooter links /this-week on every page (G1.2 internal-link equity)", () => {
+  // The footer renders on the homepage too (which keeps its own topbar and so
+  // has no section nav) — so this is /this-week's only sitewide link on the
+  // site's highest-traffic page. Pin it, next to its This Weekend sibling.
+  const src = read("components/SiteFooter.tsx");
+  it("carries This Week and This Weekend in the footer link row", () => {
+    expect(src).toContain('href="/this-week"');
+    expect(src).toContain('href="/this-weekend"');
   });
 });
 
