@@ -64,14 +64,25 @@ should now show 0 critical + 0 of the function-search-path warning.
   some suburban entries are geography-derived (~100–300 m). A geocoding-refinement
   pass is deferred until a geocoding token is in `.env.local`.
 
-**Backlog (priority order):**
-1. golf-course ×9 → official course/city source.
-2. farmers-market ×~10 → operator/city source.
-3. Beach + geography-derived coordinate refinement (needs geocoding token).
-4. disc-golf PDGA ×4 → low priority (acceptable as-is).
+**Backlog — ✅ knocked out (see DEPLOY-VERIFY-PASS-SOURCES.md):**
+1. ✅ **golf-course ×8** → official venue sites (arborpointegolfclub.com,
+   richvalleygc.com, fountainvalleygolf.com, parkviewgolfclub.com,
+   ridgesatsandcreek.com, pheasantacresgolf.com, vvgolf.com,
+   eaglevalleygc.com). Country Air stays on ExploreMN — **no official site
+   exists** (confirmed open; best-available).
+2. ✅ **park/pool ×2** → Crosby Farm → stpaul.gov; Bunker Beach → anokacountyparks.com.
+3. ✅ **farmers-market ×2** with official pages → Victoria (victoriamn.gov),
+   Linden Hills (Neighborhood Roots). The other ~7 small markets **have no own
+   site**; the MDA MN Grown directory (semi-official) or the market's own Facebook
+   page is the honest best-available source — left as-is by design.
+4. **Data-integrity win:** two courses flagged "closed" by aggregators (Valley
+   View, Country Air) were **verified still open** — nothing wrongly removed.
+5. Beach + geography-derived coordinate refinement — still deferred (needs a
+   geocoding token in `.env.local`).
+6. disc-golf PDGA ×4 → acceptable as-is (authoritative DG directory).
 
-**Verdict:** honest-data stance is well held. The backlog is small, bounded, and
-concentrated — a good candidate for one focused verify session.
+**Verdict:** honest-data stance well held; **12 entries upgraded to official
+sources**, the residual are places without official web pages (an honest floor).
 
 ---
 

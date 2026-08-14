@@ -1119,7 +1119,7 @@ export const PLACES: Place[] = [
     city: "Coon Rapids", neighborhood: null, season: POOL_SUMMER, cost: "paid",
     tags: ["outdoor", "waterslide", "lap-lanes"],
     intro: "Minnesota's largest outdoor water park, in Coon Rapids' Bunker Hills — a wave pool, multi-story slides, a lazy river, and a rock wall you climb over the water. (A park vehicle permit is required on top of admission.)",
-    sourceUrl: "https://www.exploreminnesota.com/profile/bunker-beach/2383",
+    sourceUrl: "https://www.anokacountyparks.com/bunker-beach",
     verifiedAt: "2026-08-07", venueSlug: null,
   },
   {
@@ -1348,7 +1348,7 @@ export const PLACES: Place[] = [
     city: "St. Paul", neighborhood: "highland-park", season: YEAR_ROUND, cost: "free",
     tags: ["trails", "fishing-pier"],
     intro: "St. Paul's largest natural park — nearly seven miles of paved trail through floodplain forest along the Mississippi and around Crosby Lake, below the Highland bluff.",
-    sourceUrl: "https://www.exploreminnesota.com/profile/crosby-farm-hidden-falls-park/2970",
+    sourceUrl: "https://www.stpaul.gov/facilities/crosby-farm-regional-park",
     verifiedAt: "2026-08-07", venueSlug: null,
   },
 
@@ -2042,7 +2042,7 @@ export const PLACES: Place[] = [
     city: "Rogers", neighborhood: null, season: GOLF_SEASON, cost: "paid",
     tags: ["18-hole"],
     intro: "A par-71 daily-fee course in Rogers, at the northwest edge of Hennepin County, built in 1987.",
-    sourceUrl: "https://www.golfpass.com/travel-advisor/courses/8382-pheasant-acres-golf-club",
+    sourceUrl: "https://www.pheasantacresgolf.com",
     verifiedAt: "2026-08-13", venueSlug: null,
   },
   {
@@ -2069,7 +2069,7 @@ export const PLACES: Place[] = [
     city: "Inver Grove Heights", neighborhood: null, season: GOLF_SEASON, cost: "paid",
     tags: ["par-3"],
     intro: "A 9-hole public par-3 in Inver Grove Heights — a short, walkable round.",
-    sourceUrl: "https://www.exploreminnesota.com/profile/arbor-pointe-golf-course/972",
+    sourceUrl: "https://arborpointegolfclub.com",
     verifiedAt: "2026-08-13", venueSlug: null,
   },
   {
@@ -2096,7 +2096,7 @@ export const PLACES: Place[] = [
     city: "Rosemount", neighborhood: null, season: GOLF_SEASON, cost: "paid",
     tags: ["18-hole"],
     intro: "A public 27-hole facility in Rosemount — three nines (Red, White, Blue) played as 18-hole combinations.",
-    sourceUrl: "https://www.exploreminnesota.com/profile/rich-valley-golf-club/5492",
+    sourceUrl: "https://www.richvalleygc.com",
     verifiedAt: "2026-08-13", venueSlug: null,
   },
   {
@@ -2105,7 +2105,7 @@ export const PLACES: Place[] = [
     city: "Farmington", neighborhood: null, season: GOLF_SEASON, cost: "paid",
     tags: ["18-hole"],
     intro: "A public par-72 in Farmington, open since 1978.",
-    sourceUrl: "https://www.exploreminnesota.com/profile/fountain-valley-golf-club/1683",
+    sourceUrl: "https://www.fountainvalleygolf.com",
     verifiedAt: "2026-08-13", venueSlug: null,
   },
   {
@@ -2132,7 +2132,7 @@ export const PLACES: Place[] = [
     city: "Eagan", neighborhood: null, season: GOLF_SEASON, cost: "paid",
     tags: ["18-hole"],
     intro: "A public 18-hole executive course in Eagan, par 63, with a driving range — open since 1969.",
-    sourceUrl: "https://www.exploreminnesota.com/profile/parkview-golf-course/939",
+    sourceUrl: "https://www.parkviewgolfclub.com",
     verifiedAt: "2026-08-13", venueSlug: null,
   },
   {
@@ -2222,7 +2222,7 @@ export const PLACES: Place[] = [
     city: "Jordan", neighborhood: null, season: GOLF_SEASON, cost: "paid",
     tags: ["18-hole"],
     intro: "A public par-72 in Jordan, opened in 2000.",
-    sourceUrl: "https://www.exploreminnesota.com/profile/ridges-sand-creek/2451",
+    sourceUrl: "https://www.ridgesatsandcreek.com",
     verifiedAt: "2026-08-13", venueSlug: null,
   },
   {
@@ -2231,7 +2231,7 @@ export const PLACES: Place[] = [
     city: "Belle Plaine", neighborhood: null, season: GOLF_SEASON, cost: "paid",
     tags: ["18-hole"],
     intro: "A public par-71 in Belle Plaine, at the southwest edge of the metro, built in 1991.",
-    sourceUrl: "https://www.golfpass.com/travel-advisor/courses/917-valley-view-golf-club",
+    sourceUrl: "https://www.vvgolf.com",
     verifiedAt: "2026-08-13", venueSlug: null,
   },
   {
@@ -2276,7 +2276,7 @@ export const PLACES: Place[] = [
     city: "Woodbury", neighborhood: null, season: GOLF_SEASON, cost: "paid",
     tags: ["par-3"],
     intro: "A 9-hole public par-3 in Woodbury — a fast, easy round for all ages.",
-    sourceUrl: "https://www.golfpass.com/travel-advisor/courses/8461-woodbury-par-3",
+    sourceUrl: "https://www.eaglevalleygc.com",
     verifiedAt: "2026-08-13", venueSlug: null,
   },
   {
@@ -2523,8 +2523,8 @@ export const PLACES: Place[] = [
     lat: 44.9250, lng: -93.3217, address: "2813 W 43rd St, Minneapolis, MN 55410",
     city: "Minneapolis", neighborhood: null, season: MARKET_SEASON, cost: "free",
     tags: ["sunday"],
-    intro: "A Sunday-morning market in the Linden Hills business district.",
-    sourceUrl: "https://www.minneapolis.org/food-drink/farmers-market/",
+    intro: "A Sunday-morning market in the Linden Hills business district, run by Neighborhood Roots.",
+    sourceUrl: "https://neighborhoodrootsmn.org/",
     verifiedAt: "2026-08-13", venueSlug: null,
   },
   {
@@ -2929,7 +2929,7 @@ export const PLACES: Place[] = [
     city: "Victoria", neighborhood: null, season: MARKET_SEASON, cost: "free",
     tags: ["thursday"],
     intro: "A Thursday-evening market at OMNI Brewing in Victoria.",
-    sourceUrl: "https://www.swcrier.com/p/southwest-metro-farmers-markets",
+    sourceUrl: "https://victoriamn.gov/community/events_and_programs/community_events/victoria_farmers_market.php",
     verifiedAt: "2026-08-13", venueSlug: null,
   },
   {
