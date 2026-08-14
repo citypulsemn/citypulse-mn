@@ -3397,6 +3397,15 @@ export const PLACES: Place[] = [
     verifiedAt: "2026-08-13", venueSlug: null,
   },
   {
+    slug: "bunker-hills-dog-park", name: "Bunker Hills Dog Park", kind: "dog-park",
+    lat: 45.1868, lng: -93.3312, address: "Hanson Blvd NW & 133rd Ave NW, Andover, MN 55304",
+    city: "Andover", neighborhood: null, season: YEAR_ROUND, cost: "free",
+    tags: ["fenced", "small-dog-area"],
+    intro: "A 6.5-acre fully fenced off-leash park near the Bunker Hills compost site, with separate big- and small-dog runs, an open play area, and a short trail. A joint Coon Rapids/Andover facility in Anoka County. Free; dogs licensed and vaccinated, three per handler.",
+    sourceUrl: "https://www.coonrapidsmn.gov/facilities/facility/details/dog-park-19",
+    verifiedAt: "2026-08-13", venueSlug: null,
+  },
+  {
     slug: "bassett-creek-dog-park", name: "Bassett Creek Dog Park", kind: "dog-park",
     lat: 45.0120, lng: -93.3610, address: "6029 32nd Ave N, Crystal, MN 55429",
     city: "Crystal", neighborhood: null, season: YEAR_ROUND, cost: "free",

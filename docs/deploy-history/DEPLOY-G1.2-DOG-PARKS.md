@@ -1,10 +1,11 @@
-# Deploy — G1.2: Dog Parks, a new Places kind (57 entries)
+# Deploy — G1.2: Dog Parks, a new Places kind (58 entries)
 
 *August 2026. Tier 1 (audience / SEO). Code + data only, no schema.*
+*(Shipped in two commits: the initial 57, then Bunker Hills added — 58 total.)*
 
 ## What shipped
 
-A brand-new `/places/dog-park` page — **57 verified off-leash dog areas across
+A brand-new `/places/dog-park` page — **58 verified off-leash dog areas across
 the metro** — continuing the G1.2 evergreen-sitemap push. Each entry is checked
 against an official park-agency or city page; a new indexable URL targets a fresh,
 high-demand "dog park near me" search.
@@ -23,8 +24,10 @@ high-demand "dog park near me" search.
 - **Minneapolis (MPRB): 9** — all require an MPRB off-leash permit.
 - **Three Rivers Park District: 10** — all require a Three Rivers dog pass.
 - **St. Paul + Ramsey County: 10** — all free.
-- **North/west suburbs: 15** — Bloomington, Eden Prairie, Plymouth, Brooklyn Park,
-  Blaine, Crystal, New Hope, Golden Valley, St. Louis Park, Edina, Richfield.
+- **North/west suburbs: 16** — Bloomington, Eden Prairie, Plymouth, Brooklyn Park,
+  Blaine, Crystal, New Hope, Golden Valley, St. Louis Park, Edina, Richfield, plus
+  **Bunker Hills** (Andover — joint Anoka County / Coon Rapids / Andover, free,
+  6.5 fenced acres; verified against the Coon Rapids .gov facility page).
 - **South/east suburbs: 13** — Burnsville, Woodbury, Cottage Grove, Eagan,
   Lakeville, Chaska, Shakopee, Savage, Inver Grove Heights, Oakdale, Stillwater,
   Hastings, South St. Paul.
@@ -34,9 +37,9 @@ Coordinates are park-level from each real street address (not surveyed).
 
 ## Honest exclusions (not invented, deliberately left out)
 
-- **Bunker Hills Dog Park** (Coon Rapids/Andover) — a joint **Anoka County**
-  facility; real and popular, but county-operated and I didn't have a verified
-  county source in hand. Best candidate for the next pass.
+- ~~Bunker Hills Dog Park~~ — **now included** (verified against the official
+  Coon Rapids .gov facility page: Hanson Blvd & 133rd Ave, Andover; free; 5am–10pm;
+  joint Anoka County / Coon Rapids / Andover).
 - **Brooklyn Park "Environmental Nature Area"** — almost certainly the same
   physical area as Three Rivers' Mississippi Gateway (10201 vs 10360 W River Rd);
   dropped to avoid a duplicate.
@@ -50,15 +53,16 @@ Coordinates are park-level from each real street address (not surveyed).
 ## Verification
 
 Gate: `tsc` clean · **1002** tests · `npm run build` clean (`/places/dog-park`
-statically generated) · `npm audit` 0. The Places drift guards pass for all 57
-new rows: unique slugs, `https` official sources, `verifiedAt` format, intro
+statically generated) · `npm audit` 0. The Places drift guards pass for all 58
+rows: unique slugs, `https` official sources, `verifiedAt` format, intro
 length + banned-word check, and the **metro bounding-box** coordinate check;
 `kindsWithPlaces` exact-list test updated to include `dog-park`.
 
-**Browser-verified (dev):** `/places/dog-park` renders "57 across the Twin Cities
-metro", the intro, free-first ordering with FREE/PAID badges and FENCED /
-UNFENCED / SMALL DOG AREA / WATER ACCESS tags, and per-row official-source links;
-`/places` shows the Dog Parks card ("57 spots →"). No new console errors.
+**Browser-verified (dev):** `/places/dog-park` renders the free-first list with
+FREE/PAID badges and FENCED / UNFENCED / SMALL DOG AREA / WATER ACCESS tags, the
+intro, and per-row official-source links; `/places` shows the Dog Parks card. No
+new console errors. (Verified at 57; Bunker Hills added after as a single
+guard-validated row — same page, count now 58.)
 
 ## Deploy steps
 
