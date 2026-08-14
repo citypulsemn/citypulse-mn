@@ -73,8 +73,13 @@ alter table events drop constraint if exists events_status_check;
 alter table events add constraint events_status_check
   check (status in ('draft','published','archived','cancelled'));
 
--- Convenience view = exactly what the website reads.
-create or replace view published_events as
+-- Convenience view = exactly what the website reads. `security_invoker = on` so
+-- the view runs with the QUERYING role's privileges and honors events' RLS,
+-- instead of the default SECURITY DEFINER behavior (owner's privileges), which
+-- the Supabase advisor flags as an RLS-bypass risk. The app doesn't query this
+-- view (it reads events directly via the owner connection); it's a convenience
+-- object, now sealed from the public REST API like the tables.
+create or replace view published_events with (security_invoker = on) as
   select * from events
   where status = 'published'
   order by start_at;
@@ -275,6 +280,11 @@ create table if not exists event_stats (
   primary key (event_id, day, action)
 );
 create index if not exists idx_event_stats_day on event_stats (day);
+-- RLS on like every other table: the app reads/writes event_stats through the
+-- owner connection (which bypasses RLS), so enabling it seals the table from the
+-- public REST API (anon/authenticated) without affecting the app. With no
+-- policies, those roles get zero access — no reading or inflating the counters.
+alter table event_stats enable row level security;
 
 -- ── Personalized digest (roadmap 5.3) ─────────────────────────────────────
 -- The bridge between an email subscriber and the anonymous saver cookie,
