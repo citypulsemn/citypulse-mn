@@ -53,6 +53,8 @@ export const PLACES_KIND_INTRO: Record<string, string> = {
     "The metro's museums — world-class art at Mia and the Walker, dinosaurs and a planetarium at the Bell, hands-on science by the river, and a dozen smaller, stranger collections. Some are free (Mia, the Weisman); most charge, though many run a free day each week. Open year-round.",
   "orchard":
     "Fall's the whole point — pick-your-own apples from late summer into October, pumpkin patches and corn mazes, cider donuts and hayrides. Most orchards are free to wander, and you pay for what you pick; the weekend festivals charge admission. September–October, crop permitting.",
+  "indoor-playground":
+    "When it's twenty below or raining sideways, an indoor playground buys you a couple of hours and burns off the wiggles — climbing structures, ball pits, and toddler zones, many with a coffee bar for the grownups. Some are city-run community centers, some are private play cafés; most charge admission by the child, and nearly all want socks. Open year-round, busiest on winter weekends and school-break mornings.",
 };
 
 export const VENUE_INTROS: Record<string, string> = {

@@ -32,7 +32,8 @@ export type PlaceKind =
   | "garden"
   | "ski-hill"
   | "museum"
-  | "orchard";
+  | "orchard"
+  | "indoor-playground";
 
 export type PlaceCost = "free" | "paid" | "donation";
 
@@ -95,6 +96,7 @@ export const KIND_META: Record<PlaceKind, KindMeta> = {
   "ski-hill": { kind: "ski-hill", label: "Ski Area", plural: "Ski Areas", blurb: "The metro's downhill ski and snowboard hills — lifts, terrain parks, and rentals, mapped." },
   "museum": { kind: "museum", label: "Museum", plural: "Museums", blurb: "The metro's museums — art, science, history, and the wonderfully specific, mapped." },
   "orchard": { kind: "orchard", label: "Orchard & Patch", plural: "Orchards & Patches", blurb: "Pick-your-own apple orchards and pumpkin patches across the metro — a fall tradition, mapped." },
+  "indoor-playground": { kind: "indoor-playground", label: "Indoor Playground", plural: "Indoor Playgrounds & Play Cafés", blurb: "Indoor play spaces and play cafés across the metro — climbing structures, ball pits, and toddler zones for cold and rainy days, mapped." },
 };
 
 // Summer water season used by the current seed — guarded Minneapolis and
@@ -4524,6 +4526,131 @@ export const PLACES: Place[] = [
     tags: ["pumpkins", "corn-maze"],
     intro: "A Lino Lakes garden center that throws a full fall festival each September and October — a corn maze, pumpkin patch, and hayrides. Admission for the fall activities.",
     sourceUrl: "https://waldochfarm.com",
+    verifiedAt: "2026-08-14", venueSlug: null,
+  },
+
+  // ── Indoor playgrounds & play cafés (Roadmap v6 Tier 1.2 — the winter kind) ──
+  // Drop-in indoor play for the cold months: private soft-play barns, city
+  // community-center playgrounds, and play cafés. YEAR_ROUND (indoor), but the
+  // demand is Sept–April. Each verified against the operator's own current page
+  // (city .gov for the community centers, business homepage otherwise), Aug 2026.
+  // Excludes trampoline/ninja/climbing gyms, children's museums, and indoor
+  // waterparks — those are (or will be) their own kinds.
+  {
+    slug: "good-times-park-eagan", name: "Good Times Park", kind: "indoor-playground",
+    lat: 44.8350, lng: -93.1680, address: "3265 Northwood Circle, Ste 100, Eagan, MN 55121",
+    city: "Eagan", neighborhood: null, season: YEAR_ROUND, cost: "paid",
+    tags: ["self-supervised", "ages-0-12", "picnic-area"],
+    intro: "A 25,000-square-foot play barn in Eagan — jumping pillow, ninja course, and indoor soccer, self-supervised with no staff at the door. Bring your own food; there's a picnic area. Open 7 a.m. to 9 p.m. daily.",
+    sourceUrl: "https://www.goodtimespark.com/eagan",
+    verifiedAt: "2026-08-14", venueSlug: null,
+  },
+  {
+    slug: "wild-things-indoor-playground", name: "Wild Things Indoor Playground", kind: "indoor-playground",
+    lat: 44.6770, lng: -93.2670, address: "20450 Kenrick Ave, Ste 100, Lakeville, MN 55044",
+    city: "Lakeville", neighborhood: null, season: YEAR_ROUND, cost: "paid",
+    tags: ["toddler-zone", "ages-0-12", "socks-required"],
+    intro: "A jungle-themed three-level climber in Lakeville for ages 0 to 12, with a separate soft zone for the under-threes. Socks required and sold on-site; no café, but there's room to eat. Open daily.",
+    sourceUrl: "https://www.wildthingsplayground.com",
+    verifiedAt: "2026-08-14", venueSlug: null,
+  },
+  {
+    slug: "adventure-peak-edinborough", name: "Adventure Peak at Edinborough Park", kind: "indoor-playground",
+    lat: 44.8680, lng: -93.3220, address: "7700 York Ave S, Edina, MN 55435",
+    city: "Edina", neighborhood: null, season: YEAR_ROUND, cost: "paid",
+    tags: ["community-center", "toddler-zone", "slides"],
+    intro: "The indoor Northwoods climber at Edinborough Park — a 30-foot oak-tree climb and giant slides inside a one-acre glass park, with a gated area for ages four and under. Day, ten-visit, and annual passes.",
+    sourceUrl: "https://www.edinamn.gov/1604/PlayPark",
+    verifiedAt: "2026-08-14", venueSlug: null,
+  },
+  {
+    slug: "the-blast-eagan", name: "The Blast (Eagan Community Center)", kind: "indoor-playground",
+    lat: 44.8230, lng: -93.1570, address: "1501 Central Parkway, Eagan, MN 55121",
+    city: "Eagan", neighborhood: null, season: YEAR_ROUND, cost: "paid",
+    tags: ["community-center", "toddler-zone", "climbing-structure"],
+    intro: "A space-themed, climb-up rocket ship at the Eagan Community Center for ages two to twelve. $8 a child, with adults and the under-eighteen-months free; a ten-punch pass runs $70. Seasonal hours.",
+    sourceUrl: "https://cityofeagan.com/blast",
+    verifiedAt: "2026-08-14", venueSlug: null,
+  },
+  {
+    slug: "maple-maze-maple-grove", name: "Maple Maze (Maple Grove Community Center)", kind: "indoor-playground",
+    lat: 45.1080, lng: -93.4570, address: "12951 Weaver Lake Rd, Maple Grove, MN 55369",
+    city: "Maple Grove", neighborhood: null, season: YEAR_ROUND, cost: "paid",
+    tags: ["community-center", "toddler-zone", "slides"],
+    intro: "A two-story jungle treehouse with four slides at the Maple Grove Community Center, plus a separate toddler section for ages three and under. $6.50 a visit, under-ones free.",
+    sourceUrl: "https://www.maplegrovemn.gov/288/Maple-Maze",
+    verifiedAt: "2026-08-14", venueSlug: null,
+  },
+  {
+    slug: "lookout-ridge-woodbury", name: "Lookout Ridge (Woodbury Central Park)", kind: "indoor-playground",
+    lat: 44.9230, lng: -92.9230, address: "8595 Central Park Place, Woodbury, MN 55125",
+    city: "Woodbury", neighborhood: null, season: YEAR_ROUND, cost: "paid",
+    tags: ["community-center", "toddler-zone", "socks-required"],
+    intro: "Seventy-plus play elements themed to the St. Croix River valley at Woodbury's Central Park, with a toddler area for five and under. $8 a child; socks required for everyone, adults included.",
+    sourceUrl: "https://www.woodburymn.gov/164/Lookout-Ridge-and-Birthday-Parties",
+    verifiedAt: "2026-08-14", venueSlug: null,
+  },
+  {
+    slug: "eagles-nest-new-brighton", name: "Eagles Nest (New Brighton Community Center)", kind: "indoor-playground",
+    lat: 45.0650, lng: -93.2020, address: "400 10th St NW, New Brighton, MN 55112",
+    city: "New Brighton", neighborhood: null, season: YEAR_ROUND, cost: "paid",
+    tags: ["community-center", "toddler-zone", "slides"],
+    intro: "A 36-foot quadruple-wave slide and a 23-foot web tower at the New Brighton Community Center, for ages twelve and under with a toddler area for the under-threes. $9 a child, adults free.",
+    sourceUrl: "https://www.newbrightonmn.gov/308/Eagles-Nest-Indoor-Playground",
+    verifiedAt: "2026-08-14", venueSlug: null,
+  },
+  {
+    slug: "brookview-backyard", name: "Brookview Backyard", kind: "indoor-playground",
+    lat: 44.9720, lng: -93.3430, address: "316 Brookview Pkwy S, Golden Valley, MN 55426",
+    city: "Golden Valley", neighborhood: null, season: YEAR_ROUND, cost: "paid",
+    tags: ["toddler-zone", "socks-required", "climbing-structure"],
+    intro: "A three-story indoor structure in Golden Valley with zones split for ages two to five and six to twelve. $7 a child, $6 for residents; socks required, $2 if you forget them.",
+    sourceUrl: "https://www.brookviewbackyard.com",
+    verifiedAt: "2026-08-14", venueSlug: null,
+  },
+  {
+    slug: "kube-plymouth", name: "K.U.B.E. (Plymouth Community Center)", kind: "indoor-playground",
+    lat: 45.0170, lng: -93.4780, address: "14800 34th Ave N, Plymouth, MN 55447",
+    city: "Plymouth", neighborhood: null, season: YEAR_ROUND, cost: "paid",
+    tags: ["community-center", "toddler-zone", "accessible"],
+    intro: "A 28-foot tower with a spiral slide, rock wall, and accessible ramps inside Plymouth's community center, built in 2024, for ages two to twelve. $8 a child, $6 for Plymouth residents.",
+    sourceUrl: "https://www.plymouthcommunitycenter.com/k-u-b-e-",
+    verifiedAt: "2026-08-14", venueSlug: null,
+  },
+  {
+    slug: "inneractive-mounds-view", name: "InnerActive Playground — Mounds View", kind: "indoor-playground",
+    lat: 45.0980, lng: -93.2080, address: "2240 Woodale Dr, Mounds View, MN 55112",
+    city: "Mounds View", neighborhood: null, season: YEAR_ROUND, cost: "paid",
+    tags: ["self-supervised", "toddler-zone", "infant-zone"],
+    intro: "A self-supervised play space in Mounds View open 364 days a year, with separate infant, toddler, and general zones. A day pass is $13.25 a child, and up to two adults come free.",
+    sourceUrl: "https://inneractiveplayground.com",
+    verifiedAt: "2026-08-14", venueSlug: null,
+  },
+  {
+    slug: "inneractive-plymouth", name: "InnerActive Playground — Plymouth", kind: "indoor-playground",
+    lat: 45.0100, lng: -93.4750, address: "14600 28th Ave N, Plymouth, MN 55447",
+    city: "Plymouth", neighborhood: null, season: YEAR_ROUND, cost: "paid",
+    tags: ["self-supervised", "toddler-zone", "infant-zone"],
+    intro: "The Plymouth sister to the Mounds View play space, same self-supervised setup and separate infant and toddler zones. A day pass runs $13.25 a child, up to two adults free.",
+    sourceUrl: "https://inneractiveplayground.com",
+    verifiedAt: "2026-08-14", venueSlug: null,
+  },
+  {
+    slug: "sovereign-grounds", name: "Sovereign Grounds", kind: "indoor-playground",
+    lat: 44.9180, lng: -93.2630, address: "813 E 48th St, Minneapolis, MN 55417",
+    city: "Minneapolis", neighborhood: null, season: YEAR_ROUND, cost: "free",
+    tags: ["cafe", "toddler-zone", "free-play"],
+    intro: "A south Minneapolis coffeehouse built around one of the bigger toddler playrooms of its kind — playhouse, train table, and play kitchen, with no separate play fee. Coffee for the grownups; open mornings into the evening.",
+    sourceUrl: "https://sovereigngrounds.com",
+    verifiedAt: "2026-08-14", venueSlug: null,
+  },
+  {
+    slug: "rebes-play-cafe", name: "Rebe's Play Cafe", kind: "indoor-playground",
+    lat: 44.9340, lng: -93.1740, address: "2054 St Clair Ave, St. Paul, MN 55105",
+    city: "St. Paul", neighborhood: null, season: YEAR_ROUND, cost: "free",
+    tags: ["cafe", "toddler-zone", "free-play"],
+    intro: "A St. Paul play café on St. Clair with no entry fee — a play kitchen, a magnatile wall, climbing 'picklers,' and a slide, plus coffee and snacks for the parents. Also runs classes and camps.",
+    sourceUrl: "https://www.rebesplaycafe.com",
     verifiedAt: "2026-08-14", venueSlug: null,
   },
 ];
