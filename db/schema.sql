@@ -51,12 +51,15 @@ create index if not exists idx_events_lat on events (lat);
 create index if not exists idx_events_lng on events (lng);
 
 -- Keep updated_at current on every write.
+-- `set search_path = ''` pins the function's name resolution (now() resolves via
+-- the always-present pg_catalog), closing the Supabase advisor's
+-- "function_search_path_mutable" warning — a search-path-injection hardening.
 create or replace function set_updated_at() returns trigger as $$
 begin
   new.updated_at = now();
   return new;
 end;
-$$ language plpgsql;
+$$ language plpgsql set search_path = '';
 
 drop trigger if exists trg_events_updated_at on events;
 create trigger trg_events_updated_at
