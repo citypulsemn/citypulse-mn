@@ -41,6 +41,8 @@ export const PLACES_KIND_INTRO: Record<string, string> = {
     "Where the metro's growers and makers set up each week — sweet corn and tomatoes in August, greens and rhubarb in June, honey and crafts right through fall. Most run May to October, one morning or evening a week; a few flagships keep an indoor winter market going. Bring cash, though many now take cards and SNAP/EBT.",
   "dog-park":
     "Off-leash areas across the metro, from small fenced neighborhood runs to the big regional romps with lake access and room to actually sprint. Most city parks are free; the Minneapolis, St. Paul, and Three Rivers areas want a permit — annual or daily. Open year-round, snow or shine.",
+  "disc-golf":
+    "Public disc golf across the metro — most are free 18-hole park courses you can just walk on, plus a handful of pay-to-play wooded tracks. Bring your own discs; peak season is spring through fall, but the diehards play right through the snow. Weekends and evenings fill up on the popular ones.",
 };
 
 export const VENUE_INTROS: Record<string, string> = {

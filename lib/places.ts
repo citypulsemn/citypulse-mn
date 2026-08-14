@@ -26,7 +26,8 @@ export type PlaceKind =
   | "golf-course"
   | "music-venue"
   | "farmers-market"
-  | "dog-park";
+  | "dog-park"
+  | "disc-golf";
 
 export type PlaceCost = "free" | "paid" | "donation";
 
@@ -83,6 +84,7 @@ export const KIND_META: Record<PlaceKind, KindMeta> = {
   "music-venue": { kind: "music-venue", label: "Music Venue", plural: "Music Venues", blurb: "The rooms where the music happens, with full schedules." },
   "farmers-market": { kind: "farmers-market", label: "Farmers Market", plural: "Farmers Markets", blurb: "Where to find the metro's growers and makers each week." },
   "dog-park": { kind: "dog-park", label: "Dog Park", plural: "Dog Parks", blurb: "Off-leash dog parks across the metro — fenced runs and open romps, mapped." },
+  "disc-golf": { kind: "disc-golf", label: "Disc Golf Course", plural: "Disc Golf Courses", blurb: "Public disc golf across the metro — free park courses and pay-to-play tracks, mapped." },
 };
 
 // Summer water season used by the current seed — guarded Minneapolis and
@@ -3595,6 +3597,105 @@ export const PLACES: Place[] = [
     intro: "A 6.3-acre fenced run along the Mississippi in South St. Paul, with a small/timid-dog area and nearly two miles of paved trails. A permit is required.",
     sourceUrl: "https://www.southstpaulmn.gov/838/Dog-Park",
     verifiedAt: "2026-08-13", venueSlug: null,
+  },
+
+  // ── DISC GOLF (Places G1.2, Aug 2026) ──────────────────────────────────────
+  // Public disc golf courses across the metro, each verified against an official
+  // park-agency or city page. An initial verified set — the metro has 40+ courses,
+  // so this grows (deferred: many free city-park courses in Cottage Grove,
+  // Rosemount, Inver Grove Heights, Burnsville, Shakopee, Edina, Eden Prairie city
+  // courses, South St. Paul Kaposia, etc.). All YEAR_ROUND (courses don't close;
+  // peak is spring-fall). Free park courses lead the free-first sort; the county
+  // and Three Rivers courses need a vehicle permit or a disc golf pass.
+  {
+    slug: "wabun-disc-golf", name: "Wabun Disc Golf Course", kind: "disc-golf",
+    lat: 44.9095, lng: -93.2085, address: "4655 46th Ave S, Minneapolis, MN 55406",
+    city: "Minneapolis", neighborhood: null, season: YEAR_ROUND, cost: "free",
+    tags: ["9-hole", "beginner-friendly"],
+    intro: "Nine free holes on flat, tree-lined ground at the Wabun picnic area in Minnehaha Park — short (57–83 yards), concrete tees, an easy first course. Sunrise to sunset.",
+    sourceUrl: "https://www.minneapolisparks.org/golf/courses/disc_golf/",
+    verifiedAt: "2026-08-14", venueSlug: null,
+  },
+  {
+    slug: "theodore-wirth-disc-golf", name: "Theodore Wirth Disc Golf Course", kind: "disc-golf",
+    lat: 44.9958, lng: -93.3197, address: "1325 Theodore Wirth Pkwy, Minneapolis, MN 55422",
+    city: "Minneapolis", neighborhood: null, season: YEAR_ROUND, cost: "paid",
+    tags: ["18-hole"],
+    intro: "The Park Board's 18-hole par-3 course alongside the Wirth par-3 golf — 46 to 156 yards, beginner and intermediate tees, sunrise to sunset. A small fee to play.",
+    sourceUrl: "https://www.minneapolisparks.org/golf/courses/disc_golf/",
+    verifiedAt: "2026-08-14", venueSlug: null,
+  },
+  {
+    slug: "highland-park-disc-golf", name: "Highland Park Disc Golf Course", kind: "disc-golf",
+    lat: 44.9148, lng: -93.1830, address: "1200 Montreal Ave, St. Paul, MN 55116",
+    city: "St. Paul", neighborhood: null, season: YEAR_ROUND, cost: "free",
+    tags: ["18-hole"],
+    intro: "St. Paul's full 18, free and open sunrise to sunset off Montreal Avenue in Highland — the city's go-to public course.",
+    sourceUrl: "https://www.stpaul.gov/facilities/highland-park",
+    verifiedAt: "2026-08-14", venueSlug: null,
+  },
+  {
+    slug: "savanna-dunes-disc-golf", name: "Savanna Dunes Disc Golf Course", kind: "disc-golf",
+    lat: 45.1955, lng: -93.2790, address: "Bunker Hills Regional Park, Andover, MN 55304",
+    city: "Andover", neighborhood: null, season: YEAR_ROUND, cost: "paid",
+    tags: ["18-hole", "wooded"],
+    intro: "An 18-hole, par-59 course winding through oak, pine, and grassland at Bunker Hills Regional Park — open and narrow fairways with gentle elevation. A county vehicle permit is required ($7 daily / $30 annual).",
+    sourceUrl: "https://www.anokacountyparks.com/disc-golf",
+    verifiedAt: "2026-08-14", venueSlug: null,
+  },
+  {
+    slug: "riverfront-13-disc-golf", name: "Riverfront 13 Disc Golf Course", kind: "disc-golf",
+    lat: 45.1975, lng: -93.3970, address: "Riverfront Regional Park, Anoka, MN 55303",
+    city: "Anoka", neighborhood: null, season: YEAR_ROUND, cost: "paid",
+    tags: ["13-hole"],
+    intro: "Thirteen holes with two tee pads each along the Mississippi at Riverfront Regional Park in Anoka. A county vehicle permit is required ($7 daily / $30 annual).",
+    sourceUrl: "https://www.anokacountyparks.com/disc-golf",
+    verifiedAt: "2026-08-14", venueSlug: null,
+  },
+  {
+    slug: "blaine-lochness-disc-golf", name: "Blaine Disc Golf Course (Lochness Park)", kind: "disc-golf",
+    lat: 45.1760, lng: -93.1620, address: "10955 Lexington Ave NE, Blaine, MN 55449",
+    city: "Blaine", neighborhood: null, season: YEAR_ROUND, cost: "free",
+    tags: ["9-hole"],
+    intro: "Nine free holes at Lochness Park off Lexington, with green, red, and blue tees running from an easy 2,665 feet out to a long 4,468. A good skills-builder.",
+    sourceUrl: "https://www.blainemn.gov/482/Disc-Golf-Courses",
+    verifiedAt: "2026-08-14", venueSlug: null,
+  },
+  {
+    slug: "eagan-northview-disc-golf", name: "Eagan Disc Golf Course (Northview Park)", kind: "disc-golf",
+    lat: 44.8020, lng: -93.1550, address: "Northview Park, Eagan, MN 55123",
+    city: "Eagan", neighborhood: null, season: YEAR_ROUND, cost: "free",
+    tags: ["9-hole", "beginner-friendly"],
+    intro: "A free nine-hole course at Northview Park in Eagan, friendly to any skill level. Sunrise to sunset.",
+    sourceUrl: "https://cityofeagan.com/disc-golf",
+    verifiedAt: "2026-08-14", venueSlug: null,
+  },
+  {
+    slug: "elm-creek-disc-golf", name: "Elm Creek Disc Golf Course", kind: "disc-golf",
+    lat: 45.1385, lng: -93.4370, address: "12420 James Deane Parkway, Maple Grove, MN 55369",
+    city: "Maple Grove", neighborhood: null, season: YEAR_ROUND, cost: "paid",
+    tags: ["18-hole", "championship"],
+    intro: "Eighteen holes from the chalet along the cross-country ski trails and over the tubing hill, with two par-4s and championship-caliber holes. Three Rivers pass required ($10 daily / $59 annual).",
+    sourceUrl: "https://www.threeriversparks.org/location/elm-creek-disc-golf",
+    verifiedAt: "2026-08-14", venueSlug: null,
+  },
+  {
+    slug: "hyland-hills-disc-golf", name: "Hyland Hills Disc Golf Course", kind: "disc-golf",
+    lat: 44.8440, lng: -93.3628, address: "8800 Chalet Road, Bloomington, MN 55438",
+    city: "Bloomington", neighborhood: null, season: YEAR_ROUND, cost: "paid",
+    tags: ["18-hole", "championship"],
+    intro: "An 18-hole championship course with big elevation changes climbing and dropping the ski slopes, and a Twin Cities view. Three Rivers pass required.",
+    sourceUrl: "https://www.threeriversparks.org/location/hyland-hills-disc-golf",
+    verifiedAt: "2026-08-14", venueSlug: null,
+  },
+  {
+    slug: "bryant-lake-disc-golf", name: "Bryant Lake Disc Golf Course", kind: "disc-golf",
+    lat: 44.8818, lng: -93.4291, address: "6800 Rowland Road, Eden Prairie, MN 55344",
+    city: "Eden Prairie", neighborhood: null, season: YEAR_ROUND, cost: "paid",
+    tags: ["18-hole"],
+    intro: "Eighteen holes with short and long tees and lake views; the infamous #17 throws off a cliff to the basket. Three Rivers pass required.",
+    sourceUrl: "https://www.threeriversparks.org/location/bryant-lake-disc-golf",
+    verifiedAt: "2026-08-14", venueSlug: null,
   },
 ];
 
