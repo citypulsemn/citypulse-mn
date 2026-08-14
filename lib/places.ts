@@ -31,7 +31,8 @@ export type PlaceKind =
   | "nature-center"
   | "garden"
   | "ski-hill"
-  | "museum";
+  | "museum"
+  | "orchard";
 
 export type PlaceCost = "free" | "paid" | "donation";
 
@@ -93,6 +94,7 @@ export const KIND_META: Record<PlaceKind, KindMeta> = {
   "garden": { kind: "garden", label: "Garden", plural: "Gardens", blurb: "Botanical gardens and conservatories across the metro — glass houses, rose gardens, and the Arboretum, mapped." },
   "ski-hill": { kind: "ski-hill", label: "Ski Area", plural: "Ski Areas", blurb: "The metro's downhill ski and snowboard hills — lifts, terrain parks, and rentals, mapped." },
   "museum": { kind: "museum", label: "Museum", plural: "Museums", blurb: "The metro's museums — art, science, history, and the wonderfully specific, mapped." },
+  "orchard": { kind: "orchard", label: "Orchard & Patch", plural: "Orchards & Patches", blurb: "Pick-your-own apple orchards and pumpkin patches across the metro — a fall tradition, mapped." },
 };
 
 // Summer water season used by the current seed — guarded Minneapolis and
@@ -120,6 +122,10 @@ const WINTER: PlaceSeason = { type: "seasonal", openMonth: 12, closeMonth: 2, la
 // roughly December into March, snowmaking permitting. A winter wrap (Dec→Mar),
 // like WINTER; openNow handles the year-boundary.
 const SKI_SEASON: PlaceSeason = { type: "seasonal", openMonth: 12, closeMonth: 3, label: "December–March" };
+// Apple/pumpkin season: pick-your-own opens late summer and runs through the
+// pumpkin rush, roughly September–October (month-level; early varieties start in
+// August, later ones and the last pumpkins linger into November).
+const FALL_SEASON: PlaceSeason = { type: "seasonal", openMonth: 9, closeMonth: 10, label: "September–October" };
 // The generic warm-season window (April–October, month-level). Used by the
 // hockey-rink/ski-trail dog parks that close for winter ice/snow, and by gated
 // seasonal gardens like Eloise Butler. Exact dates shift yearly and live on each
@@ -4155,6 +4161,76 @@ export const PLACES: Place[] = [
     tags: ["history"],
     intro: "A neighborhood-scale look at Minneapolis and Hennepin County history, in a 1919 mansion near Mia. Suggested donation.",
     sourceUrl: "https://hennepinhistory.org",
+    verifiedAt: "2026-08-14", venueSlug: null,
+  },
+
+  // ── ORCHARDS & PUMPKIN PATCHES (Places G1.2, Aug 2026) ─────────────────────
+  // Pick-your-own apple orchards and pumpkin/corn-maze farms, each verified vs
+  // its official page. All FALL_SEASON (Sep–Oct). Most are free to enter (pay for
+  // what you pick); the big activity farms and festivals charge admission.
+  // Excluded: Emma Krumbee's (Belle Plaine, permanently closed 2024) and the Twin
+  // Cities Harvest Festival (announced 2025 is its last year at its location).
+  {
+    slug: "aamodts-apple-farm", name: "Aamodt's Apple Farm", kind: "orchard",
+    lat: 45.0560, lng: -92.8700, address: "6428 Manning Ave N, Stillwater, MN 55082",
+    city: "Stillwater", neighborhood: null, season: FALL_SEASON, cost: "free",
+    tags: ["apples", "bakery"],
+    intro: "A Stillwater apple farm with pick-your-own rows, an Apple Barn bakery, free petting goats, and the Honeycrisp Express train. Free to visit; pay for what you pick.",
+    sourceUrl: "https://aamodtsapplefarm.com",
+    verifiedAt: "2026-08-14", venueSlug: null,
+  },
+  {
+    slug: "afton-apple-orchard", name: "Afton Apple Orchard", kind: "orchard",
+    lat: 44.8075, lng: -92.8500, address: "14421 90th St S, Hastings, MN 55033",
+    city: "Hastings", neighborhood: null, season: FALL_SEASON, cost: "paid",
+    tags: ["apples", "pumpkins", "corn-maze"],
+    intro: "190 sprawling acres near Afton — pick-your-own apples, pumpkins, and raspberries, a corn maze, tube slides, and a petting farm. Per-person admission on fall weekends.",
+    sourceUrl: "https://aftonapple.com",
+    verifiedAt: "2026-08-14", venueSlug: null,
+  },
+  {
+    slug: "pine-tree-apple-orchard", name: "Pine Tree Apple Orchard", kind: "orchard",
+    lat: 45.1020, lng: -92.9760, address: "450 Apple Orchard Rd, White Bear Lake, MN 55110",
+    city: "White Bear Lake", neighborhood: null, season: FALL_SEASON, cost: "free",
+    tags: ["apples", "pumpkins", "bakery"],
+    intro: "A White Bear Lake classic — pick-your-own apples and pumpkins, a corn maze, wagon rides, and a bakery famous for its pies. Free to enter; pay by the bag.",
+    sourceUrl: "https://pinetreeappleorchard.com",
+    verifiedAt: "2026-08-14", venueSlug: null,
+  },
+  {
+    slug: "apple-jack-orchards", name: "Apple Jack Orchards", kind: "orchard",
+    lat: 45.0180, lng: -93.7700, address: "4875 37th St SE, Delano, MN 55328",
+    city: "Delano", neighborhood: null, season: FALL_SEASON, cost: "paid",
+    tags: ["apples", "pumpkins", "activities"],
+    intro: "A Delano fall farm built for kids — pick-your-own apples and pumpkins plus a Fun Farm of slides, animals, and hayrides. Admission to the Fun Farm ($10 weekdays / $20 weekends).",
+    sourceUrl: "https://www.applejackorchards.com",
+    verifiedAt: "2026-08-14", venueSlug: null,
+  },
+  {
+    slug: "deardorff-orchards", name: "Deardorff Orchards & Vineyards", kind: "orchard",
+    lat: 44.8700, lng: -93.8000, address: "8282 Parley Lake Rd, Waconia, MN 55387",
+    city: "Waconia", neighborhood: null, season: FALL_SEASON, cost: "free",
+    tags: ["apples", "pumpkins", "cidery"],
+    intro: "A Waconia orchard and vineyard — pick-your-own apples, a pumpkin patch, hayrides, and hard cider and wine for the grown-ups. Free to wander; pay for the picking.",
+    sourceUrl: "https://www.deardorfforchards.com",
+    verifiedAt: "2026-08-14", venueSlug: null,
+  },
+  {
+    slug: "severs-fall-festival", name: "Sever's Fall Festival", kind: "orchard",
+    lat: 44.7250, lng: -93.5100, address: "3121 W 150th St, Shakopee, MN 55379",
+    city: "Shakopee", neighborhood: null, season: FALL_SEASON, cost: "paid",
+    tags: ["pumpkins", "corn-maze"],
+    intro: "Shakopee's big fall festival — a 14-acre corn maze, ten acres of pick-your-own pumpkins, jumping pillows, a corn pit, and a small wildlife park. Ticketed admission (about $19 and up).",
+    sourceUrl: "https://severs.com",
+    verifiedAt: "2026-08-14", venueSlug: null,
+  },
+  {
+    slug: "sponsels-minnesota-harvest", name: "Sponsel's Minnesota Harvest", kind: "orchard",
+    lat: 44.6820, lng: -93.5700, address: "8251 Old Highway 169 Blvd, Jordan, MN 55352",
+    city: "Jordan", neighborhood: null, season: FALL_SEASON, cost: "free",
+    tags: ["apples", "pumpkins"],
+    intro: "Minnesota Harvest in the Jordan river valley — a wagon out to blufftop apple trees, a pumpkin patch, and a cider-scented barn. Free to visit; pay for your apples.",
+    sourceUrl: "https://www.minnesotaharvest.net",
     verifiedAt: "2026-08-14", venueSlug: null,
   },
 ];

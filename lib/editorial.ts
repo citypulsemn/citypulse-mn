@@ -51,6 +51,8 @@ export const PLACES_KIND_INTRO: Record<string, string> = {
     "The metro's four downhill ski and snowboard hills — lifts, terrain parks, snowmaking, and rentals, all within a half-hour of the cities. The season runs roughly December into March, cold and snow permitting. All charge a lift ticket; the season passes pay off by February.",
   "museum":
     "The metro's museums — world-class art at Mia and the Walker, dinosaurs and a planetarium at the Bell, hands-on science by the river, and a dozen smaller, stranger collections. Some are free (Mia, the Weisman); most charge, though many run a free day each week. Open year-round.",
+  "orchard":
+    "Fall's the whole point — pick-your-own apples from late summer into October, pumpkin patches and corn mazes, cider donuts and hayrides. Most orchards are free to wander, and you pay for what you pick; the weekend festivals charge admission. September–October, crop permitting.",
 };
 
 export const VENUE_INTROS: Record<string, string> = {
