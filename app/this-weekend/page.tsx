@@ -92,7 +92,13 @@ export default async function ThisWeekendPage() {
                   ))}
                 </div>
               </section>
-              {i === 0 && <SubscribeBand source="this-weekend" />}
+              {i === 0 && (
+                <SubscribeBand
+                  source="this-weekend"
+                  heading="The weekend, sorted — every Thursday"
+                  sub="One email Thursday morning with the weekend's best concerts, games, and outings, hand-picked so you're not scrambling Friday night. Free, unsubscribe anytime."
+                />
+              )}
             </div>
           ))
         )}
