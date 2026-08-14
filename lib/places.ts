@@ -29,7 +29,8 @@ export type PlaceKind =
   | "dog-park"
   | "disc-golf"
   | "nature-center"
-  | "garden";
+  | "garden"
+  | "ski-hill";
 
 export type PlaceCost = "free" | "paid" | "donation";
 
@@ -89,6 +90,7 @@ export const KIND_META: Record<PlaceKind, KindMeta> = {
   "disc-golf": { kind: "disc-golf", label: "Disc Golf Course", plural: "Disc Golf Courses", blurb: "Public disc golf across the metro — free park courses and pay-to-play tracks, mapped." },
   "nature-center": { kind: "nature-center", label: "Nature Center", plural: "Nature Centers", blurb: "Interpretive nature centers across the metro — trails, exhibits, and naturalist programs, mapped." },
   "garden": { kind: "garden", label: "Garden", plural: "Gardens", blurb: "Botanical gardens and conservatories across the metro — glass houses, rose gardens, and the Arboretum, mapped." },
+  "ski-hill": { kind: "ski-hill", label: "Ski Area", plural: "Ski Areas", blurb: "The metro's downhill ski and snowboard hills — lifts, terrain parks, and rentals, mapped." },
 };
 
 // Summer water season used by the current seed — guarded Minneapolis and
@@ -112,6 +114,10 @@ const OFF_SEASON: PlaceSeason = { type: "seasonal", openMonth: 9, closeMonth: 5,
 // new year, so openNow reads them closed all summer and the page shows the
 // "closed for the season" banner. Indoor rinks stay YEAR_ROUND.
 const WINTER: PlaceSeason = { type: "seasonal", openMonth: 12, closeMonth: 2, label: "December–February" };
+// Downhill ski season runs a bit longer than the skating/sledding window —
+// roughly December into March, snowmaking permitting. A winter wrap (Dec→Mar),
+// like WINTER; openNow handles the year-boundary.
+const SKI_SEASON: PlaceSeason = { type: "seasonal", openMonth: 12, closeMonth: 3, label: "December–March" };
 // The generic warm-season window (April–October, month-level). Used by the
 // hockey-rink/ski-trail dog parks that close for winter ice/snow, and by gated
 // seasonal gardens like Eloise Butler. Exact dates shift yearly and live on each
@@ -3983,6 +3989,47 @@ export const PLACES: Place[] = [
     tags: ["formal-garden", "annuals"],
     intro: "A formal 13-acre garden by Minnehaha Falls, built around a central arbor with a downtown skyline view. Free.",
     sourceUrl: "https://www.minneapolisparks.org/parks-destinations/parks-lakes/gardens__bird_sanctuaries/longfellow_gardens/",
+    verifiedAt: "2026-08-14", venueSlug: null,
+  },
+
+  // ── SKI & SNOWBOARD AREAS (Places G1.2, Aug 2026) ──────────────────────────
+  // The metro's four downhill ski/snowboard hills — an exhaustive set (the rest
+  // — Trollhaugen, Welch Village, Wild Mountain — are out of metro). All paid,
+  // all SKI_SEASON (Dec–March). Each verified against its official page.
+  {
+    slug: "afton-alps", name: "Afton Alps", kind: "ski-hill",
+    lat: 44.8550, lng: -92.7920, address: "6600 Peller Ave S, Hastings, MN 55033",
+    city: "Hastings", neighborhood: null, season: SKI_SEASON, cost: "paid",
+    tags: ["downhill", "terrain-park", "night-skiing"],
+    intro: "The metro's biggest ski area — 300-plus acres of runs on the St. Croix bluffs, with 18 lifts, terrain parks, and night skiing. Vail-owned; a lift ticket or Epic Pass gets you on.",
+    sourceUrl: "https://www.aftonalps.com",
+    verifiedAt: "2026-08-14", venueSlug: null,
+  },
+  {
+    slug: "buck-hill", name: "Buck Hill", kind: "ski-hill",
+    lat: 44.7350, lng: -93.2880, address: "15400 Buck Hill Rd, Burnsville, MN 55306",
+    city: "Burnsville", neighborhood: null, season: SKI_SEASON, cost: "paid",
+    tags: ["downhill", "terrain-park"],
+    intro: "Burnsville's storied training hill — where Lindsey Vonn learned to race — with runs, rails, and a race program. A lift ticket to ski or ride.",
+    sourceUrl: "https://buckhill.com",
+    verifiedAt: "2026-08-14", venueSlug: null,
+  },
+  {
+    slug: "hyland-ski-area", name: "Hyland Ski & Snowboard Area", kind: "ski-hill",
+    lat: 44.8420, lng: -93.3655, address: "8800 Chalet Rd, Bloomington, MN 55438",
+    city: "Bloomington", neighborhood: null, season: SKI_SEASON, cost: "paid",
+    tags: ["downhill", "terrain-park", "rentals"],
+    intro: "Three Rivers' downhill area in Bloomington, five minutes from the Mall of America — a big terrain park, a chalet, and rentals, floodlit for night skiing. Lift ticket required.",
+    sourceUrl: "https://www.threeriversparks.org/location/hyland-hills-ski-area",
+    verifiedAt: "2026-08-14", venueSlug: null,
+  },
+  {
+    slug: "elm-creek-winter-recreation-area", name: "Elm Creek Winter Recreation Area", kind: "ski-hill",
+    lat: 45.1400, lng: -93.4350, address: "12400 James Deane Parkway, Maple Grove, MN 55369",
+    city: "Maple Grove", neighborhood: null, season: SKI_SEASON, cost: "paid",
+    tags: ["downhill", "tubing", "beginner-friendly"],
+    intro: "Three Rivers' beginner-friendly hill in Maple Grove — a lift-served downhill run and a lighted tubing hill with snowmaking, plus cross-country trails. Lift or tubing ticket required.",
+    sourceUrl: "https://www.threeriversparks.org/location/elm-creek-winter-recreation-area",
     verifiedAt: "2026-08-14", venueSlug: null,
   },
 ];

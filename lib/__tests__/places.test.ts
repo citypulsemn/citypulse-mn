@@ -167,7 +167,7 @@ describe("selectors", () => {
   it("kindsWithPlaces lists only seeded kinds, with counts and open state", () => {
     const kinds = kindsWithPlaces(JULY);
     const bySlug = Object.fromEntries(kinds.map((k) => [k.meta.kind, k]));
-    expect(Object.keys(bySlug).sort()).toEqual(["beach", "disc-golf", "dog-park", "farmers-market", "garden", "golf-course", "nature-center", "park", "playground", "pool", "rink", "sledding", "splash-pad"]);
+    expect(Object.keys(bySlug).sort()).toEqual(["beach", "disc-golf", "dog-park", "farmers-market", "garden", "golf-course", "nature-center", "park", "playground", "pool", "rink", "ski-hill", "sledding", "splash-pad"]);
     expect(bySlug["beach"].count).toBe(placesByKind("beach").length);
     expect(bySlug["beach"].open).toBe(true); // July → summer beaches open
     // In January the same kinds still list (page persists year-round) but closed.
