@@ -206,17 +206,17 @@ the expected weekly-archive lag. Both minor; one small preventive guard recommen
     stay on stable 5.x.
   - **@types/node 22 → 26** — keep at 22 to match Vercel's Node-22 runtime (the
     dev machine happens to run Node 26 — see below).
-- ⚠️ **@anthropic-ai/sdk 0.106 → 0.117** (11 minors; pre-1.0 so minors can carry
-  API changes; capped by the `^0.106` range). Used by the weekly pipeline agents.
-  Worth a **considered bump in its own commit** — check the changelog and dry-run
-  the pipeline (`npm run pipeline`-adjacent), don't fold it into a routine update.
-- ⚠️ **No `engines.node` field** — the dev machine is on Node **26** while Vercel
-  deploys Next 15 on Node **22**. Not breaking today, but the drift could let a
-  Node-26-only API into code that then fails on Vercel. Recommend pinning:
-  ```json
-  "engines": { "node": "22.x" }
-  ```
-  (Left for Taren — it's a deploy-runtime choice I can't verify against Vercel.)
+- ✅ **@anthropic-ai/sdk 0.106 → 0.117.1 — DONE.** The only usage is
+  `lib/agents/research-agent.ts` (`messages.stream` → `finalMessage`, with the
+  web-search tool loosely typed). `tsc` clean after the bump confirms the type
+  surface (`messages.stream`, `finalMessage`, `Anthropic.Tool`/`TextBlock`) is
+  intact. **Not runtime-tested** — a live pipeline run hits the paid web-search
+  API, so the real-world validation is the next Monday `npm run pipeline`. Low
+  risk: the high-level streaming path and the `web_search_20250305` tool id
+  (API-side, SDK-independent) are stable.
+- ✅ **`engines.node` pinned to `22.x` — DONE.** Matches Vercel's Next-15 runtime
+  and flags the dev machine's Node-26 drift (a harmless `EBADENGINE` warning
+  locally, not an error).
 - ℹ️ npm's allow-scripts flagged `esbuild`'s postinstall (a supply-chain guard).
   esbuild is a trusted build dep (via tsx/vitest) — informational, no action.
 
