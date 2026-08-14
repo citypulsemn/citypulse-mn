@@ -52,6 +52,13 @@ as it does today until an admin adds a placement.
    caught "relation does not exist" log and creates the (empty) table.
 2. Push to `main`. Nothing visible changes — the table is empty.
 
+> **✅ APPLIED (Aug 14, 2026).** The `featured` table now exists in production
+> Supabase — created via the project's own `postgres` client against
+> `DATABASE_URL` (the three idempotent statements from the block below). Verified:
+> all 6 columns present with correct types, 0 rows, RLS enabled; the homepage's
+> caught `relation "featured" does not exist` log is gone (confirmed on a fresh
+> render). The framework is now armed but dormant — no placement rows yet.
+
 ## How to sell one (later, admin, when a venue pays)
 
 Insert a row for the paid window:
