@@ -186,3 +186,40 @@ The core product. Audited all 2,402 live events for the "honest data" stance
 **Verdict:** the events data is clean and honest — no fabricated data, no
 duplicates, no missing fields. The only items are 3 archived historical errors and
 the expected weekly-archive lag. Both minor; one small preventive guard recommended.
+
+---
+
+## 6. Dependency / supply-chain health — ✅ healthy; safe updates applied
+
+**Findings:**
+- ✅ **`npm audit`: 0 vulnerabilities** (the standing requirement). Lean tree —
+  9 prod deps, 8 dev. Lockfile present. The security override pins
+  (`postcss ^8.5.26`, `sharp ^0.35.3`, from earlier libvips/SSRF advisories) are
+  intact.
+- ✅ **Applied all safe in-range updates** (`npm update`) — react/react-dom
+  19.2.7→.8, next 15.5.22→.23, **mapbox-gl 3.24→3.28**, tsx 4.22→4.23, vitest
+  4.1.8→.10, papaparse 5.5→5.6, node-ical .27.0→.1, @types patches. Gate stayed
+  green (1010 tests, build clean, audit 0).
+- ⚠️ **Deliberate major holds** (migration projects, NOT routine bumps — left put):
+  - **Next 15 → 16** — a major with breaking changes; upgrade as its own project.
+  - **TypeScript 5.9 → 7.0** — the new native/Go compiler ("tsgo"), bleeding-edge;
+    stay on stable 5.x.
+  - **@types/node 22 → 26** — keep at 22 to match Vercel's Node-22 runtime (the
+    dev machine happens to run Node 26 — see below).
+- ⚠️ **@anthropic-ai/sdk 0.106 → 0.117** (11 minors; pre-1.0 so minors can carry
+  API changes; capped by the `^0.106` range). Used by the weekly pipeline agents.
+  Worth a **considered bump in its own commit** — check the changelog and dry-run
+  the pipeline (`npm run pipeline`-adjacent), don't fold it into a routine update.
+- ⚠️ **No `engines.node` field** — the dev machine is on Node **26** while Vercel
+  deploys Next 15 on Node **22**. Not breaking today, but the drift could let a
+  Node-26-only API into code that then fails on Vercel. Recommend pinning:
+  ```json
+  "engines": { "node": "22.x" }
+  ```
+  (Left for Taren — it's a deploy-runtime choice I can't verify against Vercel.)
+- ℹ️ npm's allow-scripts flagged `esbuild`'s postinstall (a supply-chain guard).
+  esbuild is a trusted build dep (via tsx/vitest) — informational, no action.
+
+**Verdict:** supply chain is healthy — zero vulnerabilities, lean, pinned. Routine
+updates are now applied; the remaining gaps are deliberate majors + the SDK bump,
+each better handled as its own considered change.
