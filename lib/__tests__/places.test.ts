@@ -9,6 +9,8 @@ import {
   placeBySlug,
   groupPlacesByKind,
   kindsWithPlaces,
+  relatedKinds,
+  KIND_THEMES,
   openNow,
   placesStaticMapUrl,
   placesSeasonBanner,
@@ -173,6 +175,35 @@ describe("selectors", () => {
     // In January the same kinds still list (page persists year-round) but closed.
     const winter = Object.fromEntries(kindsWithPlaces(JANUARY).map((k) => [k.meta.kind, k]));
     expect(winter["beach"].open).toBe(false);
+  });
+});
+
+describe("KIND_THEMES + relatedKinds — the cross-linking mesh (Tier 1.2)", () => {
+  it("every theme references only known kinds", () => {
+    for (const t of KIND_THEMES) {
+      expect(t.kinds.length, t.key).toBeGreaterThan(0);
+      for (const k of t.kinds) expect(KINDS.has(k), `${t.key} → ${k}`).toBe(true);
+    }
+  });
+
+  it("every seeded kind appears in at least one theme (no dead-end leaf page)", () => {
+    const themed = new Set(KIND_THEMES.flatMap((t) => t.kinds));
+    for (const { meta } of kindsWithPlaces(JULY)) {
+      expect(themed.has(meta.kind), `${meta.kind} is in no theme`).toBe(true);
+    }
+  });
+
+  it("relatedKinds excludes self + empty kinds and returns valid, non-empty siblings", () => {
+    for (const { meta } of kindsWithPlaces(JULY)) {
+      const rel = relatedKinds(meta.kind);
+      expect(rel, meta.kind).not.toContain(meta.kind);
+      expect(new Set(rel).size, `${meta.kind} has duplicate related`).toBe(rel.length);
+      for (const r of rel) {
+        expect(KINDS.has(r), `${meta.kind} → ${r}`).toBe(true);
+        expect(placesByKind(r).length, `${meta.kind} → empty ${r}`).toBeGreaterThan(0);
+      }
+      expect(rel.length, `${meta.kind} has no related guides`).toBeGreaterThan(0);
+    }
   });
 });
 

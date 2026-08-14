@@ -9,6 +9,7 @@ import {
   placesByKind,
   placesSeasonBanner,
   kindsWithPlaces,
+  relatedKinds,
   type PlaceKind,
 } from "@/lib/places";
 import { PLACES_KIND_INTRO } from "@/lib/editorial";
@@ -64,6 +65,7 @@ export default async function PlacesKindPage({
   const now = new Date();
   const banner = placesSeasonBanner(places, now);
   const intro = PLACES_KIND_INTRO[k] ?? meta.blurb;
+  const related = relatedKinds(k);
 
   return (
     <>
@@ -84,6 +86,19 @@ export default async function PlacesKindPage({
 
         <PlacesMapInteractive places={places} />
         <PlacesList places={places} />
+
+        {related.length > 0 && (
+          <nav className="related-guides" aria-label="More place guides">
+            <h2 className="related-guides-title">More Twin Cities guides</h2>
+            <div className="related-guides-links">
+              {related.map((rk) => (
+                <a key={rk} href={`/places/${rk}`} className="related-guide-link">
+                  {KIND_META[rk].plural}
+                </a>
+              ))}
+            </div>
+          </nav>
+        )}
 
         <SiteFooter source="places" />
       </main>

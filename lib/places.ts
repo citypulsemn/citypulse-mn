@@ -101,6 +101,22 @@ export const KIND_META: Record<PlaceKind, KindMeta> = {
   "trampoline-climbing": { kind: "trampoline-climbing", label: "Trampoline & Climbing Gym", plural: "Trampoline & Climbing Gyms", blurb: "Indoor trampoline parks, ninja gyms, and rock-climbing walls across the metro — jump, climb, and burn off winter, mapped." },
 };
 
+/**
+ * Themed groupings for cross-linking (Roadmap v6 Tier 1.2). A kind may sit in more
+ * than one theme; `relatedKinds` uses these to link each guide to its siblings —
+ * pure internal-link equity that turns the leaf kind pages into a mesh, with no new
+ * data. Every seeded kind must appear in at least one theme (drift-guard-tested), so
+ * no kind page is a dead end.
+ */
+export const KIND_THEMES: { key: string; label: string; kinds: PlaceKind[] }[] = [
+  { key: "water", label: "Summer & water", kinds: ["splash-pad", "beach", "pool"] },
+  { key: "winter", label: "Winter", kinds: ["rink", "sledding", "ski-hill"] },
+  { key: "rainy-day", label: "Rainy-day & indoor", kinds: ["indoor-playground", "trampoline-climbing", "museum"] },
+  { key: "parks", label: "Parks & outdoors", kinds: ["park", "playground", "nature-center", "garden", "dog-park"] },
+  { key: "active", label: "Get out & play", kinds: ["golf-course", "disc-golf", "trampoline-climbing", "ski-hill"] },
+  { key: "food-culture", label: "Food & culture", kinds: ["farmers-market", "orchard", "museum", "music-venue"] },
+];
+
 // Summer water season used by the current seed — guarded Minneapolis and
 // St. Paul beaches and splash pads run Memorial Day to Labor Day. Month-level:
 // the exact lifeguard dates shift yearly (they live on each sourceUrl).
@@ -5038,6 +5054,20 @@ export function kindsWithPlaces(now: Date): { meta: KindMeta; count: number; ope
       return { meta: KIND_META[kind], count: list.length, open: list.some((p) => openNow(p, now)) };
     })
     .filter((k) => k.count > 0);
+}
+
+/** Sibling kinds sharing a theme with `kind` (Roadmap v6 Tier 1.2 cross-linking) —
+ *  excludes the kind itself and any kinds with no places, preserving theme order.
+ *  Drives the "More guides" mesh on each kind page. */
+export function relatedKinds(kind: PlaceKind): PlaceKind[] {
+  const out = new Set<PlaceKind>();
+  for (const theme of KIND_THEMES) {
+    if (!theme.kinds.includes(kind)) continue;
+    for (const k of theme.kinds) {
+      if (k !== kind && placesByKind(k).length > 0) out.add(k);
+    }
+  }
+  return [...out];
 }
 
 /**

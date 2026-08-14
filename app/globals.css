@@ -780,6 +780,13 @@ a.daycard { text-decoration: none; }
 .place-source:hover { text-decoration: underline; }
 @media (max-width: 720px) { .place-row { padding: 12px 13px; gap: 11px; } }
 
+/* Related guides — cross-linking mesh between kind pages (Tier 1.2) */
+.related-guides { margin: 40px 0 0; }
+.related-guides-title { font-size: 12px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--cream-dim); margin: 0 0 12px; }
+.related-guides-links { display: flex; flex-wrap: wrap; gap: 9px; }
+.related-guide-link { display: inline-block; padding: 8px 14px; border: 1px solid var(--line); border-radius: 999px; color: var(--cream); font-size: 13.5px; text-decoration: none; transition: border-color 0.15s, color 0.15s; }
+.related-guide-link:hover { border-color: var(--gold); color: var(--gold); }
+
 /* P2.2 — "Places in {neighborhood}" cross-link strip on neighborhood pages. */
 .nbhd-places { max-width: 620px; margin: 28px auto 0; padding-top: 20px; border-top: 1px solid var(--line); }
 .nbhd-places-h { font-family: var(--font-oswald); font-weight: 600; font-size: 15px; letter-spacing: 0.05em; text-transform: uppercase; color: var(--gold); margin: 0 0 12px; }
