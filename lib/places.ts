@@ -27,7 +27,8 @@ export type PlaceKind =
   | "music-venue"
   | "farmers-market"
   | "dog-park"
-  | "disc-golf";
+  | "disc-golf"
+  | "nature-center";
 
 export type PlaceCost = "free" | "paid" | "donation";
 
@@ -85,6 +86,7 @@ export const KIND_META: Record<PlaceKind, KindMeta> = {
   "farmers-market": { kind: "farmers-market", label: "Farmers Market", plural: "Farmers Markets", blurb: "Where to find the metro's growers and makers each week." },
   "dog-park": { kind: "dog-park", label: "Dog Park", plural: "Dog Parks", blurb: "Off-leash dog parks across the metro — fenced runs and open romps, mapped." },
   "disc-golf": { kind: "disc-golf", label: "Disc Golf Course", plural: "Disc Golf Courses", blurb: "Public disc golf across the metro — free park courses and pay-to-play tracks, mapped." },
+  "nature-center": { kind: "nature-center", label: "Nature Center", plural: "Nature Centers", blurb: "Interpretive nature centers across the metro — trails, exhibits, and naturalist programs, mapped." },
 };
 
 // Summer water season used by the current seed — guarded Minneapolis and
@@ -3822,6 +3824,103 @@ export const PLACES: Place[] = [
     tags: ["9-hole"],
     intro: "Nine free holes at Donie Galloway Riverside Park in Champlin, along the Mississippi on Dayton River Road.",
     sourceUrl: "https://www.dgcoursereview.com/course.php?id=9131",
+    verifiedAt: "2026-08-14", venueSlug: null,
+  },
+
+  // ── NATURE CENTERS (Places G1.2, Aug 2026) ─────────────────────────────────
+  // Interpretive nature centers across the metro — trails, exhibits, naturalist
+  // programs. All YEAR_ROUND and free to enter (a couple are donation-supported).
+  // Each verified against its official city/county/park-district/nonprofit page.
+  // Excluded: Maplewood Nature Center (interpretive center closed; only the
+  // preserve/play yard remains) and Warner Nature Center (permanently closed).
+  {
+    slug: "kroening-nature-center", name: "Carl W. Kroening Nature Center", kind: "nature-center",
+    lat: 45.0330, lng: -93.2790, address: "4900 N Mississippi Dr, Minneapolis, MN 55430",
+    city: "Minneapolis", neighborhood: null, season: YEAR_ROUND, cost: "free",
+    tags: ["trails", "river", "exhibits"],
+    intro: "The Park Board's interpretive center at North Mississippi Regional Park, right on the river — exhibits inside, trails and river access out back. Free.",
+    sourceUrl: "https://www.minneapolisparks.org/parks-destinations/parks-lakes/carl_w_kroening_nature_center/",
+    verifiedAt: "2026-08-14", venueSlug: null,
+  },
+  {
+    slug: "dodge-nature-center", name: "Dodge Nature Center", kind: "nature-center",
+    lat: 44.9060, lng: -93.1010, address: "365 Marie Ave W, West St. Paul, MN 55118",
+    city: "West St. Paul", neighborhood: null, season: YEAR_ROUND, cost: "free",
+    tags: ["trails", "farm"],
+    intro: "A nonprofit preserve in West St. Paul with a working farm, prairie, and woodland trails. The trails are free to walk; the farm animals are the draw for kids.",
+    sourceUrl: "https://dodgenaturecenter.org",
+    verifiedAt: "2026-08-14", venueSlug: null,
+  },
+  {
+    slug: "springbrook-nature-center", name: "Springbrook Nature Center", kind: "nature-center",
+    lat: 45.1075, lng: -93.2530, address: "100 85th Ave NW, Fridley, MN 55432",
+    city: "Fridley", neighborhood: null, season: YEAR_ROUND, cost: "free",
+    tags: ["trails", "wetland", "boardwalk"],
+    intro: "A 127-acre Fridley preserve with three-plus miles of trails through woods and wetland, plus an interpretive building and boardwalks. Free.",
+    sourceUrl: "https://www.fridleymn.gov/Community-Recreation/Springbrook-Nature-Center",
+    verifiedAt: "2026-08-14", venueSlug: null,
+  },
+  {
+    slug: "westwood-hills-nature-center", name: "Westwood Hills Nature Center", kind: "nature-center",
+    lat: 44.9450, lng: -93.3830, address: "8300 W Franklin Ave, St. Louis Park, MN 55426",
+    city: "St. Louis Park", neighborhood: null, season: YEAR_ROUND, cost: "free",
+    tags: ["trails", "boardwalk", "exhibits"],
+    intro: "160 acres of prairie, forest, and marsh in St. Louis Park, with three miles of trail — paved, boardwalk, and wood-chip — and a modern net-zero interpretive center. Free.",
+    sourceUrl: "https://www.stlouisparkmn.gov/our-city/facilites-buildings/westwood-hills-nature-center",
+    verifiedAt: "2026-08-14", venueSlug: null,
+  },
+  {
+    slug: "tamarack-nature-center", name: "Tamarack Nature Center", kind: "nature-center",
+    lat: 45.1160, lng: -93.0470, address: "5287 Otter Lake Rd, White Bear Township, MN 55110",
+    city: "White Bear Township", neighborhood: null, season: YEAR_ROUND, cost: "free",
+    tags: ["trails", "play-area"],
+    intro: "A 320-acre Ramsey County preserve in White Bear Township, with trails, a discovery hollow, and a big natural play area. Free; donations welcome.",
+    sourceUrl: "https://www.ramseycountymn.gov/residents/parks-recreation/tamarack-nature-center",
+    verifiedAt: "2026-08-14", venueSlug: null,
+  },
+  {
+    slug: "wood-lake-nature-center", name: "Wood Lake Nature Center", kind: "nature-center",
+    lat: 44.8680, lng: -93.2830, address: "6710 Lake Shore Dr S, Richfield, MN 55423",
+    city: "Richfield", neighborhood: null, season: YEAR_ROUND, cost: "free",
+    tags: ["trails", "boardwalk", "wetland"],
+    intro: "Richfield's 150-acre marsh preserve, with a floating boardwalk out over the water and an interpretive building. Free.",
+    sourceUrl: "https://www.richfieldmn.gov/590/Wood-Lake-Nature-Center",
+    verifiedAt: "2026-08-14", venueSlug: null,
+  },
+  {
+    slug: "eastman-nature-center", name: "Eastman Nature Center", kind: "nature-center",
+    lat: 45.1660, lng: -93.4350, address: "13351 Elm Creek Rd, Dayton, MN 55327",
+    city: "Dayton", neighborhood: null, season: YEAR_ROUND, cost: "free",
+    tags: ["trails", "prairie", "exhibits"],
+    intro: "The Three Rivers nature center at Elm Creek Park Reserve in Dayton — trails through prairie and big woods, with exhibits and naturalist programs. Free.",
+    sourceUrl: "https://www.threeriversparks.org/location/eastman-nature-center",
+    verifiedAt: "2026-08-14", venueSlug: null,
+  },
+  {
+    slug: "richardson-nature-center", name: "Richardson Nature Center", kind: "nature-center",
+    lat: 44.8430, lng: -93.3760, address: "8737 E Bush Lake Rd, Bloomington, MN 55438",
+    city: "Bloomington", neighborhood: null, season: YEAR_ROUND, cost: "free",
+    tags: ["trails", "raptors", "prairie"],
+    intro: "The Three Rivers nature center at Hyland Lake Park Reserve in Bloomington, known for its raptors and restored prairie. Trails and exhibits, free.",
+    sourceUrl: "https://www.threeriversparks.org/location/richardson-nature-center",
+    verifiedAt: "2026-08-14", venueSlug: null,
+  },
+  {
+    slug: "lowry-nature-center", name: "Lowry Nature Center", kind: "nature-center",
+    lat: 44.8760, lng: -93.7050, address: "7025 Victoria Dr, Victoria, MN 55386",
+    city: "Victoria", neighborhood: null, season: YEAR_ROUND, cost: "free",
+    tags: ["trails", "maple-syrup", "exhibits"],
+    intro: "The first public nature center built in the Twin Cities, at Carver Park Reserve in Victoria — trails, exhibits, and a spring maple-syrup season. Free.",
+    sourceUrl: "https://www.threeriversparks.org/location/lowry-nature-center",
+    verifiedAt: "2026-08-14", venueSlug: null,
+  },
+  {
+    slug: "carpenter-nature-center", name: "Carpenter St. Croix Valley Nature Center", kind: "nature-center",
+    lat: 44.7500, lng: -92.8000, address: "12805 St Croix Trail S, Hastings, MN 55033",
+    city: "Hastings", neighborhood: null, season: YEAR_ROUND, cost: "free",
+    tags: ["trails", "raptors", "orchard"],
+    intro: "A nonprofit nature center on the St. Croix river bluffs in Hastings, with valley trails, raptor programs, and an apple orchard. Free; donations welcome.",
+    sourceUrl: "https://carpenternaturecenter.org",
     verifiedAt: "2026-08-14", venueSlug: null,
   },
 ];

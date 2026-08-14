@@ -43,6 +43,8 @@ export const PLACES_KIND_INTRO: Record<string, string> = {
     "Off-leash areas across the metro, from small fenced neighborhood runs to the big regional romps with lake access and room to actually sprint. Most city parks are free; the Minneapolis, St. Paul, and Three Rivers areas want a permit — annual or daily. Open year-round, snow or shine.",
   "disc-golf":
     "Public disc golf across the metro — most are free 18-hole park courses you can just walk on, plus a handful of pay-to-play wooded tracks. Bring your own discs; peak season is spring through fall, but the diehards play right through the snow. Weekends and evenings fill up on the popular ones.",
+  "nature-center":
+    "The metro's nature centers — miles of trails, hands-on exhibits, and naturalist programs, most of them free. Open year-round; the grounds stay open dawn to dusk even when the interpretive building keeps shorter hours. A solid rainy-day or first-snow outing with kids.",
 };
 
 export const VENUE_INTROS: Record<string, string> = {
