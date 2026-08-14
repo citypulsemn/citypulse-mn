@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getEvents } from "@/lib/events";
+import { getFeatured } from "@/lib/featured";
 import { getCollection, selectCollection } from "@/lib/collections";
 import { EventDayCard } from "@/components/EventDayCard";
+import { FeaturedRow } from "@/components/FeaturedRow";
 import { FeedSubscribe } from "@/components/FeedSubscribe";
 import { TopBar } from "@/components/TopBar";
 import { SiteFooter } from "@/components/SiteFooter";
@@ -72,6 +74,9 @@ export default async function CollectionPage({
   const events = await getEvents();
   const selected = selectCollection(events, collection, new Date());
   const groups = groupByDay(selected);
+  // Featured (R2.2): capped at 1, drawn from THIS collection's own events so a
+  // paid placement stays relevant; empty (invisible) until a venue buys.
+  const featured = await getFeatured("collection", selected);
 
   return (
     <>
@@ -97,6 +102,8 @@ export default async function CollectionPage({
               : `${selected.length} event${selected.length > 1 ? "s" : ""}`}
           </div>
         </div>
+
+        <FeaturedRow items={featured} />
 
         {groups.length > 0 ? (
           groups.map((g) => (

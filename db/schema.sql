@@ -330,3 +330,22 @@ alter table feed_events enable row level security;
 -- diffed run-over-run or tripwired. Additive, nullable — historical rows read
 -- null (shown as "no prior number", never a fake zero).
 alter table pipeline_runs add column if not exists collapsed_runs int;
+
+-- ── Featured placements (Monetization R2.2) ──────────────────────────────────
+-- The labeled, capped, no-reorder paid-placement mechanism. One row per booking:
+-- an event featured for a paid window, with the disclosure label to show. The
+-- render caps (1 per collection page, 2 homepage) and the "never touches organic
+-- ranking" rule live in lib/featured.ts — featured events are an ADDITIVE band
+-- above the organic list, never spliced into it. Admin-managed; dormant until a
+-- venue buys, so this table is normally empty and every surface renders exactly
+-- as it does today. Additive + idempotent; RLS on like every other table.
+create table if not exists featured (
+  id         uuid primary key default gen_random_uuid(),
+  event_id   uuid not null references events(id) on delete cascade,
+  label      text not null default 'Featured',   -- the visible disclosure chip
+  starts_at  timestamptz not null,
+  ends_at    timestamptz not null,
+  created_at timestamptz not null default now()
+);
+create index if not exists idx_featured_window on featured (starts_at, ends_at);
+alter table featured enable row level security;
