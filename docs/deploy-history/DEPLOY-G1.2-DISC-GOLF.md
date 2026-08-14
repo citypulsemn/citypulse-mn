@@ -1,12 +1,23 @@
-# Deploy — G1.2: Disc Golf, a new Places kind (17 courses)
+# Deploy — G1.2: Disc Golf, a new Places kind (20 courses)
 
 *August 2026. Tier 1 (audience / SEO). Code + data only, no schema.*
-*(Shipped in two commits: the initial 10, then an expansion pass to 17.)*
+*(Shipped across three commits: initial 10 → 17 → 20.)*
 
 ## What shipped
 
-A new `/places/disc-golf` page — **17 verified public disc golf courses across the
+A new `/places/disc-golf` page — **20 verified public disc golf courses across the
 metro** — another evergreen, indexable Places URL for the G1.2 SEO push.
+
+## Third pass (+3)
+
+Staring Lake (Eden Prairie, free 9h) · Bandimere Heights (Chanhassen, free 9h,
+official city source) · Lions Park (Shakopee, free 18h). Staring Lake and Shakopee
+cite the **PDGA course directory** as source — both cities' own pages either block
+the fetcher (Eden Prairie 403) or lack a clean disc-golf facility URL, so PDGA is
+the authoritative source I could actually verify against. Excluded: Riley Lake
+(a 4-basket practice area, not a course) and Hennepin Tech (campus course).
+Still deferred: Ham Lake, Oak Grove (multiple courses incl. private ones — needs
+disambiguation), and more far-flung ones.
 
 ## Expansion pass (+7, verified vs official city pages)
 

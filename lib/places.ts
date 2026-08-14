@@ -3761,6 +3761,33 @@ export const PLACES: Place[] = [
     sourceUrl: "https://www.ighmn.gov/420/Disc-Golf-Course",
     verifiedAt: "2026-08-14", venueSlug: null,
   },
+  {
+    slug: "staring-lake-disc-golf", name: "Staring Lake Park Disc Golf Course", kind: "disc-golf",
+    lat: 44.8490, lng: -93.4620, address: "Staring Lake Park, 14800 Pioneer Trail, Eden Prairie, MN 55347",
+    city: "Eden Prairie", neighborhood: null, season: YEAR_ROUND, cost: "free",
+    tags: ["9-hole"],
+    intro: "A free nine-hole course at Staring Lake Park in Eden Prairie — park in the east lot and follow the trail to the first tee. Open year-round, 6am to 10pm.",
+    sourceUrl: "https://www.pdga.com/course-directory/course/staring-lake-park",
+    verifiedAt: "2026-08-14", venueSlug: null,
+  },
+  {
+    slug: "bandimere-heights-disc-golf", name: "Bandimere Heights Park Disc Golf Course", kind: "disc-golf",
+    lat: 44.8365, lng: -93.5366, address: "Bandimere Heights Park, Chanhassen, MN 55317",
+    city: "Chanhassen", neighborhood: null, season: YEAR_ROUND, cost: "free",
+    tags: ["9-hole", "wooded"],
+    intro: "Nine free holes at Bandimere Heights Park in Chanhassen — a good mix of open and wooded, with dual tees and some elevation.",
+    sourceUrl: "https://www.chanhassenmn.gov/Home/Components/FacilityDirectory/FacilityDirectory/60/532",
+    verifiedAt: "2026-08-14", venueSlug: null,
+  },
+  {
+    slug: "shakopee-lions-disc-golf", name: "Lions Park Disc Golf Course", kind: "disc-golf",
+    lat: 44.7910, lng: -93.5330, address: "1103 Adams St S, Shakopee, MN 55379",
+    city: "Shakopee", neighborhood: null, season: YEAR_ROUND, cost: "free",
+    tags: ["18-hole"],
+    intro: "A free full-length 18 at Lions Park in Shakopee, off Adams Street on the south side — no fee, walk right on.",
+    sourceUrl: "https://www.pdga.com/course-directory/course/lions-park-i",
+    verifiedAt: "2026-08-14", venueSlug: null,
+  },
 ];
 
 // ── Selectors (pure) ────────────────────────────────────────────────────────
