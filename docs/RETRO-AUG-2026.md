@@ -149,3 +149,38 @@ here for the record):
 **Verdict:** no process incidents; the standing patterns held. Recommend folding
 the schema-apply pattern and the stale-console pitfall into `docs/ENGINEERING.md`
 the next time it's touched.
+
+---
+
+## 5. Event data integrity — ✅ clean (sibling to the Places audit)
+
+The core product. Audited all 2,402 live events for the "honest data" stance
+(never invent/mislead on events or dates).
+
+**Findings:**
+- **Clean where it matters most:** 0 published events missing title/start/venue-or-
+  city; **0 near-duplicates** (same title|venue|date — the dedup + collapse work
+  holds); 0 suspicious far-future dates; healthy archive ratio (1,449 archived /
+  953 published — events are archived, never deleted).
+- **Category coverage (upcoming):** music 202, arts 169, family 157, sports 92,
+  festival 90, food 81, weird 43. Weird has grown a lot (was ~6 at F1.1); music
+  still leads. A supply observation, not an integrity issue.
+- ⚠️ **19 dead-but-published** — events whose true span ended >2 days ago, awaiting
+  the next Monday archive (~15 genuine one-offs like Uptown Art Fair + a Twins
+  game; ~4 recurring-series past instances). **Not a violation:** default listings
+  filter them out by date-range, and detail pages show the honest UX1 "ended"
+  banner with gated CTAs. It's the inherent weekly-archive lag, bounded at ~7 days.
+- ⚠️ **3 backwards-span events (`end_at < start_at`) — all ARCHIVED**, so not
+  user-facing: "In the Heights" (theater run) and two Saints games where the source
+  fed an `end_at` before `start_at`. Historical bad source data.
+
+**Recommendations (not urgent):**
+1. Add a pipeline normalization guard: when a scraped `end_at < start_at`, null it
+   (or roll a past-midnight end to +1 day, as UX8 does at display time). Prevents
+   future backwards spans at ingest rather than relying on display-time handling.
+2. Optional: a more frequent archive pass would trim the ≤7-day dead-event lag, but
+   UX1 already makes it honest, so this is polish, not a fix.
+
+**Verdict:** the events data is clean and honest — no fabricated data, no
+duplicates, no missing fields. The only items are 3 archived historical errors and
+the expected weekly-archive lag. Both minor; one small preventive guard recommended.
