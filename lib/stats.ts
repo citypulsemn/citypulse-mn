@@ -196,3 +196,38 @@ async function queryEngagement(days: number): Promise<Engagement> {
 
   return { totals, daily, top };
 }
+
+export interface VendorClicks {
+  host: string;
+  clicks: number;
+}
+
+/**
+ * Ticket clicks grouped by the destination vendor's host, over the last `days`
+ * (Monetization M0.1). This is the report that decides which affiliate programs
+ * are worth joining: it shows where high-intent clicks actually go (often the
+ * non-affiliate long tail, not Ticketmaster/SeatGeek). Never-break contract like
+ * the rest of stats — [] on any failure.
+ */
+export async function getTicketClicksByVendor(days: number): Promise<VendorClicks[]> {
+  if (!sql) return [];
+  try {
+    const window = Math.max(1, Math.min(days, 90));
+    return await sql<VendorClicks[]>`
+      select
+        substring(lower(e.ticket_url) from '^https?://(?:www\.)?([^/:?#]+)') as host,
+        sum(s.count)::int as clicks
+      from event_stats s
+      join events e on e.id = s.event_id
+      where s.action = 'ticket_click'
+        and coalesce(e.ticket_url, '') <> ''
+        and s.day >= (now() at time zone 'America/Chicago')::date - (${window - 1})::int
+      group by host
+      order by clicks desc
+      limit 25
+    `;
+  } catch (err) {
+    console.error("[stats] getTicketClicksByVendor failed (returning empty):", err);
+    return [];
+  }
+}

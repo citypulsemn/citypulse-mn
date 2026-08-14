@@ -1,5 +1,5 @@
 import { getContentStats } from "@/lib/admin";
-import { getEngagement, ctr } from "@/lib/stats";
+import { getEngagement, getTicketClicksByVendor, ctr } from "@/lib/stats";
 import { getSubscriberStats } from "@/lib/subscribe";
 import { CATEGORIES } from "@/lib/categories";
 import type { CategoryKey } from "@/lib/types";
@@ -16,6 +16,7 @@ export default async function AdminStatsPage({
   const s = await getContentStats();
   const subs = await getSubscriberStats();
   const eng = await getEngagement(days);
+  const vendors = await getTicketClicksByVendor(days);
 
   return (
     <>
@@ -111,6 +112,32 @@ export default async function AdminStatsPage({
           <div className="admin-stat-l">Calendar adds</div>
         </div>
       </div>
+
+      {vendors.length > 0 && (
+        <>
+          <h3 className="admin-h3">Ticket clicks by vendor — last {days} days</h3>
+          <div className="admin-note">
+            Where high-intent clicks actually land (M0.1). This is the signal for which
+            affiliate programs are worth joining — most demand tends to be the non-affiliate
+            long tail (venue box offices, festivals), not Ticketmaster/SeatGeek.
+          </div>
+          <div className="cov-scroll">
+            <table className="cov-table">
+              <thead>
+                <tr><th>Vendor (host)</th><th>Ticket clicks</th></tr>
+              </thead>
+              <tbody>
+                {vendors.map((v) => (
+                  <tr key={v.host}>
+                    <td>{v.host}</td>
+                    <td>{v.clicks}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
+      )}
 
       {eng.top.length === 0 ? (
         <div className="admin-note">

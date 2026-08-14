@@ -2,6 +2,7 @@
 
 import { track } from "@/lib/track";
 import { sendStat } from "./StatBeacon";
+import { outboundTicketUrl } from "@/lib/outbound";
 import type { EventRecord } from "@/lib/types";
 
 /**
@@ -18,7 +19,7 @@ export function TicketButton({ event }: { event: EventRecord }) {
   return (
     <a
       className="ticket-btn"
-      href={event.ticketUrl}
+      href={outboundTicketUrl(event.ticketUrl)}
       target="_blank"
       rel="noopener noreferrer"
       onClick={() => {
