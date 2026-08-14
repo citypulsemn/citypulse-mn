@@ -31,13 +31,13 @@ whole live schema (not just source).
 - ✅ **Applied `set search_path = ''` to `set_updated_at()`** (source + prod).
   `now()` still resolves via pg_catalog; closes the WARN.
 
-**Open recommendation (not done — destructive, Taren's call):**
-- ⚠️ **Stale backup table `collapse_backup_20260716`** (254 rows) sits in prod, not
-  in `db/schema.sql` — a safety backup from the July collapse work, ~1 month old
-  and long-verified. It has RLS (not a hole), just cruft. Safe to drop when ready:
-  ```sql
-  drop table if exists collapse_backup_20260716;
-  ```
+**Resolved:**
+- ✅ **Dropped `collapse_backup_20260716`** (Aug 14, Taren-authorized). It was a
+  narrow snapshot (`id, status, start_at, multi_day_end`) of the 254 events the
+  July multi-day-collapse touched — a rollback safety net, long since verified.
+  Looked before dropping (columns + count; live `events` = 2,402 rows, intact),
+  then `drop table if exists` and confirmed gone. Never in `db/schema.sql`, so no
+  schema change.
 
 **Verdict:** the security posture is sound. No exposed data. Re-running the advisor
 should now show 0 critical + 0 of the function-search-path warning.
