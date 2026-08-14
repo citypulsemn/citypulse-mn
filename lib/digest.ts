@@ -30,6 +30,9 @@ export interface DigestOptions {
    *  When present and non-empty, a "You saved these" section leads the email.
    *  Absent/empty ⇒ the digest is exactly the standard one. */
   savedThisWeek?: EventRecord[];
+  /** ROADMAP R2.1 — the newsletter sponsor. Omit ⇒ use the module DIGEST_SPONSOR
+   *  (null by default = no slot). Pass null explicitly to force no sponsor. */
+  sponsor?: DigestSponsor | null;
 }
 
 /** The curated ~8-event set for the email: family + unique + top regulars. */
@@ -98,8 +101,69 @@ function eventRowHtml(e: EventRecord, siteUrl: string): string {
   </td></tr>`;
 }
 
+export interface DigestSponsor {
+  /** Rendered as "Presented by {name}". */
+  name: string;
+  /** Optional click-through (the sponsor's own URL). Omit for a name-only mention. */
+  url?: string;
+  /** One short, concrete line under the name. Optional. */
+  tagline?: string;
+}
+
+/**
+ * NEWSLETTER SPONSOR SLOT (Monetization R2.1).
+ *
+ * null ⇒ NO sponsor, and the slot renders NOTHING — no empty band, no "your ad
+ * here" placeholder (honest emptiness). Set this object when a sponsor signs;
+ * edit it freely like editorial copy. Always rendered under a clear "Presented
+ * by" label so it can never be mistaken for an event (no dark patterns).
+ *
+ *   export const DIGEST_SPONSOR: DigestSponsor | null = {
+ *     name: "Surly Brewing", url: "https://surlybrewing.com",
+ *     tagline: "Beer hall + patio in Prospect Park.",
+ *   };
+ */
+export const DIGEST_SPONSOR: DigestSponsor | null = null;
+
+/** Append digest-campaign UTM params to a sponsor's own URL (attribution for them). */
+function sponsorUrl(url: string): string {
+  const sep = url.includes("?") ? "&" : "?";
+  return `${url}${sep}utm_source=email&utm_medium=digest&utm_campaign=sponsor`;
+}
+
+/** The sponsor band as an email table row. "" when there is no sponsor. Pure. */
+export function sponsorSlotHtml(sponsor: DigestSponsor | null): string {
+  if (!sponsor) return "";
+  const name = sponsor.url
+    ? `<a href="${sponsorUrl(sponsor.url)}" style="color:${CREAM};text-decoration:none;">${esc(sponsor.name)} &rarr;</a>`
+    : esc(sponsor.name);
+  const tag = sponsor.tagline
+    ? `<div style="font:400 13px/1.5 Arial,Helvetica,sans-serif;color:${CREAM_DIM};margin-top:3px;">${esc(sponsor.tagline)}</div>`
+    : "";
+  return `
+        <tr><td style="padding:14px 24px 0;">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${NAVY_CARD};border:1px solid rgba(201,169,97,0.28);border-radius:10px;">
+            <tr><td style="padding:13px 16px;">
+              <div style="font:600 11px/1.2 Arial,Helvetica,sans-serif;color:${GOLD};text-transform:uppercase;letter-spacing:1.5px;">Presented by</div>
+              <div style="font:700 16px/1.3 Georgia,'Times New Roman',serif;color:${CREAM};margin-top:4px;">${name}</div>${tag}
+            </td></tr>
+          </table>
+        </td></tr>`;
+}
+
+/** The sponsor block for the plain-text part. "" when there is no sponsor. Pure. */
+export function sponsorSlotText(sponsor: DigestSponsor | null): string {
+  if (!sponsor) return "";
+  const lines = [`PRESENTED BY: ${sponsor.name}`];
+  if (sponsor.tagline) lines.push(`  ${sponsor.tagline}`);
+  if (sponsor.url) lines.push(`  ${sponsorUrl(sponsor.url)}`);
+  return lines.join("\n");
+}
+
 export function renderDigestEmail(opts: DigestOptions): DigestData {
   const { events, weekLabel, unsubscribeUrl, siteUrl } = opts;
+  // R2.1 — default to the module sponsor; a caller may pass null to force none.
+  const sponsor = opts.sponsor === undefined ? DIGEST_SPONSOR : opts.sponsor;
   const saved = opts.savedThisWeek ?? [];
   const top = events[0];
   const subject =
@@ -113,6 +177,8 @@ export function renderDigestEmail(opts: DigestOptions): DigestData {
 
   const rows = events.map((e) => eventRowHtml(e, siteUrl)).join("");
   const savedRows = saved.map((e) => eventRowHtml(e, siteUrl)).join("");
+  const sponsorHtml = sponsorSlotHtml(sponsor);
+  const sponsorText = sponsorSlotText(sponsor);
   const savedSection = saved.length === 0 ? "" : `
         <tr><td style="padding:16px 24px 0;">
           <div style="font:600 13px/1.2 Arial,Helvetica,sans-serif;color:${GOLD};text-transform:uppercase;letter-spacing:1.5px;">You saved these — happening this week</div>
@@ -134,7 +200,7 @@ export function renderDigestEmail(opts: DigestOptions): DigestData {
         </td></tr>
         <tr><td style="padding:16px 24px 4px;">
           <div style="font:400 15px/1.6 Arial,Helvetica,sans-serif;color:${CREAM};">${saved.length > 0 ? "Your week, starting with the plans you already made." : "Here's what's worth your time across the metro this week."}</div>
-        </td></tr>${savedSection}
+        </td></tr>${sponsorHtml}${savedSection}
         <tr><td style="padding:14px 24px 0;">
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0">${rows}</table>
         </td></tr>
@@ -157,6 +223,7 @@ export function renderDigestEmail(opts: DigestOptions): DigestData {
   const textLines = [
     `THIS WEEK IN THE TWIN CITIES — ${weekLabel}`,
     "",
+    ...(sponsorText ? [sponsorText, ""] : []),
     ...(saved.length > 0
       ? [
           "YOU SAVED THESE — HAPPENING THIS WEEK",

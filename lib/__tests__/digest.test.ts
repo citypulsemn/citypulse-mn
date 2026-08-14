@@ -1,5 +1,12 @@
 import { describe, it, expect } from "vitest";
-import { digestEvents, renderDigestEmail, digestWeekLabel } from "../digest";
+import {
+  digestEvents,
+  renderDigestEmail,
+  digestWeekLabel,
+  sponsorSlotHtml,
+  sponsorSlotText,
+  DIGEST_SPONSOR,
+} from "../digest";
 import { makeUnsubToken, verifyUnsubToken, unsubscribeUrl } from "../unsubscribe-token";
 import type { EventRecord } from "../types";
 
@@ -131,5 +138,62 @@ describe("renderDigestEmail", () => {
   it("handles an empty set with a sensible subject", () => {
     const empty = renderDigestEmail({ events: [], weekLabel: "July 13 – 19", unsubscribeUrl: "#", siteUrl: "https://citypulsemn.com" });
     expect(empty.subject).toBe("This week in the Twin Cities");
+  });
+});
+
+describe("newsletter sponsor slot (R2.1)", () => {
+  const events = [ev({ id: "a", title: "Trampled by Turtles" })];
+  const base = {
+    events,
+    weekLabel: "July 13 – 19",
+    unsubscribeUrl: "#",
+    siteUrl: "https://citypulsemn.com",
+  };
+
+  it("ships dark by default — no sponsor configured, no band rendered", () => {
+    expect(DIGEST_SPONSOR).toBeNull();
+    const out = renderDigestEmail(base); // no sponsor passed ⇒ module default (null)
+    expect(out.html).not.toContain("Presented by");
+    expect(out.text).not.toContain("PRESENTED BY");
+  });
+
+  it("null passed explicitly also renders nothing (honest emptiness, no placeholder)", () => {
+    expect(sponsorSlotHtml(null)).toBe("");
+    expect(sponsorSlotText(null)).toBe("");
+    const out = renderDigestEmail({ ...base, sponsor: null });
+    expect(out.html).not.toContain("Presented by");
+  });
+
+  it("renders a clearly-labeled band with name, tagline, and a UTM'd link", () => {
+    const out = renderDigestEmail({
+      ...base,
+      sponsor: { name: "Surly Brewing", url: "https://surlybrewing.com", tagline: "Beer hall in Prospect Park." },
+    });
+    expect(out.html).toContain("Presented by"); // the honest label
+    expect(out.html).toContain("Surly Brewing");
+    expect(out.html).toContain("Beer hall in Prospect Park.");
+    expect(out.html).toContain("https://surlybrewing.com?utm_source=email&utm_medium=digest&utm_campaign=sponsor");
+    expect(out.text).toContain("PRESENTED BY: Surly Brewing");
+    expect(out.text).toContain("Beer hall in Prospect Park.");
+  });
+
+  it("name-only sponsor: no link, no tagline line", () => {
+    const html = sponsorSlotHtml({ name: "A Local Shop" });
+    expect(html).toContain("A Local Shop");
+    expect(html).not.toContain("<a href");
+    const text = sponsorSlotText({ name: "A Local Shop" });
+    expect(text).toBe("PRESENTED BY: A Local Shop");
+  });
+
+  it("appends UTM correctly when the sponsor url already has a query", () => {
+    const html = sponsorSlotHtml({ name: "X", url: "https://x.com/?ref=cp" });
+    expect(html).toContain("https://x.com/?ref=cp&utm_source=email&utm_medium=digest&utm_campaign=sponsor");
+  });
+
+  it("escapes HTML in the sponsor name and tagline", () => {
+    const html = sponsorSlotHtml({ name: "Bar & <Grill>", tagline: "<b>eat</b>" });
+    expect(html).toContain("Bar &amp; &lt;Grill&gt;");
+    expect(html).not.toContain("<Grill>");
+    expect(html).not.toContain("<b>eat</b>");
   });
 });
