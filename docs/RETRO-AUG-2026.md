@@ -174,12 +174,14 @@ The core product. Audited all 2,402 live events for the "honest data" stance
   user-facing: "In the Heights" (theater run) and two Saints games where the source
   fed an `end_at` before `start_at`. Historical bad source data.
 
-**Recommendations (not urgent):**
-1. Add a pipeline normalization guard: when a scraped `end_at < start_at`, null it
-   (or roll a past-midnight end to +1 day, as UX8 does at display time). Prevents
-   future backwards spans at ingest rather than relying on display-time handling.
+**Recommendations:**
+1. ✅ **DONE** — added `guardEndAt()` (pure, tested) to `lib/upsert.ts`: nulls a
+   scraped `end_at` that falls before `start_at`, applied in `upsertEvents`.
+   Prevents future backwards spans at ingest. Also nulled the 3 existing archived
+   ones in prod (0 remaining). A genuine late-night (9 PM→1 AM) has its end on the
+   next day, so it's untouched.
 2. Optional: a more frequent archive pass would trim the ≤7-day dead-event lag, but
-   UX1 already makes it honest, so this is polish, not a fix.
+   UX1 already makes it honest, so this is polish, not a fix. (Left as-is.)
 
 **Verdict:** the events data is clean and honest — no fabricated data, no
 duplicates, no missing fields. The only items are 3 archived historical errors and

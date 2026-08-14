@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { dedupeByKey } from "../upsert";
+import { dedupeByKey, guardEndAt } from "../upsert";
 import type { DbEventInput } from "../types";
 
 function ev(overrides: Partial<DbEventInput>): DbEventInput {
@@ -52,5 +52,40 @@ describe("dedupeByKey", () => {
 
   it("returns empty for empty input", () => {
     expect(dedupeByKey([])).toEqual([]);
+  });
+});
+
+describe("guardEndAt — ingest backwards-span guard (event-integrity retro)", () => {
+  it("nulls an end_at that falls before start_at (same-day time swap)", () => {
+    // the real Saints-game case: 2:07 PM start, 11:05 AM 'end'
+    expect(guardEndAt("2026-07-26T14:07", "2026-07-26T11:05")).toBeNull();
+  });
+
+  it("nulls an end_at on an earlier date (swapped run dates)", () => {
+    // the real 'In the Heights' case: start Aug 25, end Aug 23
+    expect(guardEndAt("2026-08-25T19:30", "2026-08-23T21:30")).toBeNull();
+  });
+
+  it("keeps a normal end after start", () => {
+    expect(guardEndAt("2026-06-20T20:00", "2026-06-20T22:30")).toBe("2026-06-20T22:30");
+  });
+
+  it("keeps a genuine late-night end on the next morning (end > start numerically)", () => {
+    // 9 PM show ending 1 AM — end is on the NEXT day, so not backwards
+    expect(guardEndAt("2026-06-20T21:00", "2026-06-21T01:00")).toBe("2026-06-21T01:00");
+  });
+
+  it("keeps a true multi-day span", () => {
+    expect(guardEndAt("2026-07-20T10:00", "2026-07-28T18:00")).toBe("2026-07-28T18:00");
+  });
+
+  it("passes null/empty end_at through as null", () => {
+    expect(guardEndAt("2026-06-20T20:00", null)).toBeNull();
+    expect(guardEndAt("2026-06-20T20:00", undefined)).toBeNull();
+    expect(guardEndAt("2026-06-20T20:00", "")).toBeNull();
+  });
+
+  it("leaves an unparseable end_at untouched (don't guess)", () => {
+    expect(guardEndAt("2026-06-20T20:00", "not-a-date")).toBe("not-a-date");
   });
 });

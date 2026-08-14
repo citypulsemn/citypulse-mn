@@ -34,6 +34,23 @@ export function dedupeByKey(events: DbEventInput[]): DbEventInput[] {
 }
 
 /**
+ * Ingest span guard (event-integrity retro, Aug 2026): a scraped `end_at` that
+ * lands strictly BEFORE its `start_at` is a source error — a Saints game
+ * "ending" before it starts (11:05 vs 14:07), a theatre run with a swapped date
+ * (end Aug 23, start Aug 25). Null it rather than store a backwards span; the
+ * archive predicate and display both coalesce to `start_at`, so a null end is
+ * safe. A genuine late-night (a 9 PM show ending at 1 AM) has its end on the
+ * NEXT day, so `end > start` numerically and is left untouched. Pure + tested.
+ */
+export function guardEndAt(startAt: string, endAt: string | null | undefined): string | null {
+  if (!endAt) return null;
+  const s = Date.parse(startAt);
+  const e = Date.parse(endAt);
+  if (Number.isNaN(s) || Number.isNaN(e)) return endAt; // don't touch unparseable values
+  return e < s ? null : endAt;
+}
+
+/**
  * Idempotent batch upsert. Conflicts on event_key (the dedup key), so an event
  * re-found in a later run UPDATES its row instead of inserting a duplicate.
  * Returns the number of rows written.
@@ -58,7 +75,7 @@ export async function upsertEvents(events: DbEventInput[]): Promise<number> {
     lng: e.lng,
     start_at: e.start_at,
     all_day: e.all_day ?? false,
-    end_at: e.end_at,
+    end_at: guardEndAt(e.start_at, e.end_at),
     price: e.price,
     price_tier: e.priceTier,
     ticket_url: e.ticket_url,
