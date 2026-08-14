@@ -17,7 +17,20 @@ import type { EventRecord } from "@/lib/types";
  * counted server-side in its download route, but crawlers and calendar-app
  * pollers hit that route ~11× per real view, so counting lives on the click —
  * bounded by the R2.1 beacon cap, like view/ticket_click.
+ *
+ * M0.2 metric integrity: the 'calendar' stat is deduped per event per page visit
+ * (below). The two links (.ics + Google) are one intent — "add this event" — so
+ * clicking both, or tapping twice, must count ONCE. (The remaining calendar >
+ * views gap is legitimate: adds also happen from the in-app day-panel modal,
+ * where no detail-page 'view' is recorded, so the two aren't directly comparable.)
  */
+const countedCalendar = new Set<string>();
+function countCalendarOnce(id: string) {
+  if (countedCalendar.has(id)) return;
+  countedCalendar.add(id);
+  sendStat(id, "calendar");
+}
+
 export function AddToCalendar({ event }: { event: EventRecord }) {
   const icsHref = `/event/${event.id}/calendar`;
   const gcalHref = googleCalendarUrl(event);
@@ -30,7 +43,7 @@ export function AddToCalendar({ event }: { event: EventRecord }) {
         download={`citypulse-${event.id}.ics`}
         onClick={() => {
           track("ics_download", { id: event.id, target: "ics" });
-          sendStat(event.id, "calendar");
+          countCalendarOnce(event.id);
         }}
       >
         ＋ Add to calendar
@@ -42,7 +55,7 @@ export function AddToCalendar({ event }: { event: EventRecord }) {
         rel="noopener noreferrer"
         onClick={() => {
           track("ics_download", { id: event.id, target: "google" });
-          sendStat(event.id, "calendar");
+          countCalendarOnce(event.id);
         }}
       >
         Google Calendar ↗

@@ -65,6 +65,20 @@ describe("add-to-calendar is one tap (.ics primary, Google secondary)", () => {
     expect(src).not.toContain("<summary");
     expect(src).not.toContain("<details");
   });
+
+  // M0.2 metric integrity: the two links are one intent ("add this event"), so
+  // the 'calendar' stat must count ONCE per event per visit — clicking both, or
+  // tapping twice, is still one add. Guards against reintroducing the raw
+  // per-click sendStat that double-counted the metric.
+  it("the calendar stat is deduped per event, not fired raw on each click", () => {
+    expect(src).toContain("countedCalendar");
+    expect(src).toContain("countCalendarOnce(event.id)");
+    // both onClick handlers route through the dedup, never sendStat directly
+    expect(src).not.toContain('sendStat(event.id, "calendar")');
+    expect((src.match(/countCalendarOnce\(event\.id\)/g) ?? []).length).toBe(2);
+    // sendStat is called exactly once, inside the dedup guard
+    expect((src.match(/sendStat\(/g) ?? []).length).toBe(1);
+  });
 });
 
 describe("back-to-top", () => {

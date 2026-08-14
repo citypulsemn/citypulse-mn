@@ -28,8 +28,13 @@ describe("calendar stat is click-counted, not fetch-counted (Jul 2026)", () => {
     expect(routeSrc).not.toContain("recordStat");
   });
 
-  it("BOTH add-to-calendar options beacon 'calendar' on the human click", () => {
-    expect(addCalSrc.match(/sendStat\(event\.id, "calendar"\)/g)).toHaveLength(2);
+  // M0.2: both options still fire on the human click, but through the dedup
+  // helper so one intent = one 'calendar' stat (clicking both, or twice, counts
+  // once). The raw per-click sendStat is gone; a single sendStat lives in the guard.
+  it("BOTH add-to-calendar options record 'calendar' on the human click, deduped", () => {
+    expect(addCalSrc.match(/countCalendarOnce\(event\.id\)/g)).toHaveLength(2);
+    expect(addCalSrc).not.toContain('sendStat(event.id, "calendar")');
+    expect(addCalSrc.match(/sendStat\(/g)).toHaveLength(1);
   });
 
   it("'calendar' is a public beacon action (so the click actually records)", () => {
