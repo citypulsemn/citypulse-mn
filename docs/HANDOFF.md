@@ -6,10 +6,18 @@ version listed. Read alongside `CLAUDE.md`.
 
 ## Where the roadmap stands
 
-The canonical plan is **Roadmap v5, Repair & Ripen** (`docs/ROADMAP-v5.md`, adopted Jul 20
-evening) — three repair sprints (R0 data-loss/trust, R1 the Chicago clock, R2 hardening),
-then v4's ripening schedule unchanged. v4 (`docs/ROADMAP.md`) stands as history; an earlier
-file circulating as "CITYPULSE-ROADMAP-v5.md" was identical to v4 and is superseded too.
+The canonical plan is now **Roadmap v6, Growth & Consolidation** (`docs/ROADMAP-v6.md`,
+adopted Aug 14, 2026). It consolidates all six prior roadmap files into one priority order,
+reconciled against the working tree: everything ungated across v4/v5/UX shipped, so the
+document is organized by the one binding constraint — **audience (~5 subscribers vs the
+500 revenue gate)** — as *keep-the-lights-on (egress) → prove the funnel converts → feed it
+(Places SEO + retention) → unlock personalization → hold revenue dormant behind the gates*.
+`ROADMAP-MONETIZATION.md` and `ROADMAP-PLACES.md` remain as the domain deep-dives v6 points
+to; **v4 (`ROADMAP.md`), v5 (`ROADMAP-v5.md`), and the old `PLACES-ROADMAP.md` are now
+history.**
+
+*(Historical: v5 Repair & Ripen — R0 data-loss/trust, R1 the Chicago clock, R2 hardening —
+all shipped Jul 20; v4's ripening schedule folded into v6's Tier 1–2.)*
 
 **ALL THREE SPRINTS SHIPPED the same night they were adopted** (commits `R0.1` … `R2.7`,
 one deploy guide each in `docs/deploy-history/`): R0 killed the live data-loss bugs

@@ -1,7 +1,7 @@
 # ROADMAP — Monetization
 
 *Retro + plan, 13 August 2026. This doc operationalizes **Phase 5 — Revenue** in
-[ROADMAP.md](ROADMAP.md); it does not replace it. The permanent exclusions and
+[ROADMAP-v6.md](ROADMAP-v6.md) Tier 3; it does not replace it. The permanent exclusions and
 the gate discipline there still bind. What this adds: a data-grounded read of
 where we actually are, the cheap no-regret work we can do before the gates open,
 and the honest conclusion that **growth is the monetization work right now.***
@@ -141,7 +141,7 @@ capped (1 per collection page, 2 homepage), never touches organic ranking. Build
 the framework when a venue is ready to pay; the trust rules are the spec. Size
 **M**. Depends: a willing venue; trust rules above.
 
-## Tier 3 — Gated (per ROADMAP.md Phase 5 — closed until 8 green weeks)
+## Tier 3 — Gated (per ROADMAP-v6.md Tier 3 — closed until 8 green weeks)
 
 - **5.2 Venue dashboards** — magic-link venue view of their listings + stats.
 - **5.3 Sponsored collection** — "Free This Week, presented by X."

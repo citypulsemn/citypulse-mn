@@ -4,7 +4,7 @@ The evergreen half of the site: static maps and lists of the metro's go-to
 spots — beaches, splash pads, and (as the registry grows) pools, parks, rinks,
 sledding hills. City Pulse answers "what's happening?"; Places answers "where
 can we go?" — the question families ask on a hot Saturday with nothing on the
-calendar. Roadmap: `docs/PLACES-ROADMAP.md`.
+calendar. Roadmap: `docs/ROADMAP-PLACES.md` (build plan) · `docs/ROADMAP-v6.md` Tier 1.2 (priority).
 
 ## Why it's built the way it is
 
