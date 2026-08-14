@@ -33,6 +33,61 @@ export interface SubscriberStats {
   last7d: number;
 }
 
+/** Raw signup counts for one placement (source). */
+export interface SubscriberSourceCount {
+  source: string;
+  total: number;
+  last30d: number;
+}
+
+/** A placement row shaped for the admin table: + friendly label and share. */
+export interface SubscriberSourceRow extends SubscriberSourceCount {
+  label: string;
+  share: number; // whole-percent of all subscribers
+}
+
+/**
+ * G1.1 conversion attribution — friendly labels for the highest-traffic
+ * placements. Anything not listed is prettified from its raw source key, so
+ * every source renders readably without an exhaustive map. Pure.
+ */
+const SUBSCRIBE_SOURCE_LABELS: Record<string, string> = {
+  home: "Homepage",
+  "this-week": "This Week page",
+  "this-weekend": "This Weekend page",
+  event: "Event pages",
+  venue: "Venue pages",
+  "venue-page": "Venue pages",
+  site: "Direct / other",
+};
+
+export function subscribeSourceLabel(source: string): string {
+  const known = SUBSCRIBE_SOURCE_LABELS[source];
+  if (known) return known;
+  const s = (source ?? "").trim();
+  if (!s) return "Direct / other";
+  return s.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+/**
+ * Shape raw (source, total, last30d) counts for the admin dashboard: sort by
+ * total desc (ties alphabetical), attach a friendly label and each source's
+ * share of all subscribers. Pure and unit-tested. NOTE: distinct raw sources
+ * (e.g. "venue" and "venue-page") may share a label but are NOT merged —
+ * merging would misstate the underlying data. This tells us which surface the
+ * G1.1 overhaul is actually converting on.
+ */
+export function summarizeSubscriberSources(rows: SubscriberSourceCount[]): SubscriberSourceRow[] {
+  const total = rows.reduce((n, r) => n + r.total, 0);
+  return [...rows]
+    .sort((a, b) => b.total - a.total || a.source.localeCompare(b.source))
+    .map((r) => ({
+      ...r,
+      label: subscribeSourceLabel(r.source),
+      share: total > 0 ? Math.round((r.total / total) * 100) : 0,
+    }));
+}
+
 export interface DigestRecipient {
   id: number;
   email: string;
@@ -156,6 +211,30 @@ export async function getSubscriberStats(): Promise<SubscriberStats> {
     where status = 'subscribed'
   `;
   return row ?? { total: 0, last7d: 0 };
+}
+
+/**
+ * Cumulative signups grouped by placement (source), for /admin/stats — the live
+ * counterpart to the ops-digest's 7-day "new by placement" line. Never-break
+ * contract like the other stats reads: [] on any failure, so the panel just
+ * doesn't render rather than 500-ing the page.
+ */
+export async function getSubscribersBySource(): Promise<SubscriberSourceRow[]> {
+  if (!sql) return [];
+  try {
+    const rows = await sql<SubscriberSourceCount[]>`
+      select source,
+        count(*)::int as total,
+        count(*) filter (where created_at >= now() - interval '30 days')::int as last30d
+      from subscribers
+      where status = 'subscribed'
+      group by source
+    `;
+    return summarizeSubscriberSources([...rows]);
+  } catch (err) {
+    console.error("[subscribe] getSubscribersBySource failed (returning empty):", err);
+    return [];
+  }
 }
 
 export async function listSubscribers(): Promise<SubscriberRow[]> {

@@ -101,7 +101,7 @@ tripwire test. Size **S**. Depends: nothing.
 
 ## Tier 1 — Grow the sellable audience (the real unlock)
 
-### G1.1 — Subscriber-conversion overhaul  ⭐ flagship
+### G1.1 — Subscriber-conversion overhaul  ⭐ flagship  ✅ SHIPPED (slices 1–5: f3bcded, 7de1174, 1dd4b43, 5045069, + attribution)
 **Why:** 5 subscribers against ~1k monthly views is the highest-leverage problem
 on this page. The list gates newsletter revenue and is the retention asset;
 every future dollar scales with it.

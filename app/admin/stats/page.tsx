@@ -1,6 +1,6 @@
 import { getContentStats } from "@/lib/admin";
 import { getEngagement, getTicketClicksByVendor, ctr } from "@/lib/stats";
-import { getSubscriberStats } from "@/lib/subscribe";
+import { getSubscriberStats, getSubscribersBySource } from "@/lib/subscribe";
 import { CATEGORIES } from "@/lib/categories";
 import type { CategoryKey } from "@/lib/types";
 
@@ -15,6 +15,7 @@ export default async function AdminStatsPage({
   const days = sp.days === "30" ? 30 : 7;
   const s = await getContentStats();
   const subs = await getSubscriberStats();
+  const subSources = await getSubscribersBySource();
   const eng = await getEngagement(days);
   const vendors = await getTicketClicksByVendor(days);
 
@@ -81,6 +82,34 @@ export default async function AdminStatsPage({
           <a className="admin-btn" href="/admin/subscribers/export">Download CSV</a>
         </div>
       </div>
+
+      {subSources.length > 0 && (
+        <>
+          <h3 className="admin-h3">Where subscribers come from</h3>
+          <div className="admin-note">
+            The surface each subscriber signed up on (their <code>source</code> at signup) — the
+            conversion overhaul (G1.1) is judged here. Cumulative; &ldquo;last 30d&rdquo; is the
+            recent slice. The ops digest reports the same split for the last 7 days each week.
+          </div>
+          <div className="cov-scroll">
+            <table className="cov-table">
+              <thead>
+                <tr><th>Placement</th><th>Subscribers</th><th>Last 30d</th><th>Share</th></tr>
+              </thead>
+              <tbody>
+                {subSources.map((r) => (
+                  <tr key={r.source}>
+                    <td>{r.label}</td>
+                    <td>{r.total}</td>
+                    <td>{r.last30d}</td>
+                    <td>{r.share}%</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
+      )}
 
       <h3 className="admin-h3">
         Engagement — last {days} days{" "}
