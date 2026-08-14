@@ -45,6 +45,8 @@ export const PLACES_KIND_INTRO: Record<string, string> = {
     "Public disc golf across the metro — most are free 18-hole park courses you can just walk on, plus a handful of pay-to-play wooded tracks. Bring your own discs; peak season is spring through fall, but the diehards play right through the snow. Weekends and evenings fill up on the popular ones.",
   "nature-center":
     "The metro's nature centers — miles of trails, hands-on exhibits, and naturalist programs, most of them free. Open year-round; the grounds stay open dawn to dusk even when the interpretive building keeps shorter hours. A solid rainy-day or first-snow outing with kids.",
+  "garden":
+    "Botanical gardens and conservatories across the metro — the glass houses that bloom all winter, the rose and Japanese gardens, and the Arboretum's sprawling grounds. Most are free; a couple charge. Peak color runs May through September, but the conservatories are a green escape in January.",
 };
 
 export const VENUE_INTROS: Record<string, string> = {

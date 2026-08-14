@@ -28,7 +28,8 @@ export type PlaceKind =
   | "farmers-market"
   | "dog-park"
   | "disc-golf"
-  | "nature-center";
+  | "nature-center"
+  | "garden";
 
 export type PlaceCost = "free" | "paid" | "donation";
 
@@ -87,6 +88,7 @@ export const KIND_META: Record<PlaceKind, KindMeta> = {
   "dog-park": { kind: "dog-park", label: "Dog Park", plural: "Dog Parks", blurb: "Off-leash dog parks across the metro — fenced runs and open romps, mapped." },
   "disc-golf": { kind: "disc-golf", label: "Disc Golf Course", plural: "Disc Golf Courses", blurb: "Public disc golf across the metro — free park courses and pay-to-play tracks, mapped." },
   "nature-center": { kind: "nature-center", label: "Nature Center", plural: "Nature Centers", blurb: "Interpretive nature centers across the metro — trails, exhibits, and naturalist programs, mapped." },
+  "garden": { kind: "garden", label: "Garden", plural: "Gardens", blurb: "Botanical gardens and conservatories across the metro — glass houses, rose gardens, and the Arboretum, mapped." },
 };
 
 // Summer water season used by the current seed — guarded Minneapolis and
@@ -110,11 +112,11 @@ const OFF_SEASON: PlaceSeason = { type: "seasonal", openMonth: 9, closeMonth: 5,
 // new year, so openNow reads them closed all summer and the page shows the
 // "closed for the season" banner. Indoor rinks stay YEAR_ROUND.
 const WINTER: PlaceSeason = { type: "seasonal", openMonth: 12, closeMonth: 2, label: "December–February" };
-// Most dog parks run YEAR_ROUND. The exception is the handful set up inside
-// outdoor hockey rinks or on ski trails — they close for the winter when the
-// ice or snow takes over, roughly April–October (month-level; exact dates shift
-// with the weather and live on each sourceUrl).
-const DOG_WARM: PlaceSeason = { type: "seasonal", openMonth: 4, closeMonth: 10, label: "April–October" };
+// The generic warm-season window (April–October, month-level). Used by the
+// hockey-rink/ski-trail dog parks that close for winter ice/snow, and by gated
+// seasonal gardens like Eloise Butler. Exact dates shift yearly and live on each
+// sourceUrl.
+const WARM_SEASON: PlaceSeason = { type: "seasonal", openMonth: 4, closeMonth: 10, label: "April–October" };
 
 /**
  * The registry. SEED (P1.1): a verified starter set of beaches and splash pads
@@ -1282,10 +1284,10 @@ export const PLACES: Place[] = [
     verifiedAt: "2026-08-07", venueSlug: null,
   },
   {
-    slug: "minnesota-landscape-arboretum", name: "Minnesota Landscape Arboretum", kind: "park",
+    slug: "minnesota-landscape-arboretum", name: "Minnesota Landscape Arboretum", kind: "garden",
     lat: 44.8620, lng: -93.6050, address: "3675 Arboretum Dr, Chaska, MN 55318",
     city: "Chaska", neighborhood: null, season: YEAR_ROUND, cost: "paid",
-    tags: ["trails", "accessible"],
+    tags: ["arboretum", "trails"],
     intro: "The University of Minnesota's 1,200-acre arboretum in Chaska — display gardens, a three-mile drive, miles of trails, and a giant model-train garden, open 363 days a year. Admission for adults; kids free.",
     sourceUrl: "https://arb.umn.edu/",
     verifiedAt: "2026-08-07", venueSlug: null,
@@ -3064,7 +3066,7 @@ export const PLACES: Place[] = [
   // ── DOG PARKS (Places G1.2, Aug 2026) ──────────────────────────────────────
   // Off-leash areas across the metro, each verified against an official park
   // agency or city page. Most are YEAR_ROUND; the hockey-rink/ski-trail ones use
-  // DOG_WARM (they close for winter ice/snow). Cost reflects a required off-leash
+  // WARM_SEASON (they close for winter ice/snow). Cost reflects a required off-leash
   // permit/pass where one exists (MPRB, Three Rivers, and a few cities charge;
   // St. Paul, Ramsey County, and most suburbs are free — some still want a home
   // dog license). Coordinates are park-level from each real street address.
@@ -3358,7 +3360,7 @@ export const PLACES: Place[] = [
   {
     slug: "staring-lake-off-leash-dog-area", name: "Staring Lake Off-Leash Dog Area", kind: "dog-park",
     lat: 44.8360, lng: -93.4590, address: "13800 Pioneer Trail, Eden Prairie, MN 55347",
-    city: "Eden Prairie", neighborhood: null, season: DOG_WARM, cost: "free",
+    city: "Eden Prairie", neighborhood: null, season: WARM_SEASON, cost: "free",
     tags: ["fenced"],
     intro: "5.7 fenced acres of woods and paths in Eden Prairie — but it closes for winter, when the trail turns Nordic. Free; an Eden Prairie license is required.",
     sourceUrl: "https://www.edenprairiemn.gov/amenities/dog-parks",
@@ -3421,7 +3423,7 @@ export const PLACES: Place[] = [
   {
     slug: "new-hope-lions-off-leash-area", name: "Lions Park Off-Leash Area (New Hope)", kind: "dog-park",
     lat: 45.0180, lng: -93.3830, address: "3810 Oregon Ave N, New Hope, MN 55427",
-    city: "New Hope", neighborhood: null, season: DOG_WARM, cost: "free",
+    city: "New Hope", neighborhood: null, season: WARM_SEASON, cost: "free",
     tags: ["fenced"],
     intro: "A grassy off-leash enclosure with a wooded nature strip in New Hope. Seasonal, April–October, daylight hours. Free.",
     sourceUrl: "https://www.newhopemn.gov/city_hall/parks_and_recreation/facilities/dog_parks",
@@ -3430,7 +3432,7 @@ export const PLACES: Place[] = [
   {
     slug: "new-hope-liberty-off-leash-area", name: "Liberty Park Off-Leash Area (New Hope)", kind: "dog-park",
     lat: 45.0560, lng: -93.3870, address: "9015 60th Ave N, New Hope, MN 55428",
-    city: "New Hope", neighborhood: null, season: DOG_WARM, cost: "free",
+    city: "New Hope", neighborhood: null, season: WARM_SEASON, cost: "free",
     tags: ["fenced"],
     intro: "A fenced run inside the outdoor hockey-rink enclosure in New Hope. Seasonal, April–October. Free.",
     sourceUrl: "https://www.newhopemn.gov/city_hall/parks_and_recreation/facilities/dog_parks",
@@ -3439,7 +3441,7 @@ export const PLACES: Place[] = [
   {
     slug: "gearty-park-off-leash-pet-area", name: "Gearty Park Off-Leash Pet Area", kind: "dog-park",
     lat: 45.0000, lng: -93.3450, address: "3101 Regent Ave N, Golden Valley, MN 55422",
-    city: "Golden Valley", neighborhood: null, season: DOG_WARM, cost: "free",
+    city: "Golden Valley", neighborhood: null, season: WARM_SEASON, cost: "free",
     tags: ["fenced"],
     intro: "Set up in the outdoor hockey rink spring through fall, then closed when the ice goes in. Golden Valley; pets licensed and vaccinated. Free.",
     sourceUrl: "https://www.goldenvalleymn.gov/286/Seasonal-Off-Leash-Pet-Areas",
@@ -3448,7 +3450,7 @@ export const PLACES: Place[] = [
   {
     slug: "golden-valley-lions-off-leash-pet-area", name: "Lions Park Off-Leash Pet Area (Golden Valley)", kind: "dog-park",
     lat: 44.9880, lng: -93.3620, address: "151 Louisiana Ave N, Golden Valley, MN 55427",
-    city: "Golden Valley", neighborhood: null, season: DOG_WARM, cost: "free",
+    city: "Golden Valley", neighborhood: null, season: WARM_SEASON, cost: "free",
     tags: ["fenced"],
     intro: "The Louisiana Avenue hockey rink becomes an off-leash area spring through fall in Golden Valley. Free; pets licensed and vaccinated.",
     sourceUrl: "https://www.goldenvalleymn.gov/286/Seasonal-Off-Leash-Pet-Areas",
@@ -3921,6 +3923,66 @@ export const PLACES: Place[] = [
     tags: ["trails", "raptors", "orchard"],
     intro: "A nonprofit nature center on the St. Croix river bluffs in Hastings, with valley trails, raptor programs, and an apple orchard. Free; donations welcome.",
     sourceUrl: "https://carpenternaturecenter.org",
+    verifiedAt: "2026-08-14", venueSlug: null,
+  },
+
+  // ── GARDENS & CONSERVATORIES (Places G1.2, Aug 2026) ───────────────────────
+  // Botanical gardens and conservatories, each verified against its official
+  // page. Mostly free (the Arboretum charges). Conservatories + outdoor formal
+  // gardens are YEAR_ROUND; the gated seasonal ones (Eloise Butler, Noerenberg,
+  // Normandale) use WARM_SEASON / MARKET_SEASON — they close for winter.
+  {
+    slug: "marjorie-mcneely-conservatory", name: "Marjorie McNeely Conservatory", kind: "garden",
+    lat: 44.9830, lng: -93.1520, address: "1225 Estabrook Dr, St. Paul, MN 55103",
+    city: "St. Paul", neighborhood: null, season: YEAR_ROUND, cost: "free",
+    tags: ["conservatory", "tropical"],
+    intro: "St. Paul's glass conservatory at Como Park — a domed palm house and sunken garden that bloom all winter, next door to the free zoo. Free; a donation is suggested.",
+    sourceUrl: "https://comozooconservatory.org",
+    verifiedAt: "2026-08-14", venueSlug: null,
+  },
+  {
+    slug: "eloise-butler-wildflower-garden", name: "Eloise Butler Wildflower Garden and Bird Sanctuary", kind: "garden",
+    lat: 44.9855, lng: -93.3155, address: "1 Theodore Wirth Pkwy, Minneapolis, MN 55405",
+    city: "Minneapolis", neighborhood: null, season: WARM_SEASON, cost: "free",
+    tags: ["wildflowers", "woodland"],
+    intro: "The country's oldest wildflower garden — 18 acres of woodland, meadow, and wetland in Theodore Wirth Park. Gated and open April through October. Free.",
+    sourceUrl: "https://www.minneapolisparks.org/parks-destinations/parks-lakes/gardens__bird_sanctuaries/eloise_butler_wildflower_garden_and_bird_sanctuary/",
+    verifiedAt: "2026-08-14", venueSlug: null,
+  },
+  {
+    slug: "lyndale-park-gardens", name: "Lyndale Park Gardens", kind: "garden",
+    lat: 44.9230, lng: -93.2880, address: "4124 Roseway Rd, Minneapolis, MN 55409",
+    city: "Minneapolis", neighborhood: null, season: YEAR_ROUND, cost: "free",
+    tags: ["rose-garden", "peace-garden"],
+    intro: "The gardens above Lake Harriet — the nation's second-oldest public rose garden, plus a peace garden and perennial beds. Free, year-round.",
+    sourceUrl: "https://www.minneapolisparks.org/parks-destinations/parks-lakes/gardens__bird_sanctuaries/lyndale_park_rose_garden/",
+    verifiedAt: "2026-08-14", venueSlug: null,
+  },
+  {
+    slug: "noerenberg-memorial-gardens", name: "Noerenberg Memorial Gardens", kind: "garden",
+    lat: 44.9550, lng: -93.5780, address: "2865 Northshore Dr, Wayzata, MN 55391",
+    city: "Wayzata", neighborhood: null, season: MARKET_SEASON, cost: "free",
+    tags: ["estate-garden", "lake"],
+    intro: "A former Lake Minnetonka estate garden on Crystal Bay, known for its daylilies and formal beds. Open the warm months, May through October. Free.",
+    sourceUrl: "https://www.threeriversparks.org/location/noerenberg-gardens",
+    verifiedAt: "2026-08-14", venueSlug: null,
+  },
+  {
+    slug: "normandale-japanese-garden", name: "Normandale Japanese Garden", kind: "garden",
+    lat: 44.8380, lng: -93.3280, address: "9700 France Ave S, Bloomington, MN 55431",
+    city: "Bloomington", neighborhood: null, season: MARKET_SEASON, cost: "free",
+    tags: ["japanese-garden", "koi"],
+    intro: "A two-acre Japanese garden on the Normandale college campus in Bloomington — koi ponds, bridges, and clipped pines. Free; open spring through fall.",
+    sourceUrl: "https://www.normandale.edu/why-normandale/community/japanese-garden/index.html",
+    verifiedAt: "2026-08-14", venueSlug: null,
+  },
+  {
+    slug: "longfellow-gardens", name: "Longfellow Gardens", kind: "garden",
+    lat: 44.9180, lng: -93.2110, address: "3933 E Minnehaha Pkwy, Minneapolis, MN 55417",
+    city: "Minneapolis", neighborhood: null, season: YEAR_ROUND, cost: "free",
+    tags: ["formal-garden", "annuals"],
+    intro: "A formal 13-acre garden by Minnehaha Falls, built around a central arbor with a downtown skyline view. Free.",
+    sourceUrl: "https://www.minneapolisparks.org/parks-destinations/parks-lakes/gardens__bird_sanctuaries/longfellow_gardens/",
     verifiedAt: "2026-08-14", venueSlug: null,
   },
 ];
