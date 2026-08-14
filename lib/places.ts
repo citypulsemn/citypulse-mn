@@ -4233,6 +4233,147 @@ export const PLACES: Place[] = [
     sourceUrl: "https://www.minnesotaharvest.net",
     verifiedAt: "2026-08-14", venueSlug: null,
   },
+
+  // ── PARKS — deepening pass (Places G1.2, Aug 2026) ─────────────────────────
+  // More destination/regional/state parks worth crossing town for. Still curated,
+  // NOT every neighborhood park (that's the OSM bulk map layer). State parks need
+  // a DNR vehicle permit (paid); regional parks and the refuge are free.
+  {
+    slug: "fort-snelling-state-park", name: "Fort Snelling State Park", kind: "park",
+    lat: 44.8930, lng: -93.1800, address: "101 Snelling Lake Rd, St. Paul, MN 55111",
+    city: "St. Paul", neighborhood: null, season: YEAR_ROUND, cost: "paid",
+    tags: ["trails", "river", "state-park"],
+    intro: "Where the Minnesota and Mississippi meet — Pike Island trails, a swimming lake, and the old fort on the bluff above. A state-park vehicle permit gets you in.",
+    sourceUrl: "https://www.dnr.state.mn.us/state_parks/park.html?id=spk00154",
+    verifiedAt: "2026-08-14", venueSlug: null,
+  },
+  {
+    slug: "afton-state-park", name: "Afton State Park", kind: "park",
+    lat: 44.8450, lng: -92.7930, address: "6959 Peller Ave S, Hastings, MN 55033",
+    city: "Hastings", neighborhood: null, season: YEAR_ROUND, cost: "paid",
+    tags: ["trails", "bluffs", "state-park"],
+    intro: "Rugged St. Croix bluff country in Afton — 20 miles of hiking and ski trails climbing the river ravines, plus a swimming beach. A state-park permit is required.",
+    sourceUrl: "https://www.dnr.state.mn.us/state_parks/park.html?id=spk00100",
+    verifiedAt: "2026-08-14", venueSlug: null,
+  },
+  {
+    slug: "william-obrien-state-park", name: "William O'Brien State Park", kind: "park",
+    lat: 45.2250, lng: -92.7650, address: "16821 O'Brien Trail N, Marine on St. Croix, MN 55047",
+    city: "Marine on St. Croix", neighborhood: null, season: YEAR_ROUND, cost: "paid",
+    tags: ["trails", "river", "state-park"],
+    intro: "A gentle family state park on the St. Croix near Marine — river paddling, sandy swimming, and rolling trails. A state-park permit is required.",
+    sourceUrl: "https://www.dnr.state.mn.us/state_parks/park.html?id=spk00283",
+    verifiedAt: "2026-08-14", venueSlug: null,
+  },
+  {
+    slug: "minnesota-valley-wildlife-refuge", name: "Minnesota Valley National Wildlife Refuge", kind: "park",
+    lat: 44.8550, lng: -93.2400, address: "3815 E 80th St, Bloomington, MN 55425",
+    city: "Bloomington", neighborhood: null, season: YEAR_ROUND, cost: "free",
+    tags: ["trails", "wildlife"],
+    intro: "A 14,000-acre river-valley refuge along the Minnesota, with a Bloomington visitor center, boardwalks, and miles of trails right by the airport. Free.",
+    sourceUrl: "https://www.fws.gov/refuge/minnesota-valley",
+    verifiedAt: "2026-08-14", venueSlug: null,
+  },
+  {
+    slug: "mississippi-gateway-regional-park", name: "Mississippi Gateway Regional Park", kind: "park",
+    lat: 45.1440, lng: -93.3115, address: "10360 W River Rd, Brooklyn Park, MN 55444",
+    city: "Brooklyn Park", neighborhood: null, season: YEAR_ROUND, cost: "free",
+    tags: ["trails", "river"],
+    intro: "Three Rivers' riverfront park in Brooklyn Park (formerly Coon Rapids Dam) — walk across the dam, watch for eagles, and hit the trails and interpretive center. Free.",
+    sourceUrl: "https://www.threeriversparks.org/MississippiGatewayRegionalPark",
+    verifiedAt: "2026-08-14", venueSlug: null,
+  },
+  {
+    slug: "lake-nokomis-park", name: "Lake Nokomis Park", kind: "park",
+    lat: 44.9130, lng: -93.2420, address: "2401 E Minnehaha Pkwy, Minneapolis, MN 55417",
+    city: "Minneapolis", neighborhood: null, season: YEAR_ROUND, cost: "free",
+    tags: ["lake", "beach", "trails"],
+    intro: "A big south-Minneapolis lake with two swimming beaches, a paved loop for walking and biking, sailboats, and a summer concert stage. Free.",
+    sourceUrl: "https://www.minneapolisparks.org/parks-destinations/parks-lakes/lake_nokomis_park/",
+    verifiedAt: "2026-08-14", venueSlug: null,
+  },
+  {
+    slug: "phalen-regional-park", name: "Phalen Regional Park", kind: "park",
+    lat: 44.9780, lng: -93.0560, address: "1600 Phalen Dr, St. Paul, MN 55106",
+    city: "St. Paul", neighborhood: null, season: YEAR_ROUND, cost: "free",
+    tags: ["lake", "beach", "trails"],
+    intro: "St. Paul's East Side lake park — a swimming beach, a golf course, a paved loop, and a Chinese garden on the island. Free.",
+    sourceUrl: "https://www.stpaul.gov/facilities/phalen-regional-park",
+    verifiedAt: "2026-08-14", venueSlug: null,
+  },
+  {
+    slug: "lilydale-regional-park", name: "Lilydale Regional Park", kind: "park",
+    lat: 44.9160, lng: -93.1180, address: "400 Water St, St. Paul, MN 55107",
+    city: "St. Paul", neighborhood: null, season: YEAR_ROUND, cost: "free",
+    tags: ["trails", "river", "fossils"],
+    intro: "River-bluff trails and fossil-hunting flats along the Mississippi below the West Side — quiet, wild, and minutes from downtown St. Paul. Free.",
+    sourceUrl: "https://www.stpaul.gov/facilities/lilydale-regional-park",
+    verifiedAt: "2026-08-14", venueSlug: null,
+  },
+  {
+    slug: "baker-park-reserve", name: "Baker Park Reserve", kind: "park",
+    lat: 45.0170, lng: -93.6400, address: "2309 Baker Park Rd, Maple Plain, MN 55359",
+    city: "Maple Plain", neighborhood: null, season: YEAR_ROUND, cost: "free",
+    tags: ["trails", "beach", "campground"],
+    intro: "A Three Rivers reserve near Lake Independence in Maple Plain — a sand swimming beach, a golf course, a campground, and trails. Free day use.",
+    sourceUrl: "https://www.threeriversparks.org/location/baker-park-reserve",
+    verifiedAt: "2026-08-14", venueSlug: null,
+  },
+
+  // ── PLAYGROUNDS — deepening pass (Places G1.2, Aug 2026) ────────────────────
+  // Two more destination playgrounds — an inclusive outdoor one and the metro's
+  // biggest indoor park. Still curated (the marquee/inclusive set); the general
+  // "every playground" tail is the OSM bulk map layer.
+  {
+    slug: "shakopee-fun-for-all-playground", name: "Fun For All Playground", kind: "playground",
+    lat: 44.7920, lng: -93.5330, address: "1103 Adams St S, Shakopee, MN 55379",
+    city: "Shakopee", neighborhood: null, season: YEAR_ROUND, cost: "free",
+    tags: ["inclusive", "accessible"],
+    intro: "Shakopee's fully inclusive playground at Lions Park — ramped, sensory-rich structures built so kids of every ability play together. Free.",
+    sourceUrl: "https://www.shakopeemn.gov/business_detail_T11_R627.php",
+    verifiedAt: "2026-08-14", venueSlug: null,
+  },
+  {
+    slug: "edinborough-adventure-peak", name: "Edinborough Park (Adventure Peak)", kind: "playground",
+    lat: 44.8680, lng: -93.3220, address: "7700 York Ave S, Edina, MN 55435",
+    city: "Edina", neighborhood: null, season: YEAR_ROUND, cost: "paid",
+    tags: ["indoor", "climbing"],
+    intro: "A one-acre indoor park in Edina — Adventure Peak's climbing structures, slides, and a toddler zone, warm all winter. Admission per child; adults free.",
+    sourceUrl: "https://www.edinamn.gov/facilities/facility/details/Edinborough-Park-61",
+    verifiedAt: "2026-08-14", venueSlug: null,
+  },
+
+  // ── RINKS — deepening pass (Places G1.2, Aug 2026) ─────────────────────────
+  // Three more destination rinks — a marquee free outdoor downtown rink and two
+  // big indoor open-skate arenas. Still curated (not every flooded neighborhood
+  // rink — that's the future OSM layer).
+  {
+    slug: "wells-fargo-winterskate", name: "Wells Fargo WinterSkate", kind: "rink",
+    lat: 44.9440, lng: -93.0980, address: "Landmark Plaza, Rice Park, St. Paul, MN 55102",
+    city: "St. Paul", neighborhood: null, season: WINTER, cost: "free",
+    tags: ["outdoor", "downtown", "seasonal"],
+    intro: "A free outdoor rink beside Rice Park in downtown St. Paul, lit up all winter — bring skates or rent a pair. Open the winter season.",
+    sourceUrl: "https://www.stpaul.gov/facilities/rice-park",
+    verifiedAt: "2026-08-14", venueSlug: null,
+  },
+  {
+    slug: "tria-rink", name: "TRIA Rink", kind: "rink",
+    lat: 44.9510, lng: -93.0930, address: "400 Wabasha St N, St. Paul, MN 55102",
+    city: "St. Paul", neighborhood: null, season: YEAR_ROUND, cost: "paid",
+    tags: ["indoor", "open-skate"],
+    intro: "The Wild's downtown St. Paul practice rink, open to the public for skating atop the Treasure Island Center. Open skate for a fee, year-round.",
+    sourceUrl: "https://triarink.com",
+    verifiedAt: "2026-08-14", venueSlug: null,
+  },
+  {
+    slug: "schwan-super-rink", name: "Schwan Super Rink", kind: "rink",
+    lat: 45.1550, lng: -93.2330, address: "1700 105th Ave NE, Blaine, MN 55449",
+    city: "Blaine", neighborhood: null, season: YEAR_ROUND, cost: "paid",
+    tags: ["indoor", "open-skate"],
+    intro: "Eight sheets of ice at the National Sports Center in Blaine — the world's largest ice complex, with public open-skate hours. Admission per skater, year-round.",
+    sourceUrl: "https://www.nscsports.org",
+    verifiedAt: "2026-08-14", venueSlug: null,
+  },
 ];
 
 // ── Selectors (pure) ────────────────────────────────────────────────────────
