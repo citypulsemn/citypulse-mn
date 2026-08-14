@@ -93,7 +93,7 @@ export const KIND_META: Record<PlaceKind, KindMeta> = {
   "disc-golf": { kind: "disc-golf", label: "Disc Golf Course", plural: "Disc Golf Courses", blurb: "Public disc golf across the metro — free park courses and pay-to-play tracks, mapped." },
   "nature-center": { kind: "nature-center", label: "Nature Center", plural: "Nature Centers", blurb: "Interpretive nature centers across the metro — trails, exhibits, and naturalist programs, mapped." },
   "garden": { kind: "garden", label: "Garden", plural: "Gardens", blurb: "Botanical gardens and conservatories across the metro — glass houses, rose gardens, and the Arboretum, mapped." },
-  "ski-hill": { kind: "ski-hill", label: "Ski Area", plural: "Ski Areas", blurb: "The metro's downhill ski and snowboard hills — lifts, terrain parks, and rentals, mapped." },
+  "ski-hill": { kind: "ski-hill", label: "Ski & Tubing Hill", plural: "Ski & Tubing Hills", blurb: "The metro's downhill ski, snowboard, and snow-tubing hills — lifts, terrain parks, tubing runs, and rentals, mapped." },
   "museum": { kind: "museum", label: "Museum", plural: "Museums", blurb: "The metro's museums — art, science, history, and the wonderfully specific, mapped." },
   "orchard": { kind: "orchard", label: "Orchard & Patch", plural: "Orchards & Patches", blurb: "Pick-your-own apple orchards and pumpkin patches across the metro — a fall tradition, mapped." },
   "indoor-playground": { kind: "indoor-playground", label: "Indoor Playground", plural: "Indoor Playgrounds & Play Cafés", blurb: "Indoor play spaces and play cafés across the metro — climbing structures, ball pits, and toddler zones for cold and rainy days, mapped." },
@@ -4003,9 +4003,13 @@ export const PLACES: Place[] = [
   },
 
   // ── SKI & SNOWBOARD AREAS (Places G1.2, Aug 2026) ──────────────────────────
-  // The metro's four downhill ski/snowboard hills — an exhaustive set (the rest
-  // — Trollhaugen, Welch Village, Wild Mountain — are out of metro). All paid,
-  // all SKI_SEASON (Dec–March). Each verified against its official page.
+  // The metro's ski, snowboard & snow-tubing hills (Roadmap v6 Tier 1.2). Downhill:
+  // Afton, Buck Hill, Hyland, plus Como Park's city-run beginner hill in St. Paul.
+  // Tubing: Elm Creek (also downhill) and Green Acres. All paid; ski areas run
+  // SKI_SEASON (Dec–March). Each verified against its official page. Out of the
+  // metro box and excluded: Wild Mountain (lat 45.49, over the north edge) and
+  // Trollhaugen (in Wisconsin); Welch Village is an in-box ~50-min day trip the
+  // registry has historically treated as out-of-metro — held pending a product call.
   {
     slug: "afton-alps", name: "Afton Alps", kind: "ski-hill",
     lat: 44.8550, lng: -92.7920, address: "6600 Peller Ave S, Hastings, MN 55033",
@@ -4040,6 +4044,24 @@ export const PLACES: Place[] = [
     tags: ["downhill", "tubing", "beginner-friendly"],
     intro: "Three Rivers' beginner-friendly hill in Maple Grove — a lift-served downhill run and a lighted tubing hill with snowmaking, plus cross-country trails. Lift or tubing ticket required.",
     sourceUrl: "https://www.threeriversparks.org/location/elm-creek-winter-recreation-area",
+    verifiedAt: "2026-08-14", venueSlug: null,
+  },
+  {
+    slug: "como-park-ski-center", name: "Como Park Ski Center", kind: "ski-hill",
+    lat: 44.9850, lng: -93.1520, address: "1431 N Lexington Pkwy, St. Paul, MN 55103",
+    city: "St. Paul", neighborhood: null, season: SKI_SEASON, cost: "paid",
+    tags: ["downhill", "beginner-friendly", "lessons"],
+    intro: "St. Paul's own little downhill hill by Como Lake — two rope tows, 150 feet of vertical, and cheap first-timer lessons. A $15 tow ticket, rentals on site; the city runs it into mid-February.",
+    sourceUrl: "https://www.stpaul.gov/departments/parks-and-recreation/activities-events/winter-activities-events/downhill-skiing",
+    verifiedAt: "2026-08-14", venueSlug: null,
+  },
+  {
+    slug: "green-acres-recreation", name: "Green Acres Recreation", kind: "ski-hill",
+    lat: 44.9860, lng: -92.8890, address: "8989 55th St N, Lake Elmo, MN 55042",
+    city: "Lake Elmo", neighborhood: null, season: SKI_SEASON, cost: "paid",
+    tags: ["tubing", "reservations"],
+    intro: "A snow-tubing hill in Lake Elmo — one open hill, no lanes, with a tow rope to haul you back up. Around $22 a person; you must be 42 inches to ride solo, and weekends fill, so reserve. December into March, snow permitting.",
+    sourceUrl: "https://www.greenacresrec.com/",
     verifiedAt: "2026-08-14", venueSlug: null,
   },
 
