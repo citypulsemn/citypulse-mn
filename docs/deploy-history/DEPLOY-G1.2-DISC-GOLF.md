@@ -1,12 +1,20 @@
-# Deploy — G1.2: Disc Golf, a new Places kind (20 courses)
+# Deploy — G1.2: Disc Golf, a new Places kind (24 courses)
 
 *August 2026. Tier 1 (audience / SEO). Code + data only, no schema.*
-*(Shipped across three commits: initial 10 → 17 → 20.)*
+*(Shipped across four commits: initial 10 → 17 → 20 → 24.)*
 
 ## What shipped
 
-A new `/places/disc-golf` page — **20 verified public disc golf courses across the
+A new `/places/disc-golf` page — **24 verified public disc golf courses across the
 metro** — another evergreen, indexable Places URL for the G1.2 SEO push.
+
+## Fourth pass (+4, north-metro free courses)
+
+Ham Lake Park (Ham Lake, free 18h) · Silver View Park (Mounds View, free 9h,
+official city source) · Hansen Park (New Brighton, free 18h, official city source)
+· Galloway Park (Champlin, free 9h). Still deferred: Oak Grove (private courses
+mixed with the free city one — disambiguation), Chaska Middle School (school),
+Waconia/Stillwater/Forest Lake (no clean source surfaced yet).
 
 ## Third pass (+3)
 

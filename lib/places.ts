@@ -3788,6 +3788,42 @@ export const PLACES: Place[] = [
     sourceUrl: "https://www.pdga.com/course-directory/course/lions-park-i",
     verifiedAt: "2026-08-14", venueSlug: null,
   },
+  {
+    slug: "ham-lake-disc-golf", name: "Ham Lake Park Disc Golf Course", kind: "disc-golf",
+    lat: 45.2350, lng: -93.2130, address: "1843 153rd Ave NE, Ham Lake, MN 55304",
+    city: "Ham Lake", neighborhood: null, season: YEAR_ROUND, cost: "free",
+    tags: ["18-hole"],
+    intro: "Eighteen free holes at the 90-acre Ham Lake Park, sharing the shoreline with a fishing pier, boat launch, and playground. Open until 10pm.",
+    sourceUrl: "https://www.pdga.com/course-directory/course/ham-lake-dgc-0",
+    verifiedAt: "2026-08-14", venueSlug: null,
+  },
+  {
+    slug: "silverview-park-disc-golf", name: "Silver View Park Disc Golf Course", kind: "disc-golf",
+    lat: 45.1040, lng: -93.2280, address: "2740 W County Road I, Mounds View, MN 55112",
+    city: "Mounds View", neighborhood: null, season: YEAR_ROUND, cost: "free",
+    tags: ["9-hole", "beginner-friendly"],
+    intro: "A free nine-hole course at Silver View Park in Mounds View — an easy, walkable neighborhood layout.",
+    sourceUrl: "https://www.moundsviewmn.gov/government/city_departments/parks_and_recreation/city_parks/silver_view_park.php",
+    verifiedAt: "2026-08-14", venueSlug: null,
+  },
+  {
+    slug: "hansen-park-disc-golf", name: "Hansen Park Disc Golf Course", kind: "disc-golf",
+    lat: 45.0680, lng: -93.2080, address: "430 12th Ave NW, New Brighton, MN 55112",
+    city: "New Brighton", neighborhood: null, season: YEAR_ROUND, cost: "free",
+    tags: ["18-hole"],
+    intro: "New Brighton's free 18 at Hansen Park, a full-length course on the city's north side.",
+    sourceUrl: "https://www.newbrightonmn.gov/facilities/facility/details/hansenpark-8",
+    verifiedAt: "2026-08-14", venueSlug: null,
+  },
+  {
+    slug: "galloway-park-disc-golf", name: "Galloway Park Disc Golf Course", kind: "disc-golf",
+    lat: 45.1720, lng: -93.3950, address: "1353 Dayton River Rd, Champlin, MN 55316",
+    city: "Champlin", neighborhood: null, season: YEAR_ROUND, cost: "free",
+    tags: ["9-hole"],
+    intro: "Nine free holes at Donie Galloway Riverside Park in Champlin, along the Mississippi on Dayton River Road.",
+    sourceUrl: "https://www.dgcoursereview.com/course.php?id=9131",
+    verifiedAt: "2026-08-14", venueSlug: null,
+  },
 ];
 
 // ── Selectors (pure) ────────────────────────────────────────────────────────
