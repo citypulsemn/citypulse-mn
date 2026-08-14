@@ -49,6 +49,8 @@ export const PLACES_KIND_INTRO: Record<string, string> = {
     "Botanical gardens and conservatories across the metro — the glass houses that bloom all winter, the rose and Japanese gardens, and the Arboretum's sprawling grounds. Most are free; a couple charge. Peak color runs May through September, but the conservatories are a green escape in January.",
   "ski-hill":
     "The metro's four downhill ski and snowboard hills — lifts, terrain parks, snowmaking, and rentals, all within a half-hour of the cities. The season runs roughly December into March, cold and snow permitting. All charge a lift ticket; the season passes pay off by February.",
+  "museum":
+    "The metro's museums — world-class art at Mia and the Walker, dinosaurs and a planetarium at the Bell, hands-on science by the river, and a dozen smaller, stranger collections. Some are free (Mia, the Weisman); most charge, though many run a free day each week. Open year-round.",
 };
 
 export const VENUE_INTROS: Record<string, string> = {

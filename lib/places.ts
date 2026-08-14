@@ -30,7 +30,8 @@ export type PlaceKind =
   | "disc-golf"
   | "nature-center"
   | "garden"
-  | "ski-hill";
+  | "ski-hill"
+  | "museum";
 
 export type PlaceCost = "free" | "paid" | "donation";
 
@@ -91,6 +92,7 @@ export const KIND_META: Record<PlaceKind, KindMeta> = {
   "nature-center": { kind: "nature-center", label: "Nature Center", plural: "Nature Centers", blurb: "Interpretive nature centers across the metro — trails, exhibits, and naturalist programs, mapped." },
   "garden": { kind: "garden", label: "Garden", plural: "Gardens", blurb: "Botanical gardens and conservatories across the metro — glass houses, rose gardens, and the Arboretum, mapped." },
   "ski-hill": { kind: "ski-hill", label: "Ski Area", plural: "Ski Areas", blurb: "The metro's downhill ski and snowboard hills — lifts, terrain parks, and rentals, mapped." },
+  "museum": { kind: "museum", label: "Museum", plural: "Museums", blurb: "The metro's museums — art, science, history, and the wonderfully specific, mapped." },
 };
 
 // Summer water season used by the current seed — guarded Minneapolis and
@@ -4030,6 +4032,129 @@ export const PLACES: Place[] = [
     tags: ["downhill", "tubing", "beginner-friendly"],
     intro: "Three Rivers' beginner-friendly hill in Maple Grove — a lift-served downhill run and a lighted tubing hill with snowmaking, plus cross-country trails. Lift or tubing ticket required.",
     sourceUrl: "https://www.threeriversparks.org/location/elm-creek-winter-recreation-area",
+    verifiedAt: "2026-08-14", venueSlug: null,
+  },
+
+  // ── MUSEUMS (Places G1.2, Aug 2026) ────────────────────────────────────────
+  // Art, science, history, and the wonderfully specific. All YEAR_ROUND; a mix of
+  // free (Mia, Weisman, MMAA), donation (Hennepin History), and paid — many paid
+  // ones run a free day/evening, noted in the intro. Each verified vs its
+  // official page.
+  {
+    slug: "science-museum-of-minnesota", name: "Science Museum of Minnesota", kind: "museum",
+    lat: 44.9430, lng: -93.0990, address: "120 W Kellogg Blvd, St. Paul, MN 55102",
+    city: "St. Paul", neighborhood: null, season: YEAR_ROUND, cost: "paid",
+    tags: ["science", "kids"],
+    intro: "The big one on the St. Paul riverfront — dinosaurs, an Omnitheater dome, the anatomy hall, and a Mississippi overlook. Paid; timed tickets on busy weekends.",
+    sourceUrl: "https://www.smm.org",
+    verifiedAt: "2026-08-14", venueSlug: null,
+  },
+  {
+    slug: "minneapolis-institute-of-art", name: "Minneapolis Institute of Art (Mia)", kind: "museum",
+    lat: 44.9585, lng: -93.2735, address: "2400 3rd Ave S, Minneapolis, MN 55404",
+    city: "Minneapolis", neighborhood: null, season: YEAR_ROUND, cost: "free",
+    tags: ["art", "free"],
+    intro: "Encyclopedic art from five millennia — a Rembrandt, the jade mountain, the period rooms — and general admission is always free. One of the country's great museums, in Whittier.",
+    sourceUrl: "https://new.artsmia.org",
+    verifiedAt: "2026-08-14", venueSlug: null,
+  },
+  {
+    slug: "walker-art-center", name: "Walker Art Center", kind: "museum",
+    lat: 44.9685, lng: -93.2885, address: "725 Vineland Pl, Minneapolis, MN 55403",
+    city: "Minneapolis", neighborhood: null, season: YEAR_ROUND, cost: "paid",
+    tags: ["art", "contemporary"],
+    intro: "Contemporary art beside the Sculpture Garden and its Spoonbridge and Cherry. Galleries are paid — free Thursday evenings and the first Saturday each month; the Sculpture Garden is always free.",
+    sourceUrl: "https://walkerart.org",
+    verifiedAt: "2026-08-14", venueSlug: null,
+  },
+  {
+    slug: "minnesota-history-center", name: "Minnesota History Center", kind: "museum",
+    lat: 44.9510, lng: -93.1055, address: "345 W Kellogg Blvd, St. Paul, MN 55102",
+    city: "St. Paul", neighborhood: null, season: YEAR_ROUND, cost: "paid",
+    tags: ["history"],
+    intro: "The state's story, told well — hands-on history, the WWII and weather exhibits, and a research library. Paid; free Tuesday evenings.",
+    sourceUrl: "https://www.mnhs.org/historycenter",
+    verifiedAt: "2026-08-14", venueSlug: null,
+  },
+  {
+    slug: "bell-museum", name: "Bell Museum", kind: "museum",
+    lat: 44.9910, lng: -93.1810, address: "2088 Larpenteur Ave W, Falcon Heights, MN 55113",
+    city: "Falcon Heights", neighborhood: null, season: YEAR_ROUND, cost: "paid",
+    tags: ["natural-history", "planetarium"],
+    intro: "The U's natural history museum on the St. Paul campus — the famous wildlife dioramas, a Touch and See lab, and a digital planetarium. Paid; free on Sundays.",
+    sourceUrl: "https://www.bellmuseum.umn.edu",
+    verifiedAt: "2026-08-14", venueSlug: null,
+  },
+  {
+    slug: "weisman-art-museum", name: "Weisman Art Museum", kind: "museum",
+    lat: 44.9730, lng: -93.2370, address: "333 E River Pkwy, Minneapolis, MN 55455",
+    city: "Minneapolis", neighborhood: null, season: YEAR_ROUND, cost: "free",
+    tags: ["art", "free"],
+    intro: "Frank Gehry's rippling steel building over the river on the U of M campus, with a sharp modern and contemporary collection. Always free.",
+    sourceUrl: "https://wam.umn.edu",
+    verifiedAt: "2026-08-14", venueSlug: null,
+  },
+  {
+    slug: "bakken-museum", name: "The Bakken Museum", kind: "museum",
+    lat: 44.9370, lng: -93.3180, address: "3537 Zenith Ave S, Minneapolis, MN 55416",
+    city: "Minneapolis", neighborhood: null, season: YEAR_ROUND, cost: "paid",
+    tags: ["science", "history"],
+    intro: "A quirky museum of electricity and magnetism in a lakeside mansion on Bde Maka Ska — a Frankenstein's lab, invention benches, and Earl Bakken's pacemaker story. Paid.",
+    sourceUrl: "https://thebakken.org",
+    verifiedAt: "2026-08-14", venueSlug: null,
+  },
+  {
+    slug: "museum-of-russian-art", name: "The Museum of Russian Art", kind: "museum",
+    lat: 44.9020, lng: -93.2710, address: "5500 Stevens Ave S, Minneapolis, MN 55419",
+    city: "Minneapolis", neighborhood: null, season: YEAR_ROUND, cost: "paid",
+    tags: ["art"],
+    intro: "The only North American museum devoted to Russian art, in a former Spanish-style church in south Minneapolis. Paid; rotating exhibitions.",
+    sourceUrl: "https://tmora.org",
+    verifiedAt: "2026-08-14", venueSlug: null,
+  },
+  {
+    slug: "mill-city-museum", name: "Mill City Museum", kind: "museum",
+    lat: 44.9790, lng: -93.2570, address: "704 S 2nd St, Minneapolis, MN 55401",
+    city: "Minneapolis", neighborhood: null, season: YEAR_ROUND, cost: "paid",
+    tags: ["history"],
+    intro: "Built into the ruins of the Washburn A Mill on the riverfront — the Flour Tower ride, the baking lab, and a rooftop river view. Paid (Minnesota Historical Society).",
+    sourceUrl: "https://www.mnhs.org/millcity",
+    verifiedAt: "2026-08-14", venueSlug: null,
+  },
+  {
+    slug: "american-swedish-institute", name: "American Swedish Institute", kind: "museum",
+    lat: 44.9550, lng: -93.2645, address: "2600 Park Ave, Minneapolis, MN 55407",
+    city: "Minneapolis", neighborhood: null, season: YEAR_ROUND, cost: "paid",
+    tags: ["history", "art"],
+    intro: "Nordic art and culture in the 1908 Turnblad Mansion, with a châteauesque interior, rotating exhibits, and the FIKA café. Paid.",
+    sourceUrl: "https://asimn.org",
+    verifiedAt: "2026-08-14", venueSlug: null,
+  },
+  {
+    slug: "minnesota-childrens-museum", name: "Minnesota Children's Museum", kind: "museum",
+    lat: 44.9465, lng: -93.0975, address: "10 W 7th St, St. Paul, MN 55102",
+    city: "St. Paul", neighborhood: null, season: YEAR_ROUND, cost: "paid",
+    tags: ["kids"],
+    intro: "Four floors of hands-on play for little kids in downtown St. Paul — the climbing Scramble, art studios, and water tables. Paid.",
+    sourceUrl: "https://mcm.org",
+    verifiedAt: "2026-08-14", venueSlug: null,
+  },
+  {
+    slug: "minnesota-museum-of-american-art", name: "Minnesota Museum of American Art", kind: "museum",
+    lat: 44.9460, lng: -93.0910, address: "350 Robert St N, St. Paul, MN 55101",
+    city: "St. Paul", neighborhood: null, season: YEAR_ROUND, cost: "free",
+    tags: ["art", "free"],
+    intro: "The state art museum's downtown St. Paul galleries, focused on Minnesota and regional artists. Free.",
+    sourceUrl: "https://mmaa.org",
+    verifiedAt: "2026-08-14", venueSlug: null,
+  },
+  {
+    slug: "hennepin-history-museum", name: "Hennepin History Museum", kind: "museum",
+    lat: 44.9580, lng: -93.2705, address: "2303 3rd Ave S, Minneapolis, MN 55404",
+    city: "Minneapolis", neighborhood: null, season: YEAR_ROUND, cost: "donation",
+    tags: ["history"],
+    intro: "A neighborhood-scale look at Minneapolis and Hennepin County history, in a 1919 mansion near Mia. Suggested donation.",
+    sourceUrl: "https://hennepinhistory.org",
     verifiedAt: "2026-08-14", venueSlug: null,
   },
 ];
