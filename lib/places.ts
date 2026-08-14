@@ -33,7 +33,8 @@ export type PlaceKind =
   | "ski-hill"
   | "museum"
   | "orchard"
-  | "indoor-playground";
+  | "indoor-playground"
+  | "trampoline-climbing";
 
 export type PlaceCost = "free" | "paid" | "donation";
 
@@ -97,6 +98,7 @@ export const KIND_META: Record<PlaceKind, KindMeta> = {
   "museum": { kind: "museum", label: "Museum", plural: "Museums", blurb: "The metro's museums — art, science, history, and the wonderfully specific, mapped." },
   "orchard": { kind: "orchard", label: "Orchard & Patch", plural: "Orchards & Patches", blurb: "Pick-your-own apple orchards and pumpkin patches across the metro — a fall tradition, mapped." },
   "indoor-playground": { kind: "indoor-playground", label: "Indoor Playground", plural: "Indoor Playgrounds & Play Cafés", blurb: "Indoor play spaces and play cafés across the metro — climbing structures, ball pits, and toddler zones for cold and rainy days, mapped." },
+  "trampoline-climbing": { kind: "trampoline-climbing", label: "Trampoline & Climbing Gym", plural: "Trampoline & Climbing Gyms", blurb: "Indoor trampoline parks, ninja gyms, and rock-climbing walls across the metro — jump, climb, and burn off winter, mapped." },
 };
 
 // Summer water season used by the current seed — guarded Minneapolis and
@@ -4822,6 +4824,165 @@ export const PLACES: Place[] = [
     tags: ["cafe", "toddler-zone", "free-play"],
     intro: "A St. Paul play café on St. Clair with no entry fee — a play kitchen, a magnatile wall, climbing 'picklers,' and a slide, plus coffee and snacks for the parents. Also runs classes and camps.",
     sourceUrl: "https://www.rebesplaycafe.com",
+    verifiedAt: "2026-08-14", venueSlug: null,
+  },
+
+  // ── Trampoline, ninja & climbing gyms (Roadmap v6 Tier 1.2 — a new kind) ──────
+  // Indoor active gyms: trampoline parks, standalone ninja gyms, and rock-climbing
+  // / bouldering gyms. All YEAR_ROUND (indoor) and paid. Each verified against the
+  // operator's own current page, Aug 2026 — closed/rebranded spots (Sky Zone
+  // Plymouth → Urban Air; Rockin' Jump Eagan → Sky Zone) were caught and excluded.
+  {
+    slug: "sky-zone-edina", name: "Sky Zone Edina", kind: "trampoline-climbing",
+    lat: 44.8590, lng: -93.3540, address: "7625 Cahill Rd, Edina, MN 55439",
+    city: "Edina", neighborhood: null, season: YEAR_ROUND, cost: "paid",
+    tags: ["trampoline", "ninja-course", "grip-socks"],
+    intro: "The Edina Sky Zone — freestyle courts, a foam zone, Ultimate Dodgeball, plus a climbing wall and a ninja course. Grip socks required; Little Leapers hours for the toddlers. Jump time by the hour.",
+    sourceUrl: "https://www.skyzone.com/minneapolis/",
+    verifiedAt: "2026-08-14", venueSlug: null,
+  },
+  {
+    slug: "sky-zone-maple-grove", name: "Sky Zone Maple Grove", kind: "trampoline-climbing",
+    lat: 45.1080, lng: -93.5050, address: "16501 County Rd 30, Maple Grove, MN 55311",
+    city: "Maple Grove", neighborhood: null, season: YEAR_ROUND, cost: "paid",
+    tags: ["trampoline", "foam-pit", "grip-socks"],
+    intro: "Maple Grove's Sky Zone — wall-to-wall trampolines, a foam pit, and dodgeball. Grip socks required; buy jump time or a pass.",
+    sourceUrl: "https://www.skyzone.com/maplegrove/",
+    verifiedAt: "2026-08-14", venueSlug: null,
+  },
+  {
+    slug: "sky-zone-eagan", name: "Sky Zone Eagan", kind: "trampoline-climbing",
+    lat: 44.8340, lng: -93.1910, address: "2015 Silver Bell Rd #195, Eagan, MN 55122",
+    city: "Eagan", neighborhood: null, season: YEAR_ROUND, cost: "paid",
+    tags: ["trampoline", "ninja-course", "grip-socks"],
+    intro: "The Eagan Sky Zone, in the old Rockin' Jump space — trampolines, a ninja course, and a foam pit. Grip socks required; jump time by the hour.",
+    sourceUrl: "https://www.skyzone.com/eagan/",
+    verifiedAt: "2026-08-14", venueSlug: null,
+  },
+  {
+    slug: "sky-zone-st-paul", name: "Sky Zone St. Paul", kind: "trampoline-climbing",
+    lat: 44.9660, lng: -92.9650, address: "595 Hale Ave N, Oakdale, MN 55128",
+    city: "Oakdale", neighborhood: null, season: YEAR_ROUND, cost: "paid",
+    tags: ["trampoline", "dodgeball", "grip-socks"],
+    intro: "Sky Zone's east-metro park, in Oakdale — trampolines, dodgeball, and a foam pit. Grip socks required; jump time by the hour.",
+    sourceUrl: "https://www.skyzone.com/stpaul/",
+    verifiedAt: "2026-08-14", venueSlug: null,
+  },
+  {
+    slug: "urban-air-apple-valley", name: "Urban Air Apple Valley", kind: "trampoline-climbing",
+    lat: 44.7290, lng: -93.2160, address: "7370 153rd St W, Apple Valley, MN 55124",
+    city: "Apple Valley", neighborhood: null, season: YEAR_ROUND, cost: "paid",
+    tags: ["trampoline", "ropes-course", "climbing"],
+    intro: "Apple Valley's Urban Air — trampolines plus a ropes course, ninja obstacles, and an indoor climbing wall, sold as tiered wristbands. Open daily.",
+    sourceUrl: "https://www.urbanair.com/minnesota-apple-valley/",
+    verifiedAt: "2026-08-14", venueSlug: null,
+  },
+  {
+    slug: "urban-air-plymouth", name: "Urban Air Plymouth", kind: "trampoline-climbing",
+    lat: 45.0100, lng: -93.4890, address: "3580 Holly Lane N, Plymouth, MN 55447",
+    city: "Plymouth", neighborhood: null, season: YEAR_ROUND, cost: "paid",
+    tags: ["trampoline", "ropes-course", "climbing"],
+    intro: "The Plymouth Urban Air, in the former Sky Zone space — trampolines, a ropes course, ninja obstacles, and climbing walls. Open daily.",
+    sourceUrl: "https://www.urbanair.com/minnesota-plymouth/",
+    verifiedAt: "2026-08-14", venueSlug: null,
+  },
+  {
+    slug: "urban-air-coon-rapids", name: "Urban Air Coon Rapids", kind: "trampoline-climbing",
+    lat: 45.1700, lng: -93.3090, address: "10 Coon Rapids Blvd NW, Coon Rapids, MN 55448",
+    city: "Coon Rapids", neighborhood: null, season: YEAR_ROUND, cost: "paid",
+    tags: ["trampoline", "ropes-course", "go-karts"],
+    intro: "Coon Rapids' Urban Air — trampolines, go-karts, a ropes course, ninja obstacles, and climbing. Tiered wristbands, open daily.",
+    sourceUrl: "https://www.urbanair.com/minnesota-coon-rapids/",
+    verifiedAt: "2026-08-14", venueSlug: null,
+  },
+  {
+    slug: "zero-gravity-mounds-view", name: "Zero Gravity Adventure Park", kind: "trampoline-climbing",
+    lat: 45.0930, lng: -93.2080, address: "2292 Woodale Dr, Mounds View, MN 55112",
+    city: "Mounds View", neighborhood: null, season: YEAR_ROUND, cost: "paid",
+    tags: ["trampoline", "dodgeball", "ninja-course"],
+    intro: "A Mounds View adventure park built around 11,000 square feet of trampolines, with two dodgeball courts, a foam pit, and an aerial ninja course. Laser tag and an arcade too.",
+    sourceUrl: "https://www.zerogravitymn.com/",
+    verifiedAt: "2026-08-14", venueSlug: null,
+  },
+  {
+    slug: "obstacle-academy", name: "Obstacle Academy", kind: "trampoline-climbing",
+    lat: 44.8550, lng: -93.4460, address: "7615 Golden Triangle Dr, Ste J, Eden Prairie, MN 55344",
+    city: "Eden Prairie", neighborhood: null, season: YEAR_ROUND, cost: "paid",
+    tags: ["ninja-course", "parkour", "open-gym"],
+    intro: "An Eden Prairie ninja gym run by a former American Ninja Warrior — 14,000 square feet of obstacles, parkour, and open-gym hours for ages four and up.",
+    sourceUrl: "https://www.obstacle-academy.com/",
+    verifiedAt: "2026-08-14", venueSlug: null,
+  },
+  {
+    slug: "conquer-ninja-blaine", name: "Conquer Ninja Gyms — Blaine", kind: "trampoline-climbing",
+    lat: 45.1500, lng: -93.2330, address: "1468 101st Ave NE, Blaine, MN 55449",
+    city: "Blaine", neighborhood: null, season: YEAR_ROUND, cost: "paid",
+    tags: ["ninja-course", "open-gym"],
+    intro: "Conquer's Blaine ninja gym — warped walls and obstacle courses, with open-gym hours plus classes and memberships.",
+    sourceUrl: "https://www.conquerninja.com/locations/blaine",
+    verifiedAt: "2026-08-14", venueSlug: null,
+  },
+  {
+    slug: "conquer-ninja-woodbury", name: "Conquer Ninja Gyms — Woodbury", kind: "trampoline-climbing",
+    lat: 44.9190, lng: -92.9590, address: "707 Commerce Dr, Ste 120, Woodbury, MN 55125",
+    city: "Woodbury", neighborhood: null, season: YEAR_ROUND, cost: "paid",
+    tags: ["ninja-course", "open-gym"],
+    intro: "Conquer's east-metro ninja gym in Woodbury — obstacle courses and a warped wall, open gym plus classes and an unlimited membership.",
+    sourceUrl: "https://www.conquerninja.com/locations/woodbury",
+    verifiedAt: "2026-08-14", venueSlug: null,
+  },
+  {
+    slug: "vertical-endeavors-minneapolis", name: "Vertical Endeavors — Minneapolis", kind: "trampoline-climbing",
+    lat: 44.9550, lng: -93.2780, address: "2540 Nicollet Ave S, Minneapolis, MN 55404",
+    city: "Minneapolis", neighborhood: null, season: YEAR_ROUND, cost: "paid",
+    tags: ["climbing", "ropes", "auto-belay"],
+    intro: "Vertical Endeavors' flagship on Eat Street — 50-to-60-foot ropes and auto-belays, among the tallest indoor walls in the country. Day passes and rentals.",
+    sourceUrl: "https://www.verticalendeavors.com/visit-us/hours-locations/minneapolis-mn/",
+    verifiedAt: "2026-08-14", venueSlug: null,
+  },
+  {
+    slug: "vertical-endeavors-st-paul", name: "Vertical Endeavors — St. Paul", kind: "trampoline-climbing",
+    lat: 44.9660, lng: -93.0730, address: "855 Phalen Blvd, St. Paul, MN 55106",
+    city: "St. Paul", neighborhood: null, season: YEAR_ROUND, cost: "paid",
+    tags: ["climbing", "ropes", "auto-belay"],
+    intro: "The St. Paul Vertical Endeavors on Phalen Boulevard — a big ropes gym, 60-plus ropes and 15 auto-belays. Day passes and rentals.",
+    sourceUrl: "https://www.verticalendeavors.com/visit-us/hours-locations/st-paul-mn/",
+    verifiedAt: "2026-08-14", venueSlug: null,
+  },
+  {
+    slug: "vertical-endeavors-bouldering-st-paul", name: "Vertical Endeavors — Twin Cities Bouldering", kind: "trampoline-climbing",
+    lat: 44.9660, lng: -93.1960, address: "2550 Wabash Ave, St. Paul, MN 55114",
+    city: "St. Paul", neighborhood: null, season: YEAR_ROUND, cost: "paid",
+    tags: ["bouldering"],
+    intro: "Vertical Endeavors' bouldering-only gym in St. Anthony Park — no ropes, just problems, for a drop-in or a membership.",
+    sourceUrl: "https://www.verticalendeavors.com/visit-us/locations-2/",
+    verifiedAt: "2026-08-14", venueSlug: null,
+  },
+  {
+    slug: "vertical-endeavors-bloomington", name: "Vertical Endeavors — Bloomington", kind: "trampoline-climbing",
+    lat: 44.8450, lng: -93.3010, address: "9601 James Ave S, Bloomington, MN 55431",
+    city: "Bloomington", neighborhood: null, season: YEAR_ROUND, cost: "paid",
+    tags: ["climbing", "bouldering", "ropes"],
+    intro: "Vertical Endeavors' south-metro gym in Bloomington — ropes and bouldering under one roof, beginner auto-belays to lead walls. Day passes and rentals.",
+    sourceUrl: "https://www.verticalendeavors.com/visit-us/hours-locations/bloomington-mn/",
+    verifiedAt: "2026-08-14", venueSlug: null,
+  },
+  {
+    slug: "bouldering-project-minneapolis", name: "Bouldering Project — Minneapolis", kind: "trampoline-climbing",
+    lat: 45.0050, lng: -93.2900, address: "1433 W River Rd N, Minneapolis, MN 55411",
+    city: "Minneapolis", neighborhood: null, season: YEAR_ROUND, cost: "paid",
+    tags: ["bouldering", "yoga"],
+    intro: "The North Minneapolis Bouldering Project, on the river — ropes-free climbing plus a yoga studio and a fitness floor. Day passes or a membership.",
+    sourceUrl: "https://boulderingproject.com/location/minneapolis/",
+    verifiedAt: "2026-08-14", venueSlug: null,
+  },
+  {
+    slug: "bouldering-project-st-paul", name: "Bouldering Project — St. Paul", kind: "trampoline-climbing",
+    lat: 44.9290, lng: -93.0840, address: "42 W Water St, St. Paul, MN 55107",
+    city: "St. Paul", neighborhood: null, season: YEAR_ROUND, cost: "paid",
+    tags: ["bouldering", "yoga"],
+    intro: "The St. Paul Bouldering Project near downtown, opened in 2025 — 11,000-plus square feet of steep bouldering, training boards, and yoga, with on-site parking.",
+    sourceUrl: "https://boulderingproject.com/location/stpaul/",
     verifiedAt: "2026-08-14", venueSlug: null,
   },
 ];

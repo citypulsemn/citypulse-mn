@@ -55,6 +55,8 @@ export const PLACES_KIND_INTRO: Record<string, string> = {
     "Fall's the whole point — pick-your-own apples from late summer into October, pumpkin patches and corn mazes, cider donuts and hayrides. Most orchards are free to wander, and you pay for what you pick; the weekend festivals charge admission. September–October, crop permitting.",
   "indoor-playground":
     "When it's twenty below or raining sideways, an indoor playground buys you a couple of hours and burns off the wiggles — climbing structures, ball pits, and toddler zones, many with a coffee bar for the grownups. Some are city-run community centers, some are private play cafés; most charge admission by the child, and nearly all want socks. Open year-round, busiest on winter weekends and school-break mornings.",
+  "trampoline-climbing":
+    "When the wind chill's in the negatives and everyone's climbing the walls, these let them do it for real — wall-to-wall trampolines and foam pits, ninja-warrior courses, and rock-climbing and bouldering gyms. Most sell jump time or a day pass; the trampoline parks want grip socks and keep little-jumper hours for toddlers, while the climbing gyms run from beginner auto-belays to fifty-foot ropes. Open year-round, but they earn their keep December through March.",
 };
 
 export const VENUE_INTROS: Record<string, string> = {
