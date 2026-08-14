@@ -67,7 +67,7 @@ in Tiers 0–2 is either pre-gate-safe (no trust cost) or growth toward the gate
 
 ## Tier 0 — Truth & no-regret seams (cheap, build now)
 
-### M0.1 — Outbound ticket-link tagging seam
+### M0.1 — Outbound ticket-link tagging seam  ✅ SHIPPED (60e9325)
 **Why:** Every ticket click today hands a vendor a buyer and captures $0. The
 dollars are thin now (see finding 1), but the *seam* is the point: build it once
 so revenue turns on the day we join a program, and get clicks-by-vendor reporting
@@ -85,7 +85,7 @@ Add a clicks-by-vendor line to Admin → Stats (join `event_stats` ticket_click 
 `events.ticket_url` host). **Honest ROI note in the deploy guide:** near-zero
 today; instruments and future-proofs. Size **S**. Depends: nothing.
 
-### M0.2 — Engagement-metric integrity (calendar > views)
+### M0.2 — Engagement-metric integrity (calendar > views)  ✅ SHIPPED (3ab9205)
 **Why:** 1,420 calendar adds vs 1,009 views in 30 days is implausible for honest
 human order (you view before you add). Either the calendar beacon over-counts or
 views under-count. We must not build product decisions — or a future sponsor
@@ -128,13 +128,13 @@ organic top-of-funnel that feeds G1.1. No new spec; a priority reminder.
 
 ## Tier 2 — Revenue mechanisms built ahead of the gate (dormant until sold)
 
-### R2.1 — Newsletter sponsor slot (Phase 5.4)
+### R2.1 — Newsletter sponsor slot (Phase 5.4)  ✅ SHIPPED (cc5c248, dormant)
 One clean, clearly-labeled "Presented by ___" slot in the digest template, one
 sponsor per send, admin-set, **dark when unsold**. Cheap to build now; selling it
 waits on list size. Build in the digest renderer + a small sponsors config/table.
 Size **S–M**. Depends: nothing to build; G1.1 to sell.
 
-### R2.2 — Featured-placement framework (Phase 5.1)
+### R2.2 — Featured-placement framework (Phase 5.1)  ✅ SHIPPED (25e16f7, dormant — apply schema)
 The labeled, capped, no-reorder mechanism: `featured(event_id, starts_at,
 ends_at, label)`, admin-managed, renders a visually-labeled "Featured" card,
 capped (1 per collection page, 2 homepage), never touches organic ranking. Build
