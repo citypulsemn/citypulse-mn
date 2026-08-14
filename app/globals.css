@@ -845,6 +845,10 @@ a.daycard { text-decoration: none; }
 /* ---------- Subscribe band (roadmap 3.4) ---------- */
 .subscribe-band { margin: 26px 0; padding: 20px 22px; border: 1px solid var(--line); border-radius: 14px; background: linear-gradient(180deg, rgba(201,169,97,0.06), rgba(201,169,97,0.02)); display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 14px; }
 .subscribe-band-copy { flex: 1 1 260px; }
-.subscribe-band-title { font-family: var(--font-oswald); font-weight: 600; font-size: 18px; letter-spacing: 0.02em; margin: 0 0 4px; color: var(--gold); }
+.subscribe-band-title { font-family: var(--font-oswald); font-weight: 600; font-size: 18px; letter-spacing: 0.02em; margin: 0 0 4px; color: var(--gold); scroll-margin-top: 84px; }
+/* G1.1 — inline CTA in the /this-week intro that jumps to the single subscribe
+   band, giving above-the-fold readers a path to the one ask (no second form). */
+.page-intro-cta { color: var(--gold); text-decoration: underline; text-decoration-color: rgba(201,169,97,0.55); text-underline-offset: 3px; font-weight: 500; white-space: nowrap; }
+.page-intro-cta:hover { text-decoration-color: var(--gold); }
 .subscribe-band-sub { margin: 0; font-size: 13.5px; line-height: 1.5; color: var(--cream-dim); }
 .subscribe-band .subscribe-form { flex: 0 1 320px; }

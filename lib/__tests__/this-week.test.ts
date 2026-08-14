@@ -44,6 +44,15 @@ describe("/this-week page wiring", () => {
     expect(page).toMatch(/subscribe/i);
   });
 
+  it("gives above-the-fold readers a path to the single band (conversion CTA)", () => {
+    // The one band lives at the bottom (proof-then-ask); the intro carries an
+    // anchor CTA to it so scanners can reach the ask without a second form/popup.
+    expect(page).toContain('href="#subscribe-band-title"');
+    expect(page).toContain("page-intro-cta");
+    // ties the sample (this page) to the product (the email) in the ask copy
+    expect(page).toContain("next Thursday's lands in your inbox");
+  });
+
   it("degrades honestly when the week is thin (no fake content)", () => {
     expect(page).toContain("day-empty");
     expect(page).toContain("Browse the full calendar");

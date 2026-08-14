@@ -73,8 +73,10 @@ export default async function ThisWeekPage() {
 
         <p className="page-intro">
           This is the shortlist we send by email every Thursday morning — the best
-          of the Twin Cities in one place. Here&rsquo;s this week&rsquo;s;
-          subscribe to get the next one in your inbox.
+          of the Twin Cities in one place. Here&rsquo;s this week&rsquo;s;{" "}
+          <a className="page-intro-cta" href="#subscribe-band-title">
+            get the next one in your inbox &rarr;
+          </a>
         </p>
 
         {picks.length === 0 ? (
@@ -86,7 +88,7 @@ export default async function ThisWeekPage() {
             <SubscribeBand
               source="this-week"
               heading="Get this shortlist every Thursday"
-              sub="One email a week — the week's best, hand-picked. Free, no spam."
+              sub="You're reading this week's — subscribe and next Thursday's lands in your inbox. Free, no spam, unsubscribe anytime."
             />
           </>
         ) : (
@@ -105,7 +107,7 @@ export default async function ThisWeekPage() {
             <SubscribeBand
               source="this-week"
               heading="Get this shortlist every Thursday"
-              sub="One email a week — the week's best, hand-picked. Free, no spam."
+              sub="You're reading this week's — subscribe and next Thursday's lands in your inbox. Free, no spam, unsubscribe anytime."
             />
           </>
         )}
