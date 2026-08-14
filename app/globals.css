@@ -211,8 +211,8 @@ body::before {
 .ticket-btn:hover { filter: brightness(1.08); }
 .ticket-note { text-align: center; font-size: 13px; color: var(--cream-dim); font-style: italic; margin: 4px 0 0; padding: 12px; border: 1px dashed var(--line); border-radius: 10px; }
 
-footer { text-align: center; padding: 40px 0 0; color: var(--cream-dim); font-size: 12px; letter-spacing: 0.04em; }
-footer .gold { color: var(--gold); }
+.explorer-tagline { text-align: center; padding: 40px 0 0; color: var(--cream-dim); font-size: 12px; letter-spacing: 0.04em; }
+.explorer-tagline .gold { color: var(--gold); }
 
 /* ---------- Mobile ---------- */
 @media (max-width: 820px) {

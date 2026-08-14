@@ -376,7 +376,8 @@ export function EventsExplorer({
         </div>
       </header>
 
-      <div className="wrap">
+      <main className="wrap">
+        <h1 className="sr-only">This week in the Twin Cities — events, concerts &amp; things to do</h1>
         <div className="searchrow">
           <SearchBox value={query} onChange={setQuery} />
           {isFiltering && (
@@ -467,10 +468,10 @@ export function EventsExplorer({
           <MapView events={windowedEvents} win={win} onPick={(ev) => openDetail(ev, "map")} />
         )}
 
-        <footer>
+        <div className="explorer-tagline">
           Twin Cities metro &nbsp;·&nbsp; <span className="gold">City Pulse MN</span>
-        </footer>
-      </div>
+        </div>
+      </main>
 
       {dayKey && (
         <DayPanel

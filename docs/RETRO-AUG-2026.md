@@ -223,3 +223,40 @@ the expected weekly-archive lag. Both minor; one small preventive guard recommen
 **Verdict:** supply chain is healthy — zero vulnerabilities, lean, pinned. Routine
 updates are now applied; the remaining gaps are deliberate majors + the SDK bump,
 each better handled as its own considered change.
+
+---
+
+## 7. Performance & accessibility — ✅ healthy; one homepage a11y gap fixed
+
+### Performance (production bundle sizes — the reliable signal; dev timings aren't representative)
+- ✅ **Lean bundles.** 103 kB First-Load JS shared baseline; homepage **128 kB**
+  (heaviest — and **Mapbox GL is lazy-loaded, NOT in First Load**, so UX10's
+  lazy-map work holds); every content page 103–108 kB; `/places/[kind]` 107 kB
+  (interactive map also lazy). No page is bloated.
+- ✅ ISR windows intact (30 m / 1 h / 5 m — the egress-cache work).
+- ⚠️ **Field Core Web Vitals** (LCP/CLS/INP) can't be measured here — dev is
+  unrepresentative and real vitals are field data. **Recommend checking Vercel →
+  Analytics** for the actual numbers.
+
+### Accessibility (DOM-level — identical in dev and prod)
+- ✅ **Standard content pages are clean** (verified on `/this-week`; event/places
+  share the layout): a `<main>` landmark, exactly one `<h1>`, one footer, no
+  missing `alt`, all buttons/links have accessible names, `lang="en"`, no heading
+  skips, no positive `tabindex`, no duplicate ids, real inputs labeled (the
+  honeypots are `aria-hidden`, correctly excluded).
+- ⚠️→ ✅ **FIXED — the homepage's custom `EventsExplorer` layout** was the one
+  outlier: **no `<main>` landmark, no `<h1>`, and a duplicate `<footer>`** (a
+  "Twin Cities metro · City Pulse MN" tagline mis-marked as a second `contentinfo`).
+  On the highest-traffic page. Fixed: promoted the content `<div className="wrap">`
+  to `<main>`, added a visually-hidden (`sr-only`) `<h1>` ("This week in the Twin
+  Cities — events, concerts & things to do") for screen readers + SEO, and demoted
+  the tagline to `<div className="explorer-tagline">` (moved its CSS off the broad
+  bare `footer{}` selector). Browser-verified: main 1, h1 1, footers 1, no visual
+  change; the `<header>` stays a sibling banner (not inside `<main>`).
+
+**Recommendation:** check the field Core Web Vitals in Vercel Analytics — the one
+perf dimension not measurable from here.
+
+**Verdict:** performance is healthy (lean bundles, lazy map) and accessibility was
+already strong on the templated pages; the single real gap — the homepage's
+landmarks and heading — is now closed.
