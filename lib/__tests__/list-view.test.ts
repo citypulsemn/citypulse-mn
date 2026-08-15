@@ -82,10 +82,13 @@ describe("UX4 wiring — the list view and the mobile default", () => {
     expect(explorer).toContain("<ListView events={windowedEvents} windowStartKey={dkey(win.start)} />");
   });
 
-  it("mobile viewers default to the list, opening on 'this week' (calendar hides titles < 820px)", () => {
-    expect(explorer).toContain("window.innerWidth < 820");
-    expect(explorer).toContain('setView("list")');
-    expect(explorer).toContain('setRange("week")');
+  it("list/week is the UNIVERSAL default (U5 — no viewport swap, so no mobile flash)", () => {
+    // U5 replaced the client-only `window.innerWidth < 820` swap (which flashed the
+    // month calendar before switching phones to the list) with a shared default that
+    // the SSR first paint already matches on every device.
+    expect(explorer).not.toContain("window.innerWidth < 820");
+    expect(explorer).toContain('const DEFAULT_VIEW = "list"');
+    expect(explorer).toContain('const DEFAULT_RANGE: RangeKey = "week"');
   });
 
   it("the list reuses EventDayCard so rows carry the UX3 save overlay", () => {

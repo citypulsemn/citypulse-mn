@@ -49,6 +49,16 @@ const MapView = dynamic(() => import("./MapView").then((m) => m.MapView), {
 // view + range they always want, restored on the next clean visit (a URL with
 // params always wins over it). Just view+range — filters/search stay transient.
 const DEFAULT_VIEW_KEY = "cp_default_view";
+
+// U5 — list/week is the UNIVERSAL default so the server-rendered first paint matches
+// every device. Previously the SSR default was calendar/month and a mount effect
+// swapped phones to list/week, which flashed + shifted layout on every fresh phone
+// load (the homepage is ISR-cached, so it can't read the viewport server-side).
+// List reads well on both; calendar/month is one tap away and saved if chosen. Keep
+// the three uses below (initial state, applyParsed fallback, urlDefaults) in sync.
+const DEFAULT_VIEW = "list" as const;
+const DEFAULT_RANGE: RangeKey = "week";
+
 interface SavedDefault {
   view: ExplorerView;
   range: RangeKey;
@@ -82,8 +92,8 @@ export function EventsExplorer({
   nowISO: string;
 }) {
   const [now, setNow] = useState(() => new Date(nowISO));
-  const [view, setView] = useState<"list" | "calendar" | "map">("calendar");
-  const [range, setRange] = useState<RangeKey>("month");
+  const [view, setView] = useState<"list" | "calendar" | "map">(DEFAULT_VIEW);
+  const [range, setRange] = useState<RangeKey>(DEFAULT_RANGE);
   const [year, setYear] = useState(() => new Date(nowISO).getFullYear());
   const [month, setMonth] = useState(() => new Date(nowISO).getMonth());
   const [active, setActive] = useState<Set<CategoryKey>>(
@@ -109,8 +119,8 @@ export function EventsExplorer({
   const applyParsed = useCallback(
     (p: ParsedExplorer) => {
       const d = new Date();
-      setView(p.view ?? "calendar");
-      setRange(p.range ?? "month");
+      setView(p.view ?? DEFAULT_VIEW);
+      setRange(p.range ?? DEFAULT_RANGE);
       setYear(p.year ?? d.getFullYear());
       setMonth(p.month ?? d.getMonth());
       setActive(p.cats ? new Set(p.cats) : new Set(CATEGORY_KEYS));
@@ -148,13 +158,10 @@ export function EventsExplorer({
         // UX11 — the returning core's pinned view/range.
         setView(saved.view);
         setRange(saved.range);
-      } else if (window.innerWidth < 820) {
-        // UX4 — the calendar hides event titles below 820px; the chronological
-        // list reads on a phone. Default mobile viewers to it on "this week"
-        // rather than a ~400-event month; the presets are one tap away.
-        setView("list");
-        setRange("week");
       }
+      // U5 — no viewport-based swap here anymore: list/week is the default for every
+      // device (see DEFAULT_VIEW/DEFAULT_RANGE), so the first paint already matches
+      // and phones no longer flash from a month calendar to the list.
     }
     setReady(true);
   }, [applyParsed]);
@@ -169,7 +176,7 @@ export function EventsExplorer({
   // UX11 — the whole explorer state, serialized to a canonical query string.
   // Current month is the default, so viewing "now" keeps the URL clean.
   const urlDefaults = useMemo<ExplorerDefaults>(
-    () => ({ view: "calendar", range: "month", year: now.getFullYear(), month: now.getMonth() }),
+    () => ({ view: DEFAULT_VIEW, range: DEFAULT_RANGE, year: now.getFullYear(), month: now.getMonth() }),
     [now],
   );
   const stateSig = useMemo(
