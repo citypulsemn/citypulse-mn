@@ -113,11 +113,20 @@ async function readAllPublished(): Promise<EventRecord[]> {
       where status = 'published'
       order by start_at asc
     `;
-    if (rows.length === 0) return sampleEvents;
+    // A configured, reachable DB is the source of truth — even 0 rows (an empty
+    // published table) returns [] honestly, NOT the June demo data. Sample events
+    // are only for the no-DB case above.
     return rows.map(rowToEvent);
   } catch (err) {
-    console.error("[events] DB read failed, using sample data:", err);
-    return sampleEvents;
+    // The DB is configured but the read FAILED (e.g. a transient Supabase egress /
+    // connection error). Do NOT fall back to sample data here: getEvents wraps this
+    // in unstable_cache and it runs during ISR page renders, so returning the June
+    // sample events would bake a wrong "no events in August" homepage into the page
+    // cache and serve it to every visitor until the next deploy — the Aug 15 2026
+    // incident. Re-throwing instead makes Next keep serving the LAST-GOOD cached page
+    // and never cache the degraded render: graceful degradation without poisoning.
+    console.error("[events] DB read failed (NOT serving sample data with a DB configured):", err);
+    throw err;
   }
 }
 
@@ -203,8 +212,11 @@ async function readEventsForDay(dayKey: string): Promise<EventRecord[]> {
     `;
     return rows.map(rowToEvent);
   } catch (err) {
+    // Same policy as readAllPublished: a configured-DB read failure must not bake a
+    // degraded (empty) day page into the ISR cache — throw so Next keeps serving the
+    // last-good cached page instead of caching "no events" for this day.
     console.error("[events] getEventsForDay failed:", err);
-    return [];
+    throw err;
   }
 }
 
