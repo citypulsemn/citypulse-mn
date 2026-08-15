@@ -363,6 +363,22 @@ a.daycard { text-decoration: none; }
 .day-list { max-width: 620px; margin: 0 auto; }
 .day-empty { max-width: 620px; margin: 0 auto; text-align: center; color: var(--cream-dim); font-size: 14px; line-height: 1.7; padding: 30px 16px; border: 1px dashed var(--line); border-radius: 14px; }
 
+/* U6a — on wide screens the homepage LIST view uses the full width: each day's
+   events flow into a responsive multi-column grid instead of one ~640px column
+   marooned in a 1240px shell. Scoped to `.list-view`, so the shared `.day-list`
+   (DayPanel, /day, collections) keeps its single-column reading width. `auto-fill`
+   (not auto-fit) keeps cards compact on sparse days instead of stretching one card
+   full-width. The day header (`.list-day-h`) stays full-width above its grid. */
+@media (min-width: 1000px) {
+  .list-view { max-width: 100%; }
+  .list-view .day-list {
+    max-width: 100%;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(330px, 1fr));
+    column-gap: 26px;
+  }
+}
+
 /* Screen-reader-only utility (UX2). */
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
 
