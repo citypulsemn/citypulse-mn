@@ -12,10 +12,14 @@ export function MapView({
   events,
   win,
   onPick,
+  focusId = null,
 }: {
   events: EventRecord[];
   win: DateWindow;
   onPick: (ev: EventRecord) => void;
+  /** U6b — the event id selected in the companion list; the map flies to and
+   *  highlights that pin. Null = nothing focused. */
+  focusId?: string | null;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -73,6 +77,20 @@ export function MapView({
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [events]);
+
+  // U6b — fly to + highlight the pin for the event picked in the companion list.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    markersRef.current.forEach((m) => m.getElement()?.classList.remove("cp-marker-focus"));
+    if (!focusId) return;
+    const idx = events.findIndex((e) => e.id === focusId);
+    const marker = markersRef.current[idx];
+    if (!marker) return;
+    marker.getElement()?.classList.add("cp-marker-focus");
+    map.flyTo({ center: marker.getLngLat(), zoom: Math.max(map.getZoom(), 12.5), duration: 500 });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focusId, events]);
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   function drawMarkers(mapboxgl: any, map: any, evs: EventRecord[]) {

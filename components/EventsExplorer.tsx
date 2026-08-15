@@ -26,6 +26,7 @@ import { applyPriceArea } from "@/lib/filters";
 import type { AreaKey } from "@/lib/areas";
 import { cityLocations, filterByDistance, DEFAULT_RADIUS_MI, type MetroLocation } from "@/lib/location";
 import { LocationControl } from "./LocationControl";
+import { MapEventList } from "./MapEventList";
 import { track } from "@/lib/track";
 import type { CategoryKey, EventRecord, PriceTier, RangeKey } from "@/lib/types";
 import { Logo } from "./Logo";
@@ -138,6 +139,8 @@ export function EventsExplorer({
   // U7 — near-me: a chosen metro city + radius filters events by proximity.
   const [location, setLocation] = useState<MetroLocation | null>(null);
   const [radiusMi, setRadiusMi] = useState(DEFAULT_RADIUS_MI);
+  // U6b — the event highlighted from the map's companion list.
+  const [mapFocusId, setMapFocusId] = useState<string | null>(null);
   // UX11 — URL sync is client-only; hold off writing the URL until we've read
   // the initial state from it (below), so the first paint's default state can't
   // clobber shared/reloaded params.
@@ -557,7 +560,15 @@ export function EventsExplorer({
         ) : view === "list" ? (
           <ListView events={windowedEvents} windowStartKey={dkey(win.start)} />
         ) : (
-          <MapView events={windowedEvents} win={win} onPick={(ev) => openDetail(ev, "map")} />
+          <div className="map-split">
+            <MapView
+              events={windowedEvents}
+              win={win}
+              focusId={mapFocusId}
+              onPick={(ev) => openDetail(ev, "map")}
+            />
+            <MapEventList events={windowedEvents} focusId={mapFocusId} onFocus={setMapFocusId} />
+          </div>
         )}
 
         <div className="explorer-tagline">
