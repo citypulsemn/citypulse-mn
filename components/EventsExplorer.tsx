@@ -12,6 +12,7 @@ import {
   MONTHS,
 } from "@/lib/dates";
 import { orderDayEvents } from "@/lib/day-order";
+import { SECTIONS } from "@/lib/nav-sections";
 import { searchEvents } from "@/lib/search";
 import {
   serializeExplorer,
@@ -340,7 +341,7 @@ export function EventsExplorer({
 
   return (
     <>
-      <header className="topbar">
+      <header className="topbar has-nav">
         <div className="topbar-inner">
           <Logo />
           <div className="topbar-actions">
@@ -367,6 +368,17 @@ export function EventsExplorer({
             </div>
           </div>
         </div>
+        {/* U3 — the browse sections, previously footer-only on the homepage. Same
+            section-nav the shared TopBar gives every other page (SECTIONS is the
+            single source of truth), so Places/Collections/etc. are reachable from
+            the top, not buried at the bottom. */}
+        <nav className="section-nav" aria-label="Browse sections">
+          {SECTIONS.map((s) => (
+            <a key={s.href} href={s.href} className="section-nav-link">
+              {s.label}
+            </a>
+          ))}
+        </nav>
       </header>
 
       <main className="wrap">

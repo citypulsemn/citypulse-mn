@@ -1,5 +1,6 @@
 import { Logo } from "./Logo";
 import { SavedLink } from "./SavedLink";
+import { SECTIONS } from "@/lib/nav-sections";
 import type { ReactNode } from "react";
 
 /**
@@ -10,20 +11,10 @@ import type { ReactNode } from "react";
  * compact, horizontally-scrollable section nav at the TOP of every page, and
  * carries the UX3 "♥ N" saved link everywhere (not just the homepage).
  *
- * The homepage keeps its own interactive topbar — its date presets and category
- * chips ARE its browse controls, so it doesn't need this section strip.
+ * The homepage keeps its own interactive header, but as of U3 it renders the same
+ * section-nav strip (from the shared SECTIONS) so its browse links aren't
+ * footer-only either.
  */
-const SECTIONS: { href: string; label: string }[] = [
-  { href: "/this-week", label: "This Week" },
-  { href: "/this-weekend", label: "This Weekend" },
-  { href: "/ongoing", label: "Ongoing" },
-  { href: "/collections", label: "Collections" },
-  { href: "/places", label: "Places" },
-  { href: "/venues", label: "Venues" },
-  { href: "/neighborhoods", label: "Neighborhoods" },
-  { href: "/cities", label: "Cities" },
-];
-
 export function TopBar({ actions }: { actions?: ReactNode }) {
   return (
     <header className="topbar has-nav">

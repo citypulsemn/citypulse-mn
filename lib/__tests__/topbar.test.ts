@@ -15,8 +15,11 @@ describe("TopBar component", () => {
   const src = read("components/TopBar.tsx");
 
   it("carries every browse section, incl. /this-week (G1.2 — the email shop window, sitewide-linked)", () => {
+    // The section list is the shared SECTIONS source (used by TopBar AND the
+    // homepage header since U3), so assert against it.
+    const sections = read("lib/nav-sections.ts");
     for (const href of ["/this-week", "/this-weekend", "/ongoing", "/collections", "/places", "/venues", "/neighborhoods", "/cities"]) {
-      expect(src).toContain(`href: "${href}"`);
+      expect(sections).toContain(`href: "${href}"`);
     }
   });
 
@@ -78,10 +81,15 @@ describe("SiteFooter links /this-week on every page (G1.2 internal-link equity)"
   });
 });
 
-describe("the homepage keeps its own interactive topbar", () => {
-  it("EventsExplorer does NOT use TopBar (its presets/chips are its nav) but has the saved link", () => {
+describe("the homepage keeps its own interactive header", () => {
+  it("EventsExplorer uses its own header (not the shared TopBar component), with the saved link AND the discovery section-nav (U3)", () => {
     const src = read("components/EventsExplorer.tsx");
-    expect(src).not.toContain("TopBar");
+    // Its own header, not the shared component (it needs the interactive view toggle).
+    expect(src).not.toContain("<TopBar");
     expect(src).toContain("<SavedLink />");
+    // U3: the browse sections are no longer footer-only on the homepage — the same
+    // section-nav (from the shared SECTIONS source) now rides its header too.
+    expect(src).toContain('className="section-nav"');
+    expect(src).toContain("SECTIONS");
   });
 });
