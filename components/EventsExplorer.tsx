@@ -24,6 +24,8 @@ import {
 } from "@/lib/explorer-url";
 import { applyPriceArea } from "@/lib/filters";
 import type { AreaKey } from "@/lib/areas";
+import { cityLocations, filterByDistance, DEFAULT_RADIUS_MI, type MetroLocation } from "@/lib/location";
+import { LocationControl } from "./LocationControl";
 import { track } from "@/lib/track";
 import type { CategoryKey, EventRecord, PriceTier, RangeKey } from "@/lib/types";
 import { Logo } from "./Logo";
@@ -84,6 +86,35 @@ function saveDefaultView(v: SavedDefault): void {
   }
 }
 
+// U7 — the near-me preference persists across visits (it's "my area", not a
+// transient filter). Store just the city KEY + radius; coords are re-derived from the
+// current events on restore, so they stay fresh and a city that no longer has events
+// simply drops.
+const LOCATION_KEY = "cp_location";
+function loadLocationPref(): { key: string; radiusMi: number } | null {
+  try {
+    const o = JSON.parse(localStorage.getItem(LOCATION_KEY) ?? "null");
+    if (o && typeof o.key === "string" && typeof o.radiusMi === "number") return o;
+  } catch {
+    // corrupt/blocked storage
+  }
+  return null;
+}
+function saveLocationPref(key: string, radiusMi: number): void {
+  try {
+    localStorage.setItem(LOCATION_KEY, JSON.stringify({ key, radiusMi }));
+  } catch {
+    // storage blocked
+  }
+}
+function clearLocationPref(): void {
+  try {
+    localStorage.removeItem(LOCATION_KEY);
+  } catch {
+    // storage blocked
+  }
+}
+
 export function EventsExplorer({
   events,
   nowISO,
@@ -104,6 +135,9 @@ export function EventsExplorer({
   const [query, setQuery] = useState("");
   const [prices, setPrices] = useState<Set<PriceTier>>(() => new Set());
   const [areas, setAreas] = useState<Set<AreaKey>>(() => new Set());
+  // U7 — near-me: a chosen metro city + radius filters events by proximity.
+  const [location, setLocation] = useState<MetroLocation | null>(null);
+  const [radiusMi, setRadiusMi] = useState(DEFAULT_RADIUS_MI);
   // UX11 — URL sync is client-only; hold off writing the URL until we've read
   // the initial state from it (below), so the first paint's default state can't
   // clobber shared/reloaded params.
@@ -139,10 +173,15 @@ export function EventsExplorer({
     () => searchEvents(events, deferredQuery),
     [events, deferredQuery],
   );
-  const filtered = useMemo(
-    () => applyPriceArea(searched, prices, areas),
-    [searched, prices, areas],
-  );
+  // U7 — the metro cities that have events (centroids from their own coordinates),
+  // for the near-me picker.
+  const locations = useMemo(() => cityLocations(events), [events]);
+  const filtered = useMemo(() => {
+    const pa = applyPriceArea(searched, prices, areas);
+    // Near-me is another AND filter: proximity narrows the set, then the window +
+    // category chips apply, same as every other axis.
+    return location ? filterByDistance(pa, location, radiusMi) : pa;
+  }, [searched, prices, areas, location, radiusMi]);
 
   // Mount: refresh "now" to the client clock, then set the initial state from
   // (in precedence order) the URL, a saved default view, or the mobile default.
@@ -165,6 +204,36 @@ export function EventsExplorer({
     }
     setReady(true);
   }, [applyParsed]);
+
+  // U7 — restore the saved near-me preference once (resolving the stored city key
+  // against the current cities so the coords stay fresh). Saving happens in the
+  // handlers, so this can't race a save on mount.
+  const locRestored = useRef(false);
+  useEffect(() => {
+    if (locRestored.current || locations.length === 0) return;
+    locRestored.current = true;
+    const pref = loadLocationPref();
+    if (!pref) return;
+    const match = locations.find((l) => l.key === pref.key);
+    if (match) {
+      setLocation(match);
+      setRadiusMi(pref.radiusMi);
+    }
+  }, [locations]);
+
+  const pickLocation = useCallback((loc: MetroLocation | null) => {
+    setLocation(loc);
+    if (loc) saveLocationPref(loc.key, radiusMi);
+    else clearLocationPref();
+  }, [radiusMi]);
+  const changeRadius = useCallback((mi: number) => {
+    setRadiusMi(mi);
+    if (location) saveLocationPref(location.key, mi);
+  }, [location]);
+  const clearLocation = useCallback(() => {
+    setLocation(null);
+    clearLocationPref();
+  }, []);
 
   const viewState = useMemo(() => ({ range, year, month }), [range, year, month]);
   const win = useMemo(() => rangeWindow(now, viewState), [now, viewState]);
@@ -219,7 +288,7 @@ export function EventsExplorer({
   }, [view, range]);
 
   const isSearching = deferredQuery.trim().length > 0;
-  const filtersActive = prices.size > 0 || areas.size > 0;
+  const filtersActive = prices.size > 0 || areas.size > 0 || location !== null;
   const isFiltering = isSearching || filtersActive;
   const matchCount = windowedEvents.length;
 
@@ -271,6 +340,8 @@ export function EventsExplorer({
     setQuery("");
     setPrices(new Set());
     setAreas(new Set());
+    setLocation(null);
+    clearLocationPref();
   }
 
   // Escape closes the topmost overlay.
@@ -464,6 +535,15 @@ export function EventsExplorer({
           onTogglePrice={togglePrice}
           onToggleArea={toggleArea}
           onClear={clearAll}
+        />
+
+        <LocationControl
+          locations={locations}
+          value={location}
+          radiusMi={radiusMi}
+          onPick={pickLocation}
+          onRadius={changeRadius}
+          onClear={clearLocation}
         />
 
         {view === "calendar" ? (
