@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getEventsForDay } from "@/lib/events";
+import { orderDayEvents } from "@/lib/day-order";
 import { EventDayCard } from "@/components/EventDayCard";
 import { TopBar } from "@/components/TopBar";
 import { SiteFooter } from "@/components/SiteFooter";
@@ -40,7 +41,10 @@ export default async function DayPage({
   const { date } = await params;
   if (!isValidDayKey(date)) notFound();
 
-  const events = await getEventsForDay(date);
+  // Order spans-first then chronological by start time, shared with the DayPanel
+  // via orderDayEvents so the page and the homepage panel agree (U2). Reorder before
+  // the JSON-LD too, so ItemList position matches the visible order.
+  const events = orderDayEvents(await getEventsForDay(date));
   const { prev, next } = adjacentDayKeys(date);
 
   return (
