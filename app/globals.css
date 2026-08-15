@@ -753,6 +753,9 @@ a.daycard { text-decoration: none; }
 /* ---------- Places (Places roadmap P1.2) ---------- */
 .places-banner { max-width: 640px; margin: 0 auto 16px; padding: 11px 16px; border: 1px solid var(--gold); border-radius: 10px; background: rgba(201,169,97,0.10); color: var(--cream); font-size: 13.5px; text-align: center; }
 .places-intro { max-width: 640px; margin: 0 auto 20px; }
+.places-event-link { text-align: center; margin: -6px auto 22px; }
+.places-event-link a { color: var(--gold); font-size: 14px; font-weight: 600; text-decoration: none; border-bottom: 1px solid transparent; transition: border-color 0.15s; }
+.places-event-link a:hover { border-bottom-color: var(--gold); }
 .places-map { margin: 0 auto 20px; max-width: 720px; }
 .places-map img { display: block; width: 100%; height: auto; border-radius: 12px; border: 1px solid var(--line); }
 /* P4.2 — interactive (clustered) Places map. */

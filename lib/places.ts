@@ -117,6 +117,28 @@ export const KIND_THEMES: { key: string; label: string; kinds: PlaceKind[] }[] =
   { key: "food-culture", label: "Food & culture", kinds: ["farmers-market", "orchard", "museum", "music-venue"] },
 ];
 
+/**
+ * Bridge from a place kind to the most relevant events collection (Roadmap v6 Tier
+ * 1.2 Places↔events). The value is a COLLECTIONS slug; the kind page links to
+ * `/collections/<slug>` — steering evergreen Places traffic toward the calendar
+ * (the funnel). ONLY kinds with genuine calendar synergy are mapped; the rest
+ * (golf, disc golf, dog parks, rinks, sledding, ski, and the water kinds) carry no
+ * event link, because they honestly aren't where you'd look for what's happening.
+ * Every slug here must resolve in COLLECTIONS (drift-guard-tested).
+ */
+export const KIND_EVENT_COLLECTION: Partial<Record<PlaceKind, string>> = {
+  "music-venue": "live-music",
+  "farmers-market": "festivals-and-markets",
+  orchard: "festivals-and-markets",
+  museum: "arts-and-culture",
+  garden: "family-fun",
+  "nature-center": "family-fun",
+  playground: "family-fun",
+  park: "family-fun",
+  "indoor-playground": "family-fun",
+  "trampoline-climbing": "family-fun",
+};
+
 // Summer water season used by the current seed — guarded Minneapolis and
 // St. Paul beaches and splash pads run Memorial Day to Labor Day. Month-level:
 // the exact lifeguard dates shift yearly (they live on each sourceUrl).

@@ -11,6 +11,7 @@ import {
   kindsWithPlaces,
   relatedKinds,
   KIND_THEMES,
+  KIND_EVENT_COLLECTION,
   openNow,
   placesStaticMapUrl,
   placesSeasonBanner,
@@ -20,6 +21,7 @@ import {
 } from "../places";
 import { neighborhoodByKey } from "../neighborhoods";
 import { venuePageBySlug } from "../venue-pages";
+import { getCollection } from "../collections";
 
 const KINDS = new Set(Object.keys(KIND_META));
 const JULY = new Date("2026-07-15T12:00:00Z");
@@ -203,6 +205,20 @@ describe("KIND_THEMES + relatedKinds — the cross-linking mesh (Tier 1.2)", () 
         expect(placesByKind(r).length, `${meta.kind} → empty ${r}`).toBeGreaterThan(0);
       }
       expect(rel.length, `${meta.kind} has no related guides`).toBeGreaterThan(0);
+    }
+  });
+});
+
+describe("KIND_EVENT_COLLECTION — the Places↔events bridge (Tier 1.2)", () => {
+  it("maps only known kinds", () => {
+    for (const k of Object.keys(KIND_EVENT_COLLECTION)) {
+      expect(KINDS.has(k), k).toBe(true);
+    }
+  });
+
+  it("every mapped slug resolves to a real collection", () => {
+    for (const [k, slug] of Object.entries(KIND_EVENT_COLLECTION)) {
+      expect(getCollection(slug as string), `${k} → ${slug}`).toBeDefined();
     }
   });
 });

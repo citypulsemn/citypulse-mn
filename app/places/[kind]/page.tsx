@@ -10,8 +10,10 @@ import {
   placesSeasonBanner,
   kindsWithPlaces,
   relatedKinds,
+  KIND_EVENT_COLLECTION,
   type PlaceKind,
 } from "@/lib/places";
+import { getCollection } from "@/lib/collections";
 import { PLACES_KIND_INTRO } from "@/lib/editorial";
 
 // Static registry (no DB) — so build-time prerender is SAFE here: ENGINEERING
@@ -66,6 +68,8 @@ export default async function PlacesKindPage({
   const banner = placesSeasonBanner(places, now);
   const intro = PLACES_KIND_INTRO[k] ?? meta.blurb;
   const related = relatedKinds(k);
+  const eventCollSlug = KIND_EVENT_COLLECTION[k];
+  const eventColl = eventCollSlug ? getCollection(eventCollSlug) : undefined;
 
   return (
     <>
@@ -83,6 +87,14 @@ export default async function PlacesKindPage({
         {banner && <div className="places-banner">{banner}</div>}
 
         <p className="page-intro places-intro">{intro}</p>
+
+        {eventColl && (
+          <p className="places-event-link">
+            <a href={`/collections/${eventColl.slug}`}>
+              See what&apos;s happening: {eventColl.title} on the calendar →
+            </a>
+          </p>
+        )}
 
         <PlacesMapInteractive places={places} />
         <PlacesList places={places} />
