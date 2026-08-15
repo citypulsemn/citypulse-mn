@@ -67,6 +67,13 @@ the cockpit doing its job — the watch is the work.
 
 ## Tier 1 — Prove and feed the funnel (the growth quarter — the real work)
 
+> **Companion: `docs/ROADMAP-UX2.md`** — a 7-item UX/discovery/feature batch (map
+> popup contrast, day ordering, surfacing Places/Collections on the homepage,
+> official-link-first, mobile & desktop polish, and a zip/city location feature),
+> each recon'd against the code. It's conversion/retention quality that supports
+> this tier. Highest-leverage items: U1 (map popup, XS) and U3 (homepage section
+> discovery — the funnel win).
+
 ### 1.1 Read whether G1.1 actually converted  ⭐ gating signal
 **Why:** the entire strategy rests on the conversion overhaul working. We shipped
 all of it — `/this-week` shop-window, sharpened bands site-wide, warm-lead
