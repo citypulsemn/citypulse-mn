@@ -158,7 +158,12 @@ body::before {
   border-radius: 50% 50% 50% 0; transform: rotate(-45deg); border: 2px solid rgba(255, 255, 255, 0.85);
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5); cursor: pointer;
 }
-.mapboxgl-popup-content { background: var(--navy-900); color: var(--cream); border: 1px solid var(--gold); border-radius: 10px; padding: 14px 16px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.55); max-width: min(300px, 86vw); }
+/* background + color carry !important because the vendor mapbox-gl.css (imported
+   from the client map components) loads AFTER this file and sets .mapboxgl-popup-content
+   { background:#fff } at equal specificity — without !important the box reverts to
+   white while .pop-title/.pop-meta stay light, i.e. light-on-light. Mirrors the tip
+   fix on the next line. */
+.mapboxgl-popup-content { background: var(--navy-900) !important; color: var(--cream) !important; border: 1px solid var(--gold); border-radius: 10px; padding: 14px 16px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.55); max-width: min(300px, 86vw); }
 .mapboxgl-popup-tip { border-top-color: var(--gold) !important; border-bottom-color: var(--gold) !important; }
 .mapboxgl-popup-close-button { color: var(--cream); font-size: 20px; padding: 2px 8px; opacity: 0.85; }
 .mapboxgl-popup-close-button:hover { opacity: 1; background: transparent; }
