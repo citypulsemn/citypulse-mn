@@ -139,6 +139,16 @@ export const KIND_EVENT_COLLECTION: Partial<Record<PlaceKind, string>> = {
   "trampoline-climbing": "family-fun",
 };
 
+/** Inverse of KIND_EVENT_COLLECTION (Tier 1.2 Places↔events, reverse direction): the
+ *  place kinds whose calendar bridge points at this collection, filtered to kinds that
+ *  actually have places. Drives the "Where to go" strip on collection pages — honest
+ *  emptiness, so an empty kind (music-venue) never surfaces as a dead link. */
+export function placeKindsForCollection(collectionSlug: string): PlaceKind[] {
+  return (Object.keys(KIND_EVENT_COLLECTION) as PlaceKind[]).filter(
+    (k) => KIND_EVENT_COLLECTION[k] === collectionSlug && placesByKind(k).length > 0,
+  );
+}
+
 // Summer water season used by the current seed — guarded Minneapolis and
 // St. Paul beaches and splash pads run Memorial Day to Labor Day. Month-level:
 // the exact lifeguard dates shift yearly (they live on each sourceUrl).

@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { getEvents } from "@/lib/events";
 import { getFeatured } from "@/lib/featured";
 import { getCollection, selectCollection } from "@/lib/collections";
+import { KIND_META, placeKindsForCollection } from "@/lib/places";
 import { EventDayCard } from "@/components/EventDayCard";
 import { FeaturedRow } from "@/components/FeaturedRow";
 import { FeedSubscribe } from "@/components/FeedSubscribe";
@@ -77,6 +78,9 @@ export default async function CollectionPage({
   // Featured (R2.2): capped at 1, drawn from THIS collection's own events so a
   // paid placement stays relevant; empty (invisible) until a venue buys.
   const featured = await getFeatured("collection", selected);
+  // Reverse Places↔events bridge (Tier 1.2): the evergreen place guides that map to
+  // this collection — a "where to go" alternative, especially when the calendar is thin.
+  const placeGuides = placeKindsForCollection(collection.slug);
 
   return (
     <>
@@ -124,6 +128,19 @@ export default async function CollectionPage({
               Browse the full calendar →
             </a>
           </div>
+        )}
+
+        {placeGuides.length > 0 && (
+          <nav className="related-guides" aria-label="Related place guides">
+            <h2 className="related-guides-title">Where to go</h2>
+            <div className="related-guides-links">
+              {placeGuides.map((k) => (
+                <a key={k} href={`/places/${k}`} className="related-guide-link">
+                  {KIND_META[k].plural}
+                </a>
+              ))}
+            </div>
+          </nav>
         )}
 
         <SiteFooter source="collection" />

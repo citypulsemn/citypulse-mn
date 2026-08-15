@@ -12,6 +12,7 @@ import {
   relatedKinds,
   KIND_THEMES,
   KIND_EVENT_COLLECTION,
+  placeKindsForCollection,
   openNow,
   placesStaticMapUrl,
   placesSeasonBanner,
@@ -219,6 +220,24 @@ describe("KIND_EVENT_COLLECTION — the Places↔events bridge (Tier 1.2)", () =
   it("every mapped slug resolves to a real collection", () => {
     for (const [k, slug] of Object.entries(KIND_EVENT_COLLECTION)) {
       expect(getCollection(slug as string), `${k} → ${slug}`).toBeDefined();
+    }
+  });
+
+  it("placeKindsForCollection inverts the map, filters empties, agrees forward", () => {
+    // festivals-and-markets ← farmers-market + orchard (both seeded)
+    const fm = placeKindsForCollection("festivals-and-markets");
+    expect(fm).toContain("farmers-market");
+    expect(fm).toContain("orchard");
+    for (const k of fm) expect(placesByKind(k).length).toBeGreaterThan(0);
+    // live-music maps only the unseeded music-venue → empty (honest, no dead link)
+    expect(placeKindsForCollection("live-music")).toEqual([]);
+    // a collection with no mapped kinds → empty
+    expect(placeKindsForCollection("date-night")).toEqual([]);
+    // round-trip: every non-empty forward mapping shows up in the inverse
+    for (const [k, slug] of Object.entries(KIND_EVENT_COLLECTION)) {
+      if (placesByKind(k as PlaceKind).length > 0) {
+        expect(placeKindsForCollection(slug as string), `${slug} ← ${k}`).toContain(k);
+      }
     }
   });
 });
