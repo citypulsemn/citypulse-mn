@@ -4,8 +4,9 @@ import { EventDayCard } from "@/components/EventDayCard";
 import { TopBar } from "@/components/TopBar";
 import { SiteFooter } from "@/components/SiteFooter";
 
-// Trending is volatile by nature — short cache, regenerated on demand.
-export const revalidate = 300;
+// Trending shifts gradually (engagement-scored), so 30 min is plenty fresh and
+// spares the DB the old 5-min regenerations (egress reduction).
+export const revalidate = 1800;
 
 const TITLE = "Trending Now | City Pulse MN";
 const TAGLINE = "What the Twin Cities is actually clicking on this week.";

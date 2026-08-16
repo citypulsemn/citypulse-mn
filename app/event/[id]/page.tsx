@@ -19,7 +19,10 @@ import {
   longDate,
 } from "@/lib/event-view";
 
-export const revalidate = 300;
+// 1 hr — a single event's data barely changes and admin edits bust it immediately;
+// the old 5-min window let a crawler sweep of ~950 event pages force ~950 single-row
+// getEvent() DB reads every 5 min (a big egress slice). 1 hr cuts that ~12×.
+export const revalidate = 3600;
 
 export async function generateMetadata({
   params,

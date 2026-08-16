@@ -29,7 +29,9 @@ import type { EventRecord, EventStatus, CategoryKey, PriceTier } from "./types";
  * reads below, which never touch the Next cache and are always fresh.
  */
 export const EVENTS_TAG = "events";
-const EVENTS_TTL_SECONDS = 1800; // 30 min — the Supabase egress knob
+const EVENTS_TTL_SECONDS = 3600; // 1 hr — the Supabase egress knob. Content is
+// weekly (the Monday pipeline) and admin edits bust EVENTS_TAG immediately, so a
+// wider window costs no real freshness and halves the shared full-table DB reads.
 
 /**
  * The events data layer — the single boundary between the pipeline (which

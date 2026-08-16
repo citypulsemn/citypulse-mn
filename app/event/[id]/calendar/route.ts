@@ -3,7 +3,9 @@ import { eventToICS } from "@/lib/ics";
 import { SITE_URL } from "@/lib/seo/site";
 
 export const runtime = "nodejs";
-export const revalidate = 300;
+// 30 min — the .ics for one event is stable and crawlers/calendar pollers hammer this
+// route; a wider cache window cuts its DB reads (egress reduction).
+export const revalidate = 1800;
 
 export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> }) {
   const { id } = await ctx.params;
