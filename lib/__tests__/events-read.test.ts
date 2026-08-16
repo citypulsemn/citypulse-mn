@@ -31,6 +31,13 @@ describe("hardening — a configured-DB read failure must NOT cache sample/empty
     expect(src).toContain("if (!sql) return sampleEvents;");
     expect(src).not.toMatch(/using sample data:", err\);\s*return sampleEvents/);
   });
+
+  it("list reads cap description to a preview (egress); the detail page keeps full text", () => {
+    // description is ~half the getEvents payload — the 3 list reads (readAllPublished,
+    // readEventsForDay, getEventsByIds) truncate it; getEvent (detail page) does not.
+    expect((src.match(/left\(description, 179\) \|\| '…'/g) ?? []).length).toBe(3);
+    expect(src).toContain("ticket_url, description, image"); // getEvent — the one full read
+  });
 });
 
 describe("getEvent (sample fallback)", () => {

@@ -108,7 +108,13 @@ async function readAllPublished(): Promise<EventRecord[]> {
         title, category, venue, address, city, lat, lng,
         to_char(start_at at time zone 'America/Chicago', 'YYYY-MM-DD"T"HH24:MI') as start,
         to_char(end_at   at time zone 'America/Chicago', 'YYYY-MM-DD"T"HH24:MI') as end,
-        price, price_tier, ticket_url, description, image, source_url, status,
+        price, price_tier, ticket_url,
+        -- Egress: description is ~half the getEvents payload (avg 203 chars). The
+        -- list surfaces (cards/calendar/map) don't show it; search + the quick-look
+        -- modal do, so cap it to a 180-char preview here. The full text is still on
+        -- the detail page (getEvent, below), which the modal links to.
+        case when length(description) > 180 then left(description, 179) || '…' else description end as description,
+        image, source_url, status,
       to_char(multi_day_end at time zone 'America/Chicago', 'YYYY-MM-DD"T"HH24:MI') as multi_day_end,
       all_day
       from events
@@ -177,7 +183,10 @@ async function readEventsForDay(dayKey: string): Promise<EventRecord[]> {
         title, category, venue, address, city, lat, lng,
         to_char(start_at at time zone 'America/Chicago', 'YYYY-MM-DD"T"HH24:MI') as start,
         to_char(end_at   at time zone 'America/Chicago', 'YYYY-MM-DD"T"HH24:MI') as end,
-        price, price_tier, ticket_url, description, image, source_url, status,
+        price, price_tier, ticket_url,
+        -- Egress: cap description to a preview (full text stays on the detail page).
+        case when length(description) > 180 then left(description, 179) || '…' else description end as description,
+        image, source_url, status,
       to_char(multi_day_end at time zone 'America/Chicago', 'YYYY-MM-DD"T"HH24:MI') as multi_day_end,
       all_day
       from events
@@ -262,7 +271,10 @@ export async function getEventsByIds(ids: string[]): Promise<EventRecord[]> {
       title, category, venue, address, city, lat, lng,
       to_char(start_at at time zone 'America/Chicago', 'YYYY-MM-DD"T"HH24:MI') as start,
       to_char(end_at   at time zone 'America/Chicago', 'YYYY-MM-DD"T"HH24:MI') as end,
-      price, price_tier, ticket_url, description, image, source_url, status,
+      price, price_tier, ticket_url,
+      -- Egress: cap description to a preview (full text stays on the detail page).
+      case when length(description) > 180 then left(description, 179) || '…' else description end as description,
+      image, source_url, status,
       to_char(multi_day_end at time zone 'America/Chicago', 'YYYY-MM-DD"T"HH24:MI') as multi_day_end,
       all_day
     from events
