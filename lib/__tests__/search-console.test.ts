@@ -1,9 +1,11 @@
 import { describe, it, expect, afterEach } from "vitest";
 import {
   parseSearchAnalytics,
+  parseAnalyticsRows,
   buildJwtClaims,
   gscDateWindow,
   getSearchImpressions,
+  getSearchAnalyticsByDimension,
 } from "../search-console";
 
 describe("parseSearchAnalytics — GSC searchAnalytics response → totals", () => {
@@ -43,6 +45,50 @@ describe("parseSearchAnalytics — GSC searchAnalytics response → totals", () 
     // impressions 0 but a click recorded — degenerate, but must not NaN.
     const raw = { rows: [{ impressions: 0, clicks: 3 }] };
     expect(parseSearchAnalytics(raw)).toEqual({ impressions: 0, clicks: 3, ctr: 0 });
+  });
+});
+
+describe("parseAnalyticsRows — dimensioned response → typed rows (the report)", () => {
+  it("shapes query/page rows and sorts by impressions desc", () => {
+    const raw = {
+      rows: [
+        { keys: ["fringe festival"], clicks: 8, impressions: 120, ctr: 0.066, position: 4.2 },
+        { keys: ["things to do minneapolis"], clicks: 20, impressions: 900, ctr: 0.022, position: 8.9 },
+        { keys: ["kielbasa festival"], clicks: 12, impressions: 300, ctr: 0.04, position: 3.1 },
+      ],
+    };
+    const rows = parseAnalyticsRows(raw);
+    expect(rows.map((r) => r.key)).toEqual([
+      "things to do minneapolis",
+      "kielbasa festival",
+      "fringe festival",
+    ]);
+    expect(rows[0]).toEqual({ key: "things to do minneapolis", clicks: 20, impressions: 900, ctr: 0.022, position: 8.9 });
+  });
+
+  it("drops keyless/junk rows and coerces non-finite fields to 0", () => {
+    const raw = { rows: [null, "x", { keys: [] }, { keys: ["ok"], impressions: NaN, clicks: 5 }] };
+    expect(parseAnalyticsRows(raw)).toEqual([{ key: "ok", clicks: 5, impressions: 0, ctr: 0, position: 0 }]);
+  });
+
+  it("honest emptiness: no rows / non-object → []", () => {
+    expect(parseAnalyticsRows({})).toEqual([]);
+    expect(parseAnalyticsRows({ rows: [] })).toEqual([]);
+    expect(parseAnalyticsRows(null)).toEqual([]);
+  });
+});
+
+describe("getSearchAnalyticsByDimension — safe before the service account is wired", () => {
+  const saved = process.env.GSC_SERVICE_ACCOUNT_JSON;
+  afterEach(() => {
+    if (saved === undefined) delete process.env.GSC_SERVICE_ACCOUNT_JSON;
+    else process.env.GSC_SERVICE_ACCOUNT_JSON = saved;
+  });
+
+  it("no key → [] (never-break, the report degrades to empty)", async () => {
+    delete process.env.GSC_SERVICE_ACCOUNT_JSON;
+    expect(await getSearchAnalyticsByDimension("query")).toEqual([]);
+    expect(await getSearchAnalyticsByDimension("page")).toEqual([]);
   });
 });
 

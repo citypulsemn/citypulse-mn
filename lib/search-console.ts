@@ -54,6 +54,78 @@ export function parseSearchAnalytics(raw: unknown): SearchStats | null {
   return { impressions, clicks, ctr: impressions > 0 ? clicks / impressions : 0 };
 }
 
+export interface GscRow {
+  /** The dimension value — a page URL or a query string. */
+  key: string;
+  clicks: number;
+  impressions: number;
+  /** clicks / impressions, 0..1, as GSC reports it. */
+  ctr: number;
+  /** Average position (1 = top of results). */
+  position: number;
+}
+
+const num = (v: unknown): number => (typeof v === "number" && Number.isFinite(v) ? v : 0);
+
+/**
+ * Shape a DIMENSIONED `searchAnalytics.query` response (dimensions:["query"] or
+ * ["page"]) into typed rows, sorted by impressions desc. Pure/tested — the
+ * counterpart to parseSearchAnalytics (which sums the undimensioned totals).
+ * Rows missing a key are dropped; a non-object/rows-less response → [].
+ */
+export function parseAnalyticsRows(raw: unknown): GscRow[] {
+  if (!raw || typeof raw !== "object") return [];
+  const rows = (raw as { rows?: unknown }).rows;
+  if (!Array.isArray(rows)) return [];
+  const out: GscRow[] = [];
+  for (const r of rows) {
+    if (!r || typeof r !== "object") continue;
+    const o = r as { keys?: unknown } & Record<string, unknown>;
+    const key = Array.isArray(o.keys) && typeof o.keys[0] === "string" ? o.keys[0] : "";
+    if (!key) continue;
+    out.push({ key, clicks: num(o.clicks), impressions: num(o.impressions), ctr: num(o.ctr), position: num(o.position) });
+  }
+  return out.sort((a, b) => b.impressions - a.impressions);
+}
+
+/**
+ * Top rows for ONE dimension ("query" or "page"), ordered by impressions — the
+ * breakdown behind the aggregate the digest reports, for the "what's actually
+ * ranking / discovery vs transactional" diagnostic (`scripts/gsc-report.ts`).
+ * Same auth + window as getSearchImpressions; [] when not wired or on any
+ * failure (never-break). Defaults to a 28-day window for a fuller signal.
+ */
+export async function getSearchAnalyticsByDimension(
+  dimension: "query" | "page" | "country" | "device",
+  days = 28,
+  now: Date = new Date(),
+  rowLimit = 25,
+): Promise<GscRow[]> {
+  const rawKey = process.env.GSC_SERVICE_ACCOUNT_JSON;
+  if (!rawKey || !rawKey.trim()) return [];
+  try {
+    const sa = JSON.parse(rawKey) as ServiceAccount;
+    if (!sa.client_email || !sa.private_key) throw new Error("service account JSON missing fields");
+    const property = process.env.GSC_PROPERTY || "sc-domain:citypulsemn.com";
+    const nowSec = Math.floor(now.getTime() / 1000);
+    const token = await getAccessToken(sa, nowSec);
+    const { startDate, endDate } = gscDateWindow(now, days);
+    const res = await fetch(
+      `https://searchconsole.googleapis.com/webmasters/v3/sites/${encodeURIComponent(property)}/searchAnalytics/query`,
+      {
+        method: "POST",
+        headers: { authorization: `Bearer ${token}`, "content-type": "application/json" },
+        body: JSON.stringify({ startDate, endDate, dimensions: [dimension], rowLimit }),
+      },
+    );
+    if (!res.ok) throw new Error(`gsc ${dimension} query ${res.status}: ${(await res.text()).slice(0, 160)}`);
+    return parseAnalyticsRows(await res.json());
+  } catch (err) {
+    console.error(`[gsc] ${dimension} report failed:`, err);
+    return [];
+  }
+}
+
 /** The signed JWT claim set for the service-account → access-token exchange.
  *  Pure and tested — getting iss/scope/aud/exp right is the whole ballgame. */
 export function buildJwtClaims(clientEmail: string, nowSec: number) {

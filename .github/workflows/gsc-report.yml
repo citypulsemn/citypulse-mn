@@ -1,0 +1,32 @@
+name: GSC Report
+
+# On-demand "what's actually ranking" report (v6 diagnostic): top queries + top
+# pages + impressions-by-section, so we can read discovery vs transactional
+# search and pick the next Places kind by observed demand. Read-only, manual
+# only — no schedule, no send. Uses the F2.4 service account already in secrets.
+on:
+  workflow_dispatch: {}
+
+concurrency:
+  group: gsc-report
+  cancel-in-progress: false
+
+jobs:
+  gsc-report:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci --prefer-offline --no-audit --no-fund
+
+      - name: GSC report
+        run: npm run gsc-report
+        env:
+          GSC_SERVICE_ACCOUNT_JSON: ${{ secrets.GSC_SERVICE_ACCOUNT_JSON }}
+          # GSC_PROPERTY defaults to sc-domain:citypulsemn.com; set only to override.
