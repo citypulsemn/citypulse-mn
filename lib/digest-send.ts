@@ -1,11 +1,14 @@
 import { getEventsUncached } from "./events";
 import { getSubscribedRecipients } from "./subscribe";
 import { sql } from "./db";
-import { digestEvents, renderDigestEmail, digestWeekLabel } from "./digest";
+import { digestEvents, renderDigestEmail, digestWeekLabel, selectMostSaved } from "./digest";
 import { selectSavedUpcoming, categoryAffinity, personalizePicks } from "./digest-personal";
 import { getSavedEvents } from "./saved";
+import { getMostSavedCounts } from "./stats";
+import { placeOfTheWeek } from "./places";
 import { unsubscribeUrl, unsubSecret } from "./unsubscribe-token";
 import { SITE_URL } from "./seo/site";
+import type { EventRecord } from "./types";
 
 /**
  * Sends the weekly digest via the Resend batch API (no SDK — plain fetch, so
@@ -53,7 +56,8 @@ export async function sendWeeklyDigest(opts: { dryRun?: boolean } = {}): Promise
   }
 
   const now = new Date();
-  const picks = digestEvents(await getEventsUncached(), now);
+  const allEvents = await getEventsUncached();
+  const picks = digestEvents(allEvents, now);
   const recipients = await getSubscribedRecipients();
 
   if (picks.length === 0) {
@@ -64,6 +68,20 @@ export async function sendWeeklyDigest(opts: { dryRun?: boolean } = {}): Promise
   }
 
   const weekLabel = digestWeekLabel(now);
+
+  // v6 1.3 — digest depth. Both are GLOBAL (identical for every recipient), so
+  // compute once here, not per-message. Place of the week is pure (the registry);
+  // most-saved is a never-break read resolved against the events already loaded,
+  // so a saved-then-archived event is never featured stale. Both degrade to
+  // omitted — an outage or thin data must never cost anyone their email.
+  const placeOfWeek = placeOfTheWeek(now);
+  const byId = new Map(allEvents.map((e) => [e.id, e]));
+  let mostSaved: EventRecord[] = [];
+  try {
+    mostSaved = selectMostSaved(await getMostSavedCounts(7), byId);
+  } catch (err) {
+    console.error("[digest] most-saved read failed (section omitted):", err);
+  }
 
   // ROADMAP 5.3 — personalization. Recipients who subscribed from a browser
   // where they'd saved events carry a saver_token; their email leads with
@@ -93,6 +111,8 @@ export async function sendWeeklyDigest(opts: { dryRun?: boolean } = {}): Promise
       unsubscribeUrl: unsub,
       siteUrl,
       savedThisWeek,
+      placeOfWeek,
+      mostSaved,
     });
     return {
       from,

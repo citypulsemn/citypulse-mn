@@ -5156,3 +5156,40 @@ export function placesSeasonBanner(places: Place[], now: Date): string | null {
     ? `Closed for the season — these reopen around ${label.split("–")[0].trim()}.`
     : "Closed for the season right now.";
 }
+
+/**
+ * PLACE OF THE WEEK (Roadmap v6 1.3 — digest depth). One registry entry for the
+ * weekly email to feature, rotating each week and tied to the season: the
+ * candidate pool is the places OPEN NOW (Chicago frame, `openNow`), preferring
+ * the ones actively in season — a sledding hill in January, a splash pad in July
+ * — and falling back to the year-round evergreens (museums, indoor playgrounds)
+ * in shoulder months when nothing seasonal is open. So the pick is always
+ * something a reader could actually go do this week, and it drops the Places SEO
+ * asset straight into the email (the discovery→retention flywheel).
+ *
+ * Deterministic from `now` — a Chicago-anchored WEEK index, no `Date.now()` or
+ * `Math.random()`, so tests are stable and two sends in the same week agree. The
+ * epoch-week boundary lands on Thursday (epoch day 0 was a Thursday), which is
+ * exactly the digest's send day, so each weekly send advances the rotation by one.
+ *
+ * Manual override: set PLACE_OF_WEEK_PIN to a slug to hand-pick the week's place
+ * (Taren's voice wins — an off-season pin is honored). Mirrors DIGEST_SPONSOR:
+ * null by default = automatic rotation, no toil.
+ */
+export const PLACE_OF_WEEK_PIN: string | null = null;
+
+export function placeOfTheWeek(now: Date): Place | null {
+  if (PLACE_OF_WEEK_PIN) {
+    const pinned = placeBySlug(PLACE_OF_WEEK_PIN);
+    if (pinned) return pinned;
+  }
+  const open = PLACES.filter((p) => openNow(p, now));
+  if (open.length === 0) return null;
+  const seasonal = open.filter((p) => p.season.type === "seasonal");
+  const pool = (seasonal.length > 0 ? seasonal : open)
+    .slice()
+    .sort((a, b) => a.slug.localeCompare(b.slug));
+  const [y, m, d] = chiDayKey(now).split("-").map(Number);
+  const week = Math.floor(Date.UTC(y, m - 1, d) / (7 * 86_400_000));
+  return pool[week % pool.length];
+}

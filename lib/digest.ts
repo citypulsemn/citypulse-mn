@@ -1,6 +1,7 @@
 import { weeklyPicks } from "./content/weekly-picks";
 import { DOW, MONTHS, timeLabel, evDate, dkey } from "./dates";
 import { CATEGORIES } from "./categories";
+import { KIND_META, type Place } from "./places";
 import type { EventRecord } from "./types";
 
 /**
@@ -33,6 +34,12 @@ export interface DigestOptions {
   /** ROADMAP R2.1 — the newsletter sponsor. Omit ⇒ use the module DIGEST_SPONSOR
    *  (null by default = no slot). Pass null explicitly to force no sponsor. */
   sponsor?: DigestSponsor | null;
+  /** ROADMAP v6 1.3 — the week's featured Place (`placeOfTheWeek(now)`). Absent/
+   *  null ⇒ the section renders nothing. Same for every recipient. */
+  placeOfWeek?: Place | null;
+  /** ROADMAP v6 1.3 — the events readers saved most this week (`selectMostSaved`).
+   *  Absent/empty ⇒ nothing renders (honest emptiness). Same for every recipient. */
+  mostSaved?: EventRecord[];
 }
 
 /** The curated ~8-event set for the email: family + unique + top regulars. */
@@ -160,6 +167,104 @@ export function sponsorSlotText(sponsor: DigestSponsor | null): string {
   return lines.join("\n");
 }
 
+// ── Place of the week (Roadmap v6 1.3 — the evergreen Places bridge) ──────────
+
+function placeUrl(siteUrl: string, place: Place): string {
+  return `${siteUrl}/places/${place.kind}?utm_source=email&utm_medium=digest#${place.slug}`;
+}
+
+/** The "Place of the week" card as an email table row. "" when null (honest
+ *  emptiness — no placeholder). Pure. `place` comes from `placeOfTheWeek(now)`. */
+export function placeOfWeekHtml(place: Place | null, siteUrl: string): string {
+  if (!place) return "";
+  const ctx = `${KIND_META[place.kind].label} · ${esc(place.city)}`;
+  const href = placeUrl(siteUrl, place);
+  return `
+        <tr><td style="padding:16px 24px 0;">
+          <div style="font:600 13px/1.2 Arial,Helvetica,sans-serif;color:${GOLD};text-transform:uppercase;letter-spacing:1.5px;">Place of the week</div>
+        </td></tr>
+        <tr><td style="padding:12px 24px 0;">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${NAVY_CARD};border:1px solid rgba(201,169,97,0.28);border-radius:10px;">
+            <tr><td style="padding:16px 18px;">
+              <div style="font:600 12px/1.2 Arial,Helvetica,sans-serif;color:${GOLD};text-transform:uppercase;letter-spacing:1px;">${ctx}</div>
+              <a href="${href}" style="font:700 19px/1.3 Georgia,'Times New Roman',serif;color:${CREAM};text-decoration:none;display:block;margin:6px 0 6px;">${esc(place.name)}</a>
+              <div style="font:400 14px/1.5 Arial,Helvetica,sans-serif;color:${CREAM_DIM};">${esc(place.intro)}</div>
+              <a href="${href}" style="font:600 14px/1.2 Arial,Helvetica,sans-serif;color:${GOLD};text-decoration:none;display:inline-block;margin-top:10px;">See it on the map &rarr;</a>
+            </td></tr>
+          </table>
+        </td></tr>`;
+}
+
+/** The "Place of the week" block for the plain-text part. "" when null. Pure. */
+export function placeOfWeekText(place: Place | null, siteUrl: string): string {
+  if (!place) return "";
+  return [
+    "PLACE OF THE WEEK",
+    `${place.name} — ${KIND_META[place.kind].label} · ${place.city}`,
+    `  ${place.intro}`,
+    `  ${placeUrl(siteUrl, place)}`,
+  ].join("\n");
+}
+
+// ── Most saved this week (Roadmap v6 1.3 — honest reader social proof) ────────
+
+/** Privacy/noise floor: never surface a "most saved" event below this many saves
+ *  — the block stays dark until it reflects several readers, not one identifiable
+ *  person (and not statistical noise). Raise/lower as save volume grows. */
+export const MOST_SAVED_MIN = 3;
+const MOST_SAVED_CAP = 3;
+
+/**
+ * Resolve raw save counts (`getMostSavedCounts`) to the events to feature: only
+ * those meeting `min`, present in `byId` (the current published/upcoming set — a
+ * saved-then-archived or past event is silently dropped, never featured stale),
+ * highest first, capped. Pure + golden-tested; honest-emptiness — returns [] when
+ * thin, which renders NOTHING.
+ */
+export function selectMostSaved(
+  counts: { id: string; saves: number }[],
+  byId: Map<string, EventRecord>,
+  min = MOST_SAVED_MIN,
+  cap = MOST_SAVED_CAP,
+): EventRecord[] {
+  return counts
+    .filter((c) => c.saves >= min)
+    .slice()
+    .sort((a, b) => b.saves - a.saves)
+    .map((c) => byId.get(c.id))
+    .filter((e): e is EventRecord => Boolean(e))
+    .slice(0, cap);
+}
+
+/** The "Most saved this week" section as email table rows. "" when empty. Pure. */
+export function mostSavedHtml(events: EventRecord[], siteUrl: string): string {
+  if (events.length === 0) return "";
+  const rows = events.map((e) => eventRowHtml(e, siteUrl)).join("");
+  return `
+        <tr><td style="padding:16px 24px 0;">
+          <div style="font:600 13px/1.2 Arial,Helvetica,sans-serif;color:${GOLD};text-transform:uppercase;letter-spacing:1.5px;">Most saved this week</div>
+        </td></tr>
+        <tr><td style="padding:12px 24px 0;">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0">${rows}</table>
+        </td></tr>`;
+}
+
+/** The "Most saved this week" block for the plain-text part. "" when empty. Pure. */
+export function mostSavedText(events: EventRecord[], siteUrl: string): string {
+  if (events.length === 0) return "";
+  return [
+    "MOST SAVED THIS WEEK",
+    "",
+    ...events.flatMap((e) => [
+      e.title,
+      `  ${whenLabel(e)}`,
+      `  ${[e.venue, e.city].filter(Boolean).join(" · ")} · ${e.price}`,
+      `  ${eventUrl(siteUrl, e.id)}`,
+      "",
+    ]),
+  ].join("\n");
+}
+
 export function renderDigestEmail(opts: DigestOptions): DigestData {
   const { events, weekLabel, unsubscribeUrl, siteUrl } = opts;
   // R2.1 — default to the module sponsor; a caller may pass null to force none.
@@ -179,6 +284,13 @@ export function renderDigestEmail(opts: DigestOptions): DigestData {
   const savedRows = saved.map((e) => eventRowHtml(e, siteUrl)).join("");
   const sponsorHtml = sponsorSlotHtml(sponsor);
   const sponsorText = sponsorSlotText(sponsor);
+  // v6 1.3 — evergreen Places bridge + honest reader social proof. Both are
+  // global (same for everyone) and degrade to "" when absent/thin.
+  const placeHtml = placeOfWeekHtml(opts.placeOfWeek ?? null, siteUrl);
+  const placeText = placeOfWeekText(opts.placeOfWeek ?? null, siteUrl);
+  const savedTop = opts.mostSaved ?? [];
+  const mostSavedHtmlBlock = mostSavedHtml(savedTop, siteUrl);
+  const mostSavedTextBlock = mostSavedText(savedTop, siteUrl);
   const savedSection = saved.length === 0 ? "" : `
         <tr><td style="padding:16px 24px 0;">
           <div style="font:600 13px/1.2 Arial,Helvetica,sans-serif;color:${GOLD};text-transform:uppercase;letter-spacing:1.5px;">You saved these — happening this week</div>
@@ -203,7 +315,7 @@ export function renderDigestEmail(opts: DigestOptions): DigestData {
         </td></tr>${sponsorHtml}${savedSection}
         <tr><td style="padding:14px 24px 0;">
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0">${rows}</table>
-        </td></tr>
+        </td></tr>${mostSavedHtmlBlock}${placeHtml}
         <tr><td style="padding:6px 24px 16px;">
           <a href="${siteUrl}?utm_source=email&utm_medium=digest" style="font:600 15px/1.2 Arial,Helvetica,sans-serif;color:${NAVY};background:${GOLD};text-decoration:none;display:inline-block;padding:12px 20px;border-radius:8px;">See everything on City Pulse &rarr;</a>
         </td></tr>
@@ -246,6 +358,8 @@ export function renderDigestEmail(opts: DigestOptions): DigestData {
       `  ${eventUrl(siteUrl, e.id)}`,
       "",
     ]),
+    ...(mostSavedTextBlock ? [mostSavedTextBlock, ""] : []),
+    ...(placeText ? [placeText, ""] : []),
     `See everything: ${siteUrl}`,
     `Enjoying this? Forward it to a friend — or send them ${siteUrl}/this-week to get their own.`,
     "",

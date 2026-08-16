@@ -10,6 +10,41 @@ pointed to from the items below; the older numbered roadmaps are now history.*
 
 ---
 
+## Rebaseline — Aug 16, 2026 (read this first; supersedes tier statuses below)
+
+Two build sessions landed since this doc was written (Aug 14). Reconciled against
+the working tree today, **the entire growth/repair spine is shipped** — the tiers
+below still describe several done items as open. Current truth:
+
+- **Tier 0 — closed.** 0.1 egress: Supabase **Pro upgraded** + cache/TTL fixes
+  shipped (`79ae905`, `bd87a63`, `855db98`); no 402s. 0.2 metric integrity: M0.2
+  de-dup + the calendar-beacon dig done; adds-vs-views now sane. 0.3 Monday watch
+  is standing.
+- **Tier 1 — essentially done.** 1.1 read: G1.1 **converted +1 this week** (event
+  band) but the funnel is transactional (confirmed by GSC — see below); audience/
+  composition is the constraint. 1.2 **winter Places wave shipped** (indoor
+  playgrounds, ice rinks expand, ski/tubing, trampoline/climbing; +dog-park,
+  disc-golf). 1.3 digest depth **✅ SHIPPED Aug 16** (`DEPLOY-1.3-DIGEST-DEPTH`) —
+  place-of-the-week + most-saved. 1.4 resubscribe/opt-in policy **already shipped**
+  (F2.3 mechanics + Taren's single-opt-in call).
+- **Tier 2 — 2.1 done, 2.2 still blocked.** 2.1 trending calibration shipped
+  (F1.2, `DEPLOY-F1.2-TRENDING-CALIBRATION`). 2.2 "for you" ordering **remains
+  gated on save volume** (~1/wk, flat) — the one real dependency still unmet; 1.3's
+  most-saved is dark for the same reason. Fix the saves trend before building 2.2.
+- **F2.4 — ✅ RESOLVED + LIVE Aug 15** (was Tier 4, "blocked by org policy"). The
+  org policy was cleared org-admin-side; GSC impressions now auto-report in the ops
+  digest. First read: **4,732 impressions / 182 clicks (7d)**. Only the raw
+  *indexed-count* stays manual (not an API bulk read, by design).
+
+**What's genuinely open + unblocked:** another **1.2 Places kind** (rolling — but
+"measure before Wave 2" now has GSC data to reorder by), and **P4.3 open-now/free
+filters** (small, low priority). **What's blocked:** 2.2 (save volume). **The
+governing number is unchanged: subscribers ~5 → 500.** The GSC read points the next
+non-code lever at *discovery-intent* search/distribution (audience), not more
+surfaces.
+
+---
+
 ## Strategic context, in five sentences
 
 Everything ungated across v4 (cockpit + index), v5 (the R0/R1/R2 repair sprints),

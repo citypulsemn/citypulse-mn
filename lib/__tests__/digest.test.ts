@@ -6,8 +6,15 @@ import {
   sponsorSlotHtml,
   sponsorSlotText,
   DIGEST_SPONSOR,
+  selectMostSaved,
+  MOST_SAVED_MIN,
+  placeOfWeekHtml,
+  placeOfWeekText,
+  mostSavedHtml,
+  mostSavedText,
 } from "../digest";
 import { makeUnsubToken, verifyUnsubToken, unsubscribeUrl } from "../unsubscribe-token";
+import type { Place } from "../places";
 import type { EventRecord } from "../types";
 
 const NOW = new Date("2026-07-13T09:00:00-05:00"); // Monday
@@ -138,6 +145,130 @@ describe("renderDigestEmail", () => {
   it("handles an empty set with a sensible subject", () => {
     const empty = renderDigestEmail({ events: [], weekLabel: "July 13 – 19", unsubscribeUrl: "#", siteUrl: "https://citypulsemn.com" });
     expect(empty.subject).toBe("This week in the Twin Cities");
+  });
+});
+
+describe("digest depth — most saved this week (v6 1.3)", () => {
+  const a = ev({ id: "a", title: "Fringe Festival" });
+  const b = ev({ id: "b", title: "Art Fair" });
+  const c = ev({ id: "c", title: "Restaurant Week" });
+  const byId = new Map<string, EventRecord>([a, b, c].map((e) => [e.id, e]));
+
+  it("keeps only events at or above the privacy/noise floor, highest first", () => {
+    const picked = selectMostSaved(
+      [
+        { id: "a", saves: MOST_SAVED_MIN + 4 },
+        { id: "b", saves: MOST_SAVED_MIN }, // exactly the floor — kept
+        { id: "c", saves: MOST_SAVED_MIN - 1 }, // below — dropped
+      ],
+      byId,
+    );
+    expect(picked.map((e) => e.id)).toEqual(["a", "b"]);
+  });
+
+  it("stays dark when saves are thin (nothing meets the floor)", () => {
+    const picked = selectMostSaved([{ id: "a", saves: 1 }, { id: "b", saves: 2 }], byId);
+    expect(picked).toEqual([]);
+    expect(mostSavedHtml(picked, "https://citypulsemn.com")).toBe("");
+    expect(mostSavedText(picked, "https://citypulsemn.com")).toBe("");
+  });
+
+  it("drops a saved event that is no longer in the published set (never featured stale)", () => {
+    const picked = selectMostSaved([{ id: "gone", saves: 99 }, { id: "a", saves: 5 }], byId);
+    expect(picked.map((e) => e.id)).toEqual(["a"]);
+  });
+
+  it("caps the list at three", () => {
+    const many = Array.from({ length: 6 }, (_, i) => ev({ id: `m${i}` }));
+    const bigId = new Map(many.map((e) => [e.id, e]));
+    const picked = selectMostSaved(
+      many.map((e, i) => ({ id: e.id, saves: MOST_SAVED_MIN + 10 - i })),
+      bigId,
+    );
+    expect(picked.length).toBe(3);
+  });
+
+  it("renders a labeled section with the event titles when present", () => {
+    const picked = selectMostSaved([{ id: "a", saves: 5 }], byId);
+    const html = mostSavedHtml(picked, "https://citypulsemn.com");
+    expect(html).toContain("Most saved this week");
+    expect(html).toContain("Fringe Festival");
+    expect(mostSavedText(picked, "https://citypulsemn.com")).toContain("MOST SAVED THIS WEEK");
+  });
+});
+
+describe("digest depth — place of the week (v6 1.3)", () => {
+  const place: Place = {
+    slug: "wirth-lake-beach",
+    name: "Wirth Lake Beach",
+    kind: "beach",
+    lat: 44.98,
+    lng: -93.32,
+    address: "3200 Glenwood Ave",
+    city: "Minneapolis",
+    neighborhood: null,
+    season: { type: "seasonal", openMonth: 5, closeMonth: 9, label: "Memorial Day–Labor Day" },
+    cost: "free",
+    tags: [],
+    intro: "The metro's only downtown-adjacent swimming beach, with a guarded sand shore.",
+    sourceUrl: "https://minneapolisparks.org/",
+    verifiedAt: "2026-08-07",
+    venueSlug: null,
+  };
+
+  it("renders nothing when there is no place (honest emptiness)", () => {
+    expect(placeOfWeekHtml(null, "https://citypulsemn.com")).toBe("");
+    expect(placeOfWeekText(null, "https://citypulsemn.com")).toBe("");
+  });
+
+  it("renders the name, kind, intro, and a UTM'd deep link into the kind page", () => {
+    const html = placeOfWeekHtml(place, "https://citypulsemn.com");
+    expect(html).toContain("Place of the week");
+    expect(html).toContain("Wirth Lake Beach");
+    expect(html).toContain("Beach · Minneapolis");
+    expect(html).toContain("guarded sand shore");
+    expect(html).toContain("/places/beach?utm_source=email&utm_medium=digest#wirth-lake-beach");
+    const text = placeOfWeekText(place, "https://citypulsemn.com");
+    expect(text).toContain("PLACE OF THE WEEK");
+    expect(text).toContain("Wirth Lake Beach — Beach · Minneapolis");
+  });
+
+  it("escapes HTML in the place name and intro", () => {
+    const risky = placeOfWeekHtml({ ...place, name: "A & <B>", intro: "<script>x</script>" }, "#");
+    expect(risky).toContain("A &amp; &lt;B&gt;");
+    expect(risky).not.toContain("<script>");
+  });
+});
+
+describe("renderDigestEmail — 1.3 sections integration", () => {
+  const events = [ev({ id: "a", title: "Trampled by Turtles" })];
+  const base = { events, weekLabel: "July 13 – 19", unsubscribeUrl: "#", siteUrl: "https://citypulsemn.com" };
+  const place: Place = {
+    slug: "como-pool", name: "Como Pool", kind: "pool", lat: 44.98, lng: -93.15,
+    address: "1151 Como Ave", city: "St. Paul", neighborhood: null,
+    season: { type: "seasonal", openMonth: 6, closeMonth: 8, label: "June–August" },
+    cost: "paid", tags: [], intro: "A zero-depth entry and a 130-foot waterslide by the lake.",
+    sourceUrl: "https://stpaul.gov/", verifiedAt: "2026-08-07", venueSlug: null,
+  };
+
+  it("omits both sections by default (no options passed)", () => {
+    const out = renderDigestEmail(base);
+    expect(out.html).not.toContain("Place of the week");
+    expect(out.html).not.toContain("Most saved this week");
+    expect(out.text).not.toContain("PLACE OF THE WEEK");
+  });
+
+  it("includes place-of-the-week when provided, in html and text", () => {
+    const out = renderDigestEmail({ ...base, placeOfWeek: place });
+    expect(out.html).toContain("Place of the week");
+    expect(out.html).toContain("Como Pool");
+    expect(out.text).toContain("Como Pool");
+  });
+
+  it("includes most-saved when provided", () => {
+    const out = renderDigestEmail({ ...base, mostSaved: [ev({ id: "z", title: "Kielbasa Festival" })] });
+    expect(out.html).toContain("Most saved this week");
+    expect(out.html).toContain("Kielbasa Festival");
   });
 });
 

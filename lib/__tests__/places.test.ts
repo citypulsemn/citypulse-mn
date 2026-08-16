@@ -16,6 +16,8 @@ import {
   openNow,
   placesStaticMapUrl,
   placesSeasonBanner,
+  placeOfTheWeek,
+  PLACE_OF_WEEK_PIN,
   PLACES_MAP_MAX_PINS,
   type Place,
   type PlaceKind,
@@ -417,5 +419,51 @@ describe("P1.3 wire-in (tripwires)", () => {
   it("index + kind OG image routes use the shared OgCard shell", () => {
     expect(read("app/places/opengraph-image.tsx")).toContain("OgCard");
     expect(read("app/places/[kind]/opengraph-image.tsx")).toContain("OgCard");
+  });
+});
+
+describe("placeOfTheWeek (v6 1.3 — digest depth)", () => {
+  it("ships with automatic rotation (no manual pin) by default", () => {
+    expect(PLACE_OF_WEEK_PIN).toBeNull();
+  });
+
+  it("always returns a real registry place while the registry is non-empty", () => {
+    for (const now of [JULY, JANUARY, new Date("2026-04-15T12:00:00Z"), new Date("2026-11-15T12:00:00Z")]) {
+      const p = placeOfTheWeek(now);
+      expect(p, now.toISOString()).not.toBeNull();
+      expect(PLACES).toContain(p);
+    }
+  });
+
+  it("only ever features a place that is OPEN this week (never a closed one)", () => {
+    for (const now of [JULY, JANUARY, new Date("2026-03-01T12:00:00Z"), new Date("2026-09-20T12:00:00Z")]) {
+      const p = placeOfTheWeek(now)!;
+      expect(openNow(p, now), `${p.slug} on ${now.toISOString()}`).toBe(true);
+    }
+  });
+
+  it("prefers a seasonally in-season place when any is open (a summer spot in July, winter in January)", () => {
+    // In deep summer and deep winter the metro always has an actively-seasonal
+    // open kind, so the pick should be a 'seasonal' entry, not an evergreen.
+    for (const now of [JULY, JANUARY]) {
+      const p = placeOfTheWeek(now)!;
+      expect(p.season.type, `${p.slug} on ${now.toISOString()}`).toBe("seasonal");
+    }
+  });
+
+  it("is deterministic — the same week yields the same place", () => {
+    // Same Chicago week (Thu→Wed) ⇒ identical pick regardless of the day/time.
+    const a = placeOfTheWeek(new Date("2026-07-13T09:00:00-05:00")); // Mon
+    const b = placeOfTheWeek(new Date("2026-07-15T23:30:00-05:00")); // Wed same wk
+    expect(a).toBe(b);
+  });
+
+  it("rotates across weeks (not the same place every send)", () => {
+    const picks = new Set<string>();
+    for (let w = 0; w < 8; w++) {
+      const now = new Date(JULY.getTime() + w * 7 * 86_400_000);
+      picks.add(placeOfTheWeek(now)!.slug);
+    }
+    expect(picks.size).toBeGreaterThan(1);
   });
 });

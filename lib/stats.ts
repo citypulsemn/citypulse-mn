@@ -200,6 +200,38 @@ async function queryEngagement(days: number): Promise<Engagement> {
   return { totals, daily, top };
 }
 
+export interface SaveCount {
+  id: string;
+  saves: number;
+}
+
+/**
+ * Save counts per event over the last `days`, most-saved first (Roadmap v6 1.3 —
+ * the digest "most saved this week" block). Saves are recorded ONLY inside the
+ * server action (`lib/saved-actions.ts` — the public beacon rejects 'save'), so
+ * this is an honest, uninflatable social-proof signal. Raw counts only; the pure
+ * `selectMostSaved` (lib/digest.ts) applies the privacy floor and resolves ids to
+ * events. Never-break contract — [] on any failure.
+ */
+export async function getMostSavedCounts(days: number): Promise<SaveCount[]> {
+  if (!sql) return [];
+  try {
+    const window = Math.max(1, Math.min(days, 90));
+    return await sql<SaveCount[]>`
+      select s.event_id::text as id, sum(s.count)::int as saves
+      from event_stats s
+      where s.action = 'save'
+        and s.day >= (now() at time zone 'America/Chicago')::date - (${window - 1})::int
+      group by s.event_id
+      order by saves desc
+      limit 20
+    `;
+  } catch (err) {
+    console.error("[stats] getMostSavedCounts failed (returning empty):", err);
+    return [];
+  }
+}
+
 export interface VendorClicks {
   host: string;
   clicks: number;
