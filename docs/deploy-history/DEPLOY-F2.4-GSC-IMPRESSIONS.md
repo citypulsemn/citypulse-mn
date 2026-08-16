@@ -80,6 +80,34 @@ on its own. Audit back to 0; tests + build green on the new toolchain.
 5. Tell me — I'll run the ops-digest dry run and confirm real impressions render,
    then it's live on the next Monday send.
 
+## GO-LIVE — Aug 15, 2026 (the "later" happened; it's live)
+
+Wired up and verified live via `Actions → Ops Digest → Run workflow (dry_run)`.
+First real report: **`4732 GSC impressions · 182 clicks (7d)`** (3.85% search CTR).
+Auto-runs every Monday now; no code change was needed to go live (as designed).
+
+**Three gotchas that cost real time — record them for the next Google setup:**
+
+1. **The org-policy block ≠ an IAM-role problem.** Creating the service-account
+   JSON key was blocked by the org policy `iam.disableServiceAccountKeyCreation`.
+   Granting the service account **Owner** did nothing — **org policies sit ABOVE
+   IAM roles; no role, not even Owner or Org Admin, overrides a policy.** You must
+   change the *policy*, not the roles.
+2. **Organization *Administrator* ≠ Organization *Policy* Administrator.** Editing
+   the org policy needs the separate role `roles/orgpolicy.policyAdmin`. The owner
+   (org admin) had to grant himself that role first, then set
+   `iam.disableServiceAccountKeyCreation` to **Not enforced**, then create the key.
+3. **The Performance API needs "Full", not "Restricted."** Adding the service
+   account to the GSC property as a **Restricted** user still 403'd
+   (`User does not have sufficient permission for site 'sc-domain:citypulsemn.com'`
+   — a 403, not a 401, so the credential chain was already proven working).
+   Bumping the property user to **Full** fixed it. **Checklist step 3 above is
+   wrong** — read-only/Restricted is NOT enough for `searchAnalytics.query`; use
+   **Full**.
+
+Property is a Domain property, so the default `sc-domain:citypulsemn.com` was
+correct and `GSC_PROPERTY` stayed unset.
+
 ## Rollback
 
 `git revert`. `getSearchImpressions` returning null is inert; the digest simply
