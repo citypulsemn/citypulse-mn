@@ -14,6 +14,10 @@ on:
         type: boolean
         default: false
 
+concurrency:
+  group: ops-digest
+  cancel-in-progress: false
+
 jobs:
   ops-digest:
     runs-on: ubuntu-latest
@@ -26,7 +30,7 @@ jobs:
           node-version: 22
           cache: npm
 
-      - run: npm ci
+      - run: npm ci --prefer-offline --no-audit --no-fund
 
       - name: Send ops digest
         run: npm run ops-digest ${{ github.event.inputs.dry_run == 'true' && '-- --dry-run' || '' }}
