@@ -30,13 +30,19 @@ folded in strictly: `yes → badge`, `unknown → no badge` (honest emptiness).
 - Secondary sources (used where the official page 403'd/was thin) are noted in the
   research record; portable/seasonal restrooms count as restrooms but were flagged.
 
-## The tag audit (a real find)
-Two pads carried a hand `restrooms` tag the official source does **not** confirm:
-**Conway Park** and **Boulevard Plaza**. Their **gold restrooms badge is absent**
-(source silent), while the looser gray tag remains — the two-layer split working as
-intended. Worth a later pass to re-verify or drop those gray tags; "unconfirmed" is
-not "false" (both are rec-center parks that plausibly have restrooms), so they were
-left rather than deleted on a guess.
+## The tag audit (a real find) — and its resolution
+Two pads carried a hand `restrooms` tag the pad's cited page does **not** confirm:
+**Conway Park** and **Boulevard Plaza**. At ship time their gold restrooms badge was
+left absent while the gray tag remained (the two-layer split working). A follow-up
+re-check (next commit) resolved both, and it split two ways — which is exactly why
+a re-verify beats a blind delete:
+- **Boulevard Plaza → promoted.** The `/1485/` marketing page we'd cited omits
+  restrooms, but the official Coon Rapids **facilities** page explicitly lists
+  "Restrooms". So it earned a real badge (`restrooms: true`) and its `sourceUrl` was
+  repointed to the page that documents it. Verified restrooms count 38 → **39**.
+- **Conway Park → dropped.** The stpaul.gov page stays silent and a rec-center
+  listing indicates no restrooms at the site; the unbacked gray `restrooms` tag was
+  removed. No badge, no tag — honest.
 
 ## What shipped
 - **Schema:** `adjacentPlayground?` + `restrooms?` on `PlaceDetails`; labels
@@ -61,7 +67,8 @@ left rather than deleted on a guess.
 Merge to `main`; Vercel auto-deploys. No schema (registry is code), no secret.
 
 ## Follow-ups
-- **Re-verify or drop** the Conway / Boulevard Plaza gray `restrooms` tags.
+- ~~Re-verify or drop the Conway / Boulevard Plaza gray `restrooms` tags.~~
+  **Done** (see resolution above): Boulevard promoted to a badge, Conway dropped.
 - **Beaches (45): lifeguarded** — still deferred (safety-sensitive + seasonally
   volatile; needs a re-verify cadence first).
 - Other family kinds (playgrounds, parks) could get restrooms similarly if demand

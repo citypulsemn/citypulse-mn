@@ -651,7 +651,7 @@ describe("splash-pad amenities (winning detail — moat, kind 4; source-verified
   it("exactly the source-confirmed pads carry each fact (locks the verified counts)", () => {
     expect(pads.length).toBe(49);
     expect(withPlay.length).toBe(43); // 6 unconfirmed → honestly no badge
-    expect(withRest.length).toBe(38); // 11 unconfirmed → honestly no badge
+    expect(withRest.length).toBe(39); // 10 unconfirmed → honestly no badge
   });
 
   it("splash-pad details use ONLY the two family facts — no ski/rink keys leaked in", () => {
@@ -672,14 +672,17 @@ describe("splash-pad amenities (winning detail — moat, kind 4; source-verified
     }
   });
 
-  it("the gold badge only reflects VERIFIED facts, not the looser gray tags", () => {
-    // Conway/Boulevard carried a hand 'restrooms' tag the official source didn't
-    // confirm — the verified badge must be absent even though the gray tag remains.
-    for (const slug of ["conway-park-splash-pad", "boulevard-plaza-splash-pad"]) {
-      const p = pads.find((x) => x.slug === slug);
-      expect(p!.tags).toContain("restrooms"); // gray hint stays
-      expect(p!.details?.restrooms, `${slug} unverified restrooms must not badge`).not.toBe(true);
-    }
+  it("the two audited restrooms tags were resolved honestly (drop vs promote)", () => {
+    // Both carried a hand 'restrooms' tag. On re-check: Conway's official page is
+    // silent (a listing even says none) → tag DROPPED, no badge. Boulevard's
+    // official facilities page explicitly lists Restrooms → PROMOTED to a badge.
+    const conway = pads.find((x) => x.slug === "conway-park-splash-pad")!;
+    expect(conway.tags).not.toContain("restrooms"); // unconfirmed → dropped
+    expect(conway.details?.restrooms).not.toBe(true); // and never badged
+
+    const boulevard = pads.find((x) => x.slug === "boulevard-plaza-splash-pad")!;
+    expect(boulevard.details?.restrooms).toBe(true); // official source confirmed
+    expect(boulevard.sourceUrl).toContain("facilities/facility/details"); // cites the page that lists it
   });
 
   it("the filter surfaces both facts and is strict", () => {
