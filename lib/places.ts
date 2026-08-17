@@ -5227,21 +5227,26 @@ export function openNow(place: Place, date: Date): boolean {
 // ── Client-side kind-page filters (P4.3) ─────────────────────────────────────
 
 /** The filter state for a /places/[kind] list. `cost: "all"` and `city: null`
- *  mean "no filter on that axis"; `openNow` false means "show all seasons". */
+ *  mean "no filter on that axis"; `openNow` false means "show all seasons".
+ *  `details` is a set of verified-fact keys the place must ALL carry (e.g.
+ *  "indoor", "tubing") — empty means no detail filter. */
 export interface PlaceFilters {
   cost: "all" | "free" | "paid";
   openNow: boolean;
   city: string | null;
+  details: (keyof PlaceDetails)[];
 }
 
-export const NO_PLACE_FILTERS: PlaceFilters = { cost: "all", openNow: false, city: null };
+export const NO_PLACE_FILTERS: PlaceFilters = { cost: "all", openNow: false, city: null, details: [] };
 
 /**
  * Apply the browse filters to a set of places. Pure (takes `now` for the
  * season check rather than reading the clock) so it's golden-tested and the
  * client and any test agree. AND across axes; `cost: "free"` is strict (a
  * pay-what-you-can `donation` place is neither free nor paid, so it only shows
- * under "all" — honest, not conflated).
+ * under "all" — honest, not conflated). Detail filters are also AND and strict:
+ * a place must have the fact set to `true` (absent/unverified never matches, so
+ * the filter never over-promises a fact we haven't confirmed).
  */
 export function filterPlaces(places: Place[], f: PlaceFilters, now: Date): Place[] {
   return places.filter((p) => {
@@ -5249,8 +5254,24 @@ export function filterPlaces(places: Place[], f: PlaceFilters, now: Date): Place
     if (f.cost === "paid" && p.cost !== "paid") return false;
     if (f.openNow && !openNow(p, now)) return false;
     if (f.city && p.city !== f.city) return false;
+    for (const k of f.details) {
+      if (p.details?.[k] !== true) return false;
+    }
     return true;
   });
+}
+
+/**
+ * The verified-detail keys worth offering as filters for a given set of places
+ * — i.e. the labeled details at least one place in the set actually carries.
+ * Returned in `PLACE_DETAIL_LABELS` (render) order. On a set with no verified
+ * details (e.g. beaches today) this is empty, so the UI shows no detail filters
+ * rather than dead options — honest to the data on hand.
+ */
+export function activeDetailKeys(places: Place[]): (keyof PlaceDetails)[] {
+  return (Object.keys(PLACE_DETAIL_LABELS) as (keyof PlaceDetails)[]).filter((k) =>
+    places.some((p) => p.details?.[k] === true),
+  );
 }
 
 /** Distinct cities present in a set of places, alphabetical — for the city

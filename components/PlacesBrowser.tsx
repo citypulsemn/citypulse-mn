@@ -6,8 +6,11 @@ import {
   filterPlaces,
   placeCities,
   placesByDistance,
+  activeDetailKeys,
+  PLACE_DETAIL_LABELS,
   NO_PLACE_FILTERS,
   type Place,
+  type PlaceDetails,
   type PlaceFilters,
   type LatLng,
 } from "@/lib/places";
@@ -30,6 +33,7 @@ export function PlacesBrowser({ places, plural }: { places: Place[]; plural: str
   const [geo, setGeo] = useState<GeoStatus>("idle");
 
   const cities = useMemo(() => placeCities(places), [places]);
+  const detailKeys = useMemo(() => activeDetailKeys(places), [places]);
   const filtered = useMemo(() => filterPlaces(places, filters, now), [places, filters, now]);
 
   // Near-me: rank the FILTERED set nearest-first and carry each row's distance.
@@ -37,8 +41,18 @@ export function PlacesBrowser({ places, plural }: { places: Place[]; plural: str
   const list = ranked ? ranked.map((r) => r.place) : filtered;
   const distances = ranked ? new Map(ranked.map((r) => [r.place.slug, r.miles])) : undefined;
 
-  const active = filters.cost !== "all" || filters.openNow || filters.city !== null || origin !== null;
+  const active =
+    filters.cost !== "all" ||
+    filters.openNow ||
+    filters.city !== null ||
+    filters.details.length > 0 ||
+    origin !== null;
   const set = (patch: Partial<PlaceFilters>) => setFilters((f) => ({ ...f, ...patch }));
+  const toggleDetail = (k: keyof PlaceDetails) =>
+    setFilters((f) => ({
+      ...f,
+      details: f.details.includes(k) ? f.details.filter((d) => d !== k) : [...f.details, k],
+    }));
   const clearAll = () => {
     setFilters(NO_PLACE_FILTERS);
     setOrigin(null);
@@ -103,6 +117,22 @@ export function PlacesBrowser({ places, plural }: { places: Place[]; plural: str
               ))}
             </select>
           </label>
+        )}
+
+        {detailKeys.length > 0 && (
+          <div className="pf-group pf-details" role="group" aria-label="Features">
+            {detailKeys.map((k) => (
+              <button
+                key={k}
+                type="button"
+                className={`pf-chip${filters.details.includes(k) ? " is-on" : ""}`}
+                aria-pressed={filters.details.includes(k)}
+                onClick={() => toggleDetail(k)}
+              >
+                {PLACE_DETAIL_LABELS[k]}
+              </button>
+            ))}
+          </div>
         )}
 
         <button

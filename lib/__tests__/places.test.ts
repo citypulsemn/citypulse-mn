@@ -22,6 +22,7 @@ import {
   filterPlaces,
   placeCities,
   placesByDistance,
+  activeDetailKeys,
   PLACE_DETAIL_LABELS,
   NO_PLACE_FILTERS,
   type Place,
@@ -510,12 +511,12 @@ describe("filterPlaces + placeCities (P4.3 kind-page filters)", () => {
   });
 
   it("axes are AND (free + Minneapolis + open in July)", () => {
-    const out = filterPlaces(set, { cost: "free", openNow: true, city: "Minneapolis" }, JULY);
+    const out = filterPlaces(set, { ...NO_PLACE_FILTERS, cost: "free", openNow: true, city: "Minneapolis" }, JULY);
     expect(out.map((p) => p.slug)).toEqual(["a"]); // 'd' is Edina, 'c' is donation+winter
   });
 
   it("honest emptiness: over-constrained filters return []", () => {
-    expect(filterPlaces(set, { cost: "paid", openNow: true, city: "Edina" }, JULY)).toEqual([]);
+    expect(filterPlaces(set, { ...NO_PLACE_FILTERS, cost: "paid", openNow: true, city: "Edina" }, JULY)).toEqual([]);
   });
 
   it("placeCities lists distinct cities, alphabetical", () => {
@@ -623,5 +624,45 @@ describe("rink warming-house badge (winning detail — verified, universal)", ()
     for (const p of rinks) {
       if (p.season.type === "year-round") expect(p.details?.warmingHouse, p.slug).not.toBe(true);
     }
+  });
+});
+
+describe("filter by detail (winning-detail filters — P4.3 follow-on)", () => {
+  const rinks = placesByKind("rink");
+  const skiHills = placesByKind("ski-hill");
+
+  it("activeDetailKeys offers only the facts a set actually carries, in label order", () => {
+    // Rinks carry indoor + warming house (nothing ski-specific).
+    expect(activeDetailKeys(rinks)).toEqual(["indoor", "warmingHouse"]);
+    // Ski hills carry the ski facts (no indoor/warming house).
+    expect(activeDetailKeys(skiHills)).toEqual([
+      "tubing",
+      "nightSkiing",
+      "terrainPark",
+      "rentals",
+      "lessons",
+    ]);
+  });
+
+  it("a kind with no verified details offers no detail filters (honest emptiness)", () => {
+    expect(activeDetailKeys(placesByKind("beach"))).toEqual([]);
+  });
+
+  it('detail filter is strict — "indoor" returns exactly the 5 arenas', () => {
+    const out = filterPlaces(rinks, { ...NO_PLACE_FILTERS, details: ["indoor"] }, JULY);
+    expect(out.length).toBe(5);
+    expect(out.every((p) => p.season.type === "year-round")).toBe(true);
+  });
+
+  it("detail filters AND together — indoor + warming house is impossible, returns []", () => {
+    const out = filterPlaces(rinks, { ...NO_PLACE_FILTERS, details: ["indoor", "warmingHouse"] }, JULY);
+    expect(out).toEqual([]); // no rink is both an enclosed arena and an outdoor warming-house rink
+  });
+
+  it("a detail filter never matches an unverified (absent) fact", () => {
+    // Every ski hill with tubing must actually carry tubing: true — never absent.
+    const tubers = filterPlaces(skiHills, { ...NO_PLACE_FILTERS, details: ["tubing"] }, JULY);
+    expect(tubers.length).toBeGreaterThan(0);
+    expect(tubers.every((p) => p.details?.tubing === true)).toBe(true);
   });
 });
