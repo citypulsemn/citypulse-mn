@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { placesToGeoJSON, placeSeasonShort } from "../places-map";
+import { placesToGeoJSON, placeSeasonShort, placesBounds } from "../places-map";
 import type { Place } from "../places";
 
 function place(overrides: Partial<Place> = {}): Place {
@@ -69,5 +69,43 @@ describe("placesToGeoJSON", () => {
   it("preserves input order and count for a clean set", () => {
     const fc = placesToGeoJSON([place({ slug: "a" }), place({ slug: "b" }), place({ slug: "c" })]);
     expect(fc.features.map((f) => f.properties.slug)).toEqual(["a", "b", "c"]);
+  });
+});
+
+describe("placesBounds — refit box when filters change (map reacts)", () => {
+  it("returns [[minLng,minLat],[maxLng,maxLat]] over the set", () => {
+    const b = placesBounds([
+      place({ lat: 44.9, lng: -93.3 }),
+      place({ lat: 45.1, lng: -93.1 }),
+      place({ lat: 44.8, lng: -93.4 }),
+    ]);
+    expect(b).toEqual([
+      [-93.4, 44.8],
+      [-93.1, 45.1],
+    ]);
+  });
+
+  it("a single place gives a zero-area box (fitBounds centers on it)", () => {
+    expect(placesBounds([place({ lat: 44.92, lng: -93.31 })])).toEqual([
+      [-93.31, 44.92],
+      [-93.31, 44.92],
+    ]);
+  });
+
+  it("ignores non-finite coords, matching placesToGeoJSON", () => {
+    const b = placesBounds([
+      place({ lat: 44.9, lng: -93.3 }),
+      place({ lat: NaN, lng: -93.0 }),
+      place({ lat: 45.0, lng: Infinity }),
+    ]);
+    expect(b).toEqual([
+      [-93.3, 44.9],
+      [-93.3, 44.9],
+    ]);
+  });
+
+  it("null on an empty / fully-uncoordinated set (caller keeps its viewport)", () => {
+    expect(placesBounds([])).toBeNull();
+    expect(placesBounds([place({ lat: NaN, lng: NaN })])).toBeNull();
   });
 });

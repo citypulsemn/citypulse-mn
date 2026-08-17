@@ -525,10 +525,26 @@ describe("filterPlaces + placeCities (P4.3 kind-page filters)", () => {
 });
 
 describe("P4.3 wire-in (tripwire)", () => {
+  const read = (...p: string[]) => readFileSync(join(__dirname, "..", "..", ...p), "utf8");
+
   it("the kind page renders the filterable browser, not the bare list", () => {
-    const src = readFileSync(join(__dirname, "..", "..", "app", "places", "[kind]", "page.tsx"), "utf8");
+    const src = read("app", "places", "[kind]", "page.tsx");
     expect(src).toContain("PlacesBrowser");
     expect(src).not.toMatch(/<PlacesList\b/); // the list now lives inside PlacesBrowser
+  });
+
+  it("the map now lives inside the browser and is fed the FILTERED set (reacts)", () => {
+    const page = read("app", "places", "[kind]", "page.tsx");
+    expect(page).not.toContain("PlacesMapInteractive"); // moved out of the page
+    const browser = read("components", "PlacesBrowser.tsx");
+    expect(browser).toContain("PlacesMapInteractive");
+    expect(browser).toMatch(/visible=\{filtered\}/); // the map gets the filtered set, not all
+  });
+
+  it("the map updates in place (setData) rather than remounting on filter change", () => {
+    const map = read("components", "PlacesMapInteractive.tsx");
+    expect(map).toContain('getSource("places").setData'); // in-place update, no teardown
+    expect(map).toContain("placesBounds"); // refits to the visible set
   });
 });
 

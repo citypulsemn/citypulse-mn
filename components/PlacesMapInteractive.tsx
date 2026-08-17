@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import "mapbox-gl/dist/mapbox-gl.css";
-import { placesToGeoJSON } from "@/lib/places-map";
+import { placesToGeoJSON, placesBounds } from "@/lib/places-map";
 import type { Place } from "@/lib/places";
 
 const TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
@@ -33,15 +33,42 @@ const OSM_KINDS: Record<string, { plural: string; singular: string }> = {
  * content. Popups deep-link to the matching list row via #slug.
  *
  * No token (local dev) → a short note; the list stands on its own.
+ *
+ * Reacting to the filters: the map is still mounted ONCE (remounting Mapbox on
+ * every keystroke would flicker and lose pan/zoom). Instead the browse component
+ * passes the filtered set as `visible`, and a lightweight effect updates the
+ * GeoJSON source in place (`setData`, which re-clusters on the GPU) and refits
+ * the view to the visible points — no teardown. `visible` defaults to `places`.
  */
-export function PlacesMapInteractive({ places }: { places: Place[] }) {
+export function PlacesMapInteractive({
+  places,
+  visible,
+}: {
+  places: Place[];
+  visible?: Place[];
+}) {
+  const shown = visible ?? places;
   const containerRef = useRef<HTMLDivElement>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const mapRef = useRef<any>(null);
-  const placesRef = useRef(places);
-  placesRef.current = places;
+  // Latest visible set, read by the async map-load closure so a filter applied
+  // during the ~1s Mapbox load is reflected the moment the source is added.
+  const visibleRef = useRef(shown);
+  visibleRef.current = shown;
   const kind = places[0]?.kind;
   const osm = kind ? OSM_KINDS[kind] : undefined;
+
+  // Membership signature — reorders (e.g. near-me sort) don't move the map, only
+  // a change in WHICH places are visible does.
+  const sig = useMemo(
+    () =>
+      shown
+        .map((p) => p.slug)
+        .sort()
+        .join(","),
+    [shown],
+  );
+  const prevSig = useRef(sig);
 
   useEffect(() => {
     if (!TOKEN || !containerRef.current || places.length === 0) return;
@@ -53,7 +80,7 @@ export function PlacesMapInteractive({ places }: { places: Place[] }) {
       if (cancelled || !containerRef.current) return;
       mapboxgl.accessToken = TOKEN;
 
-      const geojson = placesToGeoJSON(placesRef.current);
+      const geojson = placesToGeoJSON(visibleRef.current);
       const map = new mapboxgl.Map({
         container: containerRef.current,
         style: "mapbox://styles/mapbox/dark-v11",
@@ -199,6 +226,19 @@ export function PlacesMapInteractive({ places }: { places: Place[] }) {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [places]);
+
+  // React to filter changes: update the source in place and refit. Skips the
+  // first run (signature unchanged) and any run before the source has loaded —
+  // in both cases the mount effect already renders visibleRef.current.
+  useEffect(() => {
+    if (sig === prevSig.current) return;
+    prevSig.current = sig;
+    const map = mapRef.current;
+    if (!map || !map.getSource || !map.getSource("places")) return;
+    map.getSource("places").setData(placesToGeoJSON(visibleRef.current));
+    const bounds = placesBounds(visibleRef.current);
+    if (bounds) map.fitBounds(bounds, { padding: 48, maxZoom: 12, duration: 500 });
+  }, [sig]);
 
   if (!TOKEN) {
     return (

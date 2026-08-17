@@ -49,6 +49,35 @@ export interface PlaceFeatureCollection {
  * silently dropped ONTO the map at 0,0 — it's excluded here and still listed).
  * Coordinates are [lng, lat] — GeoJSON order.
  */
+/**
+ * The [[minLng, minLat], [maxLng, maxLat]] bounding box of a set of places, in
+ * GeoJSON [lng, lat] order — for `map.fitBounds()` when the filtered set changes.
+ * Pure (so the map component can refit without pulling in the Mapbox module for a
+ * `LngLatBounds`), and ignores non-finite coords the same way `placesToGeoJSON`
+ * does. Returns null for an empty/uncoordinated set so the caller keeps its
+ * current viewport rather than jumping to 0,0.
+ */
+export function placesBounds(
+  places: Place[],
+): [[number, number], [number, number]] | null {
+  let minLng = Infinity,
+    minLat = Infinity,
+    maxLng = -Infinity,
+    maxLat = -Infinity;
+  for (const p of places) {
+    if (!Number.isFinite(p.lat) || !Number.isFinite(p.lng)) continue;
+    if (p.lng < minLng) minLng = p.lng;
+    if (p.lat < minLat) minLat = p.lat;
+    if (p.lng > maxLng) maxLng = p.lng;
+    if (p.lat > maxLat) maxLat = p.lat;
+  }
+  if (!Number.isFinite(minLng)) return null;
+  return [
+    [minLng, minLat],
+    [maxLng, maxLat],
+  ];
+}
+
 export function placesToGeoJSON(places: Place[]): PlaceFeatureCollection {
   return {
     type: "FeatureCollection",

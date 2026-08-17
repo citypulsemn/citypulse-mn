@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { TopBar } from "@/components/TopBar";
 import { SiteFooter } from "@/components/SiteFooter";
-import { PlacesMapInteractive } from "@/components/PlacesMapInteractive";
 import { PlacesBrowser } from "@/components/PlacesBrowser";
 import {
   KIND_META,
@@ -96,7 +95,6 @@ export default async function PlacesKindPage({
           </p>
         )}
 
-        <PlacesMapInteractive places={places} />
         <PlacesBrowser places={places} plural={meta.plural} />
 
         {related.length > 0 && (

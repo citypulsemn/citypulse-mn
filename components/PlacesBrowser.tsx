@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { PlacesList } from "./PlacesList";
+import { PlacesMapInteractive } from "./PlacesMapInteractive";
 import {
   filterPlaces,
   placeCities,
@@ -81,6 +82,8 @@ export function PlacesBrowser({ places, plural }: { places: Place[]; plural: str
 
   return (
     <section className="places-browse" aria-label={`Filter ${plural.toLowerCase()}`}>
+      <PlacesMapInteractive places={places} visible={filtered} />
+
       <div className="places-filter">
         <div className="pf-group" role="group" aria-label="Cost">
           {(["all", "free", "paid"] as const).map((c) => (
