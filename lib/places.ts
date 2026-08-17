@@ -101,6 +101,10 @@ export interface PlaceDetails {
   // Museums — the family-decision facts (cost is already filterable). cafe reused.
   handsOn?: boolean; // interactive / hands-on exhibits (kid-friendly)
   planetarium?: boolean; // a planetarium or domed / Omni theater
+  // Disc golf — what a player picks a course on (cost already filterable).
+  full18Holes?: boolean; // a full 18+ hole course (vs a short 9)
+  wooded?: boolean; // a wooded / heavily-treed / technical course
+  beginnerFriendly?: boolean; // explicitly good for beginners / new players
 }
 
 /** Badge labels for the truthy PlaceDetails facts, in render order. Only keys
@@ -131,6 +135,9 @@ export const PLACE_DETAIL_LABELS: Partial<Record<keyof PlaceDetails, string>> = 
   rockClimbing: "Rock climbing",
   handsOn: "Hands-on",
   planetarium: "Planetarium",
+  full18Holes: "18+ holes",
+  wooded: "Wooded",
+  beginnerFriendly: "Beginner-friendly",
   socksRequired: "Socks required",
   adjacentPlayground: "Playground on site",
   restrooms: "Restrooms",
@@ -3928,7 +3935,8 @@ export const PLACES: Place[] = [
     tags: ["18-hole"],
     intro: "The Park Board's 18-hole par-3 course alongside the Wirth par-3 golf — 46 to 156 yards, beginner and intermediate tees, sunrise to sunset. A small fee to play.",
     sourceUrl: "https://www.minneapolisparks.org/golf/courses/disc_golf/",
-    verifiedAt: "2026-08-14", venueSlug: null,
+    details: { full18Holes: true, beginnerFriendly: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "highland-park-disc-golf", name: "Highland Park Disc Golf Course", kind: "disc-golf",
@@ -3937,7 +3945,8 @@ export const PLACES: Place[] = [
     tags: ["18-hole"],
     intro: "St. Paul's full 18, free and open sunrise to sunset off Montreal Avenue in Highland — the city's go-to public course.",
     sourceUrl: "https://www.stpaul.gov/facilities/highland-park",
-    verifiedAt: "2026-08-14", venueSlug: null,
+    details: { full18Holes: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "savanna-dunes-disc-golf", name: "Savanna Dunes Disc Golf Course", kind: "disc-golf",
@@ -3946,7 +3955,8 @@ export const PLACES: Place[] = [
     tags: ["18-hole", "wooded"],
     intro: "An 18-hole, par-59 course winding through oak, pine, and grassland at Bunker Hills Regional Park — open and narrow fairways with gentle elevation. A county vehicle permit is required ($7 daily / $30 annual).",
     sourceUrl: "https://www.anokacountyparks.com/disc-golf",
-    verifiedAt: "2026-08-14", venueSlug: null,
+    details: { full18Holes: true, wooded: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "riverfront-13-disc-golf", name: "Riverfront 13 Disc Golf Course", kind: "disc-golf",
@@ -3982,7 +3992,8 @@ export const PLACES: Place[] = [
     tags: ["18-hole", "championship"],
     intro: "Eighteen holes from the chalet along the cross-country ski trails and over the tubing hill, with two par-4s and championship-caliber holes. Three Rivers pass required ($10 daily / $59 annual).",
     sourceUrl: "https://www.threeriversparks.org/location/elm-creek-disc-golf",
-    verifiedAt: "2026-08-14", venueSlug: null,
+    details: { full18Holes: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "hyland-hills-disc-golf", name: "Hyland Hills Disc Golf Course", kind: "disc-golf",
@@ -3991,7 +4002,8 @@ export const PLACES: Place[] = [
     tags: ["18-hole", "championship"],
     intro: "An 18-hole championship course with big elevation changes climbing and dropping the ski slopes, and a Twin Cities view. Three Rivers pass required.",
     sourceUrl: "https://www.threeriversparks.org/location/hyland-hills-disc-golf",
-    verifiedAt: "2026-08-14", venueSlug: null,
+    details: { full18Holes: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "bryant-lake-disc-golf", name: "Bryant Lake Disc Golf Course", kind: "disc-golf",
@@ -4000,7 +4012,8 @@ export const PLACES: Place[] = [
     tags: ["18-hole"],
     intro: "Eighteen holes with short and long tees and lake views; the infamous #17 throws off a cliff to the basket. Three Rivers pass required.",
     sourceUrl: "https://www.threeriversparks.org/location/bryant-lake-disc-golf",
-    verifiedAt: "2026-08-14", venueSlug: null,
+    details: { full18Holes: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   // Disc golf — expansion pass (deferred courses, verified vs official city pages).
   {
@@ -4010,7 +4023,8 @@ export const PLACES: Place[] = [
     tags: ["18-hole"],
     intro: "A free, well-liked 18 at Oakwood Park in Cottage Grove — a solid all-skill course you can just walk on.",
     sourceUrl: "https://www.cottagegrovemn.gov/facilities/facility/details/Oakwood-Park-22",
-    verifiedAt: "2026-08-14", venueSlug: null,
+    details: { full18Holes: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "red-oak-disc-golf", name: "Red Oak Park Disc Golf Course", kind: "disc-golf",
@@ -4019,7 +4033,8 @@ export const PLACES: Place[] = [
     tags: ["20-hole", "wooded"],
     intro: "Burnsville's scenic wooded course at Red Oak Park, with multiple tees and pins set up to play 20 holes. Free, during regular park hours.",
     sourceUrl: "https://burnsvillemn.gov/facilities/facility/details/Red-Oak-Park-38",
-    verifiedAt: "2026-08-14", venueSlug: null,
+    details: { full18Holes: true, wooded: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "rosland-park-disc-golf", name: "Kenneth Rosland Park Disc Golf Course", kind: "disc-golf",
@@ -4037,7 +4052,8 @@ export const PLACES: Place[] = [
     tags: ["9-hole", "wooded"],
     intro: "Nine free holes at Garlough Park in West St. Paul — a short, wooded neighborhood course.",
     sourceUrl: "https://wspmn.gov/749/Garlough-Park",
-    verifiedAt: "2026-08-14", venueSlug: null,
+    details: { wooded: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "brockway-disc-golf", name: "Brockway Park Disc Golf Course", kind: "disc-golf",
@@ -4055,7 +4071,8 @@ export const PLACES: Place[] = [
     tags: ["18-hole", "championship"],
     intro: "One of the metro's biggest — 26 baskets and over 9,000 feet across two linked courses at Kaposia Park in South St. Paul. A daily or season pass is required.",
     sourceUrl: "https://www.southstpaulmn.gov/1059/Kaposia-Park-Disc-Golf-Course",
-    verifiedAt: "2026-08-14", venueSlug: null,
+    details: { full18Holes: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "north-valley-disc-golf", name: "North Valley Disc Golf Course", kind: "disc-golf",
@@ -4064,7 +4081,8 @@ export const PLACES: Place[] = [
     tags: ["18-hole"],
     intro: "An 18-hole course at North Valley Park in Inver Grove Heights. A pass is required May through September ($6 daily, season passes available); free the rest of the year.",
     sourceUrl: "https://www.ighmn.gov/420/Disc-Golf-Course",
-    verifiedAt: "2026-08-14", venueSlug: null,
+    details: { full18Holes: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "staring-lake-disc-golf", name: "Staring Lake Park Disc Golf Course", kind: "disc-golf",
@@ -4091,7 +4109,8 @@ export const PLACES: Place[] = [
     tags: ["18-hole"],
     intro: "A free full-length 18 at Lions Park in Shakopee, off Adams Street on the south side — no fee, walk right on.",
     sourceUrl: "https://www.pdga.com/course-directory/course/lions-park-i",
-    verifiedAt: "2026-08-14", venueSlug: null,
+    details: { full18Holes: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "ham-lake-disc-golf", name: "Ham Lake Park Disc Golf Course", kind: "disc-golf",
@@ -4100,7 +4119,8 @@ export const PLACES: Place[] = [
     tags: ["18-hole"],
     intro: "Eighteen free holes at the 90-acre Ham Lake Park, sharing the shoreline with a fishing pier, boat launch, and playground. Open until 10pm.",
     sourceUrl: "https://www.pdga.com/course-directory/course/ham-lake-dgc-0",
-    verifiedAt: "2026-08-14", venueSlug: null,
+    details: { full18Holes: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "silverview-park-disc-golf", name: "Silver View Park Disc Golf Course", kind: "disc-golf",
@@ -4109,7 +4129,8 @@ export const PLACES: Place[] = [
     tags: ["9-hole", "beginner-friendly"],
     intro: "A free nine-hole course at Silver View Park in Mounds View — an easy, walkable neighborhood layout.",
     sourceUrl: "https://www.moundsviewmn.gov/government/city_departments/parks_and_recreation/city_parks/silver_view_park.php",
-    verifiedAt: "2026-08-14", venueSlug: null,
+    details: { wooded: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "hansen-park-disc-golf", name: "Hansen Park Disc Golf Course", kind: "disc-golf",
@@ -4118,7 +4139,8 @@ export const PLACES: Place[] = [
     tags: ["18-hole"],
     intro: "New Brighton's free 18 at Hansen Park, a full-length course on the city's north side.",
     sourceUrl: "https://www.newbrightonmn.gov/facilities/facility/details/hansenpark-8",
-    verifiedAt: "2026-08-14", venueSlug: null,
+    details: { beginnerFriendly: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "galloway-park-disc-golf", name: "Galloway Park Disc Golf Course", kind: "disc-golf",

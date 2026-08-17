@@ -942,6 +942,38 @@ describe("museum features (winning detail — moat)", () => {
   });
 });
 
+describe("disc-golf features (winning detail — moat)", () => {
+  const courses = placesByKind("disc-golf");
+
+  it("locks the source-confirmed counts", () => {
+    expect(courses.length).toBe(24);
+    expect(courses.filter((p) => p.details?.full18Holes === true).length).toBe(12);
+    expect(courses.filter((p) => p.details?.wooded === true).length).toBe(4);
+    expect(courses.filter((p) => p.details?.beginnerFriendly === true).length).toBe(2);
+  });
+
+  it("full-18 is strict — a verified short course never claims it", () => {
+    // Hansen was mistagged 18-hole but is a 12-hole course; Riverfront is 13.
+    for (const slug of ["hansen-park-disc-golf", "riverfront-13-disc-golf"]) {
+      expect(courses.find((p) => p.slug === slug)?.details?.full18Holes, slug).not.toBe(true);
+    }
+  });
+
+  it("short open courses with no distinctive verified feature carry no badge", () => {
+    // e.g. Wabun (9-hole, flat/open) — honest emptiness, not a guessed badge.
+    expect(courses.find((p) => p.slug === "wabun-disc-golf")?.details).toBeUndefined();
+  });
+
+  it("disc-golf details use only the three course facts", () => {
+    const allowed = new Set(["full18Holes", "wooded", "beginnerFriendly"]);
+    for (const p of courses) {
+      for (const k of Object.keys(p.details ?? {})) {
+        expect(allowed.has(k), `${p.slug}: unexpected disc-golf detail "${k}"`).toBe(true);
+      }
+    }
+  });
+});
+
 describe("filter by detail (winning-detail filters — P4.3 follow-on)", () => {
   const rinks = placesByKind("rink");
   const skiHills = placesByKind("ski-hill");
