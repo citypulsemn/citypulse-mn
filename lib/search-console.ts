@@ -126,6 +126,68 @@ export async function getSearchAnalyticsByDimension(
   }
 }
 
+export interface IndexStatus {
+  url: string;
+  /** GSC verdict: PASS | PARTIAL | FAIL | NEUTRAL — or ERROR when the call failed. */
+  verdict: string;
+  /** Human coverage state: "Submitted and indexed", "Crawled - currently not
+   *  indexed", "URL is unknown to Google", etc. — the answer to "is it indexed?" */
+  coverageState: string;
+  lastCrawlTime: string | null;
+}
+
+/** Prefix a bare path with the site base; pass a full URL through unchanged.
+ *  Pure/tested — the URL Inspection API needs an absolute inspectionUrl. */
+export function resolveInspectionUrl(pathOrUrl: string, base: string): string {
+  return pathOrUrl.startsWith("http") ? pathOrUrl : `${base.replace(/\/$/, "")}${pathOrUrl}`;
+}
+
+/**
+ * Index status for a handful of URLs via the Search Console URL Inspection API
+ * — the "is /places even indexed?" diagnostic. REQUIRES the service account be a
+ * FULL user on the property (Restricted can't inspect; we bumped it to Full at
+ * F2.4 wire-up). Never-break: [] when unwired; a per-URL failure becomes an
+ * ERROR row rather than throwing, so one bad URL can't sink the report.
+ */
+export async function inspectUrls(paths: string[], now: Date = new Date()): Promise<IndexStatus[]> {
+  const rawKey = process.env.GSC_SERVICE_ACCOUNT_JSON;
+  if (!rawKey || !rawKey.trim()) return [];
+  const base = process.env.SITE_URL || "https://www.citypulsemn.com";
+  const property = process.env.GSC_PROPERTY || "sc-domain:citypulsemn.com";
+
+  let token: string;
+  try {
+    const sa = JSON.parse(rawKey) as ServiceAccount;
+    if (!sa.client_email || !sa.private_key) throw new Error("service account JSON missing fields");
+    token = await getAccessToken(sa, Math.floor(now.getTime() / 1000));
+  } catch (err) {
+    console.error("[gsc] inspect auth failed:", err);
+    return [];
+  }
+
+  const out: IndexStatus[] = [];
+  for (const path of paths) {
+    const url = resolveInspectionUrl(path, base);
+    try {
+      const res = await fetch("https://searchconsole.googleapis.com/v1/urlInspection/index:inspect", {
+        method: "POST",
+        headers: { authorization: `Bearer ${token}`, "content-type": "application/json" },
+        body: JSON.stringify({ inspectionUrl: url, siteUrl: property }),
+      });
+      if (!res.ok) {
+        out.push({ url, verdict: "ERROR", coverageState: `HTTP ${res.status}: ${(await res.text()).slice(0, 120)}`, lastCrawlTime: null });
+        continue;
+      }
+      const json = (await res.json()) as { inspectionResult?: { indexStatusResult?: { verdict?: string; coverageState?: string; lastCrawlTime?: string } } };
+      const r = json?.inspectionResult?.indexStatusResult ?? {};
+      out.push({ url, verdict: r.verdict ?? "UNKNOWN", coverageState: r.coverageState ?? "unknown", lastCrawlTime: r.lastCrawlTime ?? null });
+    } catch (err) {
+      out.push({ url, verdict: "ERROR", coverageState: String(err).slice(0, 120), lastCrawlTime: null });
+    }
+  }
+  return out;
+}
+
 /** The signed JWT claim set for the service-account → access-token exchange.
  *  Pure and tested — getting iss/scope/aud/exp right is the whole ballgame. */
 export function buildJwtClaims(clientEmail: string, nowSec: number) {

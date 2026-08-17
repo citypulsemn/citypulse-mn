@@ -6,6 +6,8 @@ import {
   gscDateWindow,
   getSearchImpressions,
   getSearchAnalyticsByDimension,
+  resolveInspectionUrl,
+  inspectUrls,
 } from "../search-console";
 
 describe("parseSearchAnalytics — GSC searchAnalytics response → totals", () => {
@@ -89,6 +91,29 @@ describe("getSearchAnalyticsByDimension — safe before the service account is w
     delete process.env.GSC_SERVICE_ACCOUNT_JSON;
     expect(await getSearchAnalyticsByDimension("query")).toEqual([]);
     expect(await getSearchAnalyticsByDimension("page")).toEqual([]);
+  });
+});
+
+describe("resolveInspectionUrl — the URL Inspection API needs an absolute URL", () => {
+  it("prefixes a bare path with the base, collapsing a trailing slash", () => {
+    expect(resolveInspectionUrl("/places", "https://www.citypulsemn.com")).toBe("https://www.citypulsemn.com/places");
+    expect(resolveInspectionUrl("/places", "https://www.citypulsemn.com/")).toBe("https://www.citypulsemn.com/places");
+  });
+  it("passes an already-absolute URL through unchanged", () => {
+    expect(resolveInspectionUrl("https://x.com/y", "https://www.citypulsemn.com")).toBe("https://x.com/y");
+  });
+});
+
+describe("inspectUrls — safe before the service account is wired", () => {
+  const saved = process.env.GSC_SERVICE_ACCOUNT_JSON;
+  afterEach(() => {
+    if (saved === undefined) delete process.env.GSC_SERVICE_ACCOUNT_JSON;
+    else process.env.GSC_SERVICE_ACCOUNT_JSON = saved;
+  });
+
+  it("no key → [] (never-break, the index check degrades to empty)", async () => {
+    delete process.env.GSC_SERVICE_ACCOUNT_JSON;
+    expect(await inspectUrls(["/places"])).toEqual([]);
   });
 });
 

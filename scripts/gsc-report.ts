@@ -1,4 +1,4 @@
-import { getSearchAnalyticsByDimension, type GscRow } from "../lib/search-console";
+import { getSearchAnalyticsByDimension, inspectUrls, type GscRow } from "../lib/search-console";
 
 /**
  * GSC "what's actually ranking" report (v6 diagnostic). Breaks the aggregate
@@ -70,6 +70,20 @@ async function main() {
   for (const [b, v] of sorted) {
     console.log(`${pad(b, 30)}  ${String(v.impr).padStart(6)} impr (${pct(v.impr / totalImpr)})  ${String(v.clicks).padStart(4)} clicks`);
   }
+  // Indexation check (URL Inspection API): is /places even indexed? And are the
+  // discovery shop-windows (/this-week[end]) indexed? Answers whether Places'
+  // zero impressions is "not indexed" (a fixable blocker) vs "indexed but not
+  // ranking yet" (a maturity wait — don't keep building kinds on faith).
+  const INDEX_PATHS = ["/places", "/places/splash-pad", "/places/rink", "/places/ski-hill", "/this-week", "/this-weekend"];
+  const idx = await inspectUrls(INDEX_PATHS, new Date());
+  if (idx.length > 0) {
+    console.log("\n## INDEXATION CHECK (URL Inspection API)");
+    for (const s of idx) {
+      const crawl = s.lastCrawlTime ? `  last crawl ${s.lastCrawlTime.slice(0, 10)}` : "";
+      console.log(`${pad(s.url, 50)}  ${pad(s.verdict, 8)}  ${s.coverageState}${crawl}`);
+    }
+  }
+
   console.log("\n[gsc-report] done. Paste this whole block back to analyze.");
 }
 

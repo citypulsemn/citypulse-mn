@@ -29,4 +29,6 @@ jobs:
         run: npm run gsc-report
         env:
           GSC_SERVICE_ACCOUNT_JSON: ${{ secrets.GSC_SERVICE_ACCOUNT_JSON }}
+          # Base host for the URL Inspection check (must be the canonical www).
+          SITE_URL: https://www.citypulsemn.com
           # GSC_PROPERTY defaults to sc-domain:citypulsemn.com; set only to override.
