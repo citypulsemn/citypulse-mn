@@ -70,6 +70,10 @@ export interface PlaceDetails {
   terrainPark?: boolean; // jumps / rails / features
   rentals?: boolean; // ski / snowboard / tube rentals on site
   lessons?: boolean; // lesson programs / ski school
+  // Splash pads (and other family sites) — the combo-trip + logistics facts a
+  // parent actually decides on. Only ever true when an official source confirms.
+  adjacentPlayground?: boolean; // a children's playground at the same park/site
+  restrooms?: boolean; // restrooms (permanent or seasonal/portable) at the site
 }
 
 /** Badge labels for the truthy PlaceDetails facts, in render order. Only keys
@@ -82,6 +86,8 @@ export const PLACE_DETAIL_LABELS: Partial<Record<keyof PlaceDetails, string>> = 
   terrainPark: "Terrain park",
   rentals: "Rentals",
   lessons: "Lessons",
+  adjacentPlayground: "Playground on site",
+  restrooms: "Restrooms",
 };
 
 export interface Place {
@@ -651,7 +657,8 @@ export const PLACES: Place[] = [
     tags: ["adjacent-playground"],
     intro: "A free splash pad in Northeast, beside the ballfields and the rec center — good for cooling off after the playground.",
     sourceUrl: "https://www.minneapolisparks.org/parks-destinations/parks-lakes/bottineau_field_park/",
-    verifiedAt: "2026-08-07", venueSlug: null,
+    details: { adjacentPlayground: true, restrooms: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "phelps-field-splash-pad", name: "Phelps Field Park Splash Pad", kind: "splash-pad",
@@ -660,7 +667,8 @@ export const PLACES: Place[] = [
     tags: ["adjacent-playground", "restrooms"],
     intro: "The splash pad at Phelps Field in south Minneapolis, alongside the rec center, the playground, and the wading pool.",
     sourceUrl: "https://www.minneapolisparks.org/parks-destinations/parks-lakes/phelps_field_park/",
-    verifiedAt: "2026-08-07", venueSlug: null,
+    details: { adjacentPlayground: true, restrooms: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "currie-park-splash-pad", name: "Currie Park Splash Pad", kind: "splash-pad",
@@ -669,7 +677,8 @@ export const PLACES: Place[] = [
     tags: [],
     intro: "A free splash pad on the West Bank near the university, tucked among the towers of Cedar-Riverside.",
     sourceUrl: "https://www.minneapolisparks.org/parks-destinations/parks-lakes/currie_park/",
-    verifiedAt: "2026-08-07", venueSlug: null,
+    details: { adjacentPlayground: true, restrooms: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "franklin-steele-square-splash-pad", name: "Franklin Steele Square Splash Pad", kind: "splash-pad",
@@ -678,7 +687,8 @@ export const PLACES: Place[] = [
     tags: [],
     intro: "A small neighborhood splash pad at Franklin Steele Square, a green block just east of downtown.",
     sourceUrl: "https://www.minneapolisparks.org/parks-destinations/parks-lakes/franklin_steele_square/",
-    verifiedAt: "2026-08-07", venueSlug: null,
+    details: { adjacentPlayground: true, restrooms: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "roy-wilkins-splash-pad", name: "Roy Wilkins (Lewis) Park Splash Pad", kind: "splash-pad",
@@ -687,7 +697,8 @@ export const PLACES: Place[] = [
     tags: [],
     intro: "A free splash pad at Roy Wilkins (Lewis) Park in St. Paul's North End.",
     sourceUrl: "https://www.stpaul.gov/facilities/roy-wilkins-park-lewis-park",
-    verifiedAt: "2026-08-07", venueSlug: null,
+    details: { adjacentPlayground: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "conway-park-splash-pad", name: "Conway Park Splash Pad", kind: "splash-pad",
@@ -696,7 +707,8 @@ export const PLACES: Place[] = [
     tags: ["restrooms"],
     intro: "The splash pad at Conway Park on St. Paul's East Side, part of the rec center grounds.",
     sourceUrl: "https://www.stpaul.gov/facilities/conway-park",
-    verifiedAt: "2026-08-07", venueSlug: null,
+    details: { adjacentPlayground: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "victory-memorial-splash-pad", name: "Victory Memorial Splash Pad", kind: "splash-pad",
@@ -705,7 +717,8 @@ export const PLACES: Place[] = [
     tags: [],
     intro: "A splash pad along Victory Memorial Drive in far north Minneapolis, opened in 2025 where the old wading pool stood.",
     sourceUrl: "https://www.minneapolisparks.org/parks-destinations/parks-lakes/victory_park/",
-    verifiedAt: "2026-08-07", venueSlug: null,
+    details: { adjacentPlayground: true, restrooms: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "parque-castillo-splash-pad", name: "Parque Castillo Splash Pad", kind: "splash-pad",
@@ -714,7 +727,8 @@ export const PLACES: Place[] = [
     tags: ["adjacent-playground"],
     intro: "A splash pad and play area at Parque Castillo on St. Paul's West Side, in the District del Sol.",
     sourceUrl: "https://www.stpaul.gov/facilities/parque-castillo",
-    verifiedAt: "2026-08-07", venueSlug: null,
+    details: { adjacentPlayground: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "maple-grove-central-park-splash-pad", name: "Maple Grove Central Park Splash Pad", kind: "splash-pad",
@@ -723,7 +737,8 @@ export const PLACES: Place[] = [
     tags: ["adjacent-playground"],
     intro: "The interactive fountain at Maple Grove's Central Park — dozens of jets on a plaza that becomes an LED light show after dark, with the playground and Arbor Lakes shops next door.",
     sourceUrl: "https://www.maplegrovemn.gov/505/Central-Park",
-    verifiedAt: "2026-08-07", venueSlug: null,
+    details: { adjacentPlayground: true, restrooms: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "woodbury-sports-center-splash-pad", name: "M Health Fairview Sports Center Splash Pad", kind: "splash-pad",
@@ -732,7 +747,8 @@ export const PLACES: Place[] = [
     tags: ["restrooms"],
     intro: "A free splash pad at the M Health Fairview Sports Center in Woodbury — press a button to restart the jets, with restrooms on site.",
     sourceUrl: "https://www.woodburymn.gov/936/Splash-Pad",
-    verifiedAt: "2026-08-07", venueSlug: null,
+    details: { adjacentPlayground: true, restrooms: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "kelley-park-splash-pad", name: "Kelley Park Splash Pad", kind: "splash-pad",
@@ -741,7 +757,8 @@ export const PLACES: Place[] = [
     tags: ["adjacent-playground"],
     intro: "A splash pad at Apple Valley's Kelley Park, next to the amphitheater in the Central Village district.",
     sourceUrl: "https://www.applevalleymn.gov/facilities/facility/details/kelleypark-26",
-    verifiedAt: "2026-08-07", venueSlug: null,
+    details: { adjacentPlayground: true, restrooms: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "round-lake-park-splash-pad", name: "Round Lake Park Splash Pad", kind: "splash-pad",
@@ -750,7 +767,8 @@ export const PLACES: Place[] = [
     tags: ["adjacent-playground"],
     intro: "A free splash pad at Round Lake Park in Eden Prairie, a short walk from the lake's swimming beach and the playground.",
     sourceUrl: "https://www.edenprairiemn.gov/Home/Components/FacilityDirectory/FacilityDirectory/120/1343",
-    verifiedAt: "2026-08-07", venueSlug: null,
+    details: { adjacentPlayground: true, restrooms: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "grand-prairie-park-splash-pad", name: "Grand Prairie Park Splash Pad", kind: "splash-pad",
@@ -759,7 +777,8 @@ export const PLACES: Place[] = [
     tags: ["adjacent-playground"],
     intro: "The splash pad at Lakeville's 68-acre Grand Prairie Park, alongside a big playground, ball fields, and pickleball courts.",
     sourceUrl: "https://www.lakevillemn.gov/1362/Grand-Prairie-Park",
-    verifiedAt: "2026-08-07", venueSlug: null,
+    details: { adjacentPlayground: true, restrooms: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "oak-hill-park-splash-pad", name: "Oak Hill Park Splash Pad", kind: "splash-pad",
@@ -768,7 +787,8 @@ export const PLACES: Place[] = [
     tags: ["adjacent-playground"],
     intro: "St. Louis Park's splash pad at Oak Hill Park — bubbling hoses, nozzles, and sprinkler arches kids can set off themselves.",
     sourceUrl: "https://www.stlouisparkmn.gov/our-city/thing-to-do/splash-pad",
-    verifiedAt: "2026-08-07", venueSlug: null,
+    details: { adjacentPlayground: true, restrooms: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "lions-park-splash-pad", name: "Lions Park Splash Pad", kind: "splash-pad",
@@ -777,7 +797,8 @@ export const PLACES: Place[] = [
     tags: ["adjacent-playground"],
     intro: "A free splash pad at Lions Park in Shakopee, next to the Fun For All accessible playground.",
     sourceUrl: "https://discovershakopee.org/have-fun-by-the-water-in-shakopee/",
-    verifiedAt: "2026-08-07", venueSlug: null,
+    details: { adjacentPlayground: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "nicollet-commons-splash-pad", name: "Nicollet Commons Park Splash Pad", kind: "splash-pad",
@@ -786,7 +807,8 @@ export const PLACES: Place[] = [
     tags: [],
     intro: "Jets in the plaza at Nicollet Commons Park in downtown Burnsville — press the button to turn them on.",
     sourceUrl: "https://burnsvillemn.gov/facilities/facility/details/Nicollet-Commons-Park-30",
-    verifiedAt: "2026-08-07", venueSlug: null,
+    details: { restrooms: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "cedarcrest-park-splash-pad", name: "Cedarcrest Park Splash Pad", kind: "splash-pad",
@@ -795,7 +817,8 @@ export const PLACES: Place[] = [
     tags: ["adjacent-playground", "restrooms"],
     intro: "Bloomington's splash pad at Cedarcrest Park, with a playground, ball fields, and seasonal restrooms.",
     sourceUrl: "https://www.bloomingtonmn.gov/pr/parks/cedarcrest-park",
-    verifiedAt: "2026-08-07", venueSlug: null,
+    details: { adjacentPlayground: true, restrooms: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "boulevard-plaza-splash-pad", name: "Boulevard Plaza Splash Pad", kind: "splash-pad",
@@ -804,7 +827,8 @@ export const PLACES: Place[] = [
     tags: ["adjacent-playground", "restrooms"],
     intro: "A free splash pad at Boulevard Plaza on the Coon Rapids Ice Center grounds, with a play area and restrooms.",
     sourceUrl: "https://www.coonrapidsmn.gov/1485/Boulevard-Plaza-Splash-Pad",
-    verifiedAt: "2026-08-07", venueSlug: null,
+    details: { adjacentPlayground: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "cliff-fen-splash-pad", name: "Cliff Fen Park Splash Pad", kind: "splash-pad",
@@ -813,7 +837,8 @@ export const PLACES: Place[] = [
     tags: [],
     intro: "The splash pad at Cliff Fen Park in Burnsville, open late into the evening through the summer.",
     sourceUrl: "https://burnsvillemn.gov/facilities/facility/details/Cliff-Fen-Park-8",
-    verifiedAt: "2026-08-07", venueSlug: null,
+    details: { adjacentPlayground: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
 
   // ── Splash pads — metro-wide exhaustive sweep (Aug 2026, F2.7) ────────────
@@ -829,7 +854,8 @@ export const PLACES: Place[] = [
     tags: ["restrooms"],
     intro: "A free splash pad right at Phalen Beach — cool off in the sprays without getting in the lake, with restrooms and picnic spots close by.",
     sourceUrl: "https://www.stpaul.gov/departments/parks-and-recreation/aquatics/phalen-regional-park-beach",
-    verifiedAt: "2026-08-13", venueSlug: null,
+    details: { restrooms: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "eagan-central-park-splash-pad", name: "Eagan Central Park Splash Pad", kind: "splash-pad",
@@ -838,7 +864,8 @@ export const PLACES: Place[] = [
     tags: ["shade"],
     intro: "Ground sprays, overhead fountains, and dump buckets at Eagan's Central Park, with a sun shelter and picnic tables alongside.",
     sourceUrl: "https://cityofeagan.com/splash-pad",
-    verifiedAt: "2026-08-13", venueSlug: null,
+    details: { adjacentPlayground: true, restrooms: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "rosemount-central-park-splash-pad", name: "Rosemount Central Park Splash Pad", kind: "splash-pad",
@@ -847,7 +874,8 @@ export const PLACES: Place[] = [
     tags: ["shade"],
     intro: "A big rain-deck splash pad in Rosemount with a 'Water Journey' maze of ground nozzles, plus a covered shelter and drinking fountain.",
     sourceUrl: "https://www.rosemountmn.gov/849/Splash-Pad",
-    verifiedAt: "2026-08-13", venueSlug: null,
+    details: { adjacentPlayground: true, restrooms: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "heritage-village-splash-pad", name: "Heritage Village Park Splash Pad", kind: "splash-pad",
@@ -856,7 +884,8 @@ export const PLACES: Place[] = [
     tags: ["adjacent-playground", "restrooms", "shade"],
     intro: "Inver Grove Heights' inclusive splash pad — ground sprays and bucket dumps under a shade shelter, next to an accessible playground.",
     sourceUrl: "https://www.ighmn.gov/442/Heritage-Village-Park-and-Off-Leash-Dog-",
-    verifiedAt: "2026-08-13", venueSlug: null,
+    details: { adjacentPlayground: true, restrooms: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "harmon-park-splash-pad", name: "Harmon Park Splash Pad", kind: "splash-pad",
@@ -865,7 +894,8 @@ export const PLACES: Place[] = [
     tags: ["adjacent-playground", "restrooms", "shade"],
     intro: "West St. Paul's touch-activated spray park: 25-plus features on four-minute cycles, a playground next door, and shade trees over the benches.",
     sourceUrl: "https://wspmn.gov/750/Harmon-Park",
-    verifiedAt: "2026-08-13", venueSlug: null,
+    details: { adjacentPlayground: true, restrooms: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "miller-park-splash-pad", name: "Miller Park Splash Pad", kind: "splash-pad",
@@ -874,7 +904,8 @@ export const PLACES: Place[] = [
     tags: ["adjacent-playground"],
     intro: "One of Eden Prairie's four splash pads — push-button sprays beside a sand-and-water play area and an accessible playground.",
     sourceUrl: "https://www.edenprairiemn.gov/amenities/parks-trails-recreation/recreational-amenities/splash-pads",
-    verifiedAt: "2026-08-13", venueSlug: null,
+    details: { adjacentPlayground: true, restrooms: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "homeward-hills-splash-pad", name: "Homeward Hills Park Splash Pad", kind: "splash-pad",
@@ -883,7 +914,8 @@ export const PLACES: Place[] = [
     tags: ["adjacent-playground"],
     intro: "An Eden Prairie splash pad with a playground and picnic shelter a few steps away, off Homeward Hills Road.",
     sourceUrl: "https://www.edenprairiemn.gov/amenities/parks-trails-recreation/recreational-amenities/splash-pads",
-    verifiedAt: "2026-08-13", venueSlug: null,
+    details: { adjacentPlayground: true, restrooms: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "nesbitt-preserve-splash-pad", name: "Nesbitt Preserve Park Splash Pad", kind: "splash-pad",
@@ -892,7 +924,8 @@ export const PLACES: Place[] = [
     tags: ["adjacent-playground"],
     intro: "A quieter neighborhood splash pad next to the Nesbitt Preserve playground in Eden Prairie.",
     sourceUrl: "https://www.edenprairiemn.gov/amenities/parks-trails-recreation/recreational-amenities/splash-pads",
-    verifiedAt: "2026-08-13", venueSlug: null,
+    details: { adjacentPlayground: true, restrooms: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "wayzata-panoway-splash-pad", name: "Wayzata Panoway Splash Pad", kind: "splash-pad",
@@ -901,7 +934,8 @@ export const PLACES: Place[] = [
     tags: [],
     intro: "Button-activated ground jets in downtown Wayzata's lakefront plaza — a quick cool-off steps from Lake Minnetonka.",
     sourceUrl: "https://www.wayzata.org/392/Panoway",
-    verifiedAt: "2026-08-13", venueSlug: null,
+    details: { restrooms: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "new-brighton-lions-park-splash-pad", name: "New Brighton Lions Park Splash Pad", kind: "splash-pad",
@@ -910,7 +944,8 @@ export const PLACES: Place[] = [
     tags: ["adjacent-playground", "restrooms", "shade"],
     intro: "An accessible splash pad beside the Lions Park playground in New Brighton, with restrooms and shade close by.",
     sourceUrl: "https://www.newbrightonmn.gov/facilities/facility/details/Lions-Park-11",
-    verifiedAt: "2026-08-13", venueSlug: null,
+    details: { adjacentPlayground: true, restrooms: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "mounds-view-splash-down", name: "Splash Down at City Hall Park", kind: "splash-pad",
@@ -919,7 +954,8 @@ export const PLACES: Place[] = [
     tags: ["adjacent-playground", "shade"],
     intro: "'Splash Down' at City Hall Park in Mounds View — sprays beside the playground, with shaded pavilions you can rent.",
     sourceUrl: "https://www.moundsviewmn.gov/government/city_departments/parks_and_recreation/city_parks/city_hall_park.php",
-    verifiedAt: "2026-08-13", venueSlug: null,
+    details: { adjacentPlayground: true, restrooms: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "chanhassen-city-center-splash-pad", name: "Chanhassen City Center Park Splash Pad", kind: "splash-pad",
@@ -928,7 +964,8 @@ export const PLACES: Place[] = [
     tags: ["adjacent-playground"],
     intro: "The splash pad on Chanhassen's downtown Civic Campus, rebuilt and reopened in 2026, next to the playground, skate park, and amphitheater.",
     sourceUrl: "https://www.chanhassenmn.gov/government/civic-campus/city-center-park",
-    verifiedAt: "2026-08-13", venueSlug: null,
+    details: { adjacentPlayground: true, restrooms: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "chaska-firemens-park-splash-pad", name: "Firemen's Park Water Play Fountain", kind: "splash-pad",
@@ -937,7 +974,8 @@ export const PLACES: Place[] = [
     tags: ["adjacent-playground", "restrooms"],
     intro: "A free interactive water fountain by the shelter at Chaska's Firemen's Park, steps from the Clayhole swimming beach and the playground.",
     sourceUrl: "https://www.chaskamn.gov/653/About-Parks-Recreation",
-    verifiedAt: "2026-08-13", venueSlug: null,
+    details: { adjacentPlayground: true, restrooms: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "cologne-city-square-splash-pad", name: "Cologne City Square Park Splash Pad", kind: "splash-pad",
@@ -955,7 +993,8 @@ export const PLACES: Place[] = [
     tags: ["adjacent-playground", "restrooms"],
     intro: "Three Rivers' free 'Mini-Mississippi' water-play area at Mississippi Gateway — shallow splashing beside the Hillside play area and the Treetop Trail.",
     sourceUrl: "https://www.threeriversparks.org/location/mississippi-gateway-regional-park",
-    verifiedAt: "2026-08-13", venueSlug: null,
+    details: { adjacentPlayground: true, restrooms: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "burnes-park-splash-pad", name: "Burnes Park Splash Pad", kind: "splash-pad",
@@ -964,7 +1003,8 @@ export const PLACES: Place[] = [
     tags: ["adjacent-playground", "restrooms"],
     intro: "Hopkins' button-activated splash pad at Burnes Park, with a playground, picnic shelters, and restrooms alongside.",
     sourceUrl: "https://www.hopkinsmn.com/facilities/facility/details/Burnes-Park-2",
-    verifiedAt: "2026-08-13", venueSlug: null,
+    details: { adjacentPlayground: true, restrooms: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "richfield-splash-pad", name: "Richfield Splash Pad", kind: "splash-pad",
@@ -973,7 +1013,8 @@ export const PLACES: Place[] = [
     tags: ["restrooms"],
     intro: "Richfield's nature-themed splash pad, new in 2026, right beside the outdoor pool with restrooms at the pool complex.",
     sourceUrl: "https://www.richfieldmn.gov/1000/Splash-Pad",
-    verifiedAt: "2026-08-13", venueSlug: null,
+    details: { restrooms: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "lakeside-commons-splash-pad", name: "Lakeside Commons Park Splash Pad", kind: "splash-pad",
@@ -982,7 +1023,8 @@ export const PLACES: Place[] = [
     tags: ["adjacent-playground", "restrooms"],
     intro: "A free splash pad next to the beach and playground at Blaine's Lakeside Commons, with restrooms in the beach house.",
     sourceUrl: "https://www.blainemn.gov/facilities/facility/details/Lakeside-Commons-Park-Beach-55",
-    verifiedAt: "2026-08-13", venueSlug: null,
+    details: { adjacentPlayground: true, restrooms: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "fridley-commons-park-splash-pad", name: "Commons Park Splash Pad", kind: "splash-pad",
@@ -991,7 +1033,8 @@ export const PLACES: Place[] = [
     tags: ["adjacent-playground", "restrooms", "shade"],
     intro: "Fridley's splash pad at Commons Park, new in 2026, beside an inclusive playground with a shaded picnic pavilion.",
     sourceUrl: "https://www.fridleymn.gov/Community-Recreation/Parks-Trails/Park-System-Improvement-Plan/Commons-Park",
-    verifiedAt: "2026-08-13", venueSlug: null,
+    details: { adjacentPlayground: true, restrooms: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "ramsey-waterfront-splash-pad", name: "The Waterfront Splash Pad", kind: "splash-pad",
@@ -1009,7 +1052,8 @@ export const PLACES: Place[] = [
     tags: ["adjacent-playground", "shade"],
     intro: "Columbia Heights' Huset Park splash pad — 40-plus sprayers under a triple-sail shade system, next to the playground.",
     sourceUrl: "https://www.columbiaheightsmn.gov/departments/recreation/huset_park_west.php",
-    verifiedAt: "2026-08-13", venueSlug: null,
+    details: { adjacentPlayground: true, restrooms: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "becker-park-splash-pad", name: "Becker Park Splash Pad", kind: "splash-pad",
@@ -1018,7 +1062,8 @@ export const PLACES: Place[] = [
     tags: ["adjacent-playground", "restrooms"],
     intro: "Crystal's splash pad sits at the center of the rebuilt, inclusive Becker Park playground, with the community center and restrooms next door.",
     sourceUrl: "https://parksandrec.crystalmn.gov/recreation/parks_and_trails/becker_park",
-    verifiedAt: "2026-08-13", venueSlug: null,
+    details: { adjacentPlayground: true, restrooms: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "manor-park-splash-pad", name: "Manor Park Splash Pad", kind: "splash-pad",
@@ -1027,7 +1072,8 @@ export const PLACES: Place[] = [
     tags: ["adjacent-playground"],
     intro: "Buckets and fountains at Robbinsdale's Manor Park, with a playground, picnic shelter, and a tennis court alongside.",
     sourceUrl: "https://www.robbinsdalemn.gov/250/Parks-Facilities",
-    verifiedAt: "2026-08-13", venueSlug: null,
+    details: { adjacentPlayground: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "andrews-park-splash-pad", name: "Andrews Park Splash Pad", kind: "splash-pad",
@@ -1036,7 +1082,8 @@ export const PLACES: Place[] = [
     tags: ["adjacent-playground"],
     intro: "Champlin's Andrews Park splash pad, with a snack shack, playgrounds, ballfields, and sand volleyball around it.",
     sourceUrl: "https://www.champlinmn.gov/482/Andrews-Park",
-    verifiedAt: "2026-08-13", venueSlug: null,
+    details: { adjacentPlayground: true, restrooms: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "mississippi-crossings-splash-pad", name: "Mississippi Crossings Splash Pad", kind: "splash-pad",
@@ -1045,7 +1092,8 @@ export const PLACES: Place[] = [
     tags: ["adjacent-playground"],
     intro: "A small touch-activated splash pad on Champlin's riverfront at Mississippi Crossings, by the event-center concession and the playground.",
     sourceUrl: "https://www.champlinmn.gov/193/Mississippi-Crossings",
-    verifiedAt: "2026-08-13", venueSlug: null,
+    details: { adjacentPlayground: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "zanewood-splash-pad", name: "Zanewood Recreation Center Splash Pad", kind: "splash-pad",
@@ -1054,7 +1102,8 @@ export const PLACES: Place[] = [
     tags: [],
     intro: "Brooklyn Park's splash pad at the Zanewood Recreation Center, home to the city's free Summer Splash days.",
     sourceUrl: "https://www.brooklynpark.org/event/summer-splash-2/",
-    verifiedAt: "2026-08-13", venueSlug: null,
+    details: { adjacentPlayground: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "highlands-park-splash-pad", name: "Highlands Park Splash Pad", kind: "splash-pad",
@@ -1063,7 +1112,8 @@ export const PLACES: Place[] = [
     tags: ["adjacent-playground", "restrooms"],
     intro: "Cottage Grove's zero-depth splash pad at Highlands Park — pillars, mushroom fountains, and touch-activated geysers, with a playground next door.",
     sourceUrl: "https://cottagegrovemn.gov/Facilities/Facility/Details/Splash-Pad-at-Highlands-Park-67",
-    verifiedAt: "2026-08-13", venueSlug: null,
+    details: { adjacentPlayground: true, restrooms: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "lagoon-park-splash-pad", name: "Lagoon Park Splash Pad", kind: "splash-pad",
@@ -1072,7 +1122,8 @@ export const PLACES: Place[] = [
     tags: ["adjacent-playground", "restrooms"],
     intro: "Jordan's colorful splash pad at Lagoon Park, beside the Mill Pond swimming beach, a big playground, and the Sand Creek waterfall.",
     sourceUrl: "https://www.jordanmn.gov/lagoon-park",
-    verifiedAt: "2026-08-13", venueSlug: null,
+    details: { adjacentPlayground: true, restrooms: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "pioneer-park-splash-pad", name: "Pioneer Park Water Feature", kind: "splash-pad",
@@ -1081,7 +1132,8 @@ export const PLACES: Place[] = [
     tags: ["adjacent-playground", "restrooms"],
     intro: "Little Canada's Pioneer Park has button-activated fountains that spill into a man-made stream, next to an all-inclusive playground.",
     sourceUrl: "https://www.littlecanadamn.org/599/Pioneer-Park-Planning",
-    verifiedAt: "2026-08-13", venueSlug: null,
+    details: { adjacentPlayground: true, restrooms: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "shoreview-commons-splash-pad", name: "Shoreview Commons Splash Play", kind: "splash-pad",
@@ -1090,7 +1142,8 @@ export const PLACES: Place[] = [
     tags: ["adjacent-playground", "restrooms", "shade"],
     intro: "Shoreview Commons' destination playground has spray features built in — kids get soaked all summer — with the community center and restrooms right there.",
     sourceUrl: "https://www.shoreviewmn.gov/Parks-rec/Parks/Parks-directory/Shoreview-Commons-Destination-Playground",
-    verifiedAt: "2026-08-13", venueSlug: null,
+    details: { adjacentPlayground: true, restrooms: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
 
   // ── Pools (P2.1) ────────────────────────────────────────────────────────
