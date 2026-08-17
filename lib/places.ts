@@ -93,6 +93,11 @@ export interface PlaceDetails {
   toddlerArea?: boolean; // a separate toddler/infant zone for the littlest kids
   cafe?: boolean; // an on-site café / coffee / food for parents
   socksRequired?: boolean; // grip socks required (bring them / buy at the door)
+  // Trampoline / ninja / climbing venues — the activity IS the decision (this kind
+  // lumps three venue types together). socksRequired (above) is reused here.
+  trampolines?: boolean; // a trampoline park / wall-to-wall trampolines
+  ninjaCourse?: boolean; // a ninja-warrior / obstacle / parkour course
+  rockClimbing?: boolean; // rock climbing walls / bouldering / rope climbing
 }
 
 /** Badge labels for the truthy PlaceDetails facts, in render order. Only keys
@@ -118,6 +123,9 @@ export const PLACE_DETAIL_LABELS: Partial<Record<keyof PlaceDetails, string>> = 
   naturePlayArea: "Nature play area",
   toddlerArea: "Toddler area",
   cafe: "Café",
+  trampolines: "Trampolines",
+  ninjaCourse: "Ninja course",
+  rockClimbing: "Rock climbing",
   socksRequired: "Socks required",
   adjacentPlayground: "Playground on site",
   restrooms: "Restrooms",
@@ -5209,7 +5217,8 @@ export const PLACES: Place[] = [
     tags: ["trampoline", "ninja-course", "grip-socks"],
     intro: "The Edina Sky Zone — freestyle courts, a foam zone, Ultimate Dodgeball, plus a climbing wall and a ninja course. Grip socks required; Little Leapers hours for the toddlers. Jump time by the hour.",
     sourceUrl: "https://www.skyzone.com/minneapolis/",
-    verifiedAt: "2026-08-14", venueSlug: null,
+    details: { trampolines: true, ninjaCourse: true, socksRequired: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "sky-zone-maple-grove", name: "Sky Zone Maple Grove", kind: "trampoline-climbing",
@@ -5218,7 +5227,8 @@ export const PLACES: Place[] = [
     tags: ["trampoline", "foam-pit", "grip-socks"],
     intro: "Maple Grove's Sky Zone — wall-to-wall trampolines, a foam pit, and dodgeball. Grip socks required; buy jump time or a pass.",
     sourceUrl: "https://www.skyzone.com/maplegrove/",
-    verifiedAt: "2026-08-14", venueSlug: null,
+    details: { trampolines: true, ninjaCourse: true, rockClimbing: true, socksRequired: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "sky-zone-eagan", name: "Sky Zone Eagan", kind: "trampoline-climbing",
@@ -5227,7 +5237,8 @@ export const PLACES: Place[] = [
     tags: ["trampoline", "ninja-course", "grip-socks"],
     intro: "The Eagan Sky Zone, in the old Rockin' Jump space — trampolines, a ninja course, and a foam pit. Grip socks required; jump time by the hour.",
     sourceUrl: "https://www.skyzone.com/eagan/",
-    verifiedAt: "2026-08-14", venueSlug: null,
+    details: { trampolines: true, ninjaCourse: true, socksRequired: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "sky-zone-st-paul", name: "Sky Zone St. Paul", kind: "trampoline-climbing",
@@ -5236,7 +5247,8 @@ export const PLACES: Place[] = [
     tags: ["trampoline", "dodgeball", "grip-socks"],
     intro: "Sky Zone's east-metro park, in Oakdale — trampolines, dodgeball, and a foam pit. Grip socks required; jump time by the hour.",
     sourceUrl: "https://www.skyzone.com/stpaul/",
-    verifiedAt: "2026-08-14", venueSlug: null,
+    details: { trampolines: true, ninjaCourse: true, socksRequired: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "urban-air-apple-valley", name: "Urban Air Apple Valley", kind: "trampoline-climbing",
@@ -5245,7 +5257,8 @@ export const PLACES: Place[] = [
     tags: ["trampoline", "ropes-course", "climbing"],
     intro: "Apple Valley's Urban Air — trampolines plus a ropes course, ninja obstacles, and an indoor climbing wall, sold as tiered wristbands. Open daily.",
     sourceUrl: "https://www.urbanair.com/minnesota-apple-valley/",
-    verifiedAt: "2026-08-14", venueSlug: null,
+    details: { trampolines: true, ninjaCourse: true, rockClimbing: true, socksRequired: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "urban-air-plymouth", name: "Urban Air Plymouth", kind: "trampoline-climbing",
@@ -5254,7 +5267,8 @@ export const PLACES: Place[] = [
     tags: ["trampoline", "ropes-course", "climbing"],
     intro: "The Plymouth Urban Air, in the former Sky Zone space — trampolines, a ropes course, ninja obstacles, and climbing walls. Open daily.",
     sourceUrl: "https://www.urbanair.com/minnesota-plymouth/",
-    verifiedAt: "2026-08-14", venueSlug: null,
+    details: { trampolines: true, ninjaCourse: true, rockClimbing: true, socksRequired: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "urban-air-coon-rapids", name: "Urban Air Coon Rapids", kind: "trampoline-climbing",
@@ -5263,7 +5277,8 @@ export const PLACES: Place[] = [
     tags: ["trampoline", "ropes-course", "go-karts"],
     intro: "Coon Rapids' Urban Air — trampolines, go-karts, a ropes course, ninja obstacles, and climbing. Tiered wristbands, open daily.",
     sourceUrl: "https://www.urbanair.com/minnesota-coon-rapids/",
-    verifiedAt: "2026-08-14", venueSlug: null,
+    details: { trampolines: true, ninjaCourse: true, rockClimbing: true, socksRequired: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "zero-gravity-mounds-view", name: "Zero Gravity Adventure Park", kind: "trampoline-climbing",
@@ -5272,7 +5287,8 @@ export const PLACES: Place[] = [
     tags: ["trampoline", "dodgeball", "ninja-course"],
     intro: "A Mounds View adventure park built around 11,000 square feet of trampolines, with two dodgeball courts, a foam pit, and an aerial ninja course. Laser tag and an arcade too.",
     sourceUrl: "https://www.zerogravitymn.com/",
-    verifiedAt: "2026-08-14", venueSlug: null,
+    details: { trampolines: true, socksRequired: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "obstacle-academy", name: "Obstacle Academy", kind: "trampoline-climbing",
@@ -5281,7 +5297,8 @@ export const PLACES: Place[] = [
     tags: ["ninja-course", "parkour", "open-gym"],
     intro: "An Eden Prairie ninja gym run by a former American Ninja Warrior — 14,000 square feet of obstacles, parkour, and open-gym hours for ages four and up.",
     sourceUrl: "https://www.obstacle-academy.com/",
-    verifiedAt: "2026-08-14", venueSlug: null,
+    details: { ninjaCourse: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "conquer-ninja-blaine", name: "Conquer Ninja Gyms — Blaine", kind: "trampoline-climbing",
@@ -5290,7 +5307,8 @@ export const PLACES: Place[] = [
     tags: ["ninja-course", "open-gym"],
     intro: "Conquer's Blaine ninja gym — warped walls and obstacle courses, with open-gym hours plus classes and memberships.",
     sourceUrl: "https://www.conquerninja.com/locations/blaine",
-    verifiedAt: "2026-08-14", venueSlug: null,
+    details: { ninjaCourse: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "conquer-ninja-woodbury", name: "Conquer Ninja Gyms — Woodbury", kind: "trampoline-climbing",
@@ -5299,7 +5317,8 @@ export const PLACES: Place[] = [
     tags: ["ninja-course", "open-gym"],
     intro: "Conquer's east-metro ninja gym in Woodbury — obstacle courses and a warped wall, open gym plus classes and an unlimited membership.",
     sourceUrl: "https://www.conquerninja.com/locations/woodbury",
-    verifiedAt: "2026-08-14", venueSlug: null,
+    details: { ninjaCourse: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "vertical-endeavors-minneapolis", name: "Vertical Endeavors — Minneapolis", kind: "trampoline-climbing",
@@ -5308,7 +5327,8 @@ export const PLACES: Place[] = [
     tags: ["climbing", "ropes", "auto-belay"],
     intro: "Vertical Endeavors' flagship on Eat Street — 50-to-60-foot ropes and auto-belays, among the tallest indoor walls in the country. Day passes and rentals.",
     sourceUrl: "https://www.verticalendeavors.com/visit-us/hours-locations/minneapolis-mn/",
-    verifiedAt: "2026-08-14", venueSlug: null,
+    details: { rockClimbing: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "vertical-endeavors-st-paul", name: "Vertical Endeavors — St. Paul", kind: "trampoline-climbing",
@@ -5317,7 +5337,8 @@ export const PLACES: Place[] = [
     tags: ["climbing", "ropes", "auto-belay"],
     intro: "The St. Paul Vertical Endeavors on Phalen Boulevard — a big ropes gym, 60-plus ropes and 15 auto-belays. Day passes and rentals.",
     sourceUrl: "https://www.verticalendeavors.com/visit-us/hours-locations/st-paul-mn/",
-    verifiedAt: "2026-08-14", venueSlug: null,
+    details: { rockClimbing: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "vertical-endeavors-bouldering-st-paul", name: "Vertical Endeavors — Twin Cities Bouldering", kind: "trampoline-climbing",
@@ -5326,7 +5347,8 @@ export const PLACES: Place[] = [
     tags: ["bouldering"],
     intro: "Vertical Endeavors' bouldering-only gym in St. Anthony Park — no ropes, just problems, for a drop-in or a membership.",
     sourceUrl: "https://www.verticalendeavors.com/visit-us/locations-2/",
-    verifiedAt: "2026-08-14", venueSlug: null,
+    details: { rockClimbing: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "vertical-endeavors-bloomington", name: "Vertical Endeavors — Bloomington", kind: "trampoline-climbing",
@@ -5335,7 +5357,8 @@ export const PLACES: Place[] = [
     tags: ["climbing", "bouldering", "ropes"],
     intro: "Vertical Endeavors' south-metro gym in Bloomington — ropes and bouldering under one roof, beginner auto-belays to lead walls. Day passes and rentals.",
     sourceUrl: "https://www.verticalendeavors.com/visit-us/hours-locations/bloomington-mn/",
-    verifiedAt: "2026-08-14", venueSlug: null,
+    details: { rockClimbing: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "bouldering-project-minneapolis", name: "Bouldering Project — Minneapolis", kind: "trampoline-climbing",
@@ -5344,7 +5367,8 @@ export const PLACES: Place[] = [
     tags: ["bouldering", "yoga"],
     intro: "The North Minneapolis Bouldering Project, on the river — ropes-free climbing plus a yoga studio and a fitness floor. Day passes or a membership.",
     sourceUrl: "https://boulderingproject.com/location/minneapolis/",
-    verifiedAt: "2026-08-14", venueSlug: null,
+    details: { rockClimbing: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "bouldering-project-st-paul", name: "Bouldering Project — St. Paul", kind: "trampoline-climbing",
@@ -5353,7 +5377,8 @@ export const PLACES: Place[] = [
     tags: ["bouldering", "yoga"],
     intro: "The St. Paul Bouldering Project near downtown, opened in 2025 — 11,000-plus square feet of steep bouldering, training boards, and yoga, with on-site parking.",
     sourceUrl: "https://boulderingproject.com/location/stpaul/",
-    verifiedAt: "2026-08-14", venueSlug: null,
+    details: { rockClimbing: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
 ];
 

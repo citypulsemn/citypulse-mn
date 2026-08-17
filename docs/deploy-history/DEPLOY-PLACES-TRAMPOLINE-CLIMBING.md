@@ -1,101 +1,49 @@
-# Deploy — Places: Trampoline & Climbing Gyms (a new kind, 0 → 17)
+# Deploy — Winning detail (moat): trampoline / ninja / climbing activity badges
 
-*Roadmap v6 Tier 1.2 (compounding Places SEO — the winter kinds). Aug 14, 2026.*
+*Aug 17, 2026. This kind lumps three different venue types together — trampoline
+parks, ninja gyms, and rock-climbing gyms — so the highest-value badge is the
+activity itself: "what kind of place is this?" is the primary decision. Reuses the
+detail layer (and the `socksRequired` field from indoor playgrounds); no new UI.*
 
-## What shipped
+## What it badges
+`trampolines` · `ninjaCourse` · `rockClimbing` (new fields) + reused
+`socksRequired` ([lib/places.ts](../../lib/places.ts)). A venue can carry several
+(Urban Air is all of trampolines + ninja + climbing).
 
-A new Places kind — **`trampoline-climbing`** — with **17 verified entries** across
-the metro, live at `/places/trampoline-climbing`. Indoor active gyms for burning off
-a Minnesota winter: trampoline parks, standalone ninja gyms, and rock-climbing /
-bouldering gyms. The fourth of the winter build wave (after indoor playgrounds,
-neighborhood rinks, and ski/tubing).
+## How it was verified (honesty first)
+One research agent checked all 17 against their official sites, `yes → badge`,
+`unknown → no badge`:
+- **`trampolines` 8/17** — the trampoline parks (Sky Zone ×4, Urban Air ×3, Zero
+  Gravity). The pure climbing/ninja gyms correctly get none.
+- **`ninjaCourse` 10/17** — Sky Zone + Urban Air warrior courses + the dedicated
+  ninja gyms (Obstacle Academy, Conquer ×2). **Zero Gravity was held back** — its
+  site lists only a "Sky Walker Net Course" (an aerial net course), not a ninja
+  course, so no badge (its old `ninja-course` tag was not confirmed).
+- **`rockClimbing` 10/17** — the climbing gyms (Vertical Endeavors ×4, Bouldering
+  Project ×2) plus the venues with climbing walls (Urban Air ×3, Sky Zone Maple
+  Grove). Sky Zone locations without a confirmed wall get none.
+- **`socksRequired` 8/17** — the trampoline parks require grip socks; the climbing
+  gyms want climbing *shoes*, not grip socks, so they correctly get no socks badge.
+- **Every one of the 17 carries at least one activity badge** — the kind is fully
+  differentiated (a bouldering gym reads climbing-only; a Sky Zone reads
+  trampolines + ninja + socks).
 
-- **Kind:** `trampoline-climbing`, label "Trampoline & Climbing Gym", plural
-  "Trampoline & Climbing Gyms". `YEAR_ROUND` (indoor), all paid.
-- **17 entries, type mix 8 trampoline · 3 ninja · 6 climbing:**
-  - *Trampoline:* Sky Zone ×4 (Edina, Maple Grove, Eagan, St. Paul/Oakdale), Urban
-    Air ×3 (Apple Valley, Plymouth, Coon Rapids), Zero Gravity (Mounds View).
-  - *Ninja:* Obstacle Academy (Eden Prairie), Conquer Ninja ×2 (Blaine, Woodbury).
-  - *Climbing:* Vertical Endeavors ×4 (Minneapolis, St. Paul, Twin Cities
-    Bouldering, Bloomington), Bouldering Project ×2 (Minneapolis, St. Paul).
-
-## Design decisions
-
-- **One combined kind, not three.** The roadmap grouped trampoline / ninja /
-  climbing as a single guide, and the ≥8-entries rule favors one robust kind (17)
-  over three thin ones. The `KIND_META` blurb and intro carry the full scope
-  ("trampoline parks, ninja gyms, and rock-climbing walls") so the ninja and
-  climbing entries read honestly under the label. *If Taren would rather split
-  climbing into its own kind later, the data is tagged by type and splits cleanly.*
-- **Chain locations are separate entries.** Each Sky Zone / Urban Air / Vertical
-  Endeavors / Bouldering Project site is its own entry with its own address and
-  page URL — that's what a directory is for, and each was verified individually.
-- **`YEAR_ROUND`, all paid.** These are indoor and open all year (the demand peaks
-  Dec–March, carried by the intro copy, not a closed banner). All sell jump time /
-  day passes / memberships.
-- **Scope kept clean.** Excluded per the kind's rules and the research's checks:
-  climbing walls inside fitness clubs / YMCAs / college rec centers, members-only
-  co-ops, retail-store walls, and FECs whose main draw is laser-tag/arcade. Two
-  closed/rebranded spots were caught and excluded (**Sky Zone Plymouth** → now Urban
-  Air; **Rockin' Jump Eagan** → now Sky Zone Eagan) — old directory pages still list
-  the dead ones.
-- **Honest sourcing.** Every entry verified against the operator's own current page.
-  One URL (Sky Zone's Oakdale/"St. Paul" location) wasn't cleanly captured by the
-  research, so it was confirmed by hand — `https://www.skyzone.com/stpaul/` returns
-  200. Prices were kept qualitative ("paid," with ballpark model in the intro) — the
-  research didn't read every operator's live 2026 price page, so no specific dollar
-  figures were published unverified.
-
-## Files
-
-- `lib/places.ts` — `trampoline-climbing` added to the `PlaceKind` union +
-  `KIND_META` (forced together by exhaustiveness), and the 17-entry block at the end
-  of the `PLACES` registry.
-- `lib/editorial.ts` — `PLACES_KIND_INTRO["trampoline-climbing"]` (house voice).
-- `lib/__tests__/places.test.ts` — `"trampoline-climbing"` added to the
-  `kindsWithPlaces` exact-list drift guard.
-- **No route/sitemap/OG code** — all registry-driven.
-
-## Verification (observed)
-
-- `npx tsc --noEmit` — clean.
-- `npm test` — **1010 passed**; `places.test.ts` 43/43 including the new drift-guard
-  line, slug-uniqueness across all 17, metro bounding box, https sources, banned
-  words, intro length.
-- `npm run build` — clean; **41/41 static pages** (was 40 — the new
-  `/places/trampoline-climbing` route prerenders via `generateStaticParams`).
-- `npm audit` — **0 vulnerabilities**.
-- **Live smoke:** `/places/trampoline-climbing` 200, title "Trampoline & Climbing
-  Gyms in the Twin Cities, Mapped," h1 "Trampoline & Climbing Gyms," "**17** across
-  the Twin Cities metro," 17-item list, all 17 present, intro copy live, canonical
-  `https://www.citypulsemn.com/places/trampoline-climbing`. The `/places` index shows
-  the new card (18 kind cards total).
+## Verification (observed, not intended)
+- **Live browser** (`/places/trampoline-climbing`, DOM-driven): badges Trampolines
+  8 · Ninja course 10 · Rock climbing 10 · Socks required 8; four filter chips;
+  Rock-climbing filter → 10 of 17. Console clean.
+  - *(A dev-server stale-chunk 500 appeared mid-verify — a `.next` HMR cache glitch,
+    not code; cleared by restarting the dev server. Production `npm run build` was
+    clean throughout.)*
+- **Tests +4** (1154 total): activity count locks; a bouldering gym reads
+  climbing-only (no trampolines/ninja/socks); every venue carries ≥1 badge; filter
+  order.
+- Gate: `tsc` clean · 1154/1154 · `npm run build` clean · `npm audit` 0.
 
 ## Deploy steps
-
-1. Merge to `main` — Vercel auto-deploys. No schema/env change.
-2. Confirm live: `https://www.citypulsemn.com/places/trampoline-climbing` (17
-   entries) and the new card on `/places`.
-3. The sitemap gains `/places/trampoline-climbing` automatically; Monday's ops-digest
-   Index line ticks up by one URL.
-
-## Post-ship ritual (ops, ~30 min, no code)
-
-- Google Maps list mirror; one digest mention; one Instagram "mapped" slot.
-- **Re-verify cadence:** evergreen → twice a year. This category churns (closures /
-  rebrands are common — two caught this pass), so watch for it.
+Merge to `main`; Vercel auto-deploys. No schema (registry is code), no secret.
 
 ## Rollback
-
-Pure additive code. Revert this commit to remove the kind (union member, `KIND_META`,
-intro, entries, and the test line together). No migration.
-
-## Follow-ups (not this item)
-
-- **Prices:** if you want firm day-pass ballparks per entry, a follow-up pass can
-  pull each operator's current pricing page.
-- Next: the winter build wave is essentially complete (indoor playgrounds, rinks,
-  ski/tubing, trampoline/climbing all shipped). Roadmap v6 Tier 1.2 continues with
-  cross-linking + whatever Search Console demand data says to build next (the
-  instrument outranks the demand-column judgment once ~4 weeks of per-guide data
-  exists).
+`git revert`. `trampolines`/`ninjaCourse`/`rockClimbing` are optional; reverting
+removes them and the badges/filters. `socksRequired` is shared with indoor
+playgrounds — this revert leaves that kind's socks badges intact.

@@ -873,6 +873,43 @@ describe("indoor-playground features (winning detail — moat)", () => {
   });
 });
 
+describe("trampoline/climbing features (winning detail — activity-type moat)", () => {
+  const venues = placesByKind("trampoline-climbing");
+
+  it("locks the source-confirmed activity counts", () => {
+    expect(venues.length).toBe(17);
+    expect(venues.filter((p) => p.details?.trampolines === true).length).toBe(8);
+    expect(venues.filter((p) => p.details?.ninjaCourse === true).length).toBe(10);
+    expect(venues.filter((p) => p.details?.rockClimbing === true).length).toBe(10);
+    expect(venues.filter((p) => p.details?.socksRequired === true).length).toBe(8);
+  });
+
+  it("activity badges split the kind correctly — a bouldering gym is climbing-only", () => {
+    const bp = venues.find((p) => p.slug === "bouldering-project-minneapolis");
+    expect(bp?.details?.rockClimbing).toBe(true);
+    expect(bp?.details?.trampolines).not.toBe(true);
+    expect(bp?.details?.ninjaCourse).not.toBe(true);
+    // Climbing gyms want climbing shoes, not grip socks.
+    expect(bp?.details?.socksRequired).not.toBe(true);
+  });
+
+  it("every venue carries at least one activity badge (kind is fully differentiated)", () => {
+    for (const p of venues) {
+      const anyTrue = Object.values(p.details ?? {}).some((v) => v === true);
+      expect(anyTrue, `${p.slug} has no activity badge`).toBe(true);
+    }
+  });
+
+  it("offers the activity filters in order (socks last)", () => {
+    expect(activeDetailKeys(venues)).toEqual([
+      "trampolines",
+      "ninjaCourse",
+      "rockClimbing",
+      "socksRequired",
+    ]);
+  });
+});
+
 describe("filter by detail (winning-detail filters — P4.3 follow-on)", () => {
   const rinks = placesByKind("rink");
   const skiHills = placesByKind("ski-hill");
