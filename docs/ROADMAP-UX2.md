@@ -1,5 +1,11 @@
 # Roadmap — UX Round 2: Discovery, Map, Ordering & Location
 
+> **✅ COMPLETE — ALL SEVEN SHIPPED (as of Aug 17, 2026). This doc is now history;
+> kept for the recon record.** U1 `8edd8cb` · U2 `7bd3860` · U3 `59980cc` · U4
+> `7ab2b13` · U5 `1c2e9b7` · U6a/U6b `28a46f4`/`6894146` · U7 `003cf62`. Do not treat
+> the "ship now / high leverage" tags below as open work — they're all done. See the
+> Aug 17 rebaseline at the top of `ROADMAP-v6.md` for what's actually next.
+
 *Aug 14, 2026. Seven items from Taren's list, each recon'd against the working tree
 (four parallel read-only passes — mobile/desktop/nav, map popup, event links + day
 ordering, location feasibility). This is conversion/retention-quality work — the

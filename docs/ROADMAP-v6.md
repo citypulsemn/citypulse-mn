@@ -10,7 +10,64 @@ pointed to from the items below; the older numbered roadmaps are now history.*
 
 ---
 
-## Rebaseline — Aug 16, 2026 (read this first; supersedes tier statuses below)
+## Rebaseline — Aug 17, 2026 (read this first; supersedes everything below)
+
+A long build session shipped the entire Places winning-detail program and confirmed
+the whole UX2 batch is already live. **Reconciled against the working tree today, the
+buildable roadmap is essentially exhausted — what remains is measurement and audience,
+which are owner-gated, not code.** Do not build the next Places feature on faith; the
+instrument (Search Console) now outranks every demand-column judgment.
+
+- **UX2 (`ROADMAP-UX2.md`) — ✅ ALL SEVEN SHIPPED, that doc is now history.** U1 map
+  popup contrast (`8edd8cb`), U2 day chronological order (`7bd3860`), U3 homepage
+  Places/Collections discovery (`59980cc`), U4 official-link-first (`7ab2b13`), U5
+  mobile calendar→list flash (`1c2e9b7`), U6a/U6b desktop multi-column + side-by-side
+  map/list (`28a46f4`/`6894146`), U7 near-me location filter (`003cf62`). (The Aug 16
+  note below still lists U1/U3 as top build items — stale; they were done Aug 14.)
+- **Places — the winning-detail moat + its SEO payoff + a cross-kind finder — ✅
+  SHIPPED, far past Tier 1.2 "Wave 1" (`2535c60`…`a9d088b`).** **13 kinds** now carry
+  source-verified detail badges — ski-hill, rink, splash-pad, pool, dog-park,
+  playground, orchard, nature-center, indoor-playground, trampoline-climbing, museum,
+  disc-golf, garden — each with per-kind filter chips, a filter-reactive map, and
+  near-me sort (one kind-agnostic layer; each kind was data + a schema line, never new
+  UI). Every fact is traceable to an official source (research-agent verified,
+  `yes→badge`/`unknown→no badge`); the audit passes flipped or dropped ~20 mistagged
+  claims (e.g. Arlington-Arkwright "unfenced"→fenced, Hansen "18-hole"→12, Cowles
+  "Conservatory"→open-air pavilion, vending-machines≠café). On top: **schema.org
+  `amenityFeature` JSON-LD + fact-rich meta descriptions** on every kind page
+  (`79ca608`), and a **cross-kind "Find a Place" finder** at `/places/discover` that
+  pools all ~500 places and filters on the axes that span kinds (`a0aa69f`). The moat
+  is complete — the remaining kinds (golf 85, farmers-market 72, park 21, sledding 11)
+  are large/generic/schedule-shaped, where curated boolean facts don't differentiate.
+- **Tier 0 (egress/lights-on), 1.3 (digest depth), 1.4 (opt-in policy) — closed** (as
+  of the Aug 16 note).
+
+**What is genuinely left is NOT code — it's two owner-gated reads + one blocked chain:**
+1. **GSC indexation re-check ⭐ — the single highest-leverage action on the board.**
+   The Aug 16 finding stands until re-measured: `/places` + `/this-week` were "URL is
+   unknown to Google" (never discovered). The *content signal* is now maximal (moat +
+   amenityFeature JSON-LD), but it ranks nothing until the pages are crawled. **Owner:**
+   GSC → URL Inspection → Request Indexing for `/places`, `/places/discover`, and the
+   top kind pages; confirm the sitemap is "Success"; then re-run `gsc-report` and read
+   whether "unknown" flipped to discovered/indexed. **This governs whether the entire
+   Places investment pays off.**
+2. **1.1 conversion read (~early Sept) — the ⭐ funnel gating signal (unchanged).**
+   Pull signups by source + `/this-week` traffic once ~4 weeks of post-overhaul data
+   exists. Is the number off 5? This decides Tier 1 ordering.
+3. **2.2 "for-you" personalization — still BLOCKED on save volume (~1/week, flat).**
+
+**If building anyway** (all lower-leverage, and indexation-gated for real payoff):
+per-place detail pages `/places/[kind]/[slug]` (a dedicated URL per place lets each
+Place JSON-LD stand alone instead of nested in an ItemList — the biggest remaining SEO
+lever); discover polish (a filtered-results map, one-tap chip presets like "Free &
+indoor"); or moat-fed IG/digest content. None move the binding constraint on their own.
+
+**The one number is unchanged: ~5 subscribers against the 500 gate. Growth is the
+work — and the levers are now measurement + distribution, not more features.**
+
+---
+
+## Rebaseline — Aug 16, 2026 (superseded by Aug 17 above)
 
 Two build sessions landed since this doc was written (Aug 14). Reconciled against
 the working tree today, **the entire growth/repair spine is shipped** — the tiers
