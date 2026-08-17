@@ -51,6 +51,33 @@ export type PlaceSeason =
   | { type: "year-round" }
   | { type: "seasonal"; openMonth: number; closeMonth: number; label: string };
 
+/**
+ * THE WINNING DETAIL (Places roadmap moat). Curated, un-scrapeable facts that
+ * decide where a family actually goes — the value a scraped directory can't
+ * carry. Every field is OPTIONAL and only ever set to `true` when a source
+ * confirms it (a fact we can't verify is simply absent — honest emptiness, never
+ * an invented amenity). Fields are namespaced loosely by kind; add per kind as
+ * guides are enriched. Rendered as badges via PLACE_DETAIL_LABELS.
+ */
+export interface PlaceDetails {
+  // Ski & tubing hills
+  tubing?: boolean; // dedicated snow-tubing runs
+  nightSkiing?: boolean; // lit for evening skiing/riding
+  terrainPark?: boolean; // jumps / rails / features
+  rentals?: boolean; // ski / snowboard / tube rentals on site
+  lessons?: boolean; // lesson programs / ski school
+}
+
+/** Badge labels for the truthy PlaceDetails facts, in render order. Only keys
+ *  present here render; a detail without a label is ignored (drift-guarded). */
+export const PLACE_DETAIL_LABELS: Partial<Record<keyof PlaceDetails, string>> = {
+  tubing: "Snow tubing",
+  nightSkiing: "Night skiing",
+  terrainPark: "Terrain park",
+  rentals: "Rentals",
+  lessons: "Lessons",
+};
+
 export interface Place {
   slug: string; // URL-safe, unique across all places
   name: string;
@@ -68,6 +95,9 @@ export interface Place {
   intro: string; // house voice: concrete over promotional
   sourceUrl: string; // authoritative page — REQUIRED, the honesty anchor
   verifiedAt: string; // YYYY-MM-DD the facts were checked against the source
+  /** The winning detail (moat) — curated verified facts. Optional per entry;
+   *  omit unknowns rather than guess. */
+  details?: PlaceDetails;
   /** For the `music-venue` kind: points at the existing venue page instead of
    *  duplicating it. Null for every other kind. */
   venueSlug: string | null;
@@ -4068,7 +4098,9 @@ export const PLACES: Place[] = [
     tags: ["downhill", "terrain-park", "night-skiing"],
     intro: "The metro's biggest ski area — 300-plus acres of runs on the St. Croix bluffs, with 18 lifts, terrain parks, and night skiing. Vail-owned; a lift ticket or Epic Pass gets you on.",
     sourceUrl: "https://www.aftonalps.com",
-    verifiedAt: "2026-08-14", venueSlug: null,
+    verifiedAt: "2026-08-17",
+    details: { tubing: true, nightSkiing: true, terrainPark: true, rentals: true, lessons: true },
+    venueSlug: null,
   },
   {
     slug: "buck-hill", name: "Buck Hill", kind: "ski-hill",
@@ -4077,7 +4109,9 @@ export const PLACES: Place[] = [
     tags: ["downhill", "terrain-park"],
     intro: "Burnsville's storied training hill — where Lindsey Vonn learned to race — with runs, rails, and a race program. A lift ticket to ski or ride.",
     sourceUrl: "https://buckhill.com",
-    verifiedAt: "2026-08-14", venueSlug: null,
+    verifiedAt: "2026-08-17",
+    details: { tubing: true, nightSkiing: true, terrainPark: true, rentals: true, lessons: true },
+    venueSlug: null,
   },
   {
     slug: "hyland-ski-area", name: "Hyland Ski & Snowboard Area", kind: "ski-hill",
@@ -4086,7 +4120,9 @@ export const PLACES: Place[] = [
     tags: ["downhill", "terrain-park", "rentals"],
     intro: "Three Rivers' downhill area in Bloomington, five minutes from the Mall of America — a big terrain park, a chalet, and rentals, floodlit for night skiing. Lift ticket required.",
     sourceUrl: "https://www.threeriversparks.org/location/hyland-hills-ski-area",
-    verifiedAt: "2026-08-14", venueSlug: null,
+    verifiedAt: "2026-08-17",
+    details: { nightSkiing: true, terrainPark: true, rentals: true, lessons: true },
+    venueSlug: null,
   },
   {
     slug: "elm-creek-winter-recreation-area", name: "Elm Creek Winter Recreation Area", kind: "ski-hill",
@@ -4095,7 +4131,9 @@ export const PLACES: Place[] = [
     tags: ["downhill", "tubing", "beginner-friendly"],
     intro: "Three Rivers' beginner-friendly hill in Maple Grove — a lift-served downhill run and a lighted tubing hill with snowmaking, plus cross-country trails. Lift or tubing ticket required.",
     sourceUrl: "https://www.threeriversparks.org/location/elm-creek-winter-recreation-area",
-    verifiedAt: "2026-08-14", venueSlug: null,
+    verifiedAt: "2026-08-17",
+    details: { tubing: true, nightSkiing: true, terrainPark: true, rentals: true, lessons: true },
+    venueSlug: null,
   },
   {
     slug: "como-park-ski-center", name: "Como Park Ski Center", kind: "ski-hill",
@@ -4104,7 +4142,9 @@ export const PLACES: Place[] = [
     tags: ["downhill", "beginner-friendly", "lessons"],
     intro: "St. Paul's own little downhill hill by Como Lake — two rope tows, 150 feet of vertical, and cheap first-timer lessons. A $15 tow ticket, rentals on site; the city runs it into mid-February.",
     sourceUrl: "https://www.stpaul.gov/departments/parks-and-recreation/activities-events/winter-activities-events/downhill-skiing",
-    verifiedAt: "2026-08-14", venueSlug: null,
+    verifiedAt: "2026-08-17",
+    details: { nightSkiing: true, terrainPark: true, rentals: true, lessons: true },
+    venueSlug: null,
   },
   {
     slug: "green-acres-recreation", name: "Green Acres Recreation", kind: "ski-hill",
@@ -4113,7 +4153,11 @@ export const PLACES: Place[] = [
     tags: ["tubing", "reservations"],
     intro: "A snow-tubing hill in Lake Elmo — one open hill, no lanes, with a tow rope to haul you back up. Around $22 a person; you must be 42 inches to ride solo, and weekends fill, so reserve. December into March, snow permitting.",
     sourceUrl: "https://www.greenacresrec.com/",
-    verifiedAt: "2026-08-14", venueSlug: null,
+    verifiedAt: "2026-08-17",
+    // Tubing-only hill; tubes are provided (not gear you rent), and no terrain
+    // park or ski school — so only tubing + night sessions are asserted.
+    details: { tubing: true, nightSkiing: true },
+    venueSlug: null,
   },
   {
     slug: "welch-village", name: "Welch Village", kind: "ski-hill",
@@ -4122,7 +4166,9 @@ export const PLACES: Place[] = [
     tags: ["downhill", "terrain-park", "night-skiing"],
     intro: "The biggest true ski resort near the metro — 60-plus runs and terrain parks in the Cannon River valley, with night skiing into the evening. About 50 minutes southeast; a day ticket or a season pass to ride.",
     sourceUrl: "https://www.welchvillage.com/",
-    verifiedAt: "2026-08-14", venueSlug: null,
+    verifiedAt: "2026-08-17",
+    details: { tubing: true, nightSkiing: true, terrainPark: true, rentals: true, lessons: true },
+    venueSlug: null,
   },
 
   // ── MUSEUMS (Places G1.2, Aug 2026) ────────────────────────────────────────

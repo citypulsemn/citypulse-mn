@@ -858,6 +858,11 @@ a.daycard { text-decoration: none; }
 .place-meta a:hover { text-decoration: underline; }
 .place-tags { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 0; }
 .place-tag { font-size: 10.5px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--cream-dim); border: 1px solid var(--line); border-radius: 5px; padding: 2px 7px; }
+/* The winning detail (moat) — verified facts, set apart from the gray amenity
+   tags with the gold accent + a check. */
+.place-details { display: flex; flex-wrap: wrap; gap: 6px; margin: 9px 0 0; }
+.place-detail { font-size: 11px; font-weight: 500; color: var(--gold); background: rgba(201,169,97,0.12); border: 1px solid rgba(201,169,97,0.35); border-radius: 5px; padding: 3px 9px; }
+.place-detail::before { content: "✓ "; }
 .place-intro { font-size: 13.5px; line-height: 1.5; color: var(--cream); margin: 9px 0 8px; }
 .place-source { font-size: 12.5px; color: var(--gold); text-decoration: none; }
 .place-source:hover { text-decoration: underline; }

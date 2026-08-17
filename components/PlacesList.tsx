@@ -1,7 +1,15 @@
 import { neighborhoodByKey } from "@/lib/neighborhoods";
-import type { Place, PlaceCost } from "@/lib/places";
+import { PLACE_DETAIL_LABELS, type Place, type PlaceCost, type PlaceDetails } from "@/lib/places";
 
 const COST_LABEL: Record<PlaceCost, string> = { free: "Free", paid: "Paid", donation: "Donation" };
+
+/** The truthy detail facts of a place, as [key, label] pairs in render order. */
+function detailBadges(details: PlaceDetails | undefined): [string, string][] {
+  if (!details) return [];
+  return (Object.keys(PLACE_DETAIL_LABELS) as (keyof PlaceDetails)[])
+    .filter((k) => details[k] === true)
+    .map((k) => [k, PLACE_DETAIL_LABELS[k]!]);
+}
 
 /**
  * The list beneath the map — and the accessible, screen-reader/keyboard path to
@@ -27,6 +35,7 @@ export function PlacesList({
       {places.map((p, i) => {
         const hood = p.neighborhood ? neighborhoodByKey(p.neighborhood) : null;
         const miles = distances?.get(p.slug);
+        const badges = detailBadges(p.details);
         return (
           <li key={p.slug} id={p.slug} className="place-row">
             <div className="place-num" aria-hidden="true">
@@ -52,6 +61,15 @@ export function PlacesList({
                   </>
                 )}
               </div>
+              {badges.length > 0 && (
+                <div className="place-details">
+                  {badges.map(([k, label]) => (
+                    <span key={k} className="place-detail">
+                      {label}
+                    </span>
+                  ))}
+                </div>
+              )}
               {p.tags.length > 0 && (
                 <div className="place-tags">
                   {p.tags.map((t) => (

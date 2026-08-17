@@ -22,6 +22,7 @@ import {
   filterPlaces,
   placeCities,
   placesByDistance,
+  PLACE_DETAIL_LABELS,
   NO_PLACE_FILTERS,
   type Place,
   type PlaceKind,
@@ -564,5 +565,27 @@ describe("placesByDistance (Near me — P4.3 follow-up)", () => {
     const snapshot = input.map((p) => p.slug);
     placesByDistance(input, ORIGIN);
     expect(input.map((p) => p.slug)).toEqual(snapshot);
+  });
+});
+
+describe("place details — the winning-detail moat (drift guards)", () => {
+  const KNOWN = new Set(Object.keys(PLACE_DETAIL_LABELS));
+
+  it("every entry's details use only labeled keys with boolean values (never invented)", () => {
+    for (const p of PLACES) {
+      if (!p.details) continue;
+      for (const [k, v] of Object.entries(p.details)) {
+        expect(KNOWN.has(k), `${p.slug}: unlabeled detail key "${k}"`).toBe(true);
+        expect(typeof v, `${p.slug}.${k}`).toBe("boolean");
+      }
+    }
+  });
+
+  it("ski hills each carry at least one verified detail (the moat is populated)", () => {
+    for (const p of placesByKind("ski-hill")) {
+      expect(p.details, `${p.slug} missing details`).toBeDefined();
+      const anyTrue = Object.values(p.details ?? {}).some((v) => v === true);
+      expect(anyTrue, `${p.slug} has no true detail`).toBe(true);
+    }
   });
 });
