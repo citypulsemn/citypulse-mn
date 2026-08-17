@@ -98,6 +98,9 @@ export interface PlaceDetails {
   trampolines?: boolean; // a trampoline park / wall-to-wall trampolines
   ninjaCourse?: boolean; // a ninja-warrior / obstacle / parkour course
   rockClimbing?: boolean; // rock climbing walls / bouldering / rope climbing
+  // Museums — the family-decision facts (cost is already filterable). cafe reused.
+  handsOn?: boolean; // interactive / hands-on exhibits (kid-friendly)
+  planetarium?: boolean; // a planetarium or domed / Omni theater
 }
 
 /** Badge labels for the truthy PlaceDetails facts, in render order. Only keys
@@ -126,6 +129,8 @@ export const PLACE_DETAIL_LABELS: Partial<Record<keyof PlaceDetails, string>> = 
   trampolines: "Trampolines",
   ninjaCourse: "Ninja course",
   rockClimbing: "Rock climbing",
+  handsOn: "Hands-on",
+  planetarium: "Planetarium",
   socksRequired: "Socks required",
   adjacentPlayground: "Playground on site",
   restrooms: "Restrooms",
@@ -4392,7 +4397,8 @@ export const PLACES: Place[] = [
     tags: ["science", "kids"],
     intro: "The big one on the St. Paul riverfront — dinosaurs, an Omnitheater dome, the anatomy hall, and a Mississippi overlook. Paid; timed tickets on busy weekends.",
     sourceUrl: "https://www.smm.org",
-    verifiedAt: "2026-08-14", venueSlug: null,
+    details: { handsOn: true, planetarium: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "minneapolis-institute-of-art", name: "Minneapolis Institute of Art (Mia)", kind: "museum",
@@ -4401,7 +4407,8 @@ export const PLACES: Place[] = [
     tags: ["art", "free"],
     intro: "Encyclopedic art from five millennia — a Rembrandt, the jade mountain, the period rooms — and general admission is always free. One of the country's great museums, in Whittier.",
     sourceUrl: "https://new.artsmia.org",
-    verifiedAt: "2026-08-14", venueSlug: null,
+    details: { cafe: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "walker-art-center", name: "Walker Art Center", kind: "museum",
@@ -4410,7 +4417,8 @@ export const PLACES: Place[] = [
     tags: ["art", "contemporary"],
     intro: "Contemporary art beside the Sculpture Garden and its Spoonbridge and Cherry. Galleries are paid — free Thursday evenings and the first Saturday each month; the Sculpture Garden is always free.",
     sourceUrl: "https://walkerart.org",
-    verifiedAt: "2026-08-14", venueSlug: null,
+    details: { cafe: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "minnesota-history-center", name: "Minnesota History Center", kind: "museum",
@@ -4419,7 +4427,8 @@ export const PLACES: Place[] = [
     tags: ["history"],
     intro: "The state's story, told well — hands-on history, the WWII and weather exhibits, and a research library. Paid; free Tuesday evenings.",
     sourceUrl: "https://www.mnhs.org/historycenter",
-    verifiedAt: "2026-08-14", venueSlug: null,
+    details: { handsOn: true, cafe: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "bell-museum", name: "Bell Museum", kind: "museum",
@@ -4428,7 +4437,8 @@ export const PLACES: Place[] = [
     tags: ["natural-history", "planetarium"],
     intro: "The U's natural history museum on the St. Paul campus — the famous wildlife dioramas, a Touch and See lab, and a digital planetarium. Paid; free on Sundays.",
     sourceUrl: "https://www.bellmuseum.umn.edu",
-    verifiedAt: "2026-08-14", venueSlug: null,
+    details: { handsOn: true, planetarium: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "weisman-art-museum", name: "Weisman Art Museum", kind: "museum",
@@ -4446,7 +4456,8 @@ export const PLACES: Place[] = [
     tags: ["science", "history"],
     intro: "A quirky museum of electricity and magnetism in a lakeside mansion on Bde Maka Ska — a Frankenstein's lab, invention benches, and Earl Bakken's pacemaker story. Paid.",
     sourceUrl: "https://thebakken.org",
-    verifiedAt: "2026-08-14", venueSlug: null,
+    details: { handsOn: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "museum-of-russian-art", name: "The Museum of Russian Art", kind: "museum",
@@ -4464,7 +4475,8 @@ export const PLACES: Place[] = [
     tags: ["history"],
     intro: "Built into the ruins of the Washburn A Mill on the riverfront — the Flour Tower ride, the baking lab, and a rooftop river view. Paid (Minnesota Historical Society).",
     sourceUrl: "https://www.mnhs.org/millcity",
-    verifiedAt: "2026-08-14", venueSlug: null,
+    details: { handsOn: true, cafe: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "american-swedish-institute", name: "American Swedish Institute", kind: "museum",
@@ -4473,7 +4485,8 @@ export const PLACES: Place[] = [
     tags: ["history", "art"],
     intro: "Nordic art and culture in the 1908 Turnblad Mansion, with a châteauesque interior, rotating exhibits, and the FIKA café. Paid.",
     sourceUrl: "https://asimn.org",
-    verifiedAt: "2026-08-14", venueSlug: null,
+    details: { cafe: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "minnesota-childrens-museum", name: "Minnesota Children's Museum", kind: "museum",
@@ -4482,7 +4495,8 @@ export const PLACES: Place[] = [
     tags: ["kids"],
     intro: "Four floors of hands-on play for little kids in downtown St. Paul — the climbing Scramble, art studios, and water tables. Paid.",
     sourceUrl: "https://mcm.org",
-    verifiedAt: "2026-08-14", venueSlug: null,
+    details: { handsOn: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "minnesota-museum-of-american-art", name: "Minnesota Museum of American Art", kind: "museum",
@@ -4959,7 +4973,8 @@ export const PLACES: Place[] = [
     tags: ["trains", "kids"],
     intro: "A giant O-scale model railroad in St. Paul's Bandana Square — trains running through a miniature 1930s–50s Twin Cities, plus a toddler play area. Paid.",
     sourceUrl: "https://www.tcmrm.org",
-    verifiedAt: "2026-08-14", venueSlug: null,
+    details: { handsOn: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "minnesota-transportation-museum", name: "Minnesota Transportation Museum", kind: "museum",
@@ -4968,7 +4983,8 @@ export const PLACES: Place[] = [
     tags: ["trains", "history"],
     intro: "A working 1907 railroad roundhouse and turntable in St. Paul — locomotives, a caboose, and weekend train rides. Paid.",
     sourceUrl: "https://transportationmuseum.org",
-    verifiedAt: "2026-08-14", venueSlug: null,
+    details: { handsOn: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "pavek-museum", name: "Pavek Museum", kind: "museum",
@@ -4977,7 +4993,8 @@ export const PLACES: Place[] = [
     tags: ["broadcasting", "science"],
     intro: "A St. Louis Park museum of radio and TV history — a working broadcast studio, vintage sets, and hands-on electronics. Paid.",
     sourceUrl: "https://www.pavekmuseum.org",
-    verifiedAt: "2026-08-14", venueSlug: null,
+    details: { handsOn: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "gibbs-farm", name: "Gibbs Farm", kind: "museum",
@@ -4986,7 +5003,8 @@ export const PLACES: Place[] = [
     tags: ["history", "farm"],
     intro: "An 1850s pioneer and Dakota-life farm museum in Falcon Heights — a one-room schoolhouse, heritage animals, and a tipi, run by the Ramsey County Historical Society. Paid; open the warm months.",
     sourceUrl: "https://www.rchs.com",
-    verifiedAt: "2026-08-14", venueSlug: null,
+    details: { handsOn: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "james-j-hill-house", name: "James J. Hill House", kind: "museum",
@@ -5004,7 +5022,8 @@ export const PLACES: Place[] = [
     tags: ["history", "fort"],
     intro: "The 1820s stone fort at the river confluence, with a year-round visitor center and costumed history in the warm months. Paid (Minnesota Historical Society).",
     sourceUrl: "https://www.mnhs.org/fortsnelling",
-    verifiedAt: "2026-08-14", venueSlug: null,
+    details: { handsOn: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "the-landing-shakopee", name: "The Landing", kind: "museum",
@@ -5013,7 +5032,8 @@ export const PLACES: Place[] = [
     tags: ["history", "village"],
     intro: "A riverside village of historic buildings on the Minnesota in Shakopee, staffed in costume — a Three Rivers heritage site with a big winter holiday-lights event. Paid.",
     sourceUrl: "https://www.threeriversparks.org/location/the-landing",
-    verifiedAt: "2026-08-14", venueSlug: null,
+    details: { handsOn: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
 
   // ── ORCHARDS — exhaustive pass (Places G1.2, Aug 2026) ─────────────────────

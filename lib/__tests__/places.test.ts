@@ -910,6 +910,38 @@ describe("trampoline/climbing features (winning detail — activity-type moat)",
   });
 });
 
+describe("museum features (winning detail — moat)", () => {
+  const museums = placesByKind("museum");
+
+  it("locks the source-confirmed counts", () => {
+    expect(museums.length).toBe(20);
+    expect(museums.filter((p) => p.details?.handsOn === true).length).toBe(12);
+    expect(museums.filter((p) => p.details?.cafe === true).length).toBe(5);
+    expect(museums.filter((p) => p.details?.planetarium === true).length).toBe(2);
+  });
+
+  it("planetarium is exactly the two dome-theater museums", () => {
+    const planetariums = museums.filter((p) => p.details?.planetarium === true).map((p) => p.slug).sort();
+    expect(planetariums).toEqual(["bell-museum", "science-museum-of-minnesota"]);
+  });
+
+  it("honest emptiness: a look-only art gallery with no café carries no badge", () => {
+    // Weisman + Museum of Russian Art: no hands-on, no confirmed café, no planetarium.
+    for (const slug of ["weisman-art-museum", "museum-of-russian-art"]) {
+      expect(museums.find((p) => p.slug === slug)?.details).toBeUndefined();
+    }
+  });
+
+  it("museum details use only hands-on / café / planetarium", () => {
+    const allowed = new Set(["handsOn", "cafe", "planetarium"]);
+    for (const p of museums) {
+      for (const k of Object.keys(p.details ?? {})) {
+        expect(allowed.has(k), `${p.slug}: unexpected museum detail "${k}"`).toBe(true);
+      }
+    }
+  });
+});
+
 describe("filter by detail (winning-detail filters — P4.3 follow-on)", () => {
   const rinks = placesByKind("rink");
   const skiHills = placesByKind("ski-hill");
