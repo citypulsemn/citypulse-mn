@@ -30,6 +30,12 @@ export default function PlacesIndexPage() {
           <div className="dayhdr-count">{TAGLINE}</div>
         </div>
 
+        <p className="places-event-link">
+          <a href="/places/discover">
+            Or find a place by what matters — free, indoor, near you, across every kind →
+          </a>
+        </p>
+
         <div className="nbhd-grid">
           {kinds.map(({ meta, count, open }) => (
             <a key={meta.kind} className="nbhd-card" href={`/places/${meta.kind}`}>

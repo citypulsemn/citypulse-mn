@@ -23,6 +23,7 @@ import {
   placeCities,
   placesByDistance,
   activeDetailKeys,
+  crossKindDetailKeys,
   PLACE_DETAIL_LABELS,
   NO_PLACE_FILTERS,
   type Place,
@@ -971,6 +972,55 @@ describe("disc-golf features (winning detail — moat)", () => {
         expect(allowed.has(k), `${p.slug}: unexpected disc-golf detail "${k}"`).toBe(true);
       }
     }
+  });
+});
+
+describe("cross-kind discover (the everything finder)", () => {
+  const JAN = new Date("2026-01-15T12:00:00Z");
+
+  it("crossKindDetailKeys offers only facts that span >=2 kinds, in label order", () => {
+    // indoor (rink+pool), fenced (dog-park+playground), cafe (indoor-play+museum),
+    // socksRequired (indoor-play+trampoline), restrooms (splash-pad+playground).
+    expect(crossKindDetailKeys(PLACES)).toEqual([
+      "indoor",
+      "fenced",
+      "cafe",
+      "socksRequired",
+      "restrooms",
+    ]);
+  });
+
+  it("excludes single-kind facts (a pool's water slide is not cross-kind)", () => {
+    const keys = crossKindDetailKeys(PLACES);
+    for (const single of ["waterSlide", "tubing", "handsOn", "uPick", "trampolines", "warmingHouse"]) {
+      expect(keys).not.toContain(single);
+    }
+  });
+
+  it("the kind filter narrows the pool; empty means all kinds", () => {
+    const pools = filterPlaces(PLACES, { ...NO_PLACE_FILTERS, kinds: ["pool"] }, JAN);
+    expect(pools.length).toBe(placesByKind("pool").length);
+    expect(pools.every((p) => p.kind === "pool")).toBe(true);
+    // empty kinds = no kind restriction
+    expect(filterPlaces(PLACES, { ...NO_PLACE_FILTERS, kinds: [] }, JAN).length).toBe(PLACES.length);
+  });
+
+  it("cross-kind facts AND with cost, and genuinely mix kinds (free + restrooms)", () => {
+    // free + indoor is honestly EMPTY (indoor arenas/aquatic centers are all paid) —
+    // a useful reminder the filter never fabricates a match. free + restrooms does
+    // span kinds: free splash pads AND free playgrounds both carry restrooms.
+    const freeRestrooms = filterPlaces(PLACES, { ...NO_PLACE_FILTERS, cost: "free", details: ["restrooms"] }, JAN);
+    expect(freeRestrooms.every((p) => p.cost === "free" && p.details?.restrooms === true)).toBe(true);
+    expect(new Set(freeRestrooms.map((p) => p.kind)).size).toBeGreaterThanOrEqual(2);
+  });
+
+  it("wire-in: the discover page + component exist and pool all places", () => {
+    const page = readFileSync(join(__dirname, "..", "..", "app", "places", "discover", "page.tsx"), "utf8");
+    expect(page).toContain("PlacesDiscover");
+    expect(page).toContain("places={PLACES}");
+    const comp = readFileSync(join(__dirname, "..", "..", "components", "PlacesDiscover.tsx"), "utf8");
+    expect(comp).toContain("crossKindDetailKeys");
+    expect(comp).toContain("showKind");
   });
 });
 

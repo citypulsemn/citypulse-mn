@@ -5508,6 +5508,9 @@ export interface PlaceFilters {
   openNow: boolean;
   city: string | null;
   details: (keyof PlaceDetails)[];
+  /** Restrict to these kinds — for the cross-kind discover view. Empty/undefined
+   *  means all kinds (a per-kind page never sets it). */
+  kinds?: PlaceKind[];
 }
 
 export const NO_PLACE_FILTERS: PlaceFilters = { cost: "all", openNow: false, city: null, details: [] };
@@ -5523,6 +5526,7 @@ export const NO_PLACE_FILTERS: PlaceFilters = { cost: "all", openNow: false, cit
  */
 export function filterPlaces(places: Place[], f: PlaceFilters, now: Date): Place[] {
   return places.filter((p) => {
+    if (f.kinds && f.kinds.length > 0 && !f.kinds.includes(p.kind)) return false;
     if (f.cost === "free" && p.cost !== "free") return false;
     if (f.cost === "paid" && p.cost !== "paid") return false;
     if (f.openNow && !openNow(p, now)) return false;
@@ -5531,6 +5535,22 @@ export function filterPlaces(places: Place[], f: PlaceFilters, now: Date): Place
       if (p.details?.[k] !== true) return false;
     }
     return true;
+  });
+}
+
+/**
+ * The verified-detail keys that cut ACROSS kinds — a detail is cross-cutting only
+ * if places of at least two different kinds carry it (e.g. `indoor` on rinks AND
+ * pools, `cafe` on indoor playgrounds AND museums). These are the honest filters
+ * for the cross-kind discover view; a single-kind fact (a pool's water slide)
+ * belongs on that kind's page, not the everything finder. Returned in
+ * PLACE_DETAIL_LABELS (render) order.
+ */
+export function crossKindDetailKeys(places: Place[]): (keyof PlaceDetails)[] {
+  return (Object.keys(PLACE_DETAIL_LABELS) as (keyof PlaceDetails)[]).filter((k) => {
+    const kinds = new Set<PlaceKind>();
+    for (const p of places) if (p.details?.[k] === true) kinds.add(p.kind);
+    return kinds.size >= 2;
   });
 }
 

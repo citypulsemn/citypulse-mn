@@ -1,5 +1,5 @@
 import { neighborhoodByKey } from "@/lib/neighborhoods";
-import { PLACE_DETAIL_LABELS, type Place, type PlaceCost, type PlaceDetails } from "@/lib/places";
+import { KIND_META, PLACE_DETAIL_LABELS, type Place, type PlaceCost, type PlaceDetails } from "@/lib/places";
 
 const COST_LABEL: Record<PlaceCost, string> = { free: "Free", paid: "Paid", donation: "Donation" };
 
@@ -24,11 +24,15 @@ function detailBadges(details: PlaceDetails | undefined): [string, string][] {
 export function PlacesList({
   places,
   distances,
+  showKind = false,
 }: {
   places: Place[];
   /** Optional slug → straight-line miles from the user (set by the "Near me"
    *  sort). When present, each row shows its distance. */
   distances?: Map<string, number>;
+  /** Cross-kind mode (the discover view): show each row's kind as a link, since
+   *  the list mixes pools, museums, parks, etc. */
+  showKind?: boolean;
 }) {
   return (
     <ol className="places-list">
@@ -47,6 +51,14 @@ export function PlacesList({
                 <span className={`place-cost cost-${p.cost}`}>{COST_LABEL[p.cost]}</span>
               </div>
               <div className="place-meta">
+                {showKind && (
+                  <>
+                    <a className="place-kind" href={`/places/${p.kind}`}>
+                      {KIND_META[p.kind].label}
+                    </a>
+                    <span aria-hidden="true"> · </span>
+                  </>
+                )}
                 {hood && (
                   <>
                     <a href={`/neighborhoods/${p.neighborhood}`}>{hood.label}</a>
