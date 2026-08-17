@@ -21,6 +21,7 @@ import {
   PLACES_MAP_MAX_PINS,
   filterPlaces,
   placeCities,
+  placesByDistance,
   NO_PLACE_FILTERS,
   type Place,
   type PlaceKind,
@@ -526,5 +527,42 @@ describe("P4.3 wire-in (tripwire)", () => {
     const src = readFileSync(join(__dirname, "..", "..", "app", "places", "[kind]", "page.tsx"), "utf8");
     expect(src).toContain("PlacesBrowser");
     expect(src).not.toMatch(/<PlacesList\b/); // the list now lives inside PlacesBrowser
+  });
+});
+
+describe("placesByDistance (Near me — P4.3 follow-up)", () => {
+  const base = PLACES[0];
+  const at = (slug: string, lat: number, lng: number): Place => ({ ...base, slug, lat, lng });
+  // Downtown Minneapolis-ish origin.
+  const ORIGIN = { lat: 44.9778, lng: -93.265 };
+
+  const set: Place[] = [
+    at("far", 45.2, -93.0), // NE suburb, farthest
+    at("near", 44.98, -93.27), // ~downtown, nearest
+    at("mid", 44.9, -93.2), // south, middle
+  ];
+
+  it("ranks nearest-first with distance in miles attached", () => {
+    const ranked = placesByDistance(set, ORIGIN);
+    expect(ranked.map((r) => r.place.slug)).toEqual(["near", "mid", "far"]);
+    // strictly increasing distances
+    expect(ranked[0].miles).toBeLessThan(ranked[1].miles);
+    expect(ranked[1].miles).toBeLessThan(ranked[2].miles);
+    // the nearest is well under a mile from an almost-coincident origin
+    expect(ranked[0].miles).toBeLessThan(1);
+  });
+
+  it("miles are a real distance, not meters (sanity on the unit conversion)", () => {
+    // ~1 degree of latitude ≈ 69 miles.
+    const [r] = placesByDistance([at("x", 45.9778, -93.265)], ORIGIN);
+    expect(r.miles).toBeGreaterThan(65);
+    expect(r.miles).toBeLessThan(72);
+  });
+
+  it("does not mutate the input array", () => {
+    const input = [...set];
+    const snapshot = input.map((p) => p.slug);
+    placesByDistance(input, ORIGIN);
+    expect(input.map((p) => p.slug)).toEqual(snapshot);
   });
 });

@@ -13,11 +13,20 @@ const COST_LABEL: Record<PlaceCost, string> = { free: "Free", paid: "Paid", dona
  * link (the bridge to neighborhood pages) + city, amenity tags, house-voice
  * intro, and the source link — the honesty anchor for hours and exact dates.
  */
-export function PlacesList({ places }: { places: Place[] }) {
+export function PlacesList({
+  places,
+  distances,
+}: {
+  places: Place[];
+  /** Optional slug → straight-line miles from the user (set by the "Near me"
+   *  sort). When present, each row shows its distance. */
+  distances?: Map<string, number>;
+}) {
   return (
     <ol className="places-list">
       {places.map((p, i) => {
         const hood = p.neighborhood ? neighborhoodByKey(p.neighborhood) : null;
+        const miles = distances?.get(p.slug);
         return (
           <li key={p.slug} id={p.slug} className="place-row">
             <div className="place-num" aria-hidden="true">
@@ -36,6 +45,12 @@ export function PlacesList({ places }: { places: Place[] }) {
                   </>
                 )}
                 <span>{p.city}</span>
+                {miles !== undefined && (
+                  <>
+                    <span aria-hidden="true"> · </span>
+                    <span className="place-dist">{miles < 0.1 ? "<0.1" : miles.toFixed(1)} mi</span>
+                  </>
+                )}
               </div>
               {p.tags.length > 0 && (
                 <div className="place-tags">

@@ -1,4 +1,5 @@
 import { chiDayKey } from "./clock";
+import { distanceMeters } from "./geo-distance";
 
 /**
  * PLACES (Places roadmap P1.1) — the evergreen half of the site: the metro's
@@ -5150,6 +5151,31 @@ export function filterPlaces(places: Place[], f: PlaceFilters, now: Date): Place
  *  filter dropdown. Never invents a city that isn't in the set. */
 export function placeCities(places: Place[]): string[] {
   return [...new Set(places.map((p) => p.city))].sort((a, b) => a.localeCompare(b));
+}
+
+// ── "Near me" distance ranking (P4.3 follow-up) ──────────────────────────────
+
+export interface LatLng {
+  lat: number;
+  lng: number;
+}
+
+export interface RankedPlace {
+  place: Place;
+  miles: number;
+}
+
+/**
+ * Rank places nearest-first from an origin (the browser geolocation point).
+ * Pure — uses the shared Haversine (`distanceMeters`), returns a new array with
+ * each place's straight-line distance in miles attached, sorted ascending. A
+ * stable sort keeps registry order among ties. The caller decides whether to
+ * show it (a "Near me" toggle); no clock or environment needed.
+ */
+export function placesByDistance(places: Place[], origin: LatLng): RankedPlace[] {
+  return places
+    .map((place) => ({ place, miles: distanceMeters(origin.lat, origin.lng, place.lat, place.lng) / 1609.344 }))
+    .sort((a, b) => a.miles - b.miles);
 }
 
 // ── Kind-page rendering helpers (pure; the page/components are thin shells) ──
