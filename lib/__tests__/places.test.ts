@@ -608,3 +608,20 @@ describe("rink indoor badge (winning detail — moat, kind 2)", () => {
     }
   });
 });
+
+describe("rink warming-house badge (winning detail — verified, universal)", () => {
+  const rinks = placesByKind("rink");
+  const withWH = rinks.filter((p) => p.details?.warmingHouse === true);
+
+  it("all 22 outdoor rinks carry a verified warming house", () => {
+    expect(withWH.length).toBe(22);
+  });
+
+  it("never on an enclosed indoor arena — a warming house is an outdoor-rink amenity", () => {
+    expect(withWH.every((p) => p.season.type !== "year-round")).toBe(true);
+    // and the 5 indoor arenas never claim one
+    for (const p of rinks) {
+      if (p.season.type === "year-round") expect(p.details?.warmingHouse, p.slug).not.toBe(true);
+    }
+  });
+});

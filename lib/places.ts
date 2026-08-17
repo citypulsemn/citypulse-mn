@@ -63,6 +63,7 @@ export interface PlaceDetails {
   // Rinks — the primary decision axis: an enclosed year-round arena (skate any
   // weather, any month) vs a free outdoor neighborhood rink (winter, snow-dependent).
   indoor?: boolean; // an indoor/enclosed arena (true) — outdoor rinks omit it
+  warmingHouse?: boolean; // a heated warming house/shelter at an outdoor rink
   // Ski & tubing hills
   tubing?: boolean; // dedicated snow-tubing runs
   nightSkiing?: boolean; // lit for evening skiing/riding
@@ -75,6 +76,7 @@ export interface PlaceDetails {
  *  present here render; a detail without a label is ignored (drift-guarded). */
 export const PLACE_DETAIL_LABELS: Partial<Record<keyof PlaceDetails, string>> = {
   indoor: "Indoor",
+  warmingHouse: "Warming house",
   tubing: "Snow tubing",
   nightSkiing: "Night skiing",
   terrainPark: "Terrain park",
@@ -1572,7 +1574,9 @@ export const PLACES: Place[] = [
     tags: ["outdoor", "skate-rental", "hockey-and-open"],
     intro: "The world's largest outdoor refrigerated skating surface, in Roseville — a 400-meter speed track wrapping a hockey sheet, lit and open November into March.",
     sourceUrl: "https://www.cityofroseville.com/3560/John-Rose-MN-OVAL",
-    verifiedAt: "2026-08-07", venueSlug: null,
+    verifiedAt: "2026-08-17",
+    details: { warmingHouse: true },
+    venueSlug: null,
   },
   {
     slug: "centennial-lakes-skating", name: "Centennial Lakes Park Skating", kind: "rink",
@@ -1581,7 +1585,9 @@ export const PLACES: Place[] = [
     tags: ["outdoor", "skate-rental"],
     intro: "Skate a groomed quarter-mile of winding canals across three ponds at Centennial Lakes in Edina — free with your own skates, with rentals and a warming pavilion.",
     sourceUrl: "https://www.edinamn.gov/700/Ice-Skating",
-    verifiedAt: "2026-08-07", venueSlug: null,
+    verifiedAt: "2026-08-17",
+    details: { warmingHouse: true },
+    venueSlug: null,
   },
   {
     slug: "groveland-ice-rinks", name: "Groveland Ice Rinks", kind: "rink",
@@ -1590,7 +1596,9 @@ export const PLACES: Place[] = [
     tags: ["outdoor", "skate-rental", "warming-house", "hockey-and-open"],
     intro: "St. Paul's outdoor skating hub off St. Clair — five rinks (hockey, pond hockey, an oval, and open skating), a warming house, and free skate rentals seven days a week.",
     sourceUrl: "https://www.stpaul.gov/facilities/groveland-recreation-center",
-    verifiedAt: "2026-08-07", venueSlug: null,
+    verifiedAt: "2026-08-17",
+    details: { warmingHouse: true },
+    venueSlug: null,
   },
   {
     slug: "parade-ice-garden", name: "Parade Ice Garden", kind: "rink",
@@ -1610,7 +1618,9 @@ export const PLACES: Place[] = [
     tags: ["outdoor", "refrigerated", "skate-rental"],
     intro: "One of the metro's few refrigerated outdoor rinks — a skating loop through Maple Grove's Central Park, free with your own skates and rentals on site.",
     sourceUrl: "https://www.maplegrovemn.gov/505/Central-Park",
-    verifiedAt: "2026-08-13", venueSlug: null,
+    verifiedAt: "2026-08-17",
+    details: { warmingHouse: true },
+    venueSlug: null,
   },
   {
     slug: "roc-st-louis-park", name: "Recreation Outdoor Center (ROC)", kind: "rink",
@@ -1619,7 +1629,9 @@ export const PLACES: Place[] = [
     tags: ["outdoor", "refrigerated", "covered"],
     intro: "St. Louis Park's Recreation Outdoor Center — a covered, refrigerated outdoor rink that opens in late fall and skates well past the thaw.",
     sourceUrl: "https://www.stlouisparkmn.gov/our-city/facilites-buildings/roc-recreation-outdoor-center",
-    verifiedAt: "2026-08-13", venueSlug: null,
+    verifiedAt: "2026-08-17",
+    details: { warmingHouse: true },
+    venueSlug: null,
   },
   {
     slug: "braemar-arena", name: "Braemar Arena", kind: "rink",
@@ -4494,7 +4506,9 @@ export const PLACES: Place[] = [
     tags: ["outdoor", "downtown", "seasonal"],
     intro: "A free outdoor rink beside Rice Park in downtown St. Paul, lit up all winter — bring skates or rent a pair. Open the winter season.",
     sourceUrl: "https://www.stpaul.gov/facilities/rice-park",
-    verifiedAt: "2026-08-14", venueSlug: null,
+    verifiedAt: "2026-08-17",
+    details: { warmingHouse: true },
+    venueSlug: null,
   },
   {
     slug: "tria-rink", name: "TRIA Rink", kind: "rink",
@@ -4530,7 +4544,9 @@ export const PLACES: Place[] = [
     tags: ["outdoor", "warming-house", "broomball", "lit"],
     intro: "A pleasure oval and two broomball rinks in Northeast, lit past ten for the leagues, with a warming room to thaw out. Free, flooded by the park board through mid-February.",
     sourceUrl: "https://www.minneapolisparks.org/parks-destinations/parks-lakes/logan_park/",
-    verifiedAt: "2026-08-14", venueSlug: null,
+    verifiedAt: "2026-08-17",
+    details: { warmingHouse: true },
+    venueSlug: null,
   },
   {
     slug: "bryant-square-rink", name: "Bryant Square Park", kind: "rink",
@@ -4539,7 +4555,9 @@ export const PLACES: Place[] = [
     tags: ["outdoor", "warming-house", "hockey", "open-skate"],
     intro: "A hockey rink and an open-skate sheet a block off Lyndale in south Minneapolis, with a warming room. Free and city-flooded — one of the go-to neighborhood rinks.",
     sourceUrl: "https://www.minneapolisparks.org/parks-destinations/parks-lakes/bryant_square_park/",
-    verifiedAt: "2026-08-14", venueSlug: null,
+    verifiedAt: "2026-08-17",
+    details: { warmingHouse: true },
+    venueSlug: null,
   },
   {
     slug: "van-cleve-park-rink", name: "Van Cleve Park", kind: "rink",
@@ -4548,7 +4566,9 @@ export const PLACES: Place[] = [
     tags: ["outdoor", "warming-house", "hockey", "broomball"],
     intro: "Hockey, open skate, and broomball at the Southeast rec center near Como, all with a warming room. Free, park-board-flooded from December into February.",
     sourceUrl: "https://www.minneapolisparks.org/parks-destinations/parks-lakes/van_cleve_park/",
-    verifiedAt: "2026-08-14", venueSlug: null,
+    verifiedAt: "2026-08-17",
+    details: { warmingHouse: true },
+    venueSlug: null,
   },
   {
     slug: "matthews-park-rink", name: "Matthews Park", kind: "rink",
@@ -4557,7 +4577,9 @@ export const PLACES: Place[] = [
     tags: ["outdoor", "warming-house", "hockey", "open-skate"],
     intro: "A hockey rink and a pleasure sheet in Seward, with a warming room off the rec center. Free neighborhood ice, flooded through the cold months.",
     sourceUrl: "https://www.minneapolisparks.org/parks-destinations/parks-lakes/matthews_park/",
-    verifiedAt: "2026-08-14", venueSlug: null,
+    verifiedAt: "2026-08-17",
+    details: { warmingHouse: true },
+    venueSlug: null,
   },
   {
     slug: "powderhorn-park-rink", name: "Powderhorn Park", kind: "rink",
@@ -4566,7 +4588,9 @@ export const PLACES: Place[] = [
     tags: ["outdoor", "warming-house", "open-skate"],
     intro: "Open skating in the Powderhorn basin, with a warming room up the hill — one of the prettier places to skate in south Minneapolis. Free and city-flooded.",
     sourceUrl: "https://www.minneapolisparks.org/parks-destinations/parks-lakes/powderhorn_park/",
-    verifiedAt: "2026-08-14", venueSlug: null,
+    verifiedAt: "2026-08-17",
+    details: { warmingHouse: true },
+    venueSlug: null,
   },
   {
     slug: "webber-park-rink", name: "Webber Park", kind: "rink",
@@ -4575,7 +4599,9 @@ export const PLACES: Place[] = [
     tags: ["outdoor", "warming-house", "open-skate"],
     intro: "Pond skating in Camden with a historic warming house on the bank. Free, flooded by the park board through mid-February, weather permitting.",
     sourceUrl: "https://www.minneapolisparks.org/parks-destinations/parks-lakes/webber_park/",
-    verifiedAt: "2026-08-14", venueSlug: null,
+    verifiedAt: "2026-08-17",
+    details: { warmingHouse: true },
+    venueSlug: null,
   },
   {
     slug: "linden-hills-park-rink", name: "Linden Hills Park", kind: "rink",
@@ -4584,7 +4610,9 @@ export const PLACES: Place[] = [
     tags: ["outdoor", "warming-house", "hockey", "open-skate"],
     intro: "A hockey rink and an open-skate sheet in Linden Hills, with a warming room. Free neighborhood ice a few blocks from Bde Maka Ska.",
     sourceUrl: "https://www.minneapolisparks.org/parks-destinations/parks-lakes/linden_hills_park/",
-    verifiedAt: "2026-08-14", venueSlug: null,
+    verifiedAt: "2026-08-17",
+    details: { warmingHouse: true },
+    venueSlug: null,
   },
   {
     slug: "north-commons-park-rink", name: "North Commons Park", kind: "rink",
@@ -4593,7 +4621,9 @@ export const PLACES: Place[] = [
     tags: ["outdoor", "warming-house", "hockey", "open-skate"],
     intro: "Hockey and open skate at the North Side's big rec park, with a warming room. Free and park-board-flooded through the winter.",
     sourceUrl: "https://www.minneapolisparks.org/parks-destinations/parks-lakes/north_commons_park/",
-    verifiedAt: "2026-08-14", venueSlug: null,
+    verifiedAt: "2026-08-17",
+    details: { warmingHouse: true },
+    venueSlug: null,
   },
   {
     slug: "longfellow-park-rink", name: "Longfellow Park", kind: "rink",
@@ -4602,7 +4632,9 @@ export const PLACES: Place[] = [
     tags: ["outdoor", "warming-house", "hockey", "broomball"],
     intro: "Hockey, open skate, and broomball off Minnehaha in Longfellow, all with a warming room. Free city ice from December into February.",
     sourceUrl: "https://www.minneapolisparks.org/parks-destinations/parks-lakes/longfellow_park/",
-    verifiedAt: "2026-08-14", venueSlug: null,
+    verifiedAt: "2026-08-17",
+    details: { warmingHouse: true },
+    venueSlug: null,
   },
   {
     slug: "phalen-rec-center-rink", name: "Phalen Recreation Center", kind: "rink",
@@ -4611,7 +4643,9 @@ export const PLACES: Place[] = [
     tags: ["outdoor", "warming-house", "hockey", "refrigerated"],
     intro: "Two hockey rinks — one refrigerated, so it holds ice through a thaw — plus open skate by Lake Phalen, with a warming room. Free, city-flooded on the East Side.",
     sourceUrl: "https://www.stpaul.gov/facilities/phalen-recreation-center",
-    verifiedAt: "2026-08-14", venueSlug: null,
+    verifiedAt: "2026-08-17",
+    details: { warmingHouse: true },
+    venueSlug: null,
   },
   {
     slug: "langford-park-rink", name: "Langford Park Recreation Center", kind: "rink",
@@ -4620,7 +4654,9 @@ export const PLACES: Place[] = [
     tags: ["outdoor", "warming-house", "hockey", "open-skate"],
     intro: "A full and a small hockey rink plus open skate in St. Anthony Park, with a warming room at the rec center. Free St. Paul neighborhood ice.",
     sourceUrl: "https://www.stpaul.gov/facilities/langford-park-recreation-center",
-    verifiedAt: "2026-08-14", venueSlug: null,
+    verifiedAt: "2026-08-17",
+    details: { warmingHouse: true },
+    venueSlug: null,
   },
   {
     slug: "north-dale-rec-rink", name: "North Dale Recreation Center", kind: "rink",
@@ -4629,7 +4665,9 @@ export const PLACES: Place[] = [
     tags: ["outdoor", "warming-house", "hockey", "refrigerated"],
     intro: "A refrigerated hockey sheet that outlasts the thaws, a second rink, and open skate in the North End, with a warming room. Free and city-flooded.",
     sourceUrl: "https://www.stpaul.gov/facilities/north-dale-recreation-center",
-    verifiedAt: "2026-08-14", venueSlug: null,
+    verifiedAt: "2026-08-17",
+    details: { warmingHouse: true },
+    venueSlug: null,
   },
   {
     slug: "edgcumbe-rec-rink", name: "Edgcumbe Recreation Center", kind: "rink",
@@ -4638,7 +4676,9 @@ export const PLACES: Place[] = [
     tags: ["outdoor", "warming-house", "hockey", "open-skate"],
     intro: "Hockey and open skate near Highland, with a warming room. Free St. Paul neighborhood ice through the winter.",
     sourceUrl: "https://www.stpaul.gov/facilities/edgcumbe-recreation-center",
-    verifiedAt: "2026-08-14", venueSlug: null,
+    verifiedAt: "2026-08-17",
+    details: { warmingHouse: true },
+    venueSlug: null,
   },
   {
     slug: "palace-rec-rink", name: "Palace Recreation Center", kind: "rink",
@@ -4647,7 +4687,9 @@ export const PLACES: Place[] = [
     tags: ["outdoor", "warming-house", "hockey", "refrigerated"],
     intro: "A refrigerated hockey rink and a general-skate sheet in the West End, with a warming room — the refrigeration keeps it going when the neighborhood rinks slush out. Free.",
     sourceUrl: "https://www.stpaul.gov/facilities/palace-community-center",
-    verifiedAt: "2026-08-14", venueSlug: null,
+    verifiedAt: "2026-08-17",
+    details: { warmingHouse: true },
+    venueSlug: null,
   },
   {
     slug: "lorraine-park-rink", name: "Lorraine Park", kind: "rink",
@@ -4656,7 +4698,9 @@ export const PLACES: Place[] = [
     tags: ["outdoor", "warming-house", "hockey", "open-skate"],
     intro: "South St. Paul's marquee rink — a hockey sheet and open skating with a warming house, flooded free by the city each winter.",
     sourceUrl: "https://www.southstpaulmn.gov/841/Outdoor-Skating-Rinks",
-    verifiedAt: "2026-08-14", venueSlug: null,
+    verifiedAt: "2026-08-17",
+    details: { warmingHouse: true },
+    venueSlug: null,
   },
   {
     slug: "brookside-park-rink", name: "Brookside Park", kind: "rink",
@@ -4665,7 +4709,9 @@ export const PLACES: Place[] = [
     tags: ["outdoor", "warming-house", "hockey", "lit"],
     intro: "A lighted hockey-and-general-skate rink with a warming house, one of nine free neighborhood rinks Bloomington floods each winter.",
     sourceUrl: "https://www.bloomingtonmn.gov/pr/outdoor-skating-rinks-and-warming-houses",
-    verifiedAt: "2026-08-14", venueSlug: null,
+    verifiedAt: "2026-08-17",
+    details: { warmingHouse: true },
+    venueSlug: null,
   },
 
   // ── NATURE CENTERS — exhaustive pass (Places G1.2, Aug 2026) ────────────────
