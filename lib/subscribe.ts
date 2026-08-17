@@ -56,6 +56,7 @@ const SUBSCRIBE_SOURCE_LABELS: Record<string, string> = {
   "this-week": "This Week page",
   "this-weekend": "This Weekend page",
   event: "Event pages",
+  day: "Day pages",
   venue: "Venue pages",
   "venue-page": "Venue pages",
   site: "Direct / other",

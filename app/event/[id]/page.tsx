@@ -144,6 +144,20 @@ export default async function EventPage({
 
         <MoreAtVenue all={all} current={event} now={new Date()} />
 
+        {/* Amplify-what-ranks: event pages are 88% of search impressions but the
+            curated shop-windows (/this-week, /this-weekend) rank for nothing.
+            This onward strip routes that traffic there AND passes internal-link
+            equity from the site's highest-authority pages to the pages that most
+            need it. The single subscribe band above stays the only ask. */}
+        <nav className="onward" aria-label="More to explore">
+          <a className="day-nav-link" href="/this-week">
+            See this week&rsquo;s best →
+          </a>
+          <a className="day-nav-link" href="/this-weekend">
+            This weekend →
+          </a>
+        </nav>
+
         <SiteFooter source="event" />
       </main>
     </>

@@ -5,6 +5,7 @@ import { orderDayEvents } from "@/lib/day-order";
 import { EventDayCard } from "@/components/EventDayCard";
 import { TopBar } from "@/components/TopBar";
 import { SiteFooter } from "@/components/SiteFooter";
+import { SubscribeBand } from "@/components/SubscribeBand";
 import { dayItemListJsonLd, jsonLdSafe } from "@/lib/seo/event-jsonld";
 import { SITE_URL } from "@/lib/seo/site";
 import { isValidDayKey, longDate, adjacentDayKeys } from "@/lib/event-view";
@@ -20,7 +21,10 @@ export async function generateMetadata({
   if (!isValidDayKey(date)) return { title: "Day not found — City Pulse MN" };
 
   const pretty = longDate(date);
-  const title = `Things to do ${pretty} in the Twin Cities | City Pulse MN`;
+  // "Minneapolis" in the title matches the winning query pattern (GSC: the day
+  // pages rank for "events in minneapolis [date]/tomorrow"); the old title said
+  // only "Twin Cities" while the demand searches Minneapolis by name.
+  const title = `Things to Do in Minneapolis–St. Paul, ${pretty} | City Pulse MN`;
   const description = `Events across the Minneapolis–St. Paul metro on ${pretty} — music, sports, family, arts, food, festivals and the wonderfully unique.`;
   const path = `/day/${date}`;
 
@@ -95,6 +99,26 @@ export default async function DayPage({
             </a>
           </div>
         )}
+
+        {/* Amplify-what-ranks: day pages are the discovery surface that already
+            ranks for "events in minneapolis [date]/tomorrow", but they had no
+            subscribe ask and didn't link to the curated shortlist. These onward
+            links route that discovery traffic to the shop-window /this-week(end)
+            AND pass internal-link equity to those pages, which rank for nothing. */}
+        <nav className="onward" aria-label="More to explore">
+          <a className="day-nav-link" href="/this-week">
+            See this week&rsquo;s hand-picked best →
+          </a>
+          <a className="day-nav-link" href="/this-weekend">
+            This weekend →
+          </a>
+        </nav>
+
+        <SubscribeBand
+          source="day"
+          heading="Never miss a day like this"
+          sub="One email every Thursday — the week's best across Minneapolis & St. Paul, hand-picked. Free, no spam, unsubscribe anytime."
+        />
 
         <SiteFooter source="day" />
       </main>

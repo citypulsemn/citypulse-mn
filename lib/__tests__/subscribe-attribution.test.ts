@@ -10,6 +10,7 @@ describe("subscribeSourceLabel — friendly placement names (G1.1 attribution)",
     expect(subscribeSourceLabel("home")).toBe("Homepage");
     expect(subscribeSourceLabel("this-week")).toBe("This Week page");
     expect(subscribeSourceLabel("event")).toBe("Event pages");
+    expect(subscribeSourceLabel("day")).toBe("Day pages"); // discovery-routing band
   });
 
   it("prettifies an unmapped source instead of showing the raw key", () => {

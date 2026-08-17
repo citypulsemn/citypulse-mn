@@ -39,9 +39,29 @@ below still describe several done items as open. Current truth:
 **What's genuinely open + unblocked:** another **1.2 Places kind** (rolling — but
 "measure before Wave 2" now has GSC data to reorder by), and **P4.3 open-now/free
 filters** (small, low priority). **What's blocked:** 2.2 (save volume). **The
-governing number is unchanged: subscribers ~5 → 500.** The GSC read points the next
-non-code lever at *discovery-intent* search/distribution (audience), not more
-surfaces.
+governing number is unchanged: subscribers ~5 → 500.**
+
+### The GSC "what's ranking" read (Aug 16) — and the pivot it forced
+Built a reusable `gsc-report` diagnostic (`scripts/gsc-report.ts` + manual
+workflow) on the F2.4 credential. First 28-day breakdown:
+- **88.5% of impressions are `/event/[id]` pages** (transactional — top queries
+  are specific event names). **`/places` ranks for ~nothing** — the "proven
+  organic lever" isn't ranking yet (hard SERP, months-young). So **"pick the next
+  Places kind by observed demand" is impossible — there's no signal**, and
+  building kind #17 blind is unvalidated effort.
+- **Day pages are the working discovery surface** ("events in minneapolis
+  tomorrow/[date]", pos 5–7, good CTR); **`/this-week` + `/this-weekend` — the
+  conversion shop-windows — rank for nothing** (which is *why* `/this-week` has
+  converted 0). Clear demand cluster: **food-truck & cultural festivals**.
+- **Pivot (Taren's call): "amplify what ranks."** SHIPPED **Discovery routing**
+  (`DEPLOY-DISCOVERY-ROUTING`): subscribe band on day pages + onward links from
+  event/day pages → `/this-week(end)` (routes the 88% traffic AND passes
+  internal-link equity to the pages that most need it), + a Minneapolis-forward
+  day-page title. Real proof is slow — re-run `gsc-report` in ~3–4 wks for
+  `/this-week(end)` impressions.
+- **Next candidates** (not yet built): a demand-validated **food-truck/cultural
+  festivals** evergreen; diagnose **Places indexation** before more kinds. The
+  next non-code lever remains *discovery-intent distribution* (audience).
 
 ---
 
