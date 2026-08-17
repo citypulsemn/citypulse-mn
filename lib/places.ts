@@ -80,6 +80,11 @@ export interface PlaceDetails {
   // Dog parks (and playgrounds share `fenced`) — the safety/logistics facts.
   fenced?: boolean; // fully fenced/enclosed (off-leash dog park; toddler playground)
   smallDogArea?: boolean; // a separate small-/shy-dog enclosure
+  // Orchards — the fall-outing draws a family picks one farm over another for.
+  uPick?: boolean; // pick-your-own apples (not just pre-picked/farm-stand)
+  ciderDonuts?: boolean; // fresh cider / apple-cider donuts on site
+  pumpkinPatch?: boolean; // a pumpkin patch / pumpkins to pick
+  cornMaze?: boolean; // a corn maze
 }
 
 /** Badge labels for the truthy PlaceDetails facts, in render order. Only keys
@@ -96,6 +101,10 @@ export const PLACE_DETAIL_LABELS: Partial<Record<keyof PlaceDetails, string>> = 
   zeroDepth: "Zero-depth entry",
   fenced: "Fenced",
   smallDogArea: "Small-dog area",
+  uPick: "U-pick apples",
+  ciderDonuts: "Cider donuts",
+  pumpkinPatch: "Pumpkin patch",
+  cornMaze: "Corn maze",
   adjacentPlayground: "Playground on site",
   restrooms: "Restrooms",
 };
@@ -4475,7 +4484,8 @@ export const PLACES: Place[] = [
     tags: ["apples", "bakery"],
     intro: "A Stillwater apple farm with pick-your-own rows, an Apple Barn bakery, free petting goats, and the Honeycrisp Express train. Free to visit; pay for what you pick.",
     sourceUrl: "https://aamodtsapplefarm.com",
-    verifiedAt: "2026-08-14", venueSlug: null,
+    details: { uPick: true, ciderDonuts: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "afton-apple-orchard", name: "Afton Apple Orchard", kind: "orchard",
@@ -4484,7 +4494,8 @@ export const PLACES: Place[] = [
     tags: ["apples", "pumpkins", "corn-maze"],
     intro: "190 sprawling acres near Afton — pick-your-own apples, pumpkins, and raspberries, a corn maze, tube slides, and a petting farm. Per-person admission on fall weekends.",
     sourceUrl: "https://aftonapple.com",
-    verifiedAt: "2026-08-14", venueSlug: null,
+    details: { uPick: true, pumpkinPatch: true, cornMaze: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "pine-tree-apple-orchard", name: "Pine Tree Apple Orchard", kind: "orchard",
@@ -4493,7 +4504,8 @@ export const PLACES: Place[] = [
     tags: ["apples", "pumpkins", "bakery"],
     intro: "A White Bear Lake classic — pick-your-own apples and pumpkins, a corn maze, wagon rides, and a bakery famous for its pies. Free to enter; pay by the bag.",
     sourceUrl: "https://pinetreeappleorchard.com",
-    verifiedAt: "2026-08-14", venueSlug: null,
+    details: { pumpkinPatch: true, cornMaze: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "apple-jack-orchards", name: "Apple Jack Orchards", kind: "orchard",
@@ -4502,7 +4514,8 @@ export const PLACES: Place[] = [
     tags: ["apples", "pumpkins", "activities"],
     intro: "A Delano fall farm built for kids — pick-your-own apples and pumpkins plus a Fun Farm of slides, animals, and hayrides. Admission to the Fun Farm ($10 weekdays / $20 weekends).",
     sourceUrl: "https://www.applejackorchards.com",
-    verifiedAt: "2026-08-14", venueSlug: null,
+    details: { uPick: true, pumpkinPatch: true, cornMaze: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "deardorff-orchards", name: "Deardorff Orchards & Vineyards", kind: "orchard",
@@ -4511,7 +4524,8 @@ export const PLACES: Place[] = [
     tags: ["apples", "pumpkins", "cidery"],
     intro: "A Waconia orchard and vineyard — pick-your-own apples, a pumpkin patch, hayrides, and hard cider and wine for the grown-ups. Free to wander; pay for the picking.",
     sourceUrl: "https://www.deardorfforchards.com",
-    verifiedAt: "2026-08-14", venueSlug: null,
+    details: { uPick: true, ciderDonuts: true, pumpkinPatch: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "severs-fall-festival", name: "Sever's Fall Festival", kind: "orchard",
@@ -4520,7 +4534,8 @@ export const PLACES: Place[] = [
     tags: ["pumpkins", "corn-maze"],
     intro: "Shakopee's big fall festival — a 14-acre corn maze, ten acres of pick-your-own pumpkins, jumping pillows, a corn pit, and a small wildlife park. Ticketed admission (about $19 and up).",
     sourceUrl: "https://severs.com",
-    verifiedAt: "2026-08-14", venueSlug: null,
+    details: { ciderDonuts: true, pumpkinPatch: true, cornMaze: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "sponsels-minnesota-harvest", name: "Sponsel's Minnesota Harvest", kind: "orchard",
@@ -4529,7 +4544,8 @@ export const PLACES: Place[] = [
     tags: ["apples", "pumpkins"],
     intro: "Minnesota Harvest in the Jordan river valley — a wagon out to blufftop apple trees, a pumpkin patch, and a cider-scented barn. Free to visit; pay for your apples.",
     sourceUrl: "https://www.minnesotaharvest.net",
-    verifiedAt: "2026-08-14", venueSlug: null,
+    details: { uPick: true, pumpkinPatch: true, cornMaze: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
 
   // ── PARKS — deepening pass (Places G1.2, Aug 2026) ─────────────────────────
@@ -4974,7 +4990,8 @@ export const PLACES: Place[] = [
     tags: ["apples", "pumpkins", "activities"],
     intro: "A big activity orchard in Minnetrista (formerly Minnetonka Orchards, now Everly Farms) — U-pick apples and pumpkins, hayrides, cider donuts, animals, and live music. Admission on fall weekends.",
     sourceUrl: "https://everlyfarmsmn.com",
-    verifiedAt: "2026-08-14", venueSlug: null,
+    details: { uPick: true, ciderDonuts: true, pumpkinPatch: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "whistling-well-farm", name: "Whistling Well Farm", kind: "orchard",
@@ -4983,7 +5000,8 @@ export const PLACES: Place[] = [
     tags: ["apples", "pumpkins"],
     intro: "A St. Croix Valley farm near Hastings, growing apples since 1972 — pick-your-own from 5,000 trees, plus a pumpkin patch and a farm kitchen. Free to visit.",
     sourceUrl: "https://whistlingwellfarm.com",
-    verifiedAt: "2026-08-14", venueSlug: null,
+    details: { uPick: true, pumpkinPatch: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "sweetland-orchard", name: "Sweetland Orchard", kind: "orchard",
@@ -4992,7 +5010,8 @@ export const PLACES: Place[] = [
     tags: ["apples", "cidery"],
     intro: "A Webster orchard with 100-plus apple varieties, pears, and tart cherries, plus a hard cidery and a barnyard of animals. Free to wander; pay for the picking.",
     sourceUrl: "https://sweetlandorchard.com",
-    verifiedAt: "2026-08-14", venueSlug: null,
+    details: { ciderDonuts: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "pinehaven-farm", name: "Pinehaven Farm", kind: "orchard",
@@ -5001,7 +5020,8 @@ export const PLACES: Place[] = [
     tags: ["pumpkins", "corn-maze", "activities"],
     intro: "A Wyoming fall-fun farm north of the metro — a corn maze, pumpkin patch, jumping pillows, and a barnyard. Admission for the activity farm.",
     sourceUrl: "https://www.pinehavenfarm.com",
-    verifiedAt: "2026-08-14", venueSlug: null,
+    details: { pumpkinPatch: true, cornMaze: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "waldoch-farm", name: "Waldoch Farm", kind: "orchard",
@@ -5010,7 +5030,8 @@ export const PLACES: Place[] = [
     tags: ["pumpkins", "corn-maze"],
     intro: "A Lino Lakes garden center that throws a full fall festival each September and October — a corn maze, pumpkin patch, and hayrides. Admission for the fall activities.",
     sourceUrl: "https://waldochfarm.com",
-    verifiedAt: "2026-08-14", venueSlug: null,
+    details: { pumpkinPatch: true, cornMaze: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
 
   // ── Indoor playgrounds & play cafés (Roadmap v6 Tier 1.2 — the winter kind) ──

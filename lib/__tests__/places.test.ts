@@ -774,6 +774,39 @@ describe("playground features (winning detail — moat, kind 7; fenced is rare+s
   });
 });
 
+describe("orchard features (winning detail — moat, kind 8; fall outing)", () => {
+  const orchards = placesByKind("orchard");
+
+  it("locks the source-confirmed counts", () => {
+    expect(orchards.length).toBe(12);
+    expect(orchards.filter((p) => p.details?.uPick === true).length).toBe(7);
+    expect(orchards.filter((p) => p.details?.ciderDonuts === true).length).toBe(5);
+    expect(orchards.filter((p) => p.details?.pumpkinPatch === true).length).toBe(10);
+    expect(orchards.filter((p) => p.details?.cornMaze === true).length).toBe(7);
+  });
+
+  it("u-pick is strict — a pre-picked/farm-stand-only orchard never claims it", () => {
+    // Pine Tree + Sweetland sell apples pre-picked from the barn, not u-pick.
+    for (const slug of ["pine-tree-apple-orchard", "sweetland-orchard"]) {
+      const p = orchards.find((x) => x.slug === slug);
+      expect(p?.details?.uPick, `${slug} is pre-picked`).not.toBe(true);
+    }
+  });
+
+  it("offers the four fall facts as filters, in label order", () => {
+    expect(activeDetailKeys(orchards)).toEqual(["uPick", "ciderDonuts", "pumpkinPatch", "cornMaze"]);
+  });
+
+  it("orchard details use only the four orchard facts", () => {
+    const allowed = new Set(["uPick", "ciderDonuts", "pumpkinPatch", "cornMaze"]);
+    for (const p of orchards) {
+      for (const k of Object.keys(p.details ?? {})) {
+        expect(allowed.has(k), `${p.slug}: unexpected orchard detail "${k}"`).toBe(true);
+      }
+    }
+  });
+});
+
 describe("filter by detail (winning-detail filters — P4.3 follow-on)", () => {
   const rinks = placesByKind("rink");
   const skiHills = placesByKind("ski-hill");
