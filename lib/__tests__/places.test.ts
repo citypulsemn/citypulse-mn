@@ -807,6 +807,38 @@ describe("orchard features (winning detail — moat, kind 8; fall outing)", () =
   });
 });
 
+describe("nature-center features (winning detail — moat, kind 8)", () => {
+  const centers = placesByKind("nature-center");
+
+  it("locks the source-confirmed counts (live animals came back universal)", () => {
+    expect(centers.length).toBe(12);
+    expect(centers.filter((p) => p.details?.liveAnimals === true).length).toBe(12);
+    expect(centers.filter((p) => p.details?.indoorExhibits === true).length).toBe(10);
+    expect(centers.filter((p) => p.details?.naturePlayArea === true).length).toBe(8);
+  });
+
+  it("the trail-only outliers carry no indoor-exhibits badge (honest differentiation)", () => {
+    // Dodge (no public indoor visitor center) + Belwin (bison prairie, no exhibit building).
+    for (const slug of ["dodge-nature-center", "belwin-conservancy"]) {
+      const p = centers.find((x) => x.slug === slug);
+      expect(p?.details?.indoorExhibits, `${slug}`).not.toBe(true);
+    }
+  });
+
+  it("offers the three nature facts as filters, in label order", () => {
+    expect(activeDetailKeys(centers)).toEqual(["liveAnimals", "indoorExhibits", "naturePlayArea"]);
+  });
+
+  it("nature-center details use only the three nature facts", () => {
+    const allowed = new Set(["liveAnimals", "indoorExhibits", "naturePlayArea"]);
+    for (const p of centers) {
+      for (const k of Object.keys(p.details ?? {})) {
+        expect(allowed.has(k), `${p.slug}: unexpected nature detail "${k}"`).toBe(true);
+      }
+    }
+  });
+});
+
 describe("filter by detail (winning-detail filters — P4.3 follow-on)", () => {
   const rinks = placesByKind("rink");
   const skiHills = placesByKind("ski-hill");

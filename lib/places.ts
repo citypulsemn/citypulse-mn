@@ -85,6 +85,10 @@ export interface PlaceDetails {
   ciderDonuts?: boolean; // fresh cider / apple-cider donuts on site
   pumpkinPatch?: boolean; // a pumpkin patch / pumpkins to pick
   cornMaze?: boolean; // a corn maze
+  // Nature centers — the differentiating draws (all are free with trails already).
+  liveAnimals?: boolean; // live animals on view — raptors, critters, farm, bison
+  indoorExhibits?: boolean; // an indoor interpretive center / nature exhibits (weather-proof)
+  naturePlayArea?: boolean; // a dedicated kids' nature play area / playscape
 }
 
 /** Badge labels for the truthy PlaceDetails facts, in render order. Only keys
@@ -105,6 +109,9 @@ export const PLACE_DETAIL_LABELS: Partial<Record<keyof PlaceDetails, string>> = 
   ciderDonuts: "Cider donuts",
   pumpkinPatch: "Pumpkin patch",
   cornMaze: "Corn maze",
+  liveAnimals: "Live animals",
+  indoorExhibits: "Indoor exhibits",
+  naturePlayArea: "Nature play area",
   adjacentPlayground: "Playground on site",
   restrooms: "Restrooms",
 };
@@ -4116,7 +4123,8 @@ export const PLACES: Place[] = [
     tags: ["trails", "river", "exhibits"],
     intro: "The Park Board's interpretive center at North Mississippi Regional Park, right on the river — exhibits inside, trails and river access out back. Free.",
     sourceUrl: "https://www.minneapolisparks.org/parks-destinations/parks-lakes/carl_w_kroening_nature_center/",
-    verifiedAt: "2026-08-14", venueSlug: null,
+    details: { liveAnimals: true, indoorExhibits: true, naturePlayArea: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "dodge-nature-center", name: "Dodge Nature Center", kind: "nature-center",
@@ -4125,7 +4133,8 @@ export const PLACES: Place[] = [
     tags: ["trails", "farm"],
     intro: "A nonprofit preserve in West St. Paul with a working farm, prairie, and woodland trails. The trails are free to walk; the farm animals are the draw for kids.",
     sourceUrl: "https://dodgenaturecenter.org",
-    verifiedAt: "2026-08-14", venueSlug: null,
+    details: { liveAnimals: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "springbrook-nature-center", name: "Springbrook Nature Center", kind: "nature-center",
@@ -4134,7 +4143,8 @@ export const PLACES: Place[] = [
     tags: ["trails", "wetland", "boardwalk"],
     intro: "A 127-acre Fridley preserve with three-plus miles of trails through woods and wetland, plus an interpretive building and boardwalks. Free.",
     sourceUrl: "https://www.fridleymn.gov/Community-Recreation/Springbrook-Nature-Center",
-    verifiedAt: "2026-08-14", venueSlug: null,
+    details: { liveAnimals: true, indoorExhibits: true, naturePlayArea: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "westwood-hills-nature-center", name: "Westwood Hills Nature Center", kind: "nature-center",
@@ -4143,7 +4153,8 @@ export const PLACES: Place[] = [
     tags: ["trails", "boardwalk", "exhibits"],
     intro: "160 acres of prairie, forest, and marsh in St. Louis Park, with three miles of trail — paved, boardwalk, and wood-chip — and a modern net-zero interpretive center. Free.",
     sourceUrl: "https://www.stlouisparkmn.gov/our-city/facilites-buildings/westwood-hills-nature-center",
-    verifiedAt: "2026-08-14", venueSlug: null,
+    details: { liveAnimals: true, indoorExhibits: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "tamarack-nature-center", name: "Tamarack Nature Center", kind: "nature-center",
@@ -4152,7 +4163,8 @@ export const PLACES: Place[] = [
     tags: ["trails", "play-area"],
     intro: "A 320-acre Ramsey County preserve in White Bear Township, with trails, a discovery hollow, and a big natural play area. Free; donations welcome.",
     sourceUrl: "https://www.ramseycountymn.gov/residents/parks-recreation/tamarack-nature-center",
-    verifiedAt: "2026-08-14", venueSlug: null,
+    details: { liveAnimals: true, indoorExhibits: true, naturePlayArea: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "wood-lake-nature-center", name: "Wood Lake Nature Center", kind: "nature-center",
@@ -4161,7 +4173,8 @@ export const PLACES: Place[] = [
     tags: ["trails", "boardwalk", "wetland"],
     intro: "Richfield's 150-acre marsh preserve, with a floating boardwalk out over the water and an interpretive building. Free.",
     sourceUrl: "https://www.richfieldmn.gov/590/Wood-Lake-Nature-Center",
-    verifiedAt: "2026-08-14", venueSlug: null,
+    details: { liveAnimals: true, indoorExhibits: true, naturePlayArea: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "eastman-nature-center", name: "Eastman Nature Center", kind: "nature-center",
@@ -4170,7 +4183,8 @@ export const PLACES: Place[] = [
     tags: ["trails", "prairie", "exhibits"],
     intro: "The Three Rivers nature center at Elm Creek Park Reserve in Dayton — trails through prairie and big woods, with exhibits and naturalist programs. Free.",
     sourceUrl: "https://www.threeriversparks.org/location/eastman-nature-center",
-    verifiedAt: "2026-08-14", venueSlug: null,
+    details: { liveAnimals: true, indoorExhibits: true, naturePlayArea: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "richardson-nature-center", name: "Richardson Nature Center", kind: "nature-center",
@@ -4179,7 +4193,8 @@ export const PLACES: Place[] = [
     tags: ["trails", "raptors", "prairie"],
     intro: "The Three Rivers nature center at Hyland Lake Park Reserve in Bloomington, known for its raptors and restored prairie. Trails and exhibits, free.",
     sourceUrl: "https://www.threeriversparks.org/location/richardson-nature-center",
-    verifiedAt: "2026-08-14", venueSlug: null,
+    details: { liveAnimals: true, indoorExhibits: true, naturePlayArea: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "lowry-nature-center", name: "Lowry Nature Center", kind: "nature-center",
@@ -4188,7 +4203,8 @@ export const PLACES: Place[] = [
     tags: ["trails", "maple-syrup", "exhibits"],
     intro: "The first public nature center built in the Twin Cities, at Carver Park Reserve in Victoria — trails, exhibits, and a spring maple-syrup season. Free.",
     sourceUrl: "https://www.threeriversparks.org/location/lowry-nature-center",
-    verifiedAt: "2026-08-14", venueSlug: null,
+    details: { liveAnimals: true, indoorExhibits: true, naturePlayArea: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "carpenter-nature-center", name: "Carpenter St. Croix Valley Nature Center", kind: "nature-center",
@@ -4197,7 +4213,8 @@ export const PLACES: Place[] = [
     tags: ["trails", "raptors", "orchard"],
     intro: "A nonprofit nature center on the St. Croix river bluffs in Hastings, with valley trails, raptor programs, and an apple orchard. Free; donations welcome.",
     sourceUrl: "https://carpenternaturecenter.org",
-    verifiedAt: "2026-08-14", venueSlug: null,
+    details: { liveAnimals: true, indoorExhibits: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
 
   // ── GARDENS & CONSERVATORIES (Places G1.2, Aug 2026) ───────────────────────
@@ -4885,7 +4902,8 @@ export const PLACES: Place[] = [
     tags: ["trails", "prairie", "bison"],
     intro: "1,600 acres of prairie, savanna, and St. Croix Valley woods in Afton, with seven miles of public trails, a restored bison herd, and guided hikes. Free, open daily.",
     sourceUrl: "https://belwin.org",
-    verifiedAt: "2026-08-14", venueSlug: null,
+    details: { liveAnimals: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "wargo-nature-center", name: "Wargo Nature Center", kind: "nature-center",
@@ -4894,7 +4912,8 @@ export const PLACES: Place[] = [
     tags: ["trails", "wetland", "exhibits"],
     intro: "Anoka County's nature center in the Rice Creek Chain of Lakes reserve at Lino Lakes — a lakeside interpretive building, boardwalks, and trails through marsh and woods. Free.",
     sourceUrl: "https://www.anokacountyparks.com/wargo-nature-center",
-    verifiedAt: "2026-08-14", venueSlug: null,
+    details: { liveAnimals: true, indoorExhibits: true, naturePlayArea: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
 
   // ── GARDENS — exhaustive pass (Places G1.2, Aug 2026) ──────────────────────
