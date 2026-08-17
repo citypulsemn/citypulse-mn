@@ -60,6 +60,9 @@ export type PlaceSeason =
  * guides are enriched. Rendered as badges via PLACE_DETAIL_LABELS.
  */
 export interface PlaceDetails {
+  // Rinks — the primary decision axis: an enclosed year-round arena (skate any
+  // weather, any month) vs a free outdoor neighborhood rink (winter, snow-dependent).
+  indoor?: boolean; // an indoor/enclosed arena (true) — outdoor rinks omit it
   // Ski & tubing hills
   tubing?: boolean; // dedicated snow-tubing runs
   nightSkiing?: boolean; // lit for evening skiing/riding
@@ -71,6 +74,7 @@ export interface PlaceDetails {
 /** Badge labels for the truthy PlaceDetails facts, in render order. Only keys
  *  present here render; a detail without a label is ignored (drift-guarded). */
 export const PLACE_DETAIL_LABELS: Partial<Record<keyof PlaceDetails, string>> = {
+  indoor: "Indoor",
   tubing: "Snow tubing",
   nightSkiing: "Night skiing",
   terrainPark: "Terrain park",
@@ -1595,7 +1599,9 @@ export const PLACES: Place[] = [
     tags: ["indoor", "skate-rental", "hockey-and-open"],
     intro: "The city's indoor rinks off Kenwood Parkway, with open skate year-round when the outdoor ice is gone — three sheets, cheap admission, skate rental on site.",
     sourceUrl: "https://www.minneapolisparks.org/parks-destinations/recreation_centers_program_facilities/parade_ice_garden/",
-    verifiedAt: "2026-08-07", venueSlug: null,
+    verifiedAt: "2026-08-17",
+    details: { indoor: true },
+    venueSlug: null,
   },
   {
     slug: "maple-grove-central-park-ice-loop", name: "Central Park Ice Skating Loop (Maple Grove)", kind: "rink",
@@ -1622,7 +1628,9 @@ export const PLACES: Place[] = [
     tags: ["indoor", "skate-rental", "hockey-and-open"],
     intro: "Edina's Braemar Arena — a big multi-sheet indoor rink with regular public open skate; the ice is in most of the year.",
     sourceUrl: "https://www.edinamn.gov/2157/Braemar-Arena-Field",
-    verifiedAt: "2026-08-13", venueSlug: null,
+    verifiedAt: "2026-08-17",
+    details: { indoor: true },
+    venueSlug: null,
   },
   {
     slug: "bloomington-ice-garden", name: "Bloomington Ice Garden", kind: "rink",
@@ -1631,7 +1639,9 @@ export const PLACES: Place[] = [
     tags: ["indoor", "skate-rental", "hockey-and-open"],
     intro: "Bloomington's indoor ice arena (BIG) — three sheets and regular public open-skate sessions through the season.",
     sourceUrl: "https://www.bloomingtonmn.gov/big/bloomington-ice-garden",
-    verifiedAt: "2026-08-13", venueSlug: null,
+    verifiedAt: "2026-08-17",
+    details: { indoor: true },
+    venueSlug: null,
   },
 
   // ── Sledding hills (P2.1 — winter) ───────────────────────────────────────
@@ -4493,7 +4503,9 @@ export const PLACES: Place[] = [
     tags: ["indoor", "open-skate"],
     intro: "The Wild's downtown St. Paul practice rink, open to the public for skating atop the Treasure Island Center. Open skate for a fee, year-round.",
     sourceUrl: "https://triarink.com",
-    verifiedAt: "2026-08-14", venueSlug: null,
+    verifiedAt: "2026-08-17",
+    details: { indoor: true },
+    venueSlug: null,
   },
   {
     slug: "schwan-super-rink", name: "Schwan Super Rink", kind: "rink",
@@ -4502,7 +4514,9 @@ export const PLACES: Place[] = [
     tags: ["indoor", "open-skate"],
     intro: "Eight sheets of ice at the National Sports Center in Blaine — the world's largest ice complex, with public open-skate hours. Admission per skater, year-round.",
     sourceUrl: "https://www.nscsports.org",
-    verifiedAt: "2026-08-14", venueSlug: null,
+    verifiedAt: "2026-08-17",
+    details: { indoor: true },
+    venueSlug: null,
   },
 
   // ── Outdoor neighborhood rinks (Roadmap v6 Tier 1.2 — the free, city-flooded

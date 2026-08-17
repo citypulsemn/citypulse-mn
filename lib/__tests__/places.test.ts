@@ -589,3 +589,22 @@ describe("place details — the winning-detail moat (drift guards)", () => {
     }
   });
 });
+
+describe("rink indoor badge (winning detail — moat, kind 2)", () => {
+  const rinks = placesByKind("rink");
+
+  it("exactly the year-round refrigerated arenas are badged indoor", () => {
+    const indoor = rinks.filter((p) => p.details?.indoor === true).map((p) => p.slug).sort();
+    expect(indoor).toEqual(
+      ["bloomington-ice-garden", "braemar-arena", "parade-ice-garden", "schwan-super-rink", "tria-rink"].sort(),
+    );
+  });
+
+  it("no seasonal (outdoor) rink is mislabeled indoor — honesty", () => {
+    for (const p of rinks) {
+      if (p.season.type !== "year-round") {
+        expect(p.details?.indoor, `${p.slug} is seasonal but claims indoor`).not.toBe(true);
+      }
+    }
+  });
+});
