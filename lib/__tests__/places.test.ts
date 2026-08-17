@@ -693,6 +693,87 @@ describe("splash-pad amenities (winning detail — moat, kind 4; source-verified
   });
 });
 
+describe("pool features (winning detail — moat, kind 5; source-verified)", () => {
+  const pools = placesByKind("pool");
+
+  it("locks the source-confirmed counts (indoor reuses the shared field)", () => {
+    expect(pools.length).toBe(25);
+    expect(pools.filter((p) => p.details?.waterSlide === true).length).toBe(22);
+    expect(pools.filter((p) => p.details?.zeroDepth === true).length).toBe(20);
+    expect(pools.filter((p) => p.details?.indoor === true).length).toBe(6);
+  });
+
+  it("offers exactly indoor / water slide / zero-depth as filters", () => {
+    expect(activeDetailKeys(pools)).toEqual(["indoor", "waterSlide", "zeroDepth"]);
+  });
+
+  it("honest emptiness: the unverifiable Eagan CC pool carries no badges", () => {
+    // Its official page lists no pool at all — nothing to assert.
+    const eagan = pools.find((p) => p.slug === "eagan-community-center-pool");
+    expect(eagan?.details).toBeUndefined();
+  });
+
+  it("pool details use only aquatic facts — no dog/ski keys leaked in", () => {
+    const allowed = new Set(["indoor", "waterSlide", "zeroDepth"]);
+    for (const p of pools) {
+      for (const k of Object.keys(p.details ?? {})) {
+        expect(allowed.has(k), `${p.slug}: unexpected pool detail "${k}"`).toBe(true);
+      }
+    }
+  });
+});
+
+describe("dog-park features (winning detail — moat, kind 6; safety-strict)", () => {
+  const parks = placesByKind("dog-park");
+
+  it("locks the source-confirmed counts", () => {
+    expect(parks.length).toBe(58);
+    expect(parks.filter((p) => p.details?.fenced === true).length).toBe(45);
+    expect(parks.filter((p) => p.details?.smallDogArea === true).length).toBe(31);
+  });
+
+  it("fenced is a strict safety claim — big unfenced trail areas never carry it", () => {
+    // Crow-Hassan (40-acre unfenced), Meeker Island (explicitly 'no fence').
+    for (const slug of ["crow-hassan-dog-off-leash-area", "meeker-island-off-leash-dog-park"]) {
+      const p = parks.find((x) => x.slug === slug);
+      expect(p?.details?.fenced, `${slug} is unfenced`).not.toBe(true);
+    }
+  });
+
+  it("audit fix: a park mistagged 'unfenced' but officially enclosed now reads fenced", () => {
+    const arlington = parks.find((p) => p.slug === "arlington-arkwright-off-leash-dog-area");
+    expect(arlington?.details?.fenced).toBe(true); // stpaul.gov: 'completely enclosed'
+  });
+
+  it("dog-park details use only fenced / small-dog-area", () => {
+    const allowed = new Set(["fenced", "smallDogArea"]);
+    for (const p of parks) {
+      for (const k of Object.keys(p.details ?? {})) {
+        expect(allowed.has(k), `${p.slug}: unexpected dog-park detail "${k}"`).toBe(true);
+      }
+    }
+  });
+});
+
+describe("playground features (winning detail — moat, kind 7; fenced is rare+strict)", () => {
+  const playgrounds = placesByKind("playground");
+
+  it("locks the counts — fenced is rare (only the one that's actually enclosed)", () => {
+    expect(playgrounds.length).toBe(15);
+    expect(playgrounds.filter((p) => p.details?.fenced === true).length).toBe(1);
+    expect(playgrounds.filter((p) => p.details?.restrooms === true).length).toBe(10);
+  });
+
+  it("the single fenced playground is the one a source confirms enclosed", () => {
+    const fenced = playgrounds.filter((p) => p.details?.fenced === true).map((p) => p.slug);
+    expect(fenced).toEqual(["teddy-bear-park-playground"]);
+  });
+
+  it("offers fenced / restrooms as filters (fenced first)", () => {
+    expect(activeDetailKeys(playgrounds)).toEqual(["fenced", "restrooms"]);
+  });
+});
+
 describe("filter by detail (winning-detail filters — P4.3 follow-on)", () => {
   const rinks = placesByKind("rink");
   const skiHills = placesByKind("ski-hill");

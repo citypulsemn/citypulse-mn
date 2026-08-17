@@ -74,6 +74,12 @@ export interface PlaceDetails {
   // parent actually decides on. Only ever true when an official source confirms.
   adjacentPlayground?: boolean; // a children's playground at the same park/site
   restrooms?: boolean; // restrooms (permanent or seasonal/portable) at the site
+  // Pools (indoor reuses `indoor` above) — the family-decision water features.
+  waterSlide?: boolean; // a water slide / tube slide
+  zeroDepth?: boolean; // zero-depth / beach-entry area (safe for little kids)
+  // Dog parks (and playgrounds share `fenced`) — the safety/logistics facts.
+  fenced?: boolean; // fully fenced/enclosed (off-leash dog park; toddler playground)
+  smallDogArea?: boolean; // a separate small-/shy-dog enclosure
 }
 
 /** Badge labels for the truthy PlaceDetails facts, in render order. Only keys
@@ -86,6 +92,10 @@ export const PLACE_DETAIL_LABELS: Partial<Record<keyof PlaceDetails, string>> = 
   terrainPark: "Terrain park",
   rentals: "Rentals",
   lessons: "Lessons",
+  waterSlide: "Water slide",
+  zeroDepth: "Zero-depth entry",
+  fenced: "Fenced",
+  smallDogArea: "Small-dog area",
   adjacentPlayground: "Playground on site",
   restrooms: "Restrooms",
 };
@@ -1154,7 +1164,8 @@ export const PLACES: Place[] = [
     tags: ["outdoor", "free-admission"],
     intro: "North Minneapolis's chemical-free natural swimming pool — the first of its kind in North America, cleaned by plants in an adjacent pond, and free to swim.",
     sourceUrl: "https://www.minneapolisparks.org/activities-events/water-activities/webber_natural_swimming_pool/",
-    verifiedAt: "2026-08-07", venueSlug: null,
+    details: { zeroDepth: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "bloomington-family-aquatic-center", name: "Bloomington Family Aquatic Center", kind: "pool",
@@ -1163,7 +1174,8 @@ export const PLACES: Place[] = [
     tags: ["outdoor", "waterslide", "zero-depth-entry"],
     intro: "Bloomington's outdoor aquatic center off 90th — a zero-depth entry, waterslides, and shade for a reliable July afternoon.",
     sourceUrl: "https://www.bloomingtonmn.gov/pr/bloomington-family-aquatic-center",
-    verifiedAt: "2026-08-07", venueSlug: null,
+    details: { waterSlide: true, zeroDepth: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "cascade-bay-water-park", name: "Cascade Bay Water Park", kind: "pool",
@@ -1172,7 +1184,8 @@ export const PLACES: Place[] = [
     tags: ["outdoor", "waterslide", "zero-depth-entry"],
     intro: "Eagan's outdoor water park by the Civic Arena, with tube slides and a zero-depth pool — a full-day summer stop.",
     sourceUrl: "https://cityofeagan.com/cb-plan-your-visit",
-    verifiedAt: "2026-08-07", venueSlug: null,
+    details: { waterSlide: true, zeroDepth: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "chaska-community-center-pool", name: "Chaska Community Center Pool", kind: "pool",
@@ -1181,7 +1194,8 @@ export const PLACES: Place[] = [
     tags: ["indoor", "waterslide", "lap-lanes", "diving"],
     intro: "The indoor pool at the Chaska Community Center — a lap pool, two slides, a rope swing, and a diving platform, open year-round.",
     sourceUrl: "https://www.chaskamn.gov/674/Aquatics",
-    verifiedAt: "2026-08-07", venueSlug: null,
+    details: { indoor: true, waterSlide: true, zeroDepth: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "como-regional-park-pool", name: "Como Regional Park Pool", kind: "pool",
@@ -1190,7 +1204,8 @@ export const PLACES: Place[] = [
     tags: ["outdoor", "zero-depth-entry", "waterslide"],
     intro: "St. Paul's outdoor pool at Como Regional Park, an easy pairing with the zoo and conservatory next door. Open mid-June to late August.",
     sourceUrl: "https://www.stpaul.gov/departments/parks-and-recreation/aquatics/como-regional-park-pool",
-    verifiedAt: "2026-08-07", venueSlug: null,
+    details: { waterSlide: true, zeroDepth: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "edina-aquatic-center", name: "Edina Aquatic Center", kind: "pool",
@@ -1199,7 +1214,8 @@ export const PLACES: Place[] = [
     tags: ["outdoor", "waterslide", "zero-depth-entry", "diving"],
     intro: "Edina's long-running outdoor aquatic center off 66th, with waterslides, a zero-depth pool, and a diving well.",
     sourceUrl: "https://www.edinamn.gov/2159/Aquatic-Center",
-    verifiedAt: "2026-08-07", venueSlug: null,
+    details: { waterSlide: true, zeroDepth: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "great-river-water-park", name: "Great River Water Park", kind: "pool",
@@ -1208,7 +1224,8 @@ export const PLACES: Place[] = [
     tags: ["indoor", "waterslide", "lap-lanes", "zero-depth-entry"],
     intro: "St. Paul's indoor water park inside the Oxford Community Center — a lap pool, two slides, and a kids' area. It runs the off-season: closed for summer, back in September.",
     sourceUrl: "https://www.stpaul.gov/departments/parks-and-recreation/aquatics/great-river-water-park",
-    verifiedAt: "2026-08-07", venueSlug: null,
+    details: { indoor: true, waterSlide: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "new-hope-aquatic-park", name: "New Hope Aquatic Park", kind: "pool",
@@ -1217,7 +1234,8 @@ export const PLACES: Place[] = [
     tags: ["outdoor", "waterslide", "diving", "lap-lanes", "zero-depth-entry"],
     intro: "New Hope's outdoor aquatic park — an eight-lane, 50-meter pool, diving boards, a drop slide, and a zero-depth rec area with a current channel.",
     sourceUrl: "https://www.newhopemn.gov/city_hall/parks_and_recreation/aquatic_park",
-    verifiedAt: "2026-08-07", venueSlug: null,
+    details: { waterSlide: true, zeroDepth: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "redwood-community-pool", name: "Redwood Community Pool", kind: "pool",
@@ -1226,7 +1244,8 @@ export const PLACES: Place[] = [
     tags: ["outdoor", "zero-depth-entry", "diving"],
     intro: "Apple Valley's neighborhood outdoor pool at Redwood Park — a zero-depth entry, a climbing wall, and a diving board.",
     sourceUrl: "https://www.applevalleymn.gov/1245/Redwood-Community-Pool",
-    verifiedAt: "2026-08-07", venueSlug: null,
+    details: { zeroDepth: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "richfield-outdoor-pool", name: "Richfield Outdoor Pool", kind: "pool",
@@ -1235,7 +1254,8 @@ export const PLACES: Place[] = [
     tags: ["outdoor", "zero-depth-entry", "waterslide", "diving", "lap-lanes"],
     intro: "Richfield's outdoor pool off 66th — a 50-meter main pool, a double waterslide, a diving board, and a zero-depth wading area.",
     sourceUrl: "https://www.richfieldmn.gov/621/Outdoor-Pool",
-    verifiedAt: "2026-08-07", venueSlug: null,
+    details: { waterSlide: true, zeroDepth: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "st-louis-park-aquatic-park", name: "St. Louis Park Aquatic Park", kind: "pool",
@@ -1244,7 +1264,8 @@ export const PLACES: Place[] = [
     tags: ["outdoor", "waterslide", "zero-depth-entry"],
     intro: "St. Louis Park's outdoor aquatic park off Monterey, with slides and a zero-depth pool, open early June into late August.",
     sourceUrl: "https://www.stlouisparkmn.gov/government/departments-divisions/parks-rec/aquatic-park",
-    verifiedAt: "2026-08-07", venueSlug: null,
+    details: { waterSlide: true, zeroDepth: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "shoreview-tropics-waterpark", name: "The Tropics Indoor Waterpark", kind: "pool",
@@ -1253,7 +1274,8 @@ export const PLACES: Place[] = [
     tags: ["indoor", "waterslide", "lap-lanes", "zero-depth-entry"],
     intro: "The indoor Tropics water park at the Shoreview Community Center — a four-story slide, a lazy river, and a zero-depth area, open year-round.",
     sourceUrl: "https://www.shoreviewcommunitycenter.com/Waterpark/Tropics",
-    verifiedAt: "2026-08-07", venueSlug: null,
+    details: { indoor: true, waterSlide: true, zeroDepth: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "bunker-beach-water-park", name: "Bunker Beach Water Park", kind: "pool",
@@ -1262,7 +1284,8 @@ export const PLACES: Place[] = [
     tags: ["outdoor", "waterslide", "lap-lanes"],
     intro: "Minnesota's largest outdoor water park, in Coon Rapids' Bunker Hills — a wave pool, multi-story slides, a lazy river, and a rock wall you climb over the water. (A park vehicle permit is required on top of admission.)",
     sourceUrl: "https://www.anokacountyparks.com/bunker-beach",
-    verifiedAt: "2026-08-07", venueSlug: null,
+    details: { waterSlide: true, zeroDepth: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "crystal-cove-aquatic-center", name: "Crystal Cove Aquatic Center", kind: "pool",
@@ -1271,7 +1294,8 @@ export const PLACES: Place[] = [
     tags: ["outdoor", "waterslide", "zero-depth-entry"],
     intro: "Crystal's outdoor aquatic center on Douglas Drive — slides, a zero-depth pool, and a July-afternoon crowd from the northwest suburbs.",
     sourceUrl: "https://pool.crystalmn.gov/pool",
-    verifiedAt: "2026-08-07", venueSlug: null,
+    details: { waterSlide: true, zeroDepth: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "highland-park-aquatic-center", name: "Highland Park Aquatic Center", kind: "pool",
@@ -1280,7 +1304,8 @@ export const PLACES: Place[] = [
     tags: ["outdoor", "zero-depth-entry", "waterslide"],
     intro: "St. Paul's outdoor aquatic center on Edgcumbe, with a zero-depth entry and a waterslide, open early June through Labor Day.",
     sourceUrl: "https://www.stpaul.gov/departments/parks-and-recreation/aquatics/highland-park-aquatic-center",
-    verifiedAt: "2026-08-07", venueSlug: null,
+    details: { waterSlide: true, zeroDepth: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "grove-cove-aquatic-center", name: "Grove Cove Aquatic Center", kind: "pool",
@@ -1289,7 +1314,8 @@ export const PLACES: Place[] = [
     tags: ["indoor", "waterslide", "zero-depth-entry"],
     intro: "The indoor water park at the Maple Grove Community Center — a 130-foot slide, a zero-depth beach area, and lap lanes, open year-round.",
     sourceUrl: "https://www.maplegrovemn.gov/335/Swimming-pool",
-    verifiedAt: "2026-08-07", venueSlug: null,
+    details: { indoor: true, waterSlide: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "eagan-community-center-pool", name: "Eagan Community Center Pool", kind: "pool",
@@ -1309,7 +1335,8 @@ export const PLACES: Place[] = [
     tags: ["outdoor", "waterslides", "zero-depth"],
     intro: "MPRB's north-side water park — loop slides, a zero-depth pool, and a water playground off Golden Valley Road. Kids under 18 swim free.",
     sourceUrl: "https://www.minneapolisparks.org/activities-events/water-activities/water_parks/north_commons_water_park/",
-    verifiedAt: "2026-08-13", venueSlug: null,
+    details: { waterSlide: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "jim-lupient-water-park", name: "Jim Lupient Water Park", kind: "pool",
@@ -1318,7 +1345,8 @@ export const PLACES: Place[] = [
     tags: ["outdoor", "waterslides", "lap-lanes", "zero-depth"],
     intro: "An MPRB water park in Northeast — three big slides, a log walk, spray features, and lap lanes with a zero-depth end for easy access.",
     sourceUrl: "https://www.minneapolisparks.org/activities-events/water-activities/water_parks/jim_lupient_water_park/",
-    verifiedAt: "2026-08-13", venueSlug: null,
+    details: { waterSlide: true, zeroDepth: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "sandventure-aquatic-park", name: "SandVenture Aquatic Park", kind: "pool",
@@ -1327,7 +1355,8 @@ export const PLACES: Place[] = [
     tags: ["outdoor", "waterslides", "sand"],
     intro: "Shakopee's sand-ringed chlorinated water park at Lions Park — a pool-meets-beach hybrid with two drop slides and a 300-foot waterslide.",
     sourceUrl: "https://www.shakopeemn.gov/recreation/sand_venture_aquatic_park.php",
-    verifiedAt: "2026-08-13", venueSlug: null,
+    details: { waterSlide: true, zeroDepth: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "anoka-aquatic-center", name: "Anoka Aquatic Center", kind: "pool",
@@ -1336,7 +1365,8 @@ export const PLACES: Place[] = [
     tags: ["outdoor", "waterslides", "zero-depth"],
     intro: "Anoka's outdoor aquatic center — a 12-foot climbing wall, a 200-foot slide, a diving board, and zero-depth entry; open Memorial Day to late August.",
     sourceUrl: "https://www.anokamn.gov/164/Aquatic-Center",
-    verifiedAt: "2026-08-13", venueSlug: null,
+    details: { waterSlide: true, zeroDepth: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "apple-valley-aquatic-center", name: "Apple Valley Family Aquatic Center", kind: "pool",
@@ -1345,7 +1375,8 @@ export const PLACES: Place[] = [
     tags: ["outdoor", "waterslides", "zero-depth"],
     intro: "Apple Valley's Family Aquatic Center — Splash Valley — with waterslides, a zero-depth entry, and a sprayground in one paid outdoor complex.",
     sourceUrl: "https://www.applevalleymn.gov/971/Splash-Valley-Water-Park",
-    verifiedAt: "2026-08-13", venueSlug: null,
+    details: { waterSlide: true, zeroDepth: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "hastings-aquatic-center", name: "Hastings Family Aquatic Center", kind: "pool",
@@ -1354,7 +1385,8 @@ export const PLACES: Place[] = [
     tags: ["outdoor", "waterslides", "zero-depth"],
     intro: "Hastings' outdoor family aquatic center — zero-depth entry, a 201-foot waterslide and a drop slide, a log crossing, and a rock wall.",
     sourceUrl: "https://www.hastingsmn.gov/city-government/city-departments/parks-recreation/facilities/hastings-family-aquatic-center",
-    verifiedAt: "2026-08-13", venueSlug: null,
+    details: { waterSlide: true, zeroDepth: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "inver-grove-heights-aquatic-center", name: "Veterans Memorial Community Center — The Grove", kind: "pool",
@@ -1363,7 +1395,8 @@ export const PLACES: Place[] = [
     tags: ["indoor", "waterslides", "lap-lanes"],
     intro: "The Grove at Inver Grove Heights' Veterans Memorial Community Center — an indoor waterpark plus a lap pool and dive well, open year-round.",
     sourceUrl: "https://www.ighmn.gov/97/Aquatic-Center",
-    verifiedAt: "2026-08-13", venueSlug: null,
+    details: { indoor: true, waterSlide: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "brooklyn-center-community-center-pool", name: "Brooklyn Center Community Center Pool", kind: "pool",
@@ -1372,7 +1405,8 @@ export const PLACES: Place[] = [
     tags: ["indoor", "waterslides", "lap-lanes"],
     intro: "Brooklyn Center's community center pool — an indoor 50-meter pool with a 150-foot waterslide and a zero-depth wading area, open year-round.",
     sourceUrl: "https://www.brooklyncentermn.gov/government/departments/recreation/community-center",
-    verifiedAt: "2026-08-13", venueSlug: null,
+    details: { indoor: true, waterSlide: true, zeroDepth: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
 
   // ── Parks (P2.1) ─────────────────────────────────────────────────────────
@@ -1502,7 +1536,8 @@ export const PLACES: Place[] = [
     tags: ["accessible", "shade"],
     intro: "The award-winning 16,000-square-foot creative play structure at Hyland Lake Park Reserve — ramps, towers, and slides that draw families from across the metro.",
     sourceUrl: "https://www.threeriversparks.org/location/hyland-play-area",
-    verifiedAt: "2026-08-07", venueSlug: null,
+    details: { restrooms: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "madisons-place-playground", name: "Madison's Place Playground", kind: "playground",
@@ -1520,7 +1555,8 @@ export const PLACES: Place[] = [
     tags: ["accessible", "shade"],
     intro: "Minneapolis's first fully inclusive playground, tucked in the Wabun area of Minnehaha Park — a summer-camp-styled natural play space with a spraying-rock water feature.",
     sourceUrl: "https://www.minneapolisparks.org/parks-destinations/parks-lakes/minnehaha_regional_park/",
-    verifiedAt: "2026-08-07", venueSlug: null,
+    details: { restrooms: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "maple-grove-central-park-playground", name: "Central Park Playground (Maple Grove)", kind: "playground",
@@ -1529,7 +1565,8 @@ export const PLACES: Place[] = [
     tags: ["accessible"],
     intro: "The big destination playground at Maple Grove's Central Park, steps from the interactive fountain and the Arbor Lakes shops.",
     sourceUrl: "https://www.maplegrovemn.gov/505/Central-Park",
-    verifiedAt: "2026-08-07", venueSlug: null,
+    details: { restrooms: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "hamlet-park-playground", name: "Hamlet Park Playground", kind: "playground",
@@ -1538,7 +1575,8 @@ export const PLACES: Place[] = [
     tags: ["fenced"],
     intro: "The playground and bike park at Cottage Grove's Hamlet Park, the east metro's go-to for a long afternoon with ball fields, trails, and shelters alongside.",
     sourceUrl: "https://www.cottagegrovemn.gov/facilities/facility/details/Hamlet-Park-9",
-    verifiedAt: "2026-08-07", venueSlug: null,
+    details: { restrooms: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
 
   // ── Destination playgrounds — curated (Aug 2026, F2.7) ────────────────────
@@ -1553,7 +1591,8 @@ export const PLACES: Place[] = [
     tags: ["inclusive", "themed"],
     intro: "Three Rivers' inclusive playground at French Regional Park in Plymouth, built around a three-story fire tower with slides on every level, plus zip lines and see-saws.",
     sourceUrl: "https://www.threeriversparks.org/location/french-regional-park",
-    verifiedAt: "2026-08-13", venueSlug: null,
+    details: { restrooms: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "roseville-central-park-playground", name: "Central Park Playground (Roseville)", kind: "playground",
@@ -1571,7 +1610,8 @@ export const PLACES: Place[] = [
     tags: ["themed"],
     intro: "Eden Prairie's fire-tower playground at Staring Lake — a three-story metal tower with slides, a telescope and old radio, a log prairie house, and a hollow tree to climb.",
     sourceUrl: "https://www.edenprairiemn.gov/home/components/facilitydirectory/facilitydirectory/146/1343",
-    verifiedAt: "2026-08-13", venueSlug: null,
+    details: { restrooms: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "teddy-bear-park-playground", name: "Teddy Bear Park", kind: "playground",
@@ -1580,7 +1620,8 @@ export const PLACES: Place[] = [
     tags: ["themed", "toddlers", "shade"],
     intro: "Stillwater's downtown Teddy Bear Park — a giant granite bear, a treehouse with a log slide, and a Lift Bridge climber, all geared to the seven-and-under crowd.",
     sourceUrl: "https://www.stillwatermn.gov/Home/Components/FacilityDirectory/FacilityDirectory/10/",
-    verifiedAt: "2026-08-13", venueSlug: null,
+    details: { fenced: true, restrooms: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "becker-park-playground", name: "Becker Park Playground", kind: "playground",
@@ -1598,7 +1639,8 @@ export const PLACES: Place[] = [
     tags: ["destination"],
     intro: "One of Minnesota's largest playgrounds — Three Rivers' Elm Creek Play Area in Maple Grove, with two three-story slide towers, a climbable fossil, and a spinning web.",
     sourceUrl: "https://www.threeriversparks.org/location/elm-creek-park-reserve",
-    verifiedAt: "2026-08-13", venueSlug: null,
+    details: { restrooms: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "waterford-park-playground", name: "Waterford Park Playground", kind: "playground",
@@ -1616,7 +1658,8 @@ export const PLACES: Place[] = [
     tags: ["destination", "inclusive"],
     intro: "Shoreview Commons' destination playground — a big nature-themed structure with built-in water-spray play, right by the community center.",
     sourceUrl: "https://www.shoreviewmn.gov/Parks-rec/Parks/Parks-directory/Shoreview-Commons-Destination-Playground",
-    verifiedAt: "2026-08-13", venueSlug: null,
+    details: { restrooms: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
 
   // ── Ice rinks (P2.1 — winter) ────────────────────────────────────────────
@@ -3260,7 +3303,8 @@ export const PLACES: Place[] = [
     tags: ["fenced", "small-dog-area", "permit"],
     intro: "A fully fenced 1.87-acre run on the southwest lakes, with a separate pen for small dogs. MPRB permit, annual or daily.",
     sourceUrl: "https://www.minneapolisparks.org/parks-destinations/dog-parks/lake_of_the_isles_off-leash_dog_park/",
-    verifiedAt: "2026-08-13", venueSlug: null,
+    details: { fenced: true, smallDogArea: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "franklin-terrace-off-leash-dog-park", name: "Franklin Terrace Off-Leash Dog Park", kind: "dog-park",
@@ -3269,7 +3313,8 @@ export const PLACES: Place[] = [
     tags: ["fenced", "permit"],
     intro: "A fenced 1.37-acre run in the Mississippi Gorge, with entrances off Franklin Terrace and West River Parkway. MPRB permit required.",
     sourceUrl: "https://www.minneapolisparks.org/parks-destinations/dog-parks/franklin_terrace_off-leash_dog_park/",
-    verifiedAt: "2026-08-13", venueSlug: null,
+    details: { fenced: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "victory-prairie-off-leash-dog-park", name: "Victory Prairie Off-Leash Dog Park", kind: "dog-park",
@@ -3278,7 +3323,8 @@ export const PLACES: Place[] = [
     tags: ["fenced", "permit"],
     intro: "A fenced 2.62-acre run on the North Side, with walking paths and prairie views. MPRB permit, annual or daily.",
     sourceUrl: "https://www.minneapolisparks.org/parks-destinations/dog-parks/victory_prairie_off-leash_dog_park/",
-    verifiedAt: "2026-08-13", venueSlug: null,
+    details: { fenced: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "gateway-off-leash-dog-park", name: "Gateway Off-Leash Dog Park", kind: "dog-park",
@@ -3287,7 +3333,8 @@ export const PLACES: Place[] = [
     tags: ["fenced", "permit"],
     intro: "A small fenced run in Downtown West — 0.3 acres, handy if you live in the towers. MPRB permit required.",
     sourceUrl: "https://www.minneapolisparks.org/parks-destinations/dog-parks/gateway-off-leash-dog-park/",
-    verifiedAt: "2026-08-13", venueSlug: null,
+    details: { fenced: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "st-anthony-parkway-off-leash-dog-park", name: "St. Anthony Parkway Off-Leash Dog Park", kind: "dog-park",
@@ -3296,7 +3343,8 @@ export const PLACES: Place[] = [
     tags: ["fenced", "permit"],
     intro: "A fenced 2.17-acre run along the parkway with Mississippi River views, across from the Columbia golf learning center. MPRB permit required.",
     sourceUrl: "https://www.minneapolisparks.org/parks-destinations/dog-parks/st_anthony_parkway_off-leash_dog_park/",
-    verifiedAt: "2026-08-13", venueSlug: null,
+    details: { fenced: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "dinky-off-leash-dog-park", name: "Dinky Off-Leash Dog Park", kind: "dog-park",
@@ -3305,7 +3353,8 @@ export const PLACES: Place[] = [
     tags: ["fenced", "permit"],
     intro: "Tiny — 0.08 acres — but fenced and stocked with agility equipment, tucked by Dinkytown. MPRB permit required.",
     sourceUrl: "https://www.minneapolisparks.org/parks-destinations/dog-parks/dinky-off-leash-dog-park/",
-    verifiedAt: "2026-08-13", venueSlug: null,
+    details: { fenced: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "loring-park-off-leash-dog-park", name: "Loring Park Off-Leash Dog Park", kind: "dog-park",
@@ -3314,7 +3363,8 @@ export const PLACES: Place[] = [
     tags: ["fenced", "permit"],
     intro: "A fenced quarter-acre in the north corner of Loring Park, an easy stop from downtown. Metered street parking. MPRB permit required.",
     sourceUrl: "https://www.minneapolisparks.org/parks-destinations/dog-parks/loring_park_off-leash_dog_park/",
-    verifiedAt: "2026-08-13", venueSlug: null,
+    details: { fenced: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "lyndale-farmstead-off-leash-dog-park", name: "Lyndale Farmstead Off-Leash Dog Park", kind: "dog-park",
@@ -3323,7 +3373,8 @@ export const PLACES: Place[] = [
     tags: ["fenced", "permit"],
     intro: "A fenced 0.62-acre run behind the Lyndale Farmstead, surfaced in crushed granite because it doubles as stormwater storage. MPRB permit required.",
     sourceUrl: "https://www.minneapolisparks.org/parks-destinations/dog-parks/lyndale_farmstead_off-leash_dog_park/",
-    verifiedAt: "2026-08-13", venueSlug: null,
+    details: { fenced: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
 
   // -- Three Rivers Park District — all require a Three Rivers off-leash dog pass --
@@ -3334,7 +3385,8 @@ export const PLACES: Place[] = [
     tags: ["fenced", "small-dog-area", "water-access"],
     intro: "9.3 fenced acres in Eden Prairie with a small-dog section, double-gated entry, and water access. Three Rivers dog pass, annual or daily.",
     sourceUrl: "https://www.threeriversparks.org/location/bryant-lake-dog-leash-area",
-    verifiedAt: "2026-08-13", venueSlug: null,
+    details: { fenced: true, smallDogArea: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "carver-dog-off-leash-area", name: "Carver Dog Off-Leash Area", kind: "dog-park",
@@ -3343,7 +3395,8 @@ export const PLACES: Place[] = [
     tags: ["fenced", "small-dog-area"],
     intro: "Twenty-seven fully fenced acres in Carver Park Reserve, with a small/frail-dog section and dog-walking trails. Three Rivers pass required.",
     sourceUrl: "https://www.threeriversparks.org/location/carver-dog-leash-area",
-    verifiedAt: "2026-08-13", venueSlug: null,
+    details: { fenced: true, smallDogArea: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "cleary-lake-dog-off-leash-area", name: "Cleary Lake Dog Off-Leash Area", kind: "dog-park",
@@ -3352,7 +3405,8 @@ export const PLACES: Place[] = [
     tags: ["fenced", "water-access"],
     intro: "Twenty-eight fenced acres around a wetland pond in Cleary Lake Regional Park. Three Rivers pass, annual or daily.",
     sourceUrl: "https://www.threeriversparks.org/location/cleary-lake-dog-leash-area",
-    verifiedAt: "2026-08-13", venueSlug: null,
+    details: { fenced: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "crow-hassan-dog-off-leash-area", name: "Crow-Hassan Dog Off-Leash Area", kind: "dog-park",
@@ -3370,7 +3424,8 @@ export const PLACES: Place[] = [
     tags: ["fenced", "small-dog-area", "water-access"],
     intro: "Twenty-nine fenced acres in Elm Creek Park Reserve, with a fenced wetland pond for swimming and a small-dog section. Three Rivers pass required.",
     sourceUrl: "https://www.threeriversparks.org/location/elm-creek-dog-leash-area",
-    verifiedAt: "2026-08-13", venueSlug: null,
+    details: { fenced: true, smallDogArea: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "fish-lake-dog-off-leash-area", name: "Fish Lake Dog Off-Leash Area", kind: "dog-park",
@@ -3388,7 +3443,8 @@ export const PLACES: Place[] = [
     tags: ["fenced"],
     intro: "About thirty fenced acres near Lake Rebecca, out in Rockford, with occasional Wednesday-morning maintenance closures. Three Rivers pass required.",
     sourceUrl: "https://www.threeriversparks.org/location/lake-sarah-dog-leash-area",
-    verifiedAt: "2026-08-13", venueSlug: null,
+    details: { fenced: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "mississippi-gateway-dog-off-leash-area", name: "Mississippi Gateway Dog Off-Leash Area", kind: "dog-park",
@@ -3397,7 +3453,8 @@ export const PLACES: Place[] = [
     tags: ["fenced", "small-dog-area", "water-access"],
     intro: "Six fully fenced acres by the river in Brooklyn Park, split into small, all-dog, and rugged sections, with rinse stations. Three Rivers pass required.",
     sourceUrl: "https://www.threeriversparks.org/MississippiGatewayRegionalPark",
-    verifiedAt: "2026-08-13", venueSlug: null,
+    details: { fenced: true, smallDogArea: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "murphy-hanrehan-dog-off-leash-area", name: "Murphy-Hanrehan Dog Off-Leash Area", kind: "dog-park",
@@ -3406,7 +3463,8 @@ export const PLACES: Place[] = [
     tags: ["fenced"],
     intro: "A fenced three-acre run in Murphy-Hanrehan Park Reserve, Savage. Three Rivers pass, annual or daily.",
     sourceUrl: "https://www.threeriversparks.org/location/murphy-hanrehan-dog-leash-area",
-    verifiedAt: "2026-08-13", venueSlug: null,
+    details: { fenced: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "spring-lake-dog-off-leash-area", name: "Spring Lake Dog Off-Leash Area", kind: "dog-park",
@@ -3415,7 +3473,8 @@ export const PLACES: Place[] = [
     tags: ["fenced", "small-dog-area", "water-access"],
     intro: "Ten fenced acres in Prior Lake — nine for big dogs and one for small, with a watering station. Three Rivers pass required.",
     sourceUrl: "https://www.threeriversparks.org/location/spring-lake-dog-leash-area",
-    verifiedAt: "2026-08-13", venueSlug: null,
+    details: { fenced: true, smallDogArea: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
 
   // -- St. Paul + Ramsey County — all free (some want a home dog license) --
@@ -3426,7 +3485,8 @@ export const PLACES: Place[] = [
     tags: ["unfenced"],
     intro: "Nearly five acres of wooded trails and an open bowl on the East Side, gated at the park perimeter rather than fully fenced. No on-site water. Free.",
     sourceUrl: "https://www.stpaul.gov/facilities/arlington-arkwright-park",
-    verifiedAt: "2026-08-13", venueSlug: null,
+    details: { fenced: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "high-bridge-off-leash-dog-park", name: "High Bridge Off-Leash Dog Park", kind: "dog-park",
@@ -3435,7 +3495,8 @@ export const PLACES: Place[] = [
     tags: ["fenced"],
     intro: "Seven fully fenced acres on a cleaned-up former power-plant lot on the West Side. No on-site water. Free.",
     sourceUrl: "https://www.stpaul.gov/facilities/high-bridge-dog-park",
-    verifiedAt: "2026-08-13", venueSlug: null,
+    details: { fenced: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "meeker-island-off-leash-dog-park", name: "Meeker Island Off-Leash Dog Park", kind: "dog-park",
@@ -3453,7 +3514,8 @@ export const PLACES: Place[] = [
     tags: ["fenced"],
     intro: "A fully fenced run near CHS Field in Lowertown, rebuilt when the ballpark went up. Free.",
     sourceUrl: "https://www.stpaul.gov/facilities/lowertown-dog-park",
-    verifiedAt: "2026-08-13", venueSlug: null,
+    details: { fenced: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "lilydale-off-leash-dog-park", name: "Lilydale Off-Leash Dog Park", kind: "dog-park",
@@ -3462,7 +3524,8 @@ export const PLACES: Place[] = [
     tags: ["fenced", "small-dog-area"],
     intro: "Opened in 2022 in Lilydale Regional Park, with separate fenced large- and small-dog areas. Park in the boat-launch lot. Free.",
     sourceUrl: "https://www.stpaul.gov/facilities/lilydale-regional-park",
-    verifiedAt: "2026-08-13", venueSlug: null,
+    details: { fenced: true, smallDogArea: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "unci-makha-off-leash-dog-park", name: "Unci Makha Off-Leash Dog Park", kind: "dog-park",
@@ -3471,7 +3534,8 @@ export const PLACES: Place[] = [
     tags: ["fenced", "small-dog-area"],
     intro: "In the Highland Bridge development, two fenced areas — one for high-energy dogs, one calmer with a picnic shelter. Free.",
     sourceUrl: "https://www.stpaul.gov/facilities/unci-makha-park",
-    verifiedAt: "2026-08-13", venueSlug: null,
+    details: { fenced: true, smallDogArea: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "battle-creek-off-leash-dog-area", name: "Battle Creek Off-Leash Dog Area", kind: "dog-park",
@@ -3480,7 +3544,8 @@ export const PLACES: Place[] = [
     tags: ["fenced", "small-dog-area"],
     intro: "Ramsey County's biggest — 35 fenced acres in Maplewood with trails, natural swamp, and a section for dogs under 30 pounds. Free, 6am–10pm.",
     sourceUrl: "https://www.ramseycountymn.gov/residents/parks-recreation/parks-trails/dog-parks",
-    verifiedAt: "2026-08-13", venueSlug: null,
+    details: { smallDogArea: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "rice-creek-off-leash-dog-area", name: "Rice Creek Off-Leash Dog Area", kind: "dog-park",
@@ -3489,7 +3554,8 @@ export const PLACES: Place[] = [
     tags: ["fenced", "small-dog-area", "water-access"],
     intro: "About thirteen fenced acres along the Rice Creek trail in Shoreview, with prairie paths, water access, and a small-dog area. Free.",
     sourceUrl: "https://www.ramseycountymn.gov/residents/parks-recreation/parks-trails/dog-parks",
-    verifiedAt: "2026-08-13", venueSlug: null,
+    details: { smallDogArea: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "otter-lake-off-leash-dog-area", name: "Otter Lake Off-Leash Dog Area", kind: "dog-park",
@@ -3498,7 +3564,8 @@ export const PLACES: Place[] = [
     tags: ["fenced", "small-dog-area", "water-access"],
     intro: "About ten wooded acres in Bald Eagle–Otter Lakes Regional Park, with a footpath, water access, and a small-dog section. Free.",
     sourceUrl: "https://www.ramseycountymn.gov/residents/parks-recreation/parks-trails/dog-parks",
-    verifiedAt: "2026-08-13", venueSlug: null,
+    details: { smallDogArea: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "woodview-off-leash-dog-area", name: "Woodview Off-Leash Dog Area", kind: "dog-park",
@@ -3507,7 +3574,8 @@ export const PLACES: Place[] = [
     tags: ["fenced", "small-dog-area"],
     intro: "The Woodview Open Space run in Roseville — wooded trails, an accessible area, and a small-dog section. Free.",
     sourceUrl: "https://www.ramseycountymn.gov/residents/parks-recreation/parks-trails/dog-parks",
-    verifiedAt: "2026-08-13", venueSlug: null,
+    details: { smallDogArea: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
 
   // -- North & west suburbs (city-operated) --
@@ -3527,7 +3595,8 @@ export const PLACES: Place[] = [
     tags: ["fenced", "small-dog-area"],
     intro: "A year-round fenced run in Eden Prairie with a separate pen for small or fragile dogs. Free, but an Eden Prairie dog license is required.",
     sourceUrl: "https://www.edenprairiemn.gov/amenities/dog-parks",
-    verifiedAt: "2026-08-13", venueSlug: null,
+    details: { fenced: true, smallDogArea: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "staring-lake-off-leash-dog-area", name: "Staring Lake Off-Leash Dog Area", kind: "dog-park",
@@ -3536,7 +3605,8 @@ export const PLACES: Place[] = [
     tags: ["fenced"],
     intro: "5.7 fenced acres of woods and paths in Eden Prairie — but it closes for winter, when the trail turns Nordic. Free; an Eden Prairie license is required.",
     sourceUrl: "https://www.edenprairiemn.gov/amenities/dog-parks",
-    verifiedAt: "2026-08-13", venueSlug: null,
+    details: { fenced: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "plymouth-dog-park", name: "Plymouth Dog Park", kind: "dog-park",
@@ -3545,7 +3615,8 @@ export const PLACES: Place[] = [
     tags: ["fenced", "small-dog-area", "water-access"],
     intro: "Plymouth's largest — fully fenced with a small-dog area and a dog swimming area. Free.",
     sourceUrl: "https://www.plymouthmn.gov/facilities/dog-parks",
-    verifiedAt: "2026-08-13", venueSlug: null,
+    details: { fenced: true, smallDogArea: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "four-paws-dog-park", name: "4 Paws Dog Park", kind: "dog-park",
@@ -3554,7 +3625,8 @@ export const PLACES: Place[] = [
     tags: ["fenced"],
     intro: "A fenced run at Plymouth Playfield, open year-round. Free.",
     sourceUrl: "https://www.plymouthmn.gov/facilities/dog-parks",
-    verifiedAt: "2026-08-13", venueSlug: null,
+    details: { fenced: true, smallDogArea: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "brookdale-dog-park", name: "Brookdale Dog Park", kind: "dog-park",
@@ -3563,7 +3635,8 @@ export const PLACES: Place[] = [
     tags: ["fenced", "small-dog-area"],
     intro: "Fully fenced in Brooklyn Park with separate big- and small-dog areas and a double-gated entrance. Free.",
     sourceUrl: "https://www.brooklynpark.org/parks/dog-parks-2/",
-    verifiedAt: "2026-08-13", venueSlug: null,
+    details: { fenced: true, smallDogArea: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "swanson-dog-park", name: "Swanson Dog Park", kind: "dog-park",
@@ -3572,7 +3645,8 @@ export const PLACES: Place[] = [
     tags: ["fenced", "small-dog-area"],
     intro: "Fenced runs for large and small dogs in Blaine, with a heated shelter and drinking fountains. Free.",
     sourceUrl: "https://blainemn.gov/Facilities/Facility/Details/Swanson-Dog-Park-21",
-    verifiedAt: "2026-08-13", venueSlug: null,
+    details: { fenced: true, smallDogArea: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "bunker-hills-dog-park", name: "Bunker Hills Dog Park", kind: "dog-park",
@@ -3581,7 +3655,8 @@ export const PLACES: Place[] = [
     tags: ["fenced", "small-dog-area"],
     intro: "A 6.5-acre fully fenced off-leash park near the Bunker Hills compost site, with separate big- and small-dog runs, an open play area, and a short trail. A joint Coon Rapids/Andover facility in Anoka County. Free; dogs licensed and vaccinated, three per handler.",
     sourceUrl: "https://www.coonrapidsmn.gov/facilities/facility/details/dog-park-19",
-    verifiedAt: "2026-08-13", venueSlug: null,
+    details: { fenced: true, smallDogArea: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "bassett-creek-dog-park", name: "Bassett Creek Dog Park", kind: "dog-park",
@@ -3590,7 +3665,8 @@ export const PLACES: Place[] = [
     tags: ["fenced", "small-dog-area", "water-access"],
     intro: "A grassy, shaded run in Crystal with a separate pen for small or shy dogs and a water spigot. Free; two dogs per handler.",
     sourceUrl: "https://parksandrec.crystalmn.gov/recreation/parks_and_trails/dog_park",
-    verifiedAt: "2026-08-13", venueSlug: null,
+    details: { fenced: true, smallDogArea: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "new-hope-lions-off-leash-area", name: "Lions Park Off-Leash Area (New Hope)", kind: "dog-park",
@@ -3599,7 +3675,8 @@ export const PLACES: Place[] = [
     tags: ["fenced"],
     intro: "A grassy off-leash enclosure with a wooded nature strip in New Hope. Seasonal, April–October, daylight hours. Free.",
     sourceUrl: "https://www.newhopemn.gov/city_hall/parks_and_recreation/facilities/dog_parks",
-    verifiedAt: "2026-08-13", venueSlug: null,
+    details: { fenced: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "new-hope-liberty-off-leash-area", name: "Liberty Park Off-Leash Area (New Hope)", kind: "dog-park",
@@ -3608,7 +3685,8 @@ export const PLACES: Place[] = [
     tags: ["fenced"],
     intro: "A fenced run inside the outdoor hockey-rink enclosure in New Hope. Seasonal, April–October. Free.",
     sourceUrl: "https://www.newhopemn.gov/city_hall/parks_and_recreation/facilities/dog_parks",
-    verifiedAt: "2026-08-13", venueSlug: null,
+    details: { fenced: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "gearty-park-off-leash-pet-area", name: "Gearty Park Off-Leash Pet Area", kind: "dog-park",
@@ -3635,7 +3713,8 @@ export const PLACES: Place[] = [
     tags: ["fenced", "small-dog-area", "permit"],
     intro: "Just over an acre in St. Louis Park, fully fenced with a double-gated entry and separate big- and small-dog areas. City license or off-leash permit required.",
     sourceUrl: "https://www.stlouisparkmn.gov/our-city/thing-to-do/dog-park",
-    verifiedAt: "2026-08-13", venueSlug: null,
+    details: { fenced: true, smallDogArea: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "van-valkenburg-off-leash-dog-area", name: "Van Valkenburg Off-Leash Dog Area", kind: "dog-park",
@@ -3644,7 +3723,8 @@ export const PLACES: Place[] = [
     tags: ["fenced", "small-dog-area", "permit"],
     intro: "A fully fenced Edina run with a small/large separation, a water fountain, and shaded seating. Off-leash permit and collar required.",
     sourceUrl: "https://www.edinamn.gov/270/Off-Leash-Areas",
-    verifiedAt: "2026-08-13", venueSlug: null,
+    details: { fenced: true, smallDogArea: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "roosevelt-off-leash-dog-park", name: "Roosevelt Off-Leash Dog Park", kind: "dog-park",
@@ -3653,7 +3733,8 @@ export const PLACES: Place[] = [
     tags: ["fenced", "small-dog-area"],
     intro: "Richfield's first dog park (2020), fully fenced with separate small and large areas, grooming stations, and lights. Free; a city license is required.",
     sourceUrl: "https://www.richfieldmn.gov/departments/parks_and_recreation/facilities/off-leash_dog_area_at_roosevelt.php",
-    verifiedAt: "2026-08-13", venueSlug: null,
+    details: { fenced: true, smallDogArea: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
 
   // -- South & east suburbs (city-operated) --
@@ -3664,7 +3745,8 @@ export const PLACES: Place[] = [
     tags: ["fenced", "small-dog-area"],
     intro: "An enclosed seven-acre run shared by Burnsville and Apple Valley, with separate large- and small-dog sections. Free; an optional $25 membership funds upkeep.",
     sourceUrl: "https://burnsvillemn.gov/Facilities/Facility/Details/60",
-    verifiedAt: "2026-08-13", venueSlug: null,
+    details: { fenced: true, smallDogArea: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "andys-bark-park", name: "Andy's Bark Park", kind: "dog-park",
@@ -3682,7 +3764,8 @@ export const PLACES: Place[] = [
     tags: ["fenced", "small-dog-area"],
     intro: "Fourteen fully fenced acres in Cottage Grove with separate big- and small-dog sections and a double gate. Free; a city license is required.",
     sourceUrl: "https://www.cottagegrovemn.gov/Facilities/Facility/Details/Wag-Farms-Dog-Park-31",
-    verifiedAt: "2026-08-13", venueSlug: null,
+    details: { fenced: true, smallDogArea: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "thresher-fields-off-leash-dog-area", name: "Thresher Fields Off-Leash Dog Area", kind: "dog-park",
@@ -3691,7 +3774,8 @@ export const PLACES: Place[] = [
     tags: ["fenced", "small-dog-area", "water-access"],
     intro: "Fully fenced down to the lakeshore in Eagan, with a small-dog area and seasonal water and restrooms. Free; an Eagan dog license is required.",
     sourceUrl: "https://cityofeagan.com/off-leash-dog-park",
-    verifiedAt: "2026-08-13", venueSlug: null,
+    details: { fenced: true, smallDogArea: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "ritter-farm-dog-park", name: "Ritter Farm Dog Park", kind: "dog-park",
@@ -3700,7 +3784,8 @@ export const PLACES: Place[] = [
     tags: ["fenced", "small-dog-area", "water-access"],
     intro: "About five fenced acres near the Ritter Farm entrance in Lakeville, with large- and small-breed sections and a water station. Free, year-round.",
     sourceUrl: "https://www.lakevillemn.gov/1383/Ritter-Farm-Dog-Park",
-    verifiedAt: "2026-08-13", venueSlug: null,
+    details: { fenced: true, smallDogArea: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "chaska-lions-off-leash-dog-area", name: "Lions Park Off-Leash Dog Area (Chaska)", kind: "dog-park",
@@ -3709,7 +3794,8 @@ export const PLACES: Place[] = [
     tags: ["fenced", "small-dog-area", "water-access"],
     intro: "Two fenced areas in Chaska — a small-dog area with a shelter, and a four-acre wooded run — with drinking and wash stations. Free.",
     sourceUrl: "https://www.chaskamn.gov/579/Lions-Park-Off-Leash-Dog-Area",
-    verifiedAt: "2026-08-13", venueSlug: null,
+    details: { fenced: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "southbridge-off-leash-dog-park", name: "Southbridge Off-Leash Dog Park", kind: "dog-park",
@@ -3718,7 +3804,8 @@ export const PLACES: Place[] = [
     tags: ["fenced", "small-dog-area", "water-access"],
     intro: "A ten-acre all-breed run plus a half-acre small-dog area in Shakopee, with a water station and trails. Free; a Shakopee dog license is required.",
     sourceUrl: "https://www.shakopeemn.gov/business_detail_T11_R61.php",
-    verifiedAt: "2026-08-13", venueSlug: null,
+    details: { smallDogArea: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "savage-dog-park", name: "Savage Dog Park", kind: "dog-park",
@@ -3727,7 +3814,8 @@ export const PLACES: Place[] = [
     tags: ["fenced", "small-dog-area", "water-access"],
     intro: "Over two fenced acres in Savage with separate small- and large-dog areas and running water in warm months. No lights. Free.",
     sourceUrl: "https://www.savagemn.gov/Home/Components/FacilityDirectory/FacilityDirectory/46/1194",
-    verifiedAt: "2026-08-13", venueSlug: null,
+    details: { fenced: true, smallDogArea: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "heritage-village-off-leash-dog-park", name: "Heritage Village Off-Leash Dog Park", kind: "dog-park",
@@ -3736,7 +3824,8 @@ export const PLACES: Place[] = [
     tags: ["fenced", "small-dog-area", "permit"],
     intro: "Eleven fenced acres in Inver Grove Heights with small-breed and all-breed areas, open 6am–10pm. A Dog Park Pass and rabies proof are required.",
     sourceUrl: "https://www.ighmn.gov/442/Heritage-Village-Park-and-Off-Leash-Dog-",
-    verifiedAt: "2026-08-13", venueSlug: null,
+    details: { fenced: true, smallDogArea: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "oakdale-bark-park", name: "Oakdale Bark Park", kind: "dog-park",
@@ -3745,7 +3834,8 @@ export const PLACES: Place[] = [
     tags: ["fenced", "water-access"],
     intro: "4.6 enclosed acres in Oakdale with four-foot fencing, a double-gate transition, wooded trails, and a pond. Free.",
     sourceUrl: "https://www.oakdalemn.gov/701/Oakdale-Bark-Park",
-    verifiedAt: "2026-08-13", venueSlug: null,
+    details: { fenced: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "stillwater-dog-park", name: "Stillwater Dog Park", kind: "dog-park",
@@ -3754,7 +3844,8 @@ export const PLACES: Place[] = [
     tags: ["fenced"],
     intro: "A fenced off-leash park on Stillwater city parkland, run with the Friends of Stillwater Area Dog Park since 2014. Open 8am to sunset. Free.",
     sourceUrl: "https://www.stillwatermn.gov/city-government/departments/public-works/parks",
-    verifiedAt: "2026-08-13", venueSlug: null,
+    details: { fenced: true, smallDogArea: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "rivertown-dog-park", name: "Rivertown Dog Park", kind: "dog-park",
@@ -3763,7 +3854,8 @@ export const PLACES: Place[] = [
     tags: ["fenced"],
     intro: "5.5 fenced acres in Hastings, open 6am–10pm, three dogs per person. Free; dogs licensed and vaccinated.",
     sourceUrl: "https://www.hastingsmn.gov/parks-recreation-arts/parks-and-trails/rivertown-dog-park/",
-    verifiedAt: "2026-08-13", venueSlug: null,
+    details: { fenced: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "kaposia-landing-off-leash-dog-area", name: "Kaposia Landing Off-Leash Dog Area", kind: "dog-park",
@@ -3772,7 +3864,8 @@ export const PLACES: Place[] = [
     tags: ["fenced", "small-dog-area", "permit"],
     intro: "A 6.3-acre fenced run along the Mississippi in South St. Paul, with a small/timid-dog area and nearly two miles of paved trails. A permit is required.",
     sourceUrl: "https://www.southstpaulmn.gov/838/Dog-Park",
-    verifiedAt: "2026-08-13", venueSlug: null,
+    details: { fenced: true, smallDogArea: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
 
   // ── DISC GOLF (Places G1.2, Aug 2026) ──────────────────────────────────────
@@ -4545,7 +4638,8 @@ export const PLACES: Place[] = [
     tags: ["indoor", "climbing"],
     intro: "A one-acre indoor park in Edina — Adventure Peak's climbing structures, slides, and a toddler zone, warm all winter. Admission per child; adults free.",
     sourceUrl: "https://www.edinamn.gov/facilities/facility/details/Edinborough-Park-61",
-    verifiedAt: "2026-08-14", venueSlug: null,
+    details: { restrooms: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
 
   // ── RINKS — deepening pass (Places G1.2, Aug 2026) ─────────────────────────
