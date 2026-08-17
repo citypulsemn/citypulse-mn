@@ -36,7 +36,7 @@ export async function generateMetadata({
   const collection = getCollection(slug);
   if (!collection) return { title: "Collection not found — City Pulse MN" };
 
-  const title = `${collection.title} | City Pulse MN`;
+  const title = `${collection.seoTitle ?? collection.title} | City Pulse MN`;
   const path = `/collections/${collection.slug}`;
   return {
     title,

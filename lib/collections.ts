@@ -17,6 +17,11 @@ export interface CollectionSpec {
   slug: string;
   title: string;
   tagline: string;
+  /** Optional SEO <title> override — lets the browser-tab/search title carry the
+   *  keyword phrase people actually search ("Minnesota Food Truck Festivals")
+   *  while the on-page H1 + collection card stay short and clean. Defaults to
+   *  `title` when absent. */
+  seoTitle?: string;
   categories?: CategoryKey[];
   prices?: PriceTier[];
   areas?: AreaKey[];
@@ -66,6 +71,20 @@ export const COLLECTIONS: CollectionSpec[] = [
     tagline: "Festivals, fairs, and food happenings all month.",
     categories: ["festival", "food"],
     window: "month",
+  },
+  {
+    // Demand-validated by the GSC read (Aug 2026): "mn/minnesota food truck
+    // festival" is a repeated, high-CTR, position-1 query cluster. A permanent
+    // topical page for it — no year in the title (evergreen, like /this-week).
+    // Query "food truck" needs BOTH tokens present (matchesQuery), so it catches
+    // the named rallies/festivals without dragging in every brewery mention.
+    slug: "food-truck-festivals",
+    title: "Food Truck Festivals",
+    seoTitle: "Minnesota Food Truck Festivals — Twin Cities Calendar",
+    tagline:
+      "Every food truck festival, rally, and roundup across the Minneapolis–St. Paul metro — where to find the trucks this season.",
+    query: "food truck",
+    window: "all",
   },
   {
     slug: "only-in-minnesota",

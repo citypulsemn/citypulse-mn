@@ -55,6 +55,33 @@ describe("collectionWindow — Chicago wall frame (R1.2)", () => {
   });
 });
 
+describe("food-truck-festivals collection (demand-validated, GSC Aug 2026)", () => {
+  it("is registered, evergreen (no year in the title), all-window, query-driven", () => {
+    const c = getCollection("food-truck-festivals");
+    expect(c).toBeDefined();
+    expect(c!.window).toBe("all");
+    expect(c!.query).toBe("food truck");
+    expect(c!.seoTitle).toContain("Food Truck Festivals");
+    // Evergreen like /this-week — never hardcode a year (would go stale + need edits).
+    expect(c!.seoTitle).not.toMatch(/20\d\d/);
+    expect(c!.title).not.toMatch(/20\d\d/);
+  });
+
+  it("selects food-truck events; needs BOTH tokens (excludes food-only and truck-only)", () => {
+    const c = getCollection("food-truck-festivals")!;
+    const events = [
+      ev({ id: "ftf", title: "Anoka Food Truck Festival", category: "festival", start: "2026-08-01T11:00" }),
+      ev({ id: "rally", title: "Rosemount Food Truck Rally", category: "food", start: "2026-09-01T16:00" }),
+      ev({ id: "foodonly", title: "Trampled by Turtles", description: "food available", start: "2026-08-05T20:00" }),
+      ev({ id: "truckonly", title: "Monster Truck Show", start: "2026-08-10T19:00" }),
+    ];
+    const picked = selectCollection(events, c, NOW).map((e) => e.id);
+    expect(picked).toEqual(expect.arrayContaining(["ftf", "rally"]));
+    expect(picked).not.toContain("foodonly"); // has "food", not "truck"
+    expect(picked).not.toContain("truckonly"); // has "truck", not "food"
+  });
+});
+
 describe("selectCollection", () => {
   const list = [
     ev({ id: "wedMusic", category: "music", start: "2026-07-15T20:00" }),
