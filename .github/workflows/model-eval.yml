@@ -1,0 +1,35 @@
+name: Model Eval
+
+# On-demand Haiku-routing validation (cost brainstorm lever #3): runs the same
+# research request on Sonnet 4.6 vs Haiku 4.5 for the candidate categories and
+# reports coverage. Read-only — no DB writes, no send. Manual only.
+on:
+  workflow_dispatch:
+    inputs:
+      categories:
+        description: "Space-separated categories to eval (blank = sports family arts)"
+        type: string
+        default: ""
+
+concurrency:
+  group: model-eval
+  cancel-in-progress: false
+
+jobs:
+  model-eval:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci --prefer-offline --no-audit --no-fund
+
+      - name: Model eval
+        run: npm run model-eval ${{ github.event.inputs.categories }}
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
