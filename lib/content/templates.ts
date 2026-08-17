@@ -1,4 +1,6 @@
 import { DOW, MONTHS, timeLabel } from "../dates";
+import { KIND_META, type Place } from "../places";
+import type { CollectionSpec } from "../collections";
 import type { EventRecord, CategoryKey } from "../types";
 import type { WeeklyPicks } from "./weekly-picks";
 
@@ -74,6 +76,46 @@ export function captionFor(event: EventRecord, label: CardLabel = "regular"): st
   lines.push(SITE_CTA);
   lines.push("");
   lines.push(hashtagsFor(event).join(" "));
+  return lines.join("\n");
+}
+
+/** Instagram caption for a Place (the evergreen "where to go" half). Deterministic
+ *  and unit-tested, house voice, closing on the /places bio link — the flywheel
+ *  from IG to the Places pages we're trying to get discovered. */
+export function placeCaptionFor(place: Place): string {
+  const lines: string[] = [];
+  lines.push("📍 Place of the week");
+  lines.push("");
+  lines.push(place.name);
+  lines.push(`${KIND_META[place.kind].label} · ${place.city}`);
+  lines.push("");
+  lines.push(place.intro);
+  lines.push("");
+  lines.push(`Find it on the map → citypulsemn.com/places/${place.kind} (link in bio)`);
+  lines.push("");
+  const city = place.city?.trim();
+  const tags = [...BASE_TAGS, "#ExploreMN"];
+  if (city && !MAJOR_CITIES.has(city.toLowerCase())) tags.push("#" + city.replace(/[^A-Za-z0-9]/g, ""));
+  lines.push([...new Set(tags)].slice(0, 11).join(" "));
+  return lines.join("\n");
+}
+
+/** Instagram caption for a collection/topic (e.g. Food Truck Festivals) — the
+ *  demand-validated evergreen pages. `sample` is a few of the collection's events
+ *  (may be empty; the caption degrades to just the tagline + CTA). Pure/tested. */
+export function collectionCaptionFor(collection: CollectionSpec, sample: EventRecord[]): string {
+  const lines: string[] = [];
+  lines.push(`🗓️ ${collection.title.toUpperCase()}`);
+  lines.push("");
+  lines.push(collection.tagline);
+  if (sample.length > 0) {
+    lines.push("");
+    for (const e of sample.slice(0, 4)) lines.push(`• ${e.title} — ${shortDate(e.start)}`);
+  }
+  lines.push("");
+  lines.push(`See them all → citypulsemn.com/collections/${collection.slug} (link in bio)`);
+  lines.push("");
+  lines.push([...BASE_TAGS, "#TwinCitiesEvents"].join(" "));
   return lines.join("\n");
 }
 

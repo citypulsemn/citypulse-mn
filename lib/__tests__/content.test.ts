@@ -1,6 +1,8 @@
 import { describe, it, expect } from "vitest";
 import { weeklyPicks, scoreEvent } from "../content/weekly-picks";
-import { captionFor, weeklyCaptionFor, hashtagsFor, shortDate } from "../content/templates";
+import { captionFor, weeklyCaptionFor, hashtagsFor, shortDate, placeCaptionFor, collectionCaptionFor } from "../content/templates";
+import { getCollection } from "../collections";
+import type { Place } from "../places";
 import type { EventRecord } from "../types";
 
 const NOW = new Date("2026-07-13T09:00:00-05:00"); // a Monday
@@ -152,5 +154,55 @@ describe("weeklyPicks — send-morning boundary (R1.4, rule 10)", () => {
     const picks = weeklyPicks([], sendMorning);
     expect(picks.weekStartKey).toBe("2026-07-16");
     expect(picks.weekEndKey).toBe("2026-07-23");
+  });
+});
+
+describe("placeCaptionFor (Instagram — the evergreen Places half)", () => {
+  const place: Place = {
+    slug: "wirth-lake-beach", name: "Wirth Lake Beach", kind: "beach",
+    lat: 44.98, lng: -93.32, address: "3200 Glenwood Ave", city: "Golden Valley",
+    neighborhood: null, season: { type: "seasonal", openMonth: 5, closeMonth: 9, label: "summer" },
+    cost: "free", tags: [], intro: "A guarded sand beach a few minutes from downtown.",
+    sourceUrl: "https://minneapolisparks.org/", verifiedAt: "2026-08-07", venueSlug: null,
+  };
+
+  it("carries the name, kind, intro, the /places bio link, and hashtags", () => {
+    const cap = placeCaptionFor(place);
+    expect(cap).toContain("Place of the week");
+    expect(cap).toContain("Wirth Lake Beach");
+    expect(cap).toContain("Beach · Golden Valley");
+    expect(cap).toContain("A guarded sand beach a few minutes from downtown.");
+    expect(cap).toContain("citypulsemn.com/places/beach");
+    expect(cap).toContain("#TwinCities");
+    // a suburb city becomes a tag; a major city would not
+    expect(cap).toContain("#GoldenValley");
+  });
+
+  it("does not add a DUPLICATE city tag for a major city (Minneapolis is already a base tag)", () => {
+    const cap = placeCaptionFor({ ...place, city: "Minneapolis" });
+    expect(cap.match(/#Minneapolis\b/g) ?? []).toHaveLength(1);
+  });
+});
+
+describe("collectionCaptionFor (Instagram — demand-validated topic pages)", () => {
+  const coll = getCollection("food-truck-festivals")!;
+
+  it("carries the title, tagline, a few events, and the /collections bio link", () => {
+    const sample = [
+      ev({ id: "a", title: "Anoka Food Truck Festival", start: "2026-08-01T11:00" }),
+      ev({ id: "b", title: "Rosemount Food Truck Rally", start: "2026-09-01T16:00" }),
+    ];
+    const cap = collectionCaptionFor(coll, sample);
+    expect(cap).toContain("FOOD TRUCK FESTIVALS");
+    expect(cap).toContain(coll.tagline);
+    expect(cap).toContain("Anoka Food Truck Festival");
+    expect(cap).toContain("citypulsemn.com/collections/food-truck-festivals");
+  });
+
+  it("degrades to tagline + CTA when there are no events (honest emptiness)", () => {
+    const cap = collectionCaptionFor(coll, []);
+    expect(cap).toContain(coll.tagline);
+    expect(cap).toContain("citypulsemn.com/collections/food-truck-festivals");
+    expect(cap).not.toContain("•"); // no event bullets
   });
 });

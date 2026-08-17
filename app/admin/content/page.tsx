@@ -1,6 +1,8 @@
 import { getEvents } from "@/lib/events";
 import { weeklyPicks } from "@/lib/content/weekly-picks";
-import { captionFor, weeklyCaptionFor } from "@/lib/content/templates";
+import { captionFor, weeklyCaptionFor, placeCaptionFor, collectionCaptionFor } from "@/lib/content/templates";
+import { placeOfTheWeek } from "@/lib/places";
+import { getCollection, selectCollection } from "@/lib/collections";
 import { CopyButton } from "@/components/admin/CopyButton";
 
 export const dynamic = "force-dynamic";
@@ -37,9 +39,17 @@ function CardBlock({
 }
 
 export default async function AdminContentPage() {
+  const now = new Date();
   const events = await getEvents();
-  const picks = weeklyPicks(events, new Date());
+  const picks = weeklyPicks(events, now);
   const nothing = picks.all.length === 0;
+
+  // Evergreen cards — extend the kit past events to the "where to go" half and
+  // the demand-validated topic pages (both new; the Places/collections verticals
+  // had zero social presence).
+  const place = placeOfTheWeek(now);
+  const ftfCollection = getCollection("food-truck-festivals");
+  const ftfSample = ftfCollection ? selectCollection(events, ftfCollection, now) : [];
 
   return (
     <>
@@ -47,6 +57,26 @@ export default async function AdminContentPage() {
         Your week&apos;s Instagram kit, generated from the live event database. Copy a caption,
         download the 1080×1350 card, post. Cards refresh whenever the data does.
       </p>
+
+      {/* Evergreen cards — render regardless of the 7-day event window (Places is
+          registry-based; the collection has its own season). */}
+      {place && (
+        <CardBlock
+          title="Place of the week"
+          cardUrl={`/content/place/${place.slug}`}
+          caption={placeCaptionFor(place)}
+          downloadName={`citypulse-place-${place.slug}.png`}
+        />
+      )}
+
+      {ftfCollection && (
+        <CardBlock
+          title={ftfCollection.title}
+          cardUrl={`/content/collection/${ftfCollection.slug}`}
+          caption={collectionCaptionFor(ftfCollection, ftfSample)}
+          downloadName="citypulse-food-trucks.png"
+        />
+      )}
 
       {nothing ? (
         <div className="admin-empty">No published events in the next 7 days yet.</div>
