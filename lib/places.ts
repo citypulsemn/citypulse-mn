@@ -89,6 +89,10 @@ export interface PlaceDetails {
   liveAnimals?: boolean; // live animals on view — raptors, critters, farm, bison
   indoorExhibits?: boolean; // an indoor interpretive center / nature exhibits (weather-proof)
   naturePlayArea?: boolean; // a dedicated kids' nature play area / playscape
+  // Indoor playgrounds — what a parent decides and preps on before going.
+  toddlerArea?: boolean; // a separate toddler/infant zone for the littlest kids
+  cafe?: boolean; // an on-site café / coffee / food for parents
+  socksRequired?: boolean; // grip socks required (bring them / buy at the door)
 }
 
 /** Badge labels for the truthy PlaceDetails facts, in render order. Only keys
@@ -112,6 +116,9 @@ export const PLACE_DETAIL_LABELS: Partial<Record<keyof PlaceDetails, string>> = 
   liveAnimals: "Live animals",
   indoorExhibits: "Indoor exhibits",
   naturePlayArea: "Nature play area",
+  toddlerArea: "Toddler area",
+  cafe: "Café",
+  socksRequired: "Socks required",
   adjacentPlayground: "Playground on site",
   restrooms: "Restrooms",
 };
@@ -5076,7 +5083,8 @@ export const PLACES: Place[] = [
     tags: ["toddler-zone", "ages-0-12", "socks-required"],
     intro: "A jungle-themed three-level climber in Lakeville for ages 0 to 12, with a separate soft zone for the under-threes. Socks required and sold on-site; no café, but there's room to eat. Open daily.",
     sourceUrl: "https://www.wildthingsplayground.com",
-    verifiedAt: "2026-08-14", venueSlug: null,
+    details: { toddlerArea: true, socksRequired: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "adventure-peak-edinborough", name: "Adventure Peak at Edinborough Park", kind: "indoor-playground",
@@ -5085,7 +5093,8 @@ export const PLACES: Place[] = [
     tags: ["community-center", "toddler-zone", "slides"],
     intro: "The indoor Northwoods climber at Edinborough Park — a 30-foot oak-tree climb and giant slides inside a one-acre glass park, with a gated area for ages four and under. Day, ten-visit, and annual passes.",
     sourceUrl: "https://www.edinamn.gov/1604/PlayPark",
-    verifiedAt: "2026-08-14", venueSlug: null,
+    details: { toddlerArea: true, cafe: true, socksRequired: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "the-blast-eagan", name: "The Blast (Eagan Community Center)", kind: "indoor-playground",
@@ -5094,7 +5103,8 @@ export const PLACES: Place[] = [
     tags: ["community-center", "toddler-zone", "climbing-structure"],
     intro: "A space-themed, climb-up rocket ship at the Eagan Community Center for ages two to twelve. $8 a child, with adults and the under-eighteen-months free; a ten-punch pass runs $70. Seasonal hours.",
     sourceUrl: "https://cityofeagan.com/blast",
-    verifiedAt: "2026-08-14", venueSlug: null,
+    details: { socksRequired: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "maple-maze-maple-grove", name: "Maple Maze (Maple Grove Community Center)", kind: "indoor-playground",
@@ -5103,7 +5113,8 @@ export const PLACES: Place[] = [
     tags: ["community-center", "toddler-zone", "slides"],
     intro: "A two-story jungle treehouse with four slides at the Maple Grove Community Center, plus a separate toddler section for ages three and under. $6.50 a visit, under-ones free.",
     sourceUrl: "https://www.maplegrovemn.gov/288/Maple-Maze",
-    verifiedAt: "2026-08-14", venueSlug: null,
+    details: { toddlerArea: true, socksRequired: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "lookout-ridge-woodbury", name: "Lookout Ridge (Woodbury Central Park)", kind: "indoor-playground",
@@ -5112,7 +5123,8 @@ export const PLACES: Place[] = [
     tags: ["community-center", "toddler-zone", "socks-required"],
     intro: "Seventy-plus play elements themed to the St. Croix River valley at Woodbury's Central Park, with a toddler area for five and under. $8 a child; socks required for everyone, adults included.",
     sourceUrl: "https://www.woodburymn.gov/164/Lookout-Ridge-and-Birthday-Parties",
-    verifiedAt: "2026-08-14", venueSlug: null,
+    details: { toddlerArea: true, socksRequired: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "eagles-nest-new-brighton", name: "Eagles Nest (New Brighton Community Center)", kind: "indoor-playground",
@@ -5121,7 +5133,8 @@ export const PLACES: Place[] = [
     tags: ["community-center", "toddler-zone", "slides"],
     intro: "A 36-foot quadruple-wave slide and a 23-foot web tower at the New Brighton Community Center, for ages twelve and under with a toddler area for the under-threes. $9 a child, adults free.",
     sourceUrl: "https://www.newbrightonmn.gov/308/Eagles-Nest-Indoor-Playground",
-    verifiedAt: "2026-08-14", venueSlug: null,
+    details: { toddlerArea: true, socksRequired: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "brookview-backyard", name: "Brookview Backyard", kind: "indoor-playground",
@@ -5130,7 +5143,8 @@ export const PLACES: Place[] = [
     tags: ["toddler-zone", "socks-required", "climbing-structure"],
     intro: "A three-story indoor structure in Golden Valley with zones split for ages two to five and six to twelve. $7 a child, $6 for residents; socks required, $2 if you forget them.",
     sourceUrl: "https://www.brookviewbackyard.com",
-    verifiedAt: "2026-08-14", venueSlug: null,
+    details: { socksRequired: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "kube-plymouth", name: "K.U.B.E. (Plymouth Community Center)", kind: "indoor-playground",
@@ -5139,7 +5153,8 @@ export const PLACES: Place[] = [
     tags: ["community-center", "toddler-zone", "accessible"],
     intro: "A 28-foot tower with a spiral slide, rock wall, and accessible ramps inside Plymouth's community center, built in 2024, for ages two to twelve. $8 a child, $6 for Plymouth residents.",
     sourceUrl: "https://www.plymouthcommunitycenter.com/k-u-b-e-",
-    verifiedAt: "2026-08-14", venueSlug: null,
+    details: { toddlerArea: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "inneractive-mounds-view", name: "InnerActive Playground — Mounds View", kind: "indoor-playground",
@@ -5148,7 +5163,8 @@ export const PLACES: Place[] = [
     tags: ["self-supervised", "toddler-zone", "infant-zone"],
     intro: "A self-supervised play space in Mounds View open 364 days a year, with separate infant, toddler, and general zones. A day pass is $13.25 a child, and up to two adults come free.",
     sourceUrl: "https://inneractiveplayground.com",
-    verifiedAt: "2026-08-14", venueSlug: null,
+    details: { toddlerArea: true, socksRequired: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "inneractive-plymouth", name: "InnerActive Playground — Plymouth", kind: "indoor-playground",
@@ -5157,7 +5173,8 @@ export const PLACES: Place[] = [
     tags: ["self-supervised", "toddler-zone", "infant-zone"],
     intro: "The Plymouth sister to the Mounds View play space, same self-supervised setup and separate infant and toddler zones. A day pass runs $13.25 a child, up to two adults free.",
     sourceUrl: "https://inneractiveplayground.com",
-    verifiedAt: "2026-08-14", venueSlug: null,
+    details: { toddlerArea: true, socksRequired: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "sovereign-grounds", name: "Sovereign Grounds", kind: "indoor-playground",
@@ -5166,7 +5183,8 @@ export const PLACES: Place[] = [
     tags: ["cafe", "toddler-zone", "free-play"],
     intro: "A south Minneapolis coffeehouse built around one of the bigger toddler playrooms of its kind — playhouse, train table, and play kitchen, with no separate play fee. Coffee for the grownups; open mornings into the evening.",
     sourceUrl: "https://sovereigngrounds.com",
-    verifiedAt: "2026-08-14", venueSlug: null,
+    details: { cafe: true, socksRequired: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "rebes-play-cafe", name: "Rebe's Play Cafe", kind: "indoor-playground",
@@ -5175,7 +5193,8 @@ export const PLACES: Place[] = [
     tags: ["cafe", "toddler-zone", "free-play"],
     intro: "A St. Paul play café on St. Clair with no entry fee — a play kitchen, a magnatile wall, climbing 'picklers,' and a slide, plus coffee and snacks for the parents. Also runs classes and camps.",
     sourceUrl: "https://www.rebesplaycafe.com",
-    verifiedAt: "2026-08-14", venueSlug: null,
+    details: { cafe: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
 
   // ── Trampoline, ninja & climbing gyms (Roadmap v6 Tier 1.2 — a new kind) ──────

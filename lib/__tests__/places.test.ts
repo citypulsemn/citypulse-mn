@@ -839,6 +839,40 @@ describe("nature-center features (winning detail — moat, kind 8)", () => {
   });
 });
 
+describe("indoor-playground features (winning detail — moat)", () => {
+  const venues = placesByKind("indoor-playground");
+
+  it("locks the source-confirmed counts", () => {
+    expect(venues.length).toBe(13);
+    expect(venues.filter((p) => p.details?.toddlerArea === true).length).toBe(8);
+    expect(venues.filter((p) => p.details?.cafe === true).length).toBe(3);
+    expect(venues.filter((p) => p.details?.socksRequired === true).length).toBe(10);
+  });
+
+  it("Café is a real café — vending machines don't earn the badge", () => {
+    // The three real cafés (Peak Cafe + the two play-cafés); vending-only venues excluded.
+    const cafes = venues.filter((p) => p.details?.cafe === true).map((p) => p.slug).sort();
+    expect(cafes).toEqual(["adventure-peak-edinborough", "rebes-play-cafe", "sovereign-grounds"]);
+    // InnerActive (vending only) must NOT carry the café badge.
+    for (const slug of ["inneractive-mounds-view", "inneractive-plymouth", "good-times-park-eagan"]) {
+      expect(venues.find((p) => p.slug === slug)?.details?.cafe).not.toBe(true);
+    }
+  });
+
+  it("offers toddler-area / café / socks-required as filters, in order", () => {
+    expect(activeDetailKeys(venues)).toEqual(["toddlerArea", "cafe", "socksRequired"]);
+  });
+
+  it("details use only the three indoor-playground facts", () => {
+    const allowed = new Set(["toddlerArea", "cafe", "socksRequired"]);
+    for (const p of venues) {
+      for (const k of Object.keys(p.details ?? {})) {
+        expect(allowed.has(k), `${p.slug}: unexpected detail "${k}"`).toBe(true);
+      }
+    }
+  });
+});
+
 describe("filter by detail (winning-detail filters — P4.3 follow-on)", () => {
   const rinks = placesByKind("rink");
   const skiHills = placesByKind("ski-hill");
