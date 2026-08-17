@@ -975,6 +975,27 @@ describe("disc-golf features (winning detail — moat)", () => {
   });
 });
 
+describe("garden features (winning detail — moat's thin tail)", () => {
+  const gardens = placesByKind("garden");
+
+  it("locks the source-confirmed counts", () => {
+    expect(gardens.length).toBe(9);
+    expect(gardens.filter((p) => p.details?.conservatory === true).length).toBe(2);
+    expect(gardens.filter((p) => p.details?.culturalGarden === true).length).toBe(4);
+  });
+
+  it("audit: Cowles is named a conservatory but is now open-air — no badge", () => {
+    // Its official page describes an open-air pavilion since the 2016-17 renovation.
+    const cowles = gardens.find((p) => p.slug === "cowles-conservatory");
+    expect(cowles?.details?.conservatory).not.toBe(true);
+  });
+
+  it("the two conservatories are the indoor glasshouses (Arboretum + McNeely)", () => {
+    const c = gardens.filter((p) => p.details?.conservatory === true).map((p) => p.slug).sort();
+    expect(c).toEqual(["marjorie-mcneely-conservatory", "minnesota-landscape-arboretum"]);
+  });
+});
+
 describe("cross-kind discover (the everything finder)", () => {
   const JAN = new Date("2026-01-15T12:00:00Z");
 

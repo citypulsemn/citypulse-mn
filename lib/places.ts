@@ -105,6 +105,9 @@ export interface PlaceDetails {
   full18Holes?: boolean; // a full 18+ hole course (vs a short 9)
   wooded?: boolean; // a wooded / heavily-treed / technical course
   beginnerFriendly?: boolean; // explicitly good for beginners / new players
+  // Gardens — the distinctive draws (most are free with paths already).
+  conservatory?: boolean; // an indoor conservatory / glasshouse (year-round, weather-proof)
+  culturalGarden?: boolean; // a themed cultural garden (Japanese, Chinese, etc.)
 }
 
 /** Badge labels for the truthy PlaceDetails facts, in render order. Only keys
@@ -138,6 +141,8 @@ export const PLACE_DETAIL_LABELS: Partial<Record<keyof PlaceDetails, string>> = 
   full18Holes: "18+ holes",
   wooded: "Wooded",
   beginnerFriendly: "Beginner-friendly",
+  conservatory: "Conservatory",
+  culturalGarden: "Cultural garden",
   socksRequired: "Socks required",
   adjacentPlayground: "Playground on site",
   restrooms: "Restrooms",
@@ -1523,7 +1528,8 @@ export const PLACES: Place[] = [
     tags: ["arboretum", "trails"],
     intro: "The University of Minnesota's 1,200-acre arboretum in Chaska — display gardens, a three-mile drive, miles of trails, and a giant model-train garden, open 363 days a year. Admission for adults; kids free.",
     sourceUrl: "https://arb.umn.edu/",
-    verifiedAt: "2026-08-07", venueSlug: null,
+    details: { conservatory: true, culturalGarden: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "battle-creek-regional-park", name: "Battle Creek Regional Park", kind: "park",
@@ -4271,7 +4277,8 @@ export const PLACES: Place[] = [
     tags: ["conservatory", "tropical"],
     intro: "St. Paul's glass conservatory at Como Park — a domed palm house and sunken garden that bloom all winter, next door to the free zoo. Free; a donation is suggested.",
     sourceUrl: "https://comozooconservatory.org",
-    verifiedAt: "2026-08-14", venueSlug: null,
+    details: { conservatory: true, culturalGarden: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "eloise-butler-wildflower-garden", name: "Eloise Butler Wildflower Garden and Bird Sanctuary", kind: "garden",
@@ -4307,7 +4314,8 @@ export const PLACES: Place[] = [
     tags: ["japanese-garden", "koi"],
     intro: "A two-acre Japanese garden on the Normandale college campus in Bloomington — koi ponds, bridges, and clipped pines. Free; open spring through fall.",
     sourceUrl: "https://www.normandale.edu/why-normandale/community/japanese-garden/index.html",
-    verifiedAt: "2026-08-14", venueSlug: null,
+    details: { culturalGarden: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "longfellow-gardens", name: "Longfellow Gardens", kind: "garden",
@@ -4975,7 +4983,8 @@ export const PLACES: Place[] = [
     tags: ["chinese-garden", "pavilion"],
     intro: "A St. Paul–Changsha friendship garden on Lake Phalen — a three-story pavilion modeled on Changsha's Aiwan Pavilion, a moon bridge, and a Hmong cultural plaza. Free.",
     sourceUrl: "https://mnchinagarden.org",
-    verifiedAt: "2026-08-14", venueSlug: null,
+    details: { culturalGarden: true },
+    verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
     slug: "cowles-conservatory", name: "Cowles Conservatory", kind: "garden",
