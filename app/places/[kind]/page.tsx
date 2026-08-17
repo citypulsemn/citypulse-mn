@@ -14,6 +14,9 @@ import {
 } from "@/lib/places";
 import { getCollection } from "@/lib/collections";
 import { PLACES_KIND_INTRO } from "@/lib/editorial";
+import { placesItemListJsonLd, placesFactSummary } from "@/lib/seo/places-jsonld";
+import { jsonLdSafe } from "@/lib/seo/event-jsonld";
+import { SITE_URL } from "@/lib/seo/site";
 
 // Static registry (no DB) — so build-time prerender is SAFE here: ENGINEERING
 // rule 2 (no build-time DB prerenders) is about database-backed pages, and this
@@ -40,7 +43,13 @@ export async function generateMetadata({
 
   const meta = KIND_META[k];
   const title = `${meta.plural} in the Twin Cities, Mapped | City Pulse MN`;
-  const description = `${meta.blurb} A hand-checked, mapped list across the Minneapolis–St. Paul metro — locations, cost, and the details that matter.`;
+  // Surface the verified facts a visitor can filter by — unique, keyword-rich, and
+  // honest (only facts at least one place actually carries). Kinds without a moat
+  // fall back to the generic line.
+  const facts = placesFactSummary(placesByKind(k));
+  const description = facts
+    ? `${meta.blurb} A hand-checked, mapped list of ${placesByKind(k).length} across the Minneapolis–St. Paul metro — filter by ${facts}.`
+    : `${meta.blurb} A hand-checked, mapped list across the Minneapolis–St. Paul metro — locations, cost, and the details that matter.`;
   const path = `/places/${k}`;
 
   return {
@@ -73,6 +82,13 @@ export default async function PlacesKindPage({
   return (
     <>
       <TopBar />
+
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: jsonLdSafe(placesItemListJsonLd(places, k, { baseUrl: SITE_URL })),
+        }}
+      />
 
       <main className="wrap page">
         <div className="dayhdr">
