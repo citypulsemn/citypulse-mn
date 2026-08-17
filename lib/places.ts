@@ -5117,6 +5117,41 @@ export function openNow(place: Place, date: Date): boolean {
     : month >= openMonth || month <= closeMonth; // wraps the new year
 }
 
+// ── Client-side kind-page filters (P4.3) ─────────────────────────────────────
+
+/** The filter state for a /places/[kind] list. `cost: "all"` and `city: null`
+ *  mean "no filter on that axis"; `openNow` false means "show all seasons". */
+export interface PlaceFilters {
+  cost: "all" | "free" | "paid";
+  openNow: boolean;
+  city: string | null;
+}
+
+export const NO_PLACE_FILTERS: PlaceFilters = { cost: "all", openNow: false, city: null };
+
+/**
+ * Apply the browse filters to a set of places. Pure (takes `now` for the
+ * season check rather than reading the clock) so it's golden-tested and the
+ * client and any test agree. AND across axes; `cost: "free"` is strict (a
+ * pay-what-you-can `donation` place is neither free nor paid, so it only shows
+ * under "all" — honest, not conflated).
+ */
+export function filterPlaces(places: Place[], f: PlaceFilters, now: Date): Place[] {
+  return places.filter((p) => {
+    if (f.cost === "free" && p.cost !== "free") return false;
+    if (f.cost === "paid" && p.cost !== "paid") return false;
+    if (f.openNow && !openNow(p, now)) return false;
+    if (f.city && p.city !== f.city) return false;
+    return true;
+  });
+}
+
+/** Distinct cities present in a set of places, alphabetical — for the city
+ *  filter dropdown. Never invents a city that isn't in the set. */
+export function placeCities(places: Place[]): string[] {
+  return [...new Set(places.map((p) => p.city))].sort((a, b) => a.localeCompare(b));
+}
+
 // ── Kind-page rendering helpers (pure; the page/components are thin shells) ──
 
 /**

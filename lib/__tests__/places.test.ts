@@ -19,6 +19,9 @@ import {
   placeOfTheWeek,
   PLACE_OF_WEEK_PIN,
   PLACES_MAP_MAX_PINS,
+  filterPlaces,
+  placeCities,
+  NO_PLACE_FILTERS,
   type Place,
   type PlaceKind,
 } from "../places";
@@ -465,5 +468,63 @@ describe("placeOfTheWeek (v6 1.3 — digest depth)", () => {
       picks.add(placeOfTheWeek(now)!.slug);
     }
     expect(picks.size).toBeGreaterThan(1);
+  });
+});
+
+describe("filterPlaces + placeCities (P4.3 kind-page filters)", () => {
+  const base = PLACES[0];
+  const mk = (over: Partial<Place>): Place => ({ ...base, ...over });
+  const SUMMER: Place["season"] = { type: "seasonal", openMonth: 5, closeMonth: 9, label: "summer" };
+  const WINTER: Place["season"] = { type: "seasonal", openMonth: 12, closeMonth: 2, label: "winter" };
+
+  const set: Place[] = [
+    mk({ slug: "a", cost: "free", city: "Minneapolis", season: { type: "year-round" } }),
+    mk({ slug: "b", cost: "paid", city: "St. Paul", season: SUMMER }),
+    mk({ slug: "c", cost: "donation", city: "Minneapolis", season: WINTER }),
+    mk({ slug: "d", cost: "free", city: "Edina", season: SUMMER }),
+  ];
+
+  it("NO_PLACE_FILTERS returns everything unchanged", () => {
+    expect(filterPlaces(set, NO_PLACE_FILTERS, JULY).map((p) => p.slug)).toEqual(["a", "b", "c", "d"]);
+  });
+
+  it('cost "free" is strict — excludes paid AND donation', () => {
+    expect(filterPlaces(set, { ...NO_PLACE_FILTERS, cost: "free" }, JULY).map((p) => p.slug)).toEqual(["a", "d"]);
+  });
+
+  it('cost "paid" matches only paid', () => {
+    expect(filterPlaces(set, { ...NO_PLACE_FILTERS, cost: "paid" }, JULY).map((p) => p.slug)).toEqual(["b"]);
+  });
+
+  it("openNow uses the season in the Chicago frame (July drops the winter place)", () => {
+    const julyOpen = filterPlaces(set, { ...NO_PLACE_FILTERS, openNow: true }, JULY).map((p) => p.slug);
+    expect(julyOpen).toEqual(["a", "b", "d"]); // year-round + both summer; winter 'c' closed
+    const janOpen = filterPlaces(set, { ...NO_PLACE_FILTERS, openNow: true }, JANUARY).map((p) => p.slug);
+    expect(janOpen).toEqual(["a", "c"]); // year-round + winter; summer 'b'/'d' closed
+  });
+
+  it("city filter matches exactly", () => {
+    expect(filterPlaces(set, { ...NO_PLACE_FILTERS, city: "Minneapolis" }, JULY).map((p) => p.slug)).toEqual(["a", "c"]);
+  });
+
+  it("axes are AND (free + Minneapolis + open in July)", () => {
+    const out = filterPlaces(set, { cost: "free", openNow: true, city: "Minneapolis" }, JULY);
+    expect(out.map((p) => p.slug)).toEqual(["a"]); // 'd' is Edina, 'c' is donation+winter
+  });
+
+  it("honest emptiness: over-constrained filters return []", () => {
+    expect(filterPlaces(set, { cost: "paid", openNow: true, city: "Edina" }, JULY)).toEqual([]);
+  });
+
+  it("placeCities lists distinct cities, alphabetical", () => {
+    expect(placeCities(set)).toEqual(["Edina", "Minneapolis", "St. Paul"]);
+  });
+});
+
+describe("P4.3 wire-in (tripwire)", () => {
+  it("the kind page renders the filterable browser, not the bare list", () => {
+    const src = readFileSync(join(__dirname, "..", "..", "app", "places", "[kind]", "page.tsx"), "utf8");
+    expect(src).toContain("PlacesBrowser");
+    expect(src).not.toMatch(/<PlacesList\b/); // the list now lives inside PlacesBrowser
   });
 });

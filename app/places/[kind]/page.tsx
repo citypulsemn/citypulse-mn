@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { TopBar } from "@/components/TopBar";
 import { SiteFooter } from "@/components/SiteFooter";
 import { PlacesMapInteractive } from "@/components/PlacesMapInteractive";
-import { PlacesList } from "@/components/PlacesList";
+import { PlacesBrowser } from "@/components/PlacesBrowser";
 import {
   KIND_META,
   placesByKind,
@@ -97,7 +97,7 @@ export default async function PlacesKindPage({
         )}
 
         <PlacesMapInteractive places={places} />
-        <PlacesList places={places} />
+        <PlacesBrowser places={places} plural={meta.plural} />
 
         {related.length > 0 && (
           <nav className="related-guides" aria-label="More place guides">
