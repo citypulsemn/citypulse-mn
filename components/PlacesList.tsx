@@ -47,7 +47,9 @@ export function PlacesList({
             </div>
             <div className="place-body">
               <div className="place-head">
-                <h2 className="place-name">{p.name}</h2>
+                <h2 className="place-name">
+                  <a href={`/places/${p.kind}/${p.slug}`}>{p.name}</a>
+                </h2>
                 <span className={`place-cost cost-${p.cost}`}>{COST_LABEL[p.cost]}</span>
               </div>
               <div className="place-meta">

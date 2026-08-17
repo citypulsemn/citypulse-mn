@@ -857,6 +857,11 @@ a.daycard { text-decoration: none; }
 .place-body { min-width: 0; flex: 1; }
 .place-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
 .place-name { font-family: var(--font-oswald); font-weight: 600; font-size: 17px; letter-spacing: 0.01em; margin: 0; color: var(--cream); }
+.place-name a { color: inherit; text-decoration: none; }
+.place-name a:hover { color: var(--gold); }
+/* Detail-page variants — the same badges/source link, a touch larger. */
+.place-details-lg { max-width: 720px; margin-left: auto; margin-right: auto; }
+.place-source-lg { max-width: 720px; margin: 14px auto 0; }
 .place-cost { flex: none; font-family: var(--font-oswald); font-weight: 500; font-size: 10.5px; letter-spacing: 0.1em; text-transform: uppercase; padding: 3px 9px; border-radius: 999px; }
 .place-cost.cost-free { color: var(--navy-900, #0a1120); background: var(--gold); }
 .place-cost.cost-paid, .place-cost.cost-donation { color: var(--cream-dim); border: 1px solid var(--line); }

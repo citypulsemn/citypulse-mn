@@ -3,6 +3,7 @@ import {
   placeSchemaType,
   placeAmenityFeatures,
   placeJsonLd,
+  placeDetailJsonLd,
   placesItemListJsonLd,
   placesFactSummary,
 } from "../seo/places-jsonld";
@@ -91,6 +92,25 @@ describe("placesItemListJsonLd", () => {
     const html = jsonLdSafe(placesItemListJsonLd([evil], "pool", OPTS));
     expect(html).not.toContain("</script>");
     expect(html).toContain("\\u003c"); // the < is escaped
+  });
+});
+
+describe("placeDetailJsonLd — the standalone per-place page object", () => {
+  const pool = placesByKind("pool").find((p) => p.slug === "chaska-community-center-pool")!;
+  const obj = placeDetailJsonLd(pool, "pool", OPTS);
+
+  it("stands alone with @context, description, and the amenity features", () => {
+    expect(obj["@context"]).toBe("https://schema.org");
+    expect(obj["@type"]).toBe("SportsActivityLocation");
+    expect(obj.description).toBe(pool.intro);
+    expect(Array.isArray(obj.amenityFeature)).toBe(true);
+    expect(obj.url).toBe(`https://citypulsemn.com/places/pool#${pool.slug}`);
+  });
+
+  it("survives jsonLdSafe (R0.6 breakout guard on the standalone object too)", () => {
+    const evil = synthetic({ slug: "x", name: "X </script><script>", intro: "hi" });
+    const html = jsonLdSafe(placeDetailJsonLd(evil, "pool", OPTS));
+    expect(html).not.toContain("</script>");
   });
 });
 

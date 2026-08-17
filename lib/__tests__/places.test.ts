@@ -24,6 +24,7 @@ import {
   placesByDistance,
   activeDetailKeys,
   crossKindDetailKeys,
+  placeForKindSlug,
   PLACE_DETAIL_LABELS,
   NO_PLACE_FILTERS,
   type Place,
@@ -993,6 +994,41 @@ describe("garden features (winning detail — moat's thin tail)", () => {
   it("the two conservatories are the indoor glasshouses (Arboretum + McNeely)", () => {
     const c = gardens.filter((p) => p.details?.conservatory === true).map((p) => p.slug).sort();
     expect(c).toEqual(["marjorie-mcneely-conservatory", "minnesota-landscape-arboretum"]);
+  });
+});
+
+describe("per-place detail pages (/places/[kind]/[slug])", () => {
+  it("placeForKindSlug returns a place only when the slug belongs to that kind", () => {
+    const pool = placesByKind("pool")[0];
+    expect(placeForKindSlug("pool", pool.slug)?.slug).toBe(pool.slug);
+    // right slug, WRONG kind → null (so /places/rink/<a-pool> 404s, not a mismatch)
+    expect(placeForKindSlug("rink", pool.slug)).toBeNull();
+    // unknown slug → null
+    expect(placeForKindSlug("pool", "no-such-place")).toBeNull();
+  });
+
+  it("every place resolves under its own kind (static params never 404 themselves)", () => {
+    for (const p of PLACES) {
+      expect(placeForKindSlug(p.kind, p.slug)?.slug, `${p.kind}/${p.slug}`).toBe(p.slug);
+    }
+  });
+
+  it("wire-in: the detail page prerenders all places and links from the list", () => {
+    const page = readFileSync(
+      join(__dirname, "..", "..", "app", "places", "[kind]", "[slug]", "page.tsx"),
+      "utf8",
+    );
+    expect(page).toContain("generateStaticParams");
+    expect(page).toContain("placeDetailJsonLd");
+    expect(page).toContain("notFound()");
+    const list = readFileSync(join(__dirname, "..", "..", "components", "PlacesList.tsx"), "utf8");
+    expect(list).toContain("/places/${p.kind}/${p.slug}"); // each name links to its detail page
+  });
+
+  it("the sitemap lists the detail pages + the discover finder (so they're crawlable)", () => {
+    const sitemap = readFileSync(join(__dirname, "..", "..", "app", "sitemap.ts"), "utf8");
+    expect(sitemap).toContain("/places/${p.kind}/${p.slug}"); // per-place detail URLs
+    expect(sitemap).toContain("/places/discover");
   });
 });
 

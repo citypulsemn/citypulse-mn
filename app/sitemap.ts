@@ -5,7 +5,7 @@ import { COLLECTIONS } from "@/lib/collections";
 import { NEIGHBORHOODS } from "@/lib/neighborhoods";
 import { VENUE_PAGES } from "@/lib/venue-pages";
 import { matchCitySlug } from "@/lib/cities";
-import { kindsWithPlaces } from "@/lib/places";
+import { kindsWithPlaces, PLACES } from "@/lib/places";
 import { chiDayKey } from "@/lib/clock";
 import { SITE_URL } from "@/lib/seo/site";
 
@@ -94,15 +94,25 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     })),
   ];
 
-  // Places (evergreen) — the /places index + one page per seeded kind. Static
-  // registry, so no DB pressure; higher priority as they're built to rank.
+  // Places (evergreen) — the /places index, the cross-kind finder, one page per
+  // seeded kind, AND one page per individual place. Static registry, so no DB
+  // pressure; higher priority as they're built to rank.
   const placeUrls: MetadataRoute.Sitemap = [
     { url: `${SITE_URL}/places`, lastModified: today, changeFrequency: "weekly", priority: 0.7 },
+    { url: `${SITE_URL}/places/discover`, lastModified: today, changeFrequency: "weekly", priority: 0.7 },
     ...kindsWithPlaces(new Date()).map((k) => ({
       url: `${SITE_URL}/places/${k.meta.kind}`,
       lastModified: today,
       changeFrequency: "weekly" as const,
       priority: 0.7,
+    })),
+    // Per-place detail pages — stable registry content, so lastmod is the place's
+    // own `verifiedAt` (an honest freshness signal), not the daily-rolling `today`.
+    ...PLACES.map((p) => ({
+      url: `${SITE_URL}/places/${p.kind}/${p.slug}`,
+      lastModified: new Date(p.verifiedAt),
+      changeFrequency: "monthly" as const,
+      priority: 0.6,
     })),
   ];
 

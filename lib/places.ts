@@ -5455,6 +5455,14 @@ export function placeBySlug(slug: string): Place | null {
   return PLACES.find((p) => p.slug === slug) ?? null;
 }
 
+/** A place looked up by the (kind, slug) pair a detail-page route carries. Returns
+ *  the place only when the slug exists AND belongs to that kind — so
+ *  `/places/pool/<a-beach-slug>` 404s instead of rendering a mismatched page. */
+export function placeForKindSlug(kind: PlaceKind, slug: string): Place | null {
+  const p = placeBySlug(slug);
+  return p && p.kind === kind ? p : null;
+}
+
 /**
  * Group a set of places by kind, in KIND_META order, dropping empty kinds. For
  * the "Places in {neighborhood}" strip (P2.2) — the bridge that makes the events

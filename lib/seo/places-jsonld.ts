@@ -83,6 +83,25 @@ export function placeJsonLd(
   return data;
 }
 
+/**
+ * Standalone schema.org object for a place's OWN detail page — `placeJsonLd` plus
+ * `@context` (so it stands alone, not nested in an ItemList) and the house-voice
+ * intro as `description`. This is the payoff of a dedicated URL per place: each
+ * gets a self-contained, indexable structured-data object.
+ */
+export function placeDetailJsonLd(
+  place: Place,
+  kind: PlaceKind,
+  opts: PlacesJsonLdOptions,
+): Record<string, unknown> {
+  const obj = placeJsonLd(place, kind, opts);
+  return {
+    "@context": "https://schema.org",
+    ...obj,
+    ...(place.intro ? { description: place.intro } : {}),
+  };
+}
+
 /** schema.org ItemList of the places on a kind page, each item carrying its facts. */
 export function placesItemListJsonLd(
   places: Place[],
