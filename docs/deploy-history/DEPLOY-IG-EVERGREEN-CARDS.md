@@ -40,15 +40,19 @@ the genuine gap was that the kit only covered events.
   events/`/collections` link, honest-empty degrade).
 - Gate: `tsc` clean · 1087/1087 · `npm run build` clean · `npm audit` 0.
 
-## Known precision follow-up (flagged to Taren)
-The **Food Truck Festivals** collection matches the query `"food truck"` across
-title + description (`matchesQuery`), so a festival that merely *mentions* food
-trucks — e.g. "Art and All That Jazz Festival", "Twin Cities Music and Movement
-Festival" — surfaces on the card alongside true food-truck rallies. It's not
-wrong (they do have food trucks) but it reads off-topic for a "Food Truck
-Festivals" card. **Options if you want tighter:** (a) a title-scoped match for
-this collection (most real food-truck festivals carry "food truck" in the title),
-or (b) curate. Left as a product call — no silent change.
+## Precision follow-up — RESOLVED (title-scoped match)
+The **Food Truck Festivals** collection was matching `"food truck"` across
+title + description, so a festival that merely *mentioned* food trucks ("Art and
+All That Jazz Festival", "Twin Cities Music and Movement Festival") surfaced on
+the card. **Fixed:** `matchesQuery` gained an optional `scope` param
+(`"all"` default | `"title"`), `CollectionSpec` gained `queryScope`, and the
+food-truck collection now uses `queryScope: "title"` — a real food-truck festival
+names itself one; a body mention doesn't qualify. This fixes both the IG card and
+the `/collections/food-truck-festivals` **page** (same selection). Verified: the
+jazz/music fests drop out, the named rallies (Anoka, Rosemount, BBN, Bad Weather,
+"…with Food Trucks") stay. Backward-compatible — every other collection defaults
+to `"all"`. Tests: `matchesQuery` title-scope + the collection body-mention
+exclusion.
 
 ## Deploy steps
 Merge to `main`; Vercel auto-deploys. No schema, no secret. The card routes are

@@ -56,29 +56,33 @@ describe("collectionWindow — Chicago wall frame (R1.2)", () => {
 });
 
 describe("food-truck-festivals collection (demand-validated, GSC Aug 2026)", () => {
-  it("is registered, evergreen (no year in the title), all-window, query-driven", () => {
+  it("is registered, evergreen (no year in the title), all-window, title-scoped", () => {
     const c = getCollection("food-truck-festivals");
     expect(c).toBeDefined();
     expect(c!.window).toBe("all");
     expect(c!.query).toBe("food truck");
+    expect(c!.queryScope).toBe("title"); // precision: the topic must be in the title
     expect(c!.seoTitle).toContain("Food Truck Festivals");
     // Evergreen like /this-week — never hardcode a year (would go stale + need edits).
     expect(c!.seoTitle).not.toMatch(/20\d\d/);
     expect(c!.title).not.toMatch(/20\d\d/);
   });
 
-  it("selects food-truck events; needs BOTH tokens (excludes food-only and truck-only)", () => {
+  it("matches food-truck events by TITLE; a body-only mention is a false positive, excluded", () => {
     const c = getCollection("food-truck-festivals")!;
     const events = [
       ev({ id: "ftf", title: "Anoka Food Truck Festival", category: "festival", start: "2026-08-01T11:00" }),
       ev({ id: "rally", title: "Rosemount Food Truck Rally", category: "food", start: "2026-09-01T16:00" }),
-      ev({ id: "foodonly", title: "Trampled by Turtles", description: "food available", start: "2026-08-05T20:00" }),
-      ev({ id: "truckonly", title: "Monster Truck Show", start: "2026-08-10T19:00" }),
+      // the real-world false positives: only MENTION food trucks in the body.
+      ev({ id: "jazz", title: "Art and All That Jazz Festival", description: "with food trucks on site", start: "2026-08-05T18:00" }),
+      ev({ id: "music", title: "Twin Cities Music and Movement Festival", description: "food trucks all weekend", start: "2026-08-06T12:00" }),
+      ev({ id: "foodonly", title: "Trampled by Turtles", start: "2026-08-07T20:00" }),
     ];
     const picked = selectCollection(events, c, NOW).map((e) => e.id);
     expect(picked).toEqual(expect.arrayContaining(["ftf", "rally"]));
-    expect(picked).not.toContain("foodonly"); // has "food", not "truck"
-    expect(picked).not.toContain("truckonly"); // has "truck", not "food"
+    expect(picked).not.toContain("jazz"); // title-scoped: body mention doesn't qualify
+    expect(picked).not.toContain("music");
+    expect(picked).not.toContain("foodonly");
   });
 });
 

@@ -58,6 +58,16 @@ describe("matchesQuery", () => {
   it("returns false when nothing matches", () => {
     expect(matchesQuery(ev(), "zzzznotpresent")).toBe(false);
   });
+
+  it('scope "title" matches only the title (a body/venue mention no longer counts)', () => {
+    const e = ev({ title: "Art and All That Jazz", description: "food trucks on site", venue: "Food Truck Lot" });
+    // default "all" catches the body/venue mention...
+    expect(matchesQuery(e, "food truck")).toBe(true);
+    // ...but title scope does not.
+    expect(matchesQuery(e, "food truck", "title")).toBe(false);
+    // a real title match still passes under title scope.
+    expect(matchesQuery(ev({ title: "Anoka Food Truck Festival" }), "food truck", "title")).toBe(true);
+  });
 });
 
 describe("searchEvents", () => {

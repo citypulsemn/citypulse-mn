@@ -1,4 +1,4 @@
-import { matchesQuery } from "./search";
+import { matchesQuery, type QueryScope } from "./search";
 import { matchesPrice, matchesArea } from "./filters";
 import { chiWallClock, chiDayKey } from "./clock";
 import { weekendDays } from "./weekend";
@@ -26,6 +26,11 @@ export interface CollectionSpec {
   prices?: PriceTier[];
   areas?: AreaKey[];
   query?: string;
+  /** Which fields `query` matches. Defaults to "all" (title+venue+city+description,
+   *  the search default). Use "title" for a high-precision topical collection where
+   *  a body mention is a false positive — e.g. Food Truck Festivals must not catch a
+   *  jazz fest whose description merely says "food trucks on site". */
+  queryScope?: QueryScope;
   window?: CollectionWindow;
 }
 
@@ -84,6 +89,7 @@ export const COLLECTIONS: CollectionSpec[] = [
     tagline:
       "Every food truck festival, rally, and roundup across the Minneapolis–St. Paul metro — where to find the trucks this season.",
     query: "food truck",
+    queryScope: "title", // title-only: a real food-truck festival names itself one; a body mention isn't the topic.
     window: "all",
   },
   {
@@ -148,6 +154,6 @@ export function selectCollection(
     .filter((e) => (cats ? cats.has(e.category) : true))
     .filter((e) => matchesPrice(e, prices))
     .filter((e) => matchesArea(e, areas))
-    .filter((e) => (spec.query ? matchesQuery(e, spec.query) : true))
+    .filter((e) => (spec.query ? matchesQuery(e, spec.query, spec.queryScope ?? "all") : true))
     .sort((a, b) => a.start.localeCompare(b.start));
 }
