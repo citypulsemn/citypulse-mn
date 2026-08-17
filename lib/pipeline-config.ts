@@ -19,4 +19,8 @@ export const NEW_EVENT_STATUS: EventStatus = "published";
  * actually visit every calendar it's handed within its search budget.
  */
 export const VENUES_PER_SHARD = 5;
-export const VENUE_SWEEP_SEARCHES = 12;
+// Web-search budget per venue-sweep shard (5 venues). Trimmed 12→10 (Aug 2026
+// cost pass): the sweeps are the single biggest search consumer (~10 shards ×
+// weekly), and 10 still covers a 5-venue shard's calendars. Raise if a sweep
+// starts missing shows.
+export const VENUE_SWEEP_SEARCHES = 10;

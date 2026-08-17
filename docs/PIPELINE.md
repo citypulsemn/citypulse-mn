@@ -36,11 +36,11 @@ Defined in `lib/horizon.ts`. Instead of one flat look-ahead, the pipeline resear
 
 | Band | Window | Depth | Cadence |
 |---|---|---|---|
-| near | next 0–30 days | deepest (8 searches) | every run |
-| mid | 31–60 days | medium (7) | every run |
-| far | 61–92 days | lighter (6) | every run |
+| near | next 0–30 days | deepest (8 searches) | **every week** |
+| mid | 31–60 days | medium (6) | **every 2 weeks** |
+| far | 61–92 days | lighter (4) | **every 3 weeks** |
 
-The windows **slide forward every week** and all three run **every** week, so the full ~3-month calendar is refreshed and "filled in" continuously: far-out events are re-found and enriched as they move into the nearer, deeper bands. Coverage spans the whole metro — both downtowns plus all first- and second-ring suburbs (Plymouth, Maple Grove, Champlin, Bloomington, Edina, Eden Prairie, Woodbury, Eagan, and the rest). Edit the `HORIZON` array to change ranges or depth; the website needs no change (it already shows whatever future months hold events).
+The windows **slide forward every week**. The **near** band runs every week so the 0–30 day window users actually browse is always fresh; **mid** and **far** run on a stagger (Aug-2026 cost pass) because far-out listings barely change week to week. Nothing is lost: far-out events are re-found and enriched as they migrate into the nearer, more frequent bands (idempotent upserts), and a far event is 2+ months out — caught well before its date. Coverage spans the whole metro — both downtowns plus all first- and second-ring suburbs (Plymouth, Maple Grove, Champlin, Bloomington, Edina, Eden Prairie, Woodbury, Eagan, and the rest). Edit the `HORIZON` array to change ranges, depth, or cadence (`everyNWeeks`); dial any band back to `1` if a run looks thin.
 
 ### 1. Research agents (the "Sonnet executes" half)
 
@@ -82,7 +82,7 @@ If you ever want the old review gate (nothing goes live until you approve it), f
 
 ## Cost & observability
 
-- Cost per run ≈ (7 categories × 3 bands) Claude calls incl. web search, + geocoding — so ~21 agent calls every week now that all bands run weekly and reach ~3 months out. That's the cost of comprehensive, always-fresh coverage; narrow the bands or raise a band's `everyNWeeks` in `lib/horizon.ts` to trade freshness for cost.
+- Cost per run ≈ (7 categories × bands due that week) Claude calls incl. web search, + the near-band venue sweeps (~10), + geocoding. With the staggered cadence the generic calls average **~13/week** (7 near + 7/2 mid + 7/3 far) instead of 21 — a run is `near` only (7), `near+mid` (14), `near+far` (14), or all three (21) depending on the week, on a 6-week cycle. Raise a band's `everyNWeeks` or trim `maxSearchUses` in `lib/horizon.ts` (and `VENUE_SWEEP_SEARCHES` in `lib/pipeline-config.ts`) to trade freshness for cost; lower them to spend more.
 - GitHub Actions gives you per-run logs (now grouped by band). Trigger.dev adds step-level observability and retries if you adopt it.
 
 ## Run it locally
