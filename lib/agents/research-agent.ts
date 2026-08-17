@@ -37,22 +37,17 @@ export interface AgentEvent {
   cancelled?: boolean;
 }
 
-/** Default research model. A cost/quality routing experiment can override this
- *  per call (see scripts/model-eval.ts); the pipeline uses the default. */
-export const RESEARCH_MODEL = "claude-sonnet-4-6";
-
 export async function researchCategory(
   category: CategoryKey,
   startDate: string,
   endDate: string,
   maxSearchUses = 8,
-  model: string = RESEARCH_MODEL,
 ): Promise<AgentEvent[]> {
   // Stream the request. Web-search requests run long, and a single non-streaming
   // call can have its connection cut mid-response ("Premature close"). Streaming
   // reads the response incrementally and is Anthropic's recommended pattern here.
   const stream = anthropic.messages.stream({
-    model,
+    model: "claude-sonnet-4-6",
     max_tokens: 8000,
     // Web search is a server tool; the SDK's tool union is version-specific,
     // so we type the array loosely.
