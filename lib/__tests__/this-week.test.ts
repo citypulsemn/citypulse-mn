@@ -71,7 +71,7 @@ describe("/this-week OG image + sitemap", () => {
     const og = read("app/this-week/opengraph-image.tsx");
     expect(og).toContain("digestWeekLabel");
     expect(og).toContain("OgCard");
-    expect(og).toContain('title: "This Week"');
+    expect(og).toContain('title: "This Week’s Best"'); // matches the h1/nav
   });
 
   it("the page is listed in the sitemap", () => {

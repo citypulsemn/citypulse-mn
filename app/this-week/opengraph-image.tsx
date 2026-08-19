@@ -14,7 +14,7 @@ export default function Image() {
   return new ImageResponse(
     OgCard({
       eyebrow: "Twin Cities",
-      title: "This Week",
+      title: "This Week’s Best",
       subtitle: label,
     }),
     { ...size, fonts: ogFonts },

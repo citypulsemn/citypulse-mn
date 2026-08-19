@@ -64,9 +64,18 @@ Pinned by an extra test: it extracts each curated page's `<h1>`, normalizes
 nav label** — so a visitor can never land on a page titled differently from the
 link they tapped, in either direction.
 
-**Still unchanged:** the OG share cards say "This Week" / "This Weekend" (short form
-with a date subtitle). That asymmetry already existed on both pages and reads
-correctly on a share card, so it was left alone.
+## And the OG share cards
+Both social cards now read **"This Week's Best" / "This Weekend's Best"** too, so the
+page has one name in every surface: nav, footer, `<h1>`, and the image people see
+when the link is shared.
+
+**The apostrophe was the actual risk here.** `next/og` (satori) draws the title
+string straight into the PNG, so `&rsquo;` would have rendered as the literal
+characters `&rsquo;` in the image — and a curly apostrophe missing from the
+base64-embedded Oswald would have drawn a tofu box. Neither is catchable by a unit
+test. So both cards were **rendered and looked at**: the curly apostrophe draws
+correctly and both titles still fit on one line with room to spare (the font is the
+full Oswald-SemiBold TTF, not a subset, which is why U+2019 is present).
 
 ## Rollback
 `git revert`. Labels are display strings; no routes, hrefs, or data change.
