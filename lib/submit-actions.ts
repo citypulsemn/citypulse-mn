@@ -4,6 +4,7 @@ import { headers } from "next/headers";
 import { validateSubmission, addSubmission, type SubmissionInput } from "./submissions";
 import { rateAllow, ipBucket, firstForwardedIp, RATE_LIMITS } from "./rate-limit";
 import type { SubmitState } from "./submit-types";
+import { sendOperatorNotification } from "./notify-send";
 
 // A "use server" module must export ONLY async server actions.
 // State type + initial value live in ./submit-types.
@@ -56,6 +57,18 @@ export async function submitEventAction(
   if (outcome === "error") {
     return { status: "error", message: "Something went wrong — please try again." };
   }
+
+  // Saved. Best-effort notify — see the note in report-actions.ts: this never
+  // throws, and a failure is logged rather than shown to the submitter.
+  const notified = await sendOperatorNotification({
+    kind: "submission",
+    title: result.value.title,
+    detail: [result.value.venue, result.value.city, result.value.start_local]
+      .filter(Boolean)
+      .join(" · "),
+    adminPath: "/admin/submissions",
+  });
+  if (!notified) console.warn("[submit] saved but operator notification did not send");
 
   return {
     status: "success",

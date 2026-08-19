@@ -33,7 +33,7 @@ The public **"Cancelled or wrong? Tell us"** channel. Before this the site had n
 Two layers, so one can fail:
 
 - **Backstop (shipped here):** the weekly ops digest's **Queue** section reports open submissions and reports with a link to each queue. An empty queue is never an alert — that would destroy the subject-line signal every quiet week. The one alert is a report older than `STALE_REPORT_DAYS` (3), because a cancelled event still showing on the site is exactly the honest-data failure this project exists to avoid. A failed gather degrades to "unavailable", never a fake zero.
-- **Instant (next):** a transactional email on each new submission/report, with a phone-push webhook behind an env var. Notification failure must never break a user's submission — the row is already committed, so the send is logged and swallowed, and the digest catches what the email missed.
+- **Instant (shipped):** `lib/notify-send.ts` emails the operator the moment a submission or report lands, linking straight to the queue that can act on it. Notification failure never breaks a user's submission — the row is already committed, so `sendOperatorNotification` catches everything, returns a boolean the caller only logs, and the digest catches whatever the email missed. Public input (a stranger's reason text) is escaped before it reaches the inbox. A single **global** hourly cap sits on outbound notifications, because `rateAllow` fails open on DB trouble and a per-IP cap wouldn't bound a distributed flood. Set `NOTIFY_WEBHOOK_URL` to also get it on a phone lock screen (Discord/Slack/ntfy) — unset is a silent no-op.
 
 ## Notes
 

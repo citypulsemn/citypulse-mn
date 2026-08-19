@@ -3,7 +3,9 @@
 import { headers } from "next/headers";
 import { validateReport, addReport, type ReportInput } from "./event-reports";
 import { rateAllow, ipBucket, firstForwardedIp, RATE_LIMITS } from "./rate-limit";
-import type { ReportState } from "./report-types";
+import { REPORT_KIND_LABELS, type ReportKind, type ReportState } from "./report-types";
+import { sendOperatorNotification } from "./notify-send";
+import { getEvent } from "./events";
 
 // A "use server" module must export ONLY async server actions.
 // State type + initial value live in ./report-types.
@@ -52,6 +54,28 @@ export async function submitReportAction(
   if (outcome === "error") {
     return { status: "error", message: "Something went wrong — please try again." };
   }
+
+  // The report is SAVED. Everything below is best-effort: sendOperatorNotification
+  // never throws and its result is logged, not surfaced — a notification outage
+  // must not turn a successful report into an error for the reporter (rule 1).
+  // The weekly ops-digest Queue section is the backstop if this drops.
+  // Look up the title so the alert is triageable at a glance ("Gothic Market"
+  // beats "a listing"). Guarded: if this read fails the notification still goes,
+  // just less specific — it must never cost the reporter their submission.
+  let eventTitle = "";
+  try {
+    eventTitle = (await getEvent(result.value.event_id))?.title ?? "";
+  } catch {
+    /* fall through to the generic title */
+  }
+  const kindLabel = REPORT_KIND_LABELS[result.value.kind as ReportKind] ?? "Listing report";
+  const notified = await sendOperatorNotification({
+    kind: "report",
+    title: eventTitle || kindLabel,
+    detail: (kindLabel + " — " + result.value.reason).slice(0, 300),
+    adminPath: "/admin/reports",
+  });
+  if (!notified) console.warn("[report] saved but operator notification did not send");
 
   return {
     status: "success",
