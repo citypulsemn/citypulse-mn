@@ -60,22 +60,42 @@ This is the part that matters. The row is **already committed** before we notify
   logging of a missing key, and both vars documented in `.env.example`.
 - Gate: `tsc` clean · 1234/1234 · `npm run build` clean · `npm audit` 0.
 
-**Not sent a real email from local dev, on purpose:** local env points at production
-credentials and there is no test inbox — sending would have been a live email from
-the production identity. The composition is unit-tested and rendered; delivery is
-the post-deploy smoke below.
+**Not sent a real email from local dev, on purpose:** local env has no
+`RESEND_API_KEY` and there is no test inbox. The composition is unit-tested and
+rendered; delivery was verified on production instead — see below.
+
+### Verified on production (Aug 19)
+Two test reports submitted through the live form on a real listing:
+- the row landed correct each time (`status=pending`, `outcome=NULL`, optional fields
+  empty, joined to the right event);
+- the honeypot was exercised live — a filled `company` field returned the cheerful
+  fake success and stored **zero** rows;
+- **the operator email arrived** after the redeploy.
+
+A useful forensic detail for next time: `rateAllow` records the `notify:operator`
+bucket in `rate_events` **immediately before** the Resend fetch, so that row proves
+whether a send was *attempted* — which is how the failure was isolated to config
+rather than code without any access to Vercel logs.
+
+**Correction to an earlier draft of this guide:** it stated `RESEND_API_KEY` was
+"already live" in Vercel, inferred from docs rather than observed (and flagged as
+unverified at the time). That inference happened to be correct — the successful send
+confirms it — but it should not have been written as settled fact.
 
 ## Deploy steps — one thing Taren must do
-1. **Set `NOTIFY_TO` in Vercel** to the address that should get alerts.
-   `RESEND_API_KEY` and `DIGEST_FROM` are already live there (the confirm and
-   saved-restore emails send from server actions in production today).
-   **`OPS_DIGEST_TO` is only a GitHub Actions secret — the site cannot read it**, so
-   without `NOTIFY_TO` the fallback finds nothing and the notification logs an
-   honest error instead of sending. Nothing else breaks.
-2. Merge to `main`; Vercel auto-deploys.
-3. Smoke: submit a test report from any listing → an email should arrive within
+1. **Set `NOTIFY_TO` in Vercel** (Production scope) to the address that should get
+   alerts. **`OPS_DIGEST_TO` is only a GitHub Actions secret — the site cannot read
+   it**, so without `NOTIFY_TO` the fallback finds nothing and the notification logs
+   an honest error instead of sending. Nothing else breaks.
+2. **Then REDEPLOY.** ⚠️ This is not optional and it cost a full debug cycle on the
+   first run: **Vercel env-var changes do not apply to deployments that are already
+   running.** The variable was set correctly and the send still failed, because the
+   live deployment had been built before it existed. One click on
+   Deployments → ⋯ → Redeploy fixes it.
+3. Merge to `main`; Vercel auto-deploys.
+4. Smoke: submit a test report from any listing → an email should arrive within
    seconds → confirm the item is in Admin → Reports → dismiss it.
-4. *Optional, later:* set `NOTIFY_WEBHOOK_URL` for phone push. ntfy.sh needs no
+5. *Optional, later:* set `NOTIFY_WEBHOOK_URL` for phone push. ntfy.sh needs no
    account (`https://ntfy.sh/<a-secret-topic-you-choose>`); a private Discord
    channel webhook also works.
 
