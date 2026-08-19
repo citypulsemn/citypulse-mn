@@ -1,10 +1,21 @@
 name: Weekly Email Digest
 
-# Sends the weekly digest every Thursday at 15:00 UTC (~10am Central), and
-# on-demand. Use the workflow_dispatch "dry_run" input to preview without sending.
+# Sends the weekly digest every Thursday, and on-demand.
+#
+# TWO scheduled runs, because GitHub's schedule is best-effort and demonstrably
+# unreliable: on 2026-08-06 the hosted runners never acquired this job, it hit the
+# timeout with ZERO steps executed, and the whole list missed its email. Every
+# other run has also started late — observed +1h02m, +1h39m, +3h48m, +3h52m
+# against the 15:00 cron.
+#   1. 15:00 UTC (~10am Central) — the real send.
+#   2. 20:00 UTC (~3pm Central)  — safety net. Passes --skip-if-sent-today, so it
+#      stands down when the primary already went out. It can only ever fill a gap,
+#      never duplicate.
+# Use the workflow_dispatch "dry_run" input to preview without sending.
 on:
   schedule:
     - cron: "0 15 * * 4"
+    - cron: "0 20 * * 4"
   workflow_dispatch:
     inputs:
       dry_run:
@@ -19,7 +30,11 @@ concurrency:
 jobs:
   digest:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    # 30, not 15: the Aug 6 job was never SLOW — it was never STARTED, and the old
+    # 15-minute ceiling cancelled it while it was still waiting for a runner. A
+    # higher ceiling costs nothing on a healthy run (they finish in ~1 min) and
+    # gives a queued one more chance to be picked up.
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
 
@@ -31,10 +46,19 @@ jobs:
       - run: npm ci --prefer-offline --no-audit --no-fund
 
       - name: Send weekly digest
-        run: npm run digest ${{ github.event.inputs.dry_run == 'true' && '-- --dry-run' || '' }}
         env:
+          # Only the 20:00 run is the safety net. The primary run and every manual
+          # dispatch behave exactly as before — no guard, no change.
+          IS_SAFETY_NET: ${{ github.event.schedule == '0 20 * * 4' }}
+          IS_DRY_RUN: ${{ github.event.inputs.dry_run == 'true' }}
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
           UNSUBSCRIBE_SECRET: ${{ secrets.UNSUBSCRIBE_SECRET }}
           SITE_URL: ${{ secrets.SITE_URL }}
           DIGEST_FROM: ${{ secrets.DIGEST_FROM }}
+        run: |
+          ARGS=""
+          if [ "$IS_DRY_RUN" = "true" ]; then ARGS="$ARGS --dry-run"; fi
+          if [ "$IS_SAFETY_NET" = "true" ]; then ARGS="$ARGS --skip-if-sent-today"; fi
+          echo "digest args:${ARGS:- (none)}"
+          npm run digest -- $ARGS

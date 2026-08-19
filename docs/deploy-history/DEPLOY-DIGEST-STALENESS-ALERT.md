@@ -58,7 +58,7 @@ difference. That is the same failure class this codebase already takes seriously
   ```
   6 days (Aug 13 → Aug 19), subject correctly stays `✅ all green`. The
   counterfactual holds: on Monday Aug 10 this would have read **11 days** and fired.
-- **Tests +7** (1247 total): quiet at 4 days *and* at the threshold-minus-one;
+- **Tests +13** (1253 total): quiet at 4 days *and* at the threshold-minus-one;
   fires at 11 with the day count, the word MISSED, and the workflow name so the
   alert is actionable; `null` reads "no successful digest send recorded yet" without
   crying wolf; a failed read says "could not check" **and** leaves the rest of the
@@ -68,15 +68,40 @@ difference. That is the same failure class this codebase already takes seriously
 ## Deploy steps
 Merge to `main`. No schema, no secret. Takes effect on the next Monday ops digest.
 
-## Follow-ups worth considering
-- **Raise `timeout-minutes`** in `weekly-digest.yml` from 15 to ~30. The job wasn't
-  slow — it never started — so a higher ceiling gives the runner more chance to
-  acquire it before cancellation.
-- **A second scheduled attempt** later on Thursday, skipping if a send already
-  succeeded that day. GitHub can't be made reliable; a retry makes one no-show
-  harmless instead of merely visible.
-- Aug 6's subscribers never got that week's email. Nothing to replay now, but worth
-  knowing it happened.
+## Both follow-ups shipped (same day)
+The alert makes a no-show *visible*. These two make it *harmless*.
+
+**1. `timeout-minutes: 15 → 30`.** Aug 6 was never slow — it was never started, and
+the 15-minute ceiling cancelled it while it was still queued for a runner. Healthy
+runs finish in about a minute, so the higher ceiling costs nothing and buys a queued
+job more chance to be acquired.
+
+**2. A second scheduled run at 20:00 UTC (~3pm Central), 5 hours after the primary.**
+It passes `--skip-if-sent-today`, so it stands down when the primary already sent.
+It can only ever fill a gap, never duplicate.
+
+Three deliberate choices in that retry:
+- **Only the 20:00 schedule passes the flag** (`github.event.schedule == '0 20 * * 4'`).
+  The primary run and every manual dispatch are byte-for-byte unchanged, so the
+  common paths carry none of the new risk.
+- **The guard FAILS SAFE by standing down.** `hasSentDigestToday()` returns `true` on
+  any error or missing database. This is the deliberate opposite of `rateAllow`,
+  which fails *open*: there a broken instrument must not block a user's action,
+  whereas here a false negative mails the entire list a second copy. A missed retry
+  is caught by the staleness alert on Monday; a duplicate email cannot be un-sent.
+- **A dry run never counts as a send** (`ok = true and recipients > 0`, compared on
+  the Chicago day), and `--dry-run` bypasses the guard entirely so previews always
+  render.
+
+Verified against production: `hasSentDigestToday()` → `false` (last send was 6 days
+ago, none today), and `--dry-run --skip-if-sent-today` still previewed the real
+digest — 7 emails, subject intact. **Tests +6**: both crons present, the flag gated
+to the safety-net schedule only, the raised timeout, guard-before-send ordering, the
+fail-safe direction, and the dry-run exclusion.
+
+**Still true:** Aug 6's subscribers never got that week's email. Nothing to replay
+now, but worth knowing it happened rather than assuming the list has been served
+every week since launch.
 
 ## Rollback
 `git revert`. Additive — the helper, one field, one constant, one branch.

@@ -75,3 +75,49 @@ describe("R2.7 — digest_sends bookkeeping honesty", () => {
     expect(src).toContain("sent ${sent} of ${recipients.length} before failure");
   });
 });
+
+describe("the Thursday safety-net run (Aug 6 2026 no-show)", () => {
+  const ROOT = join(__dirname, "..", "..");
+  const read = (p: string) => readFileSync(join(ROOT, p), "utf8");
+  const wf = read(".github/workflows/weekly-digest.yml");
+  const script = read("scripts/send-digest.ts");
+  const lib = read("lib/digest-send.ts");
+
+  it("schedules a second attempt a few hours after the primary", () => {
+    expect(wf).toContain('cron: "0 15 * * 4"'); // the real send
+    expect(wf).toContain('cron: "0 20 * * 4"'); // the safety net
+  });
+
+  it("ONLY the safety-net schedule passes the guard flag", () => {
+    // The primary run and every manual dispatch must behave exactly as before.
+    expect(wf).toContain("IS_SAFETY_NET: ${{ github.event.schedule == '0 20 * * 4' }}");
+    expect(wf).toMatch(/IS_SAFETY_NET" = "true" \]; then ARGS="\$ARGS --skip-if-sent-today"/);
+  });
+
+  it("the timeout is high enough to survive a slow runner acquisition", () => {
+    // Aug 6 wasn't slow — it never started, and a 15-minute ceiling cancelled it
+    // while it was still queued.
+    expect(wf).toContain("timeout-minutes: 30");
+    expect(wf).not.toContain("timeout-minutes: 15");
+  });
+
+  it("the guard runs BEFORE the send, and only when the flag is passed", () => {
+    const guardAt = script.indexOf("hasSentDigestToday()");
+    const sendAt = script.indexOf("sendWeeklyDigest(");
+    expect(guardAt).toBeGreaterThan(-1);
+    expect(guardAt).toBeLessThan(sendAt);
+    expect(script).toContain("skipIfSentToday && !dryRun"); // a dry run still previews
+  });
+
+  it("the guard FAILS SAFE — an unreadable check stands down rather than risk a duplicate", () => {
+    // Deliberately the opposite of rateAllow's fail-open: a false negative here
+    // would mail the whole list twice, and that cannot be un-sent.
+    expect(lib).toMatch(/catch \(err\)[\s\S]{0,220}return true;/);
+    expect(lib).toMatch(/if \(!sql\)[\s\S]{0,160}return true;/);
+    expect(lib).toContain("standing down");
+  });
+
+  it("a dry run is never counted as a send by the guard", () => {
+    expect(lib).toMatch(/ok = true and recipients > 0[\s\S]{0,200}America\/Chicago/);
+  });
+});

@@ -206,3 +206,35 @@ export async function getDaysSinceLastDigest(): Promise<number | null> {
   `;
   return row?.days ?? null;
 }
+
+/**
+ * Did a REAL digest already go out today (Chicago day)? The retry run's guard.
+ *
+ * FAILS SAFE BY STANDING DOWN. On any error this returns `true` — i.e. "assume a
+ * send happened, don't send again". That is the deliberate opposite of
+ * `rateAllow`, which fails OPEN: there, a broken instrument must not block a
+ * user's action, whereas here a false negative would mail the entire subscriber
+ * list a second copy — irreversible, and the one thing worse than a missed send.
+ * A missed retry is now caught by the ops digest's staleness alert on Monday; a
+ * duplicate email cannot be un-sent.
+ */
+export async function hasSentDigestToday(): Promise<boolean> {
+  if (!sql) {
+    console.warn("[digest] no DATABASE_URL — cannot confirm today's send, standing down");
+    return true;
+  }
+  try {
+    const [row] = await sql<{ sent: boolean }[]>`
+      select exists (
+        select 1 from digest_sends
+        where ok = true and recipients > 0
+          and (sent_at at time zone 'America/Chicago')::date
+              = (now() at time zone 'America/Chicago')::date
+      ) as sent
+    `;
+    return row?.sent ?? true;
+  } catch (err) {
+    console.error("[digest] could not check today's send — standing down rather than risk a duplicate:", err);
+    return true;
+  }
+}
