@@ -13,9 +13,9 @@ export function SiteFooter({ source = "site" }: { source?: string }) {
         <SubscribeForm source={source} />
       </div>
       <div className="site-footer-links">
-        <a href="/this-week">This Week</a>
+        <a href="/this-week">This Week&rsquo;s Best</a>
         <span aria-hidden="true">·</span>
-        <a href="/this-weekend">This Weekend</a>
+        <a href="/this-weekend">This Weekend&rsquo;s Best</a>
         <span aria-hidden="true">·</span>
         <a href="/ongoing">Ongoing</a>
         <span aria-hidden="true">·</span>

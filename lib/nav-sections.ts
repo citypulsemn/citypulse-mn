@@ -6,8 +6,13 @@
  * Venues / etc. are reachable from the top instead of buried at the bottom.
  */
 export const SECTIONS: { href: string; label: string }[] = [
-  { href: "/this-week", label: "This Week" },
-  { href: "/this-weekend", label: "This Weekend" },
+  // NOTE: these two must NOT read the same as the explorer's date presets
+  // ("This Week" / "This Weekend" in components/ControlBar.tsx). Those filter
+  // the calendar in place; these NAVIGATE to a curated shortlist. Same words on
+  // two rows, one row apart, doing different things is a real trap — and the
+  // "’s Best" suffix is what /this-week's own <h1> already calls itself.
+  { href: "/this-week", label: "This Week’s Best" },
+  { href: "/this-weekend", label: "This Weekend’s Best" },
   { href: "/ongoing", label: "Ongoing" },
   { href: "/collections", label: "Collections" },
   { href: "/places", label: "Places" },

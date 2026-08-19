@@ -72,6 +72,43 @@ describe("content pages use the shared TopBar", () => {
   });
 });
 
+describe("nav labels never collide with the explorer's date presets", () => {
+  // On the homepage these sit ONE ROW APART: the presets (Today / This Weekend /
+  // This Week / This Month) filter the calendar in place, while the nav links
+  // NAVIGATE away to a curated shortlist. When both said "This Week", tapping the
+  // wrong one silently changed surface — which is how the missing view toggle got
+  // reported in the first place. Keep the two vocabularies disjoint.
+  const labelsOf = (src: string, re: RegExp) => {
+    const out: string[] = [];
+    for (const m of src.matchAll(re)) out.push(m[1]);
+    return out;
+  };
+
+  const navLabels = labelsOf(read("lib/nav-sections.ts"), /label: "([^"]+)"/g);
+  const presetLabels = labelsOf(read("components/ControlBar.tsx"), /label: "([^"]+)"/g);
+
+  it("both label sets were actually found (the regex still matches)", () => {
+    expect(navLabels.length).toBeGreaterThanOrEqual(8);
+    expect(presetLabels).toEqual(["Today", "This Weekend", "This Week", "This Month"]);
+  });
+
+  it("no nav label is identical to a date preset", () => {
+    const collisions = navLabels.filter((l) => presetLabels.includes(l));
+    expect(collisions, `nav labels colliding with date presets: ${collisions.join(", ")}`).toEqual([]);
+  });
+
+  it("the two curated pages are named for what they are, not for a date range", () => {
+    expect(navLabels).toContain("This Week’s Best");
+    expect(navLabels).toContain("This Weekend’s Best");
+  });
+
+  it("the footer calls those pages the SAME thing (one page, one name sitewide)", () => {
+    const footer = read("components/SiteFooter.tsx");
+    expect(footer).toContain("This Week&rsquo;s Best");
+    expect(footer).toContain("This Weekend&rsquo;s Best");
+  });
+});
+
 describe("the view toggle rides the shared header on the events pages", () => {
   // The List/Calendar/Map control used to live ONLY inside EventsExplorer (the
   // homepage), so tapping "This Week" in the nav — a real navigation — landed on a
