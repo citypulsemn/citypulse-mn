@@ -22,6 +22,9 @@ reset role;
 set role anon;
 select count(*) as audit_rows_visible_to_anon from admin_audit;         -- expect: 0
 select count(*) as run_rows_visible_to_anon   from pipeline_runs;       -- expect: 0
+-- Reports carry a reporter's email and unverified claims about live listings —
+-- it must be as sealed as the audit log.
+select count(*) as report_rows_visible_to_anon from event_reports;      -- expect: 0
 reset role;
 
 -- If step 2 shows only 'published' and steps 2/3 show 0 for drafts/admin,

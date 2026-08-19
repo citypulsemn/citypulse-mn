@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { composeOpsDigest, buildSections, parseStoredTotals, wowLabel, deltaTag, isStampede, stampedeReason, recentBaseline, PIPELINE_STAMPEDE, type OpsInputs, type PipelineRow } from "../ops-digest";
+import { composeOpsDigest, buildSections, parseStoredTotals, wowLabel, deltaTag, isStampede, stampedeReason, recentBaseline, PIPELINE_STAMPEDE, STALE_REPORT_DAYS, type OpsInputs, type PipelineRow } from "../ops-digest";
 
 const NOW = new Date("2026-07-20T15:30:00Z"); // a Monday, 10:30am Chicago
 
@@ -41,6 +41,7 @@ function healthy(overrides: Partial<OpsInputs> = {}): OpsInputs {
     subscribers: { total: 84, delta7: 6 },
     lastDigestNote: "84 sent, 17 personalized",
     feeds: { clicks7: 9, top: [{ label: "venue-first-avenue", count: 5 }, { label: "live-music", count: 3 }] },
+    queue: { submissions: 0, reports: 0, oldestReportDays: null },
     sitemapUrls: 121,
     prevSitemapUrls: 118,
     search: null, // default: not wired → manual GSC line (today's state)
@@ -89,8 +90,8 @@ describe("composeOpsDigest — the healthy week", () => {
   it("subject is green with the Chicago date", () => {
     expect(subject).toBe("✅ City Pulse ops — all green (Jul 20)");
   });
-  it("all eight sections render in both formats", () => {
-    for (const title of ["Pipeline", "Coverage", "Verification", "Engagement (7d)", "Trending", "Index surface", "Subscribers", "Feeds"]) {
+  it("all nine sections render in both formats", () => {
+    for (const title of ["Pipeline", "Coverage", "Verification", "Engagement (7d)", "Trending", "Index surface", "Subscribers", "Feeds", "Queue"]) {
       expect(text).toContain(title);
       expect(html).toContain(title);
     }
@@ -463,6 +464,45 @@ describe("Feeds section (F2.5)", () => {
     const feeds = sections.find((s) => s.title === "Feeds")!;
     expect(feeds.alert).toBe(true);
     expect(feeds.lines[0]).toContain("unavailable");
+  });
+});
+
+describe("Queue — the backstop that keeps a report from sitting unseen", () => {
+  const queueOf = (q: Partial<OpsInputs["queue"]>) =>
+    buildSections(
+      healthy({ queue: { submissions: 0, reports: 0, oldestReportDays: null, ...q } }),
+    ).find((s) => s.title === "Queue")!;
+
+  it("an empty queue is the NORMAL state — never an alert", () => {
+    // This is the load-bearing one: if a quiet week alerted, every ordinary week
+    // would say "⚠️ 1 alert" and the subject-line signal would be worthless.
+    const q = queueOf({});
+    expect(q.alert).toBe(false);
+    expect(q.lines[0]).toContain("nothing waiting");
+  });
+
+  it("counts pending submissions and reports, with a link to each queue", () => {
+    const q = queueOf({ submissions: 2, reports: 1 });
+    expect(q.lines.join(" ")).toContain("2 submissions awaiting review → /admin/submissions");
+    expect(q.lines.join(" ")).toContain("1 listing report awaiting review → /admin/reports");
+  });
+
+  it("pending items alone are not an alert — a queue is not an emergency", () => {
+    expect(queueOf({ submissions: 5, reports: 1, oldestReportDays: 1 }).alert).toBe(false);
+  });
+
+  it("a report left sitting IS an alert — a cancelled event may still be live", () => {
+    const q = queueOf({ reports: 1, oldestReportDays: STALE_REPORT_DAYS });
+    expect(q.alert).toBe(true);
+    expect(q.lines.join(" ")).toContain("may still be live");
+  });
+
+  it("a gather failure degrades to unavailable, not a fake zero", () => {
+    // Reporting "nothing waiting" when the query threw would be the worst
+    // possible lie here — it's the exact case the backstop exists for.
+    const q = buildSections(healthy({ errors: { queue: "db down" } })).find((s) => s.title === "Queue")!;
+    expect(q.alert).toBe(true);
+    expect(q.lines[0]).toContain("unavailable");
   });
 });
 

@@ -228,6 +228,42 @@ create table if not exists event_submissions (
 create index if not exists idx_submissions_status on event_submissions (status, created_at desc);
 alter table event_submissions enable row level security;
 
+-- ── Listing removal / correction requests ─────────────────────────────────
+-- The public "something's wrong with this listing" form writes here — the first
+-- channel the site has ever had for an organizer to say "we cancelled." Nothing
+-- is applied automatically: a person reads each request and decides. An honored
+-- removal is an EXISTING status change on the event ('cancelled' when it really
+-- was called off, 'draft' when it should never have been listed), so no new event
+-- status is introduced and every read path in lib/events.ts is untouched.
+--
+-- Every claim here is UNVERIFIED by construction: event ids are public, and
+-- "I'm the organizer" is a text field, not a fact. Treat it as a tip to check,
+-- never as an instruction to execute. Holds a reporter email transiently, for
+-- reply-and-verify only; never joined to content, never reported on. Sealed like
+-- the other internal tables — RLS on, NO anon policy.
+create table if not exists event_reports (
+  id             uuid primary key default gen_random_uuid(),
+  event_id       uuid not null references events(id) on delete cascade,
+  kind           text not null default 'removal'
+                   check (kind in ('removal','cancelled','wrong_details','duplicate','other')),
+  reason         text not null default '',
+  evidence_url   text not null default '',
+  reporter_email text not null default '',
+  reporter_role  text not null default ''
+                   check (reporter_role in ('','organizer','venue','attendee','other')),
+  status         text not null default 'pending'
+                   check (status in ('pending','actioned','declined')),
+  -- What the operator actually did, for the record. NULL until reviewed, so
+  -- "not yet decided" stays distinguishable from "decided: no change".
+  outcome        text check (outcome in ('cancelled','hidden','edited','none')),
+  review_note    text,
+  created_at     timestamptz not null default now(),
+  reviewed_at    timestamptz
+);
+create index if not exists idx_event_reports_status on event_reports (status, created_at desc);
+create index if not exists idx_event_reports_event on event_reports (event_id);
+alter table event_reports enable row level security;
+
 -- ── Saved events (roadmap 3.3) ────────────────────────────────────────────
 -- Each visitor gets an anonymous, unguessable token (an httpOnly cookie). Their
 -- saved events live here, keyed by that token — no login required.

@@ -866,6 +866,14 @@ a.daycard { text-decoration: none; }
 .place-num { flex: none; width: 30px; height: 30px; display: inline-flex; align-items: center; justify-content: center; border-radius: 999px; border: 1px solid var(--gold); color: var(--gold); font-family: var(--font-oswald); font-weight: 600; font-size: 14px; }
 .place-body { min-width: 0; flex: 1; }
 .place-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+/* Report a listing — the quiet "this is wrong" link under an event's CTAs, and
+   the read-only context block on /report. */
+.detail-report { margin: 14px 0 0; font-size: 12.5px; }
+.detail-report a { color: var(--cream-dim); text-decoration: none; border-bottom: 1px dotted var(--line); }
+.detail-report a:hover { color: var(--gold); border-bottom-color: var(--gold); }
+.report-context { max-width: 720px; margin: 0 auto 18px; padding: 14px 16px; background: var(--navy-800, #0e1830); border: 1px solid var(--line); border-radius: 12px; }
+.report-context-label { font-family: var(--font-oswald); font-weight: 500; font-size: 10.5px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--cream-dim); margin-bottom: 6px; }
+
 .place-name { font-family: var(--font-oswald); font-weight: 600; font-size: 17px; letter-spacing: 0.01em; margin: 0; color: var(--cream); }
 .place-name a { color: inherit; text-decoration: none; }
 .place-name a:hover { color: var(--gold); }

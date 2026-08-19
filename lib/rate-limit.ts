@@ -29,6 +29,9 @@ export const RATE_LIMITS = {
   subscribePerIp: { limit: 30, windowMinutes: 60 },
   /** Event submissions per caller IP. */
   submitPerIp: { limit: 10, windowMinutes: 60 },
+  /** Listing removal/correction reports per caller IP. Tighter than submits:
+   *  a real person reports one or two stale listings, not fifty. */
+  reportPerIp: { limit: 5, windowMinutes: 60 },
   /** Beacon hits per caller IP. Honest-but-cheap: the beacon's inflatability
    *  is an accepted design note — this just caps the blast radius. */
   beaconPerIp: { limit: 240, windowMinutes: 60 },

@@ -16,6 +16,8 @@ import { getTrendingEvents } from "../lib/trending";
 import { getDigestSends } from "../lib/digest-send";
 import { getFeedAdoption } from "../lib/feed-stats";
 import { getSearchImpressions } from "../lib/search-console";
+import { getPendingSubmissionCount } from "../lib/submissions";
+import { getPendingReportCount, getOldestPendingReportDays } from "../lib/event-reports";
 
 const dryRun = process.argv.includes("--dry-run");
 
@@ -98,6 +100,18 @@ async function gather(): Promise<OpsInputs> {
     getFeedAdoption(7),
   );
 
+  // What's waiting on a person. Read together so one failure degrades the whole
+  // section honestly rather than reporting "0 reports" when the query threw.
+  const queue = await wrap(
+    "queue",
+    { submissions: 0, reports: 0, oldestReportDays: null as number | null },
+    async () => ({
+      submissions: await getPendingSubmissionCount(),
+      reports: await getPendingReportCount(),
+      oldestReportDays: await getOldestPendingReportDays(),
+    }),
+  );
+
   const subscribers = await wrap("subscribers", { total: 0, delta7: 0, bySource7: [] as { source: string; count: number }[] }, async () => {
     if (!sql) throw new Error("no database connection");
     const [row] = await sql<{ total: number; delta7: number }[]>`
@@ -157,6 +171,7 @@ async function gather(): Promise<OpsInputs> {
     subscribers,
     lastDigestNote,
     feeds,
+    queue,
     sitemapUrls,
     prevSitemapUrls,
     search,

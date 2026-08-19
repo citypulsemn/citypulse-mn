@@ -142,6 +142,13 @@ export function EventDetailBody({
           </div>
         )}
         {actions && <div className="detail-actions">{actions}</div>}
+        {/* The site's only "this listing is wrong" channel. Deliberately quiet —
+            it sits below the CTAs, after someone has read the listing and found
+            the problem. Lives in THIS file (not the `actions` prop) so the modal
+            and the shareable /event/[id] page can't drift apart. */}
+        <p className="detail-report">
+          <a href={`/report?event=${encodeURIComponent(event.id)}`}>Cancelled or wrong? Tell us →</a>
+        </p>
       </div>
     </>
   );

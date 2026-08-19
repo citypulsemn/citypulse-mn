@@ -32,6 +32,8 @@ export function SiteFooter({ source = "site" }: { source?: string }) {
         <a href="/saved">Saved</a>
         <span aria-hidden="true">·</span>
         <a href="/submit">Submit an event</a>
+        <span aria-hidden="true">·</span>
+        <a href="/report">Report a listing</a>
       </div>
       <div className="sf-brand">City Pulse MN · the pulse of the Twin Cities</div>
     </footer>

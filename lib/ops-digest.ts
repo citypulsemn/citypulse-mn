@@ -144,6 +144,13 @@ export interface OpsInputs {
   lastDigestNote: string | null; // digest_sends.note — carries "N personalized"
   /** F2.5 — calendar-subscribe clicks on the iCal feeds in the last 7 days. */
   feeds: { clicks7: number; top: { label: string; count: number }[] };
+  /** Things waiting on a human: community submissions and listing reports.
+   *  The BACKSTOP beneath the instant notification — if a notify email is ever
+   *  dropped, this is what still surfaces the item. `oldestReportDays` drives
+   *  the only alert here, because a stale REPORT means a cancelled event may
+   *  still be live on the site (an honest-data failure), whereas an unreviewed
+   *  submission just means a queue. */
+  queue: { submissions: number; reports: number; oldestReportDays: number | null };
   /** Live sitemap URL count (fetched from SITE_URL/sitemap.xml — the number
    *  Google actually sees; zero drift by construction) + last week's. */
   sitemapUrls: number | null;
@@ -174,7 +181,12 @@ const SECTION_KEYS = [
   "subscribers",
   "index",
   "feeds",
+  "queue",
 ] as const;
+
+/** A listing report older than this is an alert: the whole point of the channel
+ *  is that a cancelled event comes down quickly. */
+export const STALE_REPORT_DAYS = 3;
 
 function unavailable(reason: string): string[] {
   return [`section unavailable: ${reason}`];
@@ -412,6 +424,38 @@ export function buildSections(inputs: OpsInputs): OpsSection[] {
       ];
     }
     out.push({ title: "Feeds", lines, alert });
+  }
+
+  // 9 — Queue: what's waiting on a person. An empty queue is the NORMAL state,
+  // so a zero here is never an alert (that would destroy the subject-line alert
+  // signal every quiet week). The one thing that IS an alert: a report left
+  // sitting, because a cancelled event still showing on the site is exactly the
+  // honest-data failure this project exists to avoid.
+  {
+    let lines: string[];
+    let alert = false;
+    if (err("queue")) {
+      lines = unavailable(err("queue"));
+      alert = true;
+    } else {
+      const { submissions, reports, oldestReportDays } = inputs.queue;
+      if (submissions === 0 && reports === 0) {
+        lines = ["nothing waiting — no open submissions or reports"];
+      } else {
+        lines = [];
+        if (submissions > 0) {
+          lines.push(`${submissions} submission${submissions === 1 ? "" : "s"} awaiting review → /admin/submissions`);
+        }
+        if (reports > 0) {
+          lines.push(`${reports} listing report${reports === 1 ? "" : "s"} awaiting review → /admin/reports`);
+        }
+        if (oldestReportDays !== null && oldestReportDays >= STALE_REPORT_DAYS) {
+          lines.push(`oldest report is ${oldestReportDays} days old — a cancelled event may still be live`);
+          alert = true;
+        }
+      }
+    }
+    out.push({ title: "Queue", lines, alert });
   }
 
   return out;
