@@ -45,7 +45,7 @@ Rendered homepage HTML, the two rows side by side:
 
 No overlap. Footer renders "This Week's Best" / "This Weekend's Best".
 
-**Tests +4** (1238 total), in `topbar.test.ts` — a real drift guard, not a snapshot:
+**Tests +5** (1239 total), in `topbar.test.ts` — a real drift guard, not a snapshot:
 it parses the labels out of **both** source files and asserts the two sets are
 **disjoint**, so re-introducing any collision (not just these two words) fails the
 build. Plus a meta-test that both regexes still match, so the guard can't silently
@@ -53,11 +53,20 @@ stop guarding, and a check that the footer uses the same names.
 
 Gate: `tsc` clean · 1238/1238 · `npm run build` clean · `npm audit` 0.
 
-## Deliberately not changed
-`/this-weekend`'s `<h1>` still reads "This Weekend" (its sibling already reads "This
-Week's Best"). Nav→destination agreement is nice-to-have, but that page is the one
-confirmed-indexed URL on the site and its H1 is an on-page SEO signal — not worth
-touching as a side effect of a label cleanup. Easy to align later if desired.
+## Follow-up, same day: the `/this-weekend` H1 aligned too
+Taren asked for it, so `/this-weekend`'s `<h1>` now reads **"This Weekend's Best"**,
+matching its sibling and the nav link that points at it. The keyword "This Weekend"
+is still inside the H1, so the on-page signal on the site's one confirmed-indexed
+URL is preserved rather than replaced.
+
+Pinned by an extra test: it extracts each curated page's `<h1>`, normalizes
+`&rsquo;` to the curly apostrophe the nav uses, and asserts the H1 is **exactly a
+nav label** — so a visitor can never land on a page titled differently from the
+link they tapped, in either direction.
+
+**Still unchanged:** the OG share cards say "This Week" / "This Weekend" (short form
+with a date subtitle). That asymmetry already existed on both pages and reads
+correctly on a share card, so it was left alone.
 
 ## Rollback
 `git revert`. Labels are display strings; no routes, hrefs, or data change.

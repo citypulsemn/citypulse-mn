@@ -68,7 +68,7 @@ export default async function ThisWeekendPage() {
 
         <div className="dayhdr">
           <div className="dayhdr-eyebrow">Twin Cities · {weekendLabel(days)}</div>
-          <h1 className="dayhdr-title">This Weekend</h1>
+          <h1 className="dayhdr-title">This Weekend&rsquo;s Best</h1>
           <div className="dayhdr-count">
             {total === 0
               ? TAGLINE

@@ -102,6 +102,26 @@ describe("nav labels never collide with the explorer's date presets", () => {
     expect(navLabels).toContain("This Weekend’s Best");
   });
 
+  it("each curated page's <h1> matches the nav label that points at it", () => {
+    // Nav uses the literal curly apostrophe, JSX uses &rsquo; — same glyph once
+    // rendered, so normalize before comparing.
+    const h1Of = (page: string) => {
+      const src = read(page);
+      const OPEN = "<h1 className=\"dayhdr-title\">";
+      const CLOSE = "</h1>";
+      const a = src.indexOf(OPEN);
+      if (a < 0) return "";
+      const b = src.indexOf(CLOSE, a);
+      return src.slice(a + OPEN.length, b).replace(/&rsquo;/g, "’");
+    };
+    expect(h1Of("app/this-week/page.tsx")).toBe("This Week’s Best");
+    expect(h1Of("app/this-weekend/page.tsx")).toBe("This Weekend’s Best");
+    // …and those are exactly the nav labels, so a visitor never lands on a page
+    // titled differently from the link they tapped.
+    expect(navLabels).toContain(h1Of("app/this-week/page.tsx"));
+    expect(navLabels).toContain(h1Of("app/this-weekend/page.tsx"));
+  });
+
   it("the footer calls those pages the SAME thing (one page, one name sitewide)", () => {
     const footer = read("components/SiteFooter.tsx");
     expect(footer).toContain("This Week&rsquo;s Best");
