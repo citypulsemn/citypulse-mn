@@ -13,7 +13,7 @@ import { composeOpsDigest, parseStoredTotals, PIPELINE_STAMPEDE, type OpsInputs,
 import { assessCoverage, formatCoverageAlerts } from "../lib/coverage";
 import { getEngagementStrict, type Engagement } from "../lib/stats";
 import { getTrendingEvents } from "../lib/trending";
-import { getDigestSends } from "../lib/digest-send";
+import { getDigestSends, getDaysSinceLastDigest } from "../lib/digest-send";
 import { getFeedAdoption } from "../lib/feed-stats";
 import { getSearchImpressions } from "../lib/search-console";
 import { getPendingSubmissionCount } from "../lib/submissions";
@@ -132,6 +132,13 @@ async function gather(): Promise<OpsInputs> {
     return sends[0]?.note ?? null;
   });
 
+  // Its OWN error key (the R2.3 aux convention): if this read fails we must not
+  // render the Subscribers section unavailable — but we also must not silently
+  // report 'fine'. A failure here prints an explicit 'could not check' line.
+  const lastDigestDaysAgo = await wrap<number | null>("digest_age", null, () =>
+    getDaysSinceLastDigest(),
+  );
+
   const sitemapUrls = await wrap<number | null>("index", null, async () => {
     const base = process.env.SITE_URL;
     if (!base) return null;
@@ -170,6 +177,7 @@ async function gather(): Promise<OpsInputs> {
     trending,
     subscribers,
     lastDigestNote,
+    lastDigestDaysAgo,
     feeds,
     queue,
     sitemapUrls,

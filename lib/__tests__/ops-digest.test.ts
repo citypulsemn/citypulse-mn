@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { composeOpsDigest, buildSections, parseStoredTotals, wowLabel, deltaTag, isStampede, stampedeReason, recentBaseline, PIPELINE_STAMPEDE, STALE_REPORT_DAYS, type OpsInputs, type PipelineRow } from "../ops-digest";
+import { composeOpsDigest, buildSections, parseStoredTotals, wowLabel, deltaTag, isStampede, stampedeReason, recentBaseline, PIPELINE_STAMPEDE, STALE_REPORT_DAYS, DIGEST_STALE_DAYS, type OpsInputs, type PipelineRow } from "../ops-digest";
 
 const NOW = new Date("2026-07-20T15:30:00Z"); // a Monday, 10:30am Chicago
 
@@ -40,6 +40,7 @@ function healthy(overrides: Partial<OpsInputs> = {}): OpsInputs {
     trending: { count: 6, top: ["Aquatennial Fireworks", "Trampled by Turtles", "Como Family Day"] },
     subscribers: { total: 84, delta7: 6 },
     lastDigestNote: "84 sent, 17 personalized",
+    lastDigestDaysAgo: 4, // healthy: Thursday send, Monday report
     feeds: { clicks7: 9, top: [{ label: "venue-first-avenue", count: 5 }, { label: "live-music", count: 3 }] },
     queue: { submissions: 0, reports: 0, oldestReportDays: null },
     sitemapUrls: 121,
@@ -467,6 +468,56 @@ describe("Feeds section (F2.5)", () => {
   });
 });
 
+describe("digest staleness — catching a MISSED weekly send", () => {
+  // Aug 6 2026: GitHub's hosted runners never acquired the job; it timed out with
+  // zero steps run. No digest_sends row was written, and the ops digest kept
+  // printing "last digest: 2 personalized" from the PREVIOUS week — so a missed
+  // send to every subscriber went unnoticed for 13 days. This is that alarm.
+  const subsOf = (over: Partial<OpsInputs>) =>
+    buildSections(healthy(over)).find((s) => s.title === "Subscribers")!;
+
+  it("a normal week shows the age but does not alert (Thu send, Mon report = 4 days)", () => {
+    const s = subsOf({ lastDigestDaysAgo: 4 });
+    expect(s.alert).toBe(false);
+    expect(s.lines.join(" ")).not.toContain("MISSED");
+    // Visible even when healthy — an absent line reads like an absent check,
+    // which is precisely how the Aug 6 miss hid for 13 days.
+    expect(s.lines.join(" ")).toContain("last successful send: 4 days ago");
+  });
+
+  it("singular grammar at one day", () => {
+    expect(subsOf({ lastDigestDaysAgo: 1 }).lines.join(" ")).toContain("1 day ago");
+  });
+
+  it("stays quiet right up to the threshold — GitHub is routinely hours late", () => {
+    expect(subsOf({ lastDigestDaysAgo: DIGEST_STALE_DAYS - 1 }).alert).toBe(false);
+  });
+
+  it("a skipped Thursday (11 days by the next Monday) fires the alert", () => {
+    const s = subsOf({ lastDigestDaysAgo: 11 });
+    expect(s.alert).toBe(true);
+    expect(s.lines.join(" ")).toContain("11 days ago");
+    expect(s.lines.join(" ")).toContain("MISSED");
+  });
+
+  it("names the workflow to check, so the alert is actionable", () => {
+    expect(subsOf({ lastDigestDaysAgo: 11 }).lines.join(" ")).toContain("Weekly Email Digest");
+  });
+
+  it("no send recorded yet reads honestly and does NOT cry wolf", () => {
+    const s = subsOf({ lastDigestDaysAgo: null });
+    expect(s.alert).toBe(false);
+    expect(s.lines.join(" ")).toContain("no successful digest send recorded yet");
+  });
+
+  it("a failed age read says so — never a silent \"looks fine\"", () => {
+    const s = subsOf({ lastDigestDaysAgo: null, errors: { digest_age: "db down" } });
+    expect(s.lines.join(" ")).toContain("could not check for a missed send");
+    // …and it must NOT render the whole Subscribers section unavailable (R2.3:
+    // an aux read failing can't take out this week's good numbers).
+    expect(s.lines.join(" ")).toContain("84 subscribed");
+  });
+});
 describe("Queue — the backstop that keeps a report from sitting unseen", () => {
   const queueOf = (q: Partial<OpsInputs["queue"]>) =>
     buildSections(

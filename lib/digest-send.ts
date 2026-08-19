@@ -182,3 +182,27 @@ export async function getDigestSends(limit = 10): Promise<DigestSendRow[]> {
     limit ${limit}
   `;
 }
+
+/**
+ * Whole days since the last REAL digest send, or null when none is recorded.
+ *
+ * Drives the ops digest's staleness alert. On Aug 6 2026 the weekly send never
+ * ran — GitHub's hosted runners never acquired the job, it hit the 15-minute
+ * timeout and was cancelled with zero steps executed — and nobody noticed for 13
+ * days, because the ops digest happily printed the note from the PREVIOUS send as
+ * if it were current. A stale value rendering as a fresh one.
+ *
+ * `ok = true and recipients > 0` is the load-bearing filter. Dry runs return
+ * before the insert today, but a legacy `dry run · 2 personalized` row (0
+ * recipients) is still in the table from before that guard — and counting a
+ * rehearsal as a send would mask exactly the gap this exists to catch.
+ */
+export async function getDaysSinceLastDigest(): Promise<number | null> {
+  if (!sql) return null;
+  const [row] = await sql<{ days: number | null }[]>`
+    select floor(extract(epoch from (now() - max(sent_at))) / 86400)::int as days
+    from digest_sends
+    where ok = true and recipients > 0
+  `;
+  return row?.days ?? null;
+}

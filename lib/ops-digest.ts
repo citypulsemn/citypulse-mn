@@ -142,6 +142,11 @@ export interface OpsInputs {
     bySource7?: { source: string; count: number }[];
   };
   lastDigestNote: string | null; // digest_sends.note — carries "N personalized"
+  /** Whole days since the last REAL send (dry runs excluded), or null when none
+   *  is recorded. The weekly email is the retention asset, and a missed send used
+   *  to be SILENT — the note from the previous send just kept printing as if it
+   *  were current. This is what turns that into a Monday-morning line. */
+  lastDigestDaysAgo: number | null;
   /** F2.5 — calendar-subscribe clicks on the iCal feeds in the last 7 days. */
   feeds: { clicks7: number; top: { label: string; count: number }[] };
   /** Things waiting on a human: community submissions and listing reports.
@@ -187,6 +192,12 @@ const SECTION_KEYS = [
 /** A listing report older than this is an alert: the whole point of the channel
  *  is that a cancelled event comes down quickly. */
 export const STALE_REPORT_DAYS = 3;
+
+/** A digest older than this means a Thursday send was missed. The digest goes out
+ *  Thursday and this report runs Monday, so a healthy week reads 4 days and a
+ *  single skipped send reads 11 — 8 catches the miss without ever crying wolf on
+ *  a normal week (or on GitHub's routine 1-4h scheduling delays). */
+export const DIGEST_STALE_DAYS = 8;
 
 function unavailable(reason: string): string[] {
   return [`section unavailable: ${reason}`];
@@ -401,6 +412,25 @@ export function buildSections(inputs: OpsInputs): OpsSection[] {
       }
       if (inputs.lastDigestNote) lines.push(`last digest: ${inputs.lastDigestNote}`);
       else if (err("digest_note")) lines.push("(last digest note unavailable)");
+
+      // Did the weekly email actually go out? A note alone can't answer that —
+      // it keeps rendering the previous send's text after a miss.
+      const age = inputs.lastDigestDaysAgo;
+      if (err("digest_age")) {
+        lines.push("(digest age unreadable — could not check for a missed send)");
+      } else if (age === null) {
+        lines.push("no successful digest send recorded yet");
+      } else if (age >= DIGEST_STALE_DAYS) {
+        lines.push(
+          `last successful send was ${age} days ago — a Thursday send was MISSED (check the Weekly Email Digest workflow)`,
+        );
+        alert = true;
+      } else {
+        // Print the age even when it's healthy. Saying nothing on a good week is
+        // what made the Aug 6 miss invisible: an absent line reads exactly like an
+        // absent check. One short line keeps the instrument visibly alive.
+        lines.push(`last successful send: ${age} day${age === 1 ? "" : "s"} ago`);
+      }
     }
     out.push({ title: "Subscribers", lines, alert });
   }
