@@ -150,6 +150,18 @@ describe("report wiring — schema, spam protection, entry points, admin queue",
     expect(src).toContain("encodeURIComponent(event.id)");
   });
 
+  it("/for-venues offers it too — venue staff know first when a show is cancelled", () => {
+    // The recon called for three entry points; this is the one aimed squarely at
+    // the people most likely to have something to report.
+    const page = read("app/for-venues/page.tsx");
+    expect(page).toContain('href="/report"');
+    expect(page).toContain("FOR_VENUES.wrong");
+    // …and the copy separates "we never listed it" from "you listed it wrong".
+    const ed = read("lib/editorial.ts");
+    expect(ed).toContain("wrong:");
+    expect(ed).toContain("missing:");
+  });
+
   it("the footer offers the channel too", () => {
     expect(read("components/SiteFooter.tsx")).toContain('href="/report"');
   });

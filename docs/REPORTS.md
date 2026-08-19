@@ -4,7 +4,7 @@ The public **"Cancelled or wrong? Tell us"** channel. Before this the site had n
 
 ## Flow
 
-1. Someone opens an event and clicks **"Cancelled or wrong? Tell us →"** at the bottom of the listing (or **Report a listing** in the footer), landing on `/report?event=<id>`.
+1. Someone opens an event and clicks **"Cancelled or wrong? Tell us →"** at the bottom of the listing, landing on `/report?event=<id>`. Two other doors lead here: **Report a listing** in the footer, and a dedicated path on **/for-venues** — venue staff are the highest-signal reporters, since they know first when a show is cancelled.
 2. The page shows the listing read-only, so they can confirm they're flagging the right one, then `components/ReportForm.tsx` collects: what's wrong (cancelled / wrong details / duplicate / remove / other), a required sentence of explanation, an optional evidence link, and an optional role + email.
 3. `submitReportAction` runs the **honeypot first**, then the per-IP rate limit (`reportPerIp`, 5/hour — tighter than submissions), validates, and inserts into `event_reports` through the owner connection.
 4. In **Admin → Reports**, each open report shows the reason beside the live listing's title/venue/date and current status.

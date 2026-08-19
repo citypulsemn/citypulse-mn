@@ -46,9 +46,15 @@ export default function ForVenuesPage() {
         </section>
 
         <section className="forv-section">
-          <h2 className="coll-dayhead">Missed something?</h2>
+          <h2 className="coll-dayhead">Missing or wrong?</h2>
           <p className="page-intro">
             {FOR_VENUES.missing} <a href="/submit">Submit an event →</a>
+          </p>
+          {/* Venue staff are the highest-signal reporters — they know first when a
+              show is cancelled. This is the page that speaks to them, so the
+              correction channel belongs here as much as on the listing itself. */}
+          <p className="page-intro">
+            {FOR_VENUES.wrong} <a href="/report">Report a listing →</a>
           </p>
         </section>
 
