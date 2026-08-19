@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { TopBar } from "@/components/TopBar";
+import { ViewToggleLinks } from "@/components/ViewToggle";
 import { SiteFooter } from "@/components/SiteFooter";
 import { EventDayCard } from "@/components/EventDayCard";
 import { getEvents } from "@/lib/events";
@@ -36,7 +37,7 @@ export default async function OngoingPage() {
 
   return (
     <>
-      <TopBar />
+      <TopBar actions={<ViewToggleLinks range="month" selfHref="/ongoing" />} />
 
       <main className="wrap page">
         <div className="dayhdr">

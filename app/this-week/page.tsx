@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { TopBar } from "@/components/TopBar";
+import { ViewToggleLinks } from "@/components/ViewToggle";
 import { SiteFooter } from "@/components/SiteFooter";
 import { SubscribeBand } from "@/components/SubscribeBand";
 import { EventDayCard } from "@/components/EventDayCard";
@@ -51,7 +52,7 @@ export default async function ThisWeekPage() {
 
   return (
     <>
-      <TopBar />
+      <TopBar actions={<ViewToggleLinks range="week" selfHref="/this-week" />} />
 
       <main className="wrap page">
         {picks.length > 0 && (

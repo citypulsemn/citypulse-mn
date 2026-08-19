@@ -73,9 +73,15 @@ describe("UX4 wiring — the list view and the mobile default", () => {
   const root = join(__dirname, "..", "..");
   const explorer = readFileSync(join(root, "components", "EventsExplorer.tsx"), "utf8");
 
-  it("the view type includes 'list' and there's a List toggle button", () => {
+  it("the view type includes 'list' and the explorer drives the shared toggle", () => {
     expect(explorer).toContain('"list" | "calendar" | "map"');
-    expect(explorer).toContain('onClick={() => setView("list")}');
+    // The three buttons moved out of this file into components/ViewToggle.tsx so
+    // the other events pages could carry the control too; the explorer still owns
+    // the state and still switches view in place.
+    expect(explorer).toContain("<ViewToggleButtons view={view} onSelect={setView} />");
+    const toggle = readFileSync(join(root, "components", "ViewToggle.tsx"), "utf8");
+    expect(toggle).toContain("onClick={() => onSelect(v.key)}");
+    for (const label of ["List", "Calendar", "Map"]) expect(toggle).toContain(label);
   });
 
   it("the list renders the WINDOWED events (what the presets drive), not the whole month", () => {

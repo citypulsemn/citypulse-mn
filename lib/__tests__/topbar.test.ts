@@ -51,10 +51,12 @@ describe("content pages use the shared TopBar", () => {
     "app/for-venues/page.tsx",
   ];
 
-  it("every content page renders <TopBar /> and no longer hand-rolls a topbar", () => {
+  it("every content page renders <TopBar> and no longer hand-rolls a topbar", () => {
     for (const p of pages) {
       const src = read(p);
-      expect(src, `${p} uses TopBar`).toContain("<TopBar />");
+      // "<TopBar" not "<TopBar />" — the events pages now pass an `actions` slot
+      // (the view toggle), so they render <TopBar actions={…} />.
+      expect(src, `${p} uses TopBar`).toContain("<TopBar");
       expect(src, `${p} dropped the bespoke header`).not.toContain('className="topbar"');
       expect(src, `${p} dropped the back-link`).not.toContain("page-back");
     }
@@ -67,6 +69,41 @@ describe("content pages use the shared TopBar", () => {
       .filter((f) => readFileSync(f, "utf8").includes('className="topbar"'))
       .map((f) => f.replace(join(ROOT, "app"), "").replace(/\\/g, "/"));
     expect(withTopbar.sort()).toEqual(["/error.tsx", "/not-found.tsx", "/offline/page.tsx"]);
+  });
+});
+
+describe("the view toggle rides the shared header on the events pages", () => {
+  // The List/Calendar/Map control used to live ONLY inside EventsExplorer (the
+  // homepage), so tapping "This Week" in the nav — a real navigation — landed on a
+  // page with no view control at all. TopBar's `actions` slot existed but nothing
+  // used it; these pages now fill it.
+  const cases: [string, string][] = [
+    ["app/this-week/page.tsx", 'range="week"'],
+    ["app/this-weekend/page.tsx", 'range="weekend"'],
+    ["app/ongoing/page.tsx", 'range="month"'],
+  ];
+
+  it("each events page passes ViewToggleLinks with its own range", () => {
+    for (const [page, range] of cases) {
+      const src = read(page);
+      expect(src, `${page} imports the toggle`).toContain("ViewToggleLinks");
+      expect(src, `${page} passes it via the actions slot`).toContain("<TopBar actions={");
+      expect(src, `${page} carries its range`).toContain(range);
+    }
+  });
+
+  it("TopBar still exposes the actions slot the pages fill", () => {
+    const src = read("components/TopBar.tsx");
+    expect(src).toContain("actions");
+    expect(src).toContain("{actions}");
+  });
+
+  it("link mode navigates (anchors), it does not pretend to re-render in place", () => {
+    // /this-week is a curated shortlist, not a date slice of the DB — Calendar/Map
+    // genuinely cannot re-render the same events, so they must be links.
+    const src = read("components/ViewToggle.tsx");
+    expect(src).toContain('href={`/?view=${v.key}&range=${range}`}');
+    expect(src).toContain('aria-current="page"'); // the page you're already on
   });
 });
 

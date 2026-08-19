@@ -27,6 +27,7 @@ import type { AreaKey } from "@/lib/areas";
 import { cityLocations, filterByDistance, DEFAULT_RADIUS_MI, type MetroLocation } from "@/lib/location";
 import { LocationControl } from "./LocationControl";
 import { MapEventList } from "./MapEventList";
+import { ViewToggleButtons } from "./ViewToggle";
 import { track } from "@/lib/track";
 import type { CategoryKey, EventRecord, PriceTier, RangeKey } from "@/lib/types";
 import { Logo } from "./Logo";
@@ -427,26 +428,7 @@ export function EventsExplorer({
           <Logo />
           <div className="topbar-actions">
             <SavedLink />
-            <div className="viewtoggle">
-              <button
-                className={view === "list" ? "active" : ""}
-                onClick={() => setView("list")}
-              >
-                List
-              </button>
-              <button
-                className={view === "calendar" ? "active" : ""}
-                onClick={() => setView("calendar")}
-              >
-                Calendar
-              </button>
-              <button
-                className={view === "map" ? "active" : ""}
-                onClick={() => setView("map")}
-              >
-                Map
-              </button>
-            </div>
+            <ViewToggleButtons view={view} onSelect={setView} />
           </div>
         </div>
         {/* U3 — the browse sections, previously footer-only on the homepage. Same

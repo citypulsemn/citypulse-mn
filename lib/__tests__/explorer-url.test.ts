@@ -72,6 +72,33 @@ describe("serializeExplorer", () => {
   });
 });
 
+describe("the header view toggle's links round-trip into explorer state", () => {
+  // components/ViewToggle.tsx (link mode) hand-writes hrefs like
+  // "/?view=calendar&range=week" on /this-week, /this-weekend, /ongoing. If the
+  // query contract here ever drifts, those links would silently land on the
+  // default view instead — a dead control with no error. Pin the exact strings.
+  const RANGES = [
+    ["week", "/this-week"],
+    ["weekend", "/this-weekend"],
+    ["month", "/ongoing"],
+  ] as const;
+
+  it("every view x range the toggle emits parses back to that view and range", () => {
+    for (const [range] of RANGES) {
+      for (const view of ["calendar", "map"] as const) {
+        const p = parseExplorer(`view=${view}&range=${range}`);
+        expect(p.view, `${view}/${range} view`).toBe(view);
+        expect(p.range, `${view}/${range} range`).toBe(range);
+      }
+    }
+  });
+
+  it("the toggle component emits exactly that query shape", () => {
+    const src = readFileSync(join(__dirname, "..", "..", "components", "ViewToggle.tsx"), "utf8");
+    expect(src).toContain("`/?view=${v.key}&range=${range}`");
+  });
+});
+
 describe("parseExplorer", () => {
   it("parses a full query string back to typed fields", () => {
     const p = parseExplorer("view=list&range=week&m=2026-09&cat=music,arts&price=0,2&area=mpls&q=jazz&day=2026-08-15&event=e1");

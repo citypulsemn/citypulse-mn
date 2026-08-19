@@ -68,8 +68,18 @@ body::before {
   color: var(--cream-dim); background: transparent; border: 0; padding: 9px 22px; border-radius: 999px; cursor: pointer; transition: 0.2s;
   display: inline-flex; align-items: center; justify-content: center; min-height: 44px; box-sizing: border-box; /* UX7 touch target */
 }
-.viewtoggle button.active { background: var(--gold); color: var(--navy-900); }
-.viewtoggle button:not(.active):hover { color: var(--cream); }
+/* Link mode — the same pill on /this-week, /this-weekend, /ongoing, where the
+   control navigates to the homepage explorer rather than re-rendering in place.
+   Declarations mirror the button rule above (kept as its own literal rule so the
+   44px touch-target guard in a11y.test.ts still finds it). */
+.viewtoggle a {
+  font-family: var(--font-oswald); font-weight: 500; letter-spacing: 0.12em; text-transform: uppercase; font-size: 12px;
+  color: var(--cream-dim); background: transparent; border: 0; padding: 9px 22px; border-radius: 999px; cursor: pointer; transition: 0.2s;
+  display: inline-flex; align-items: center; justify-content: center; min-height: 44px; box-sizing: border-box; /* UX7 touch target */
+  text-decoration: none;
+}
+.viewtoggle button.active, .viewtoggle a.active { background: var(--gold); color: var(--navy-900); }
+.viewtoggle button:not(.active):hover, .viewtoggle a:not(.active):hover { color: var(--cream); }
 
 /* UX11 — "make this my default view" (localStorage-pinned landing state). */
 .default-view-row { display: flex; justify-content: flex-end; margin: -4px 2px 2px; }
@@ -254,7 +264,7 @@ body::before {
   .brand svg { width: 30px; height: auto; }
 
   .viewtoggle { padding: 3px; }
-  .viewtoggle button { padding: 9px 13px; font-size: 12px; }
+  .viewtoggle button, .viewtoggle a { padding: 9px 13px; font-size: 12px; }
 
   /* Controls stack and center; bigger tap targets. */
   .controls { flex-direction: column; align-items: stretch; gap: 12px; padding: 16px 0 12px; }
@@ -297,7 +307,7 @@ body::before {
 /* ---------- Small phones ---------- */
 @media (max-width: 430px) {
   .brand .mn { letter-spacing: 0.4em; font-size: 10px; }
-  .viewtoggle button { padding: 8px 10px; font-size: 11.5px; letter-spacing: 0.03em; }
+  .viewtoggle button, .viewtoggle a { padding: 8px 10px; font-size: 11.5px; letter-spacing: 0.03em; }
   .cal-head { gap: 4px; }
   .cal-head div { font-size: 8.5px; }
   .cal-grid { gap: 4px; }
@@ -328,7 +338,7 @@ button, a, .cell, .chip, .daycard, .preset { -webkit-tap-highlight-color: transp
 }
 
 /* Pressed feedback — subtle on a mouse, satisfying on a finger. */
-.preset:active, .chip:active, .monthnav button:active, .viewtoggle button:active,
+.preset:active, .chip:active, .monthnav button:active, .viewtoggle button:active, .viewtoggle a:active,
 .daycard:active, .ticket-btn:active, .closebtn:active, .pop-btn:active { transform: scale(0.97); }
 .cell:active { transform: scale(0.99); }
 
