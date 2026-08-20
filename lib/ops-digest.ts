@@ -1,6 +1,7 @@
 import type { Engagement } from "./stats";
 import type { SearchStats } from "./search-console";
 import { esc } from "./digest";
+import { EMAIL_HEAD } from "./email-head";
 
 /**
  * OPS DIGEST (roadmap 2.1) — the cockpit, delivered.
@@ -511,7 +512,7 @@ export function composeOpsDigest(
     .map((s) => `## ${s.title}${s.alert ? " ⚠️" : ""}\n${s.lines.map((l) => `- ${l}`).join("\n")}`)
     .join("\n\n");
 
-  const html = `<!doctype html><html><head><meta charset="utf-8"></head><body style="margin:0;padding:24px;background:#0d1526;font-family:Georgia,serif;color:#f2ecdd;">
+  const html = `<!doctype html><html><head>${EMAIL_HEAD}</head><body style="margin:0;padding:24px;background:#0d1526;font-family:Georgia,serif;color:#f2ecdd;">
 <div style="max-width:560px;margin:0 auto;">
 <h1 style="font-size:18px;letter-spacing:0.06em;color:#c9a961;margin:0 0 4px;">CITY PULSE — OPS</h1>
 <p style="margin:0 0 20px;font-size:13px;color:#9aa3b5;">${esc(dateLabel)} · ${alerts === 0 ? "all green" : `${alerts} alert${alerts > 1 ? "s" : ""}`}</p>

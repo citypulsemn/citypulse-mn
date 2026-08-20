@@ -1,3 +1,4 @@
+import { EMAIL_HEAD } from "./email-head";
 import { weeklyPicks } from "./content/weekly-picks";
 import { DOW, MONTHS, timeLabel, evDate, dkey } from "./dates";
 import { CATEGORIES } from "./categories";
@@ -302,7 +303,7 @@ export function renderDigestEmail(opts: DigestOptions): DigestData {
           <div style="font:600 13px/1.2 Arial,Helvetica,sans-serif;color:${GOLD};text-transform:uppercase;letter-spacing:1.5px;">Also worth your time</div>
         </td></tr>`;
 
-  const html = `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head><body style="margin:0;padding:0;background:#0a1020;">
+  const html = `<!doctype html><html><head>${EMAIL_HEAD}</head><body style="margin:0;padding:0;background:#0a1020;">
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0a1020;">
     <tr><td align="center" style="padding:24px 12px;">
       <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="width:600px;max-width:100%;background:${NAVY};border-radius:14px;overflow:hidden;">

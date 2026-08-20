@@ -1,3 +1,4 @@
+import { EMAIL_HEAD } from "./email-head";
 import { sql } from "./db";
 import { getSaverToken, setSaverToken } from "./saver";
 import { restoreUrl, verifyRestoreToken, RESTORE_TTL_DAYS } from "./restore-token";
@@ -129,7 +130,7 @@ export async function mergeAndRestore(
 /** Small, digest-styled email carrying the link. */
 export function renderRestoreEmail(url: string): { subject: string; html: string; text: string } {
   const subject = "Your saved events on City Pulse MN";
-  const html = `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head><body style="margin:0;padding:0;background:#0a1020;">
+  const html = `<!doctype html><html><head>${EMAIL_HEAD}</head><body style="margin:0;padding:0;background:#0a1020;">
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0a1020;"><tr><td align="center" style="padding:24px 12px;">
     <table role="presentation" width="520" cellpadding="0" cellspacing="0" style="width:520px;max-width:100%;background:#0e1830;border-radius:14px;">
       <tr><td style="padding:26px 24px 8px;">
