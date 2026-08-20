@@ -93,13 +93,13 @@ export default async function DayPage({
               <>
                 <h2 className="day-group-head">Already running</h2>
                 {ongoing.map((e) => (
-                  <EventDayCard key={e.id} event={e} />
+                  <EventDayCard key={e.id} event={e} dayKey={date} />
                 ))}
                 {timed.length > 0 && <h2 className="day-group-head">Starting today</h2>}
               </>
             )}
             {timed.map((e) => (
-              <EventDayCard key={e.id} event={e} />
+              <EventDayCard key={e.id} event={e} dayKey={date} />
             ))}
           </section>
         ) : (

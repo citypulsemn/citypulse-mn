@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { orderDayEvents, splitDayEvents } from "../day-order";
+import { orderDayEvents, splitDayEvents, dayTimeLabel } from "../day-order";
 import type { EventRecord } from "../types";
 
 const DAY = "2026-07-20";
@@ -135,5 +135,84 @@ describe("a run that OPENS today keeps its showtime (the Aug 2026 regression)", 
     expect(panel).toContain("splitDayEvents");
     expect(panel).toContain("Already running");
     expect(panel).toContain("Starting today");
+  });
+});
+
+describe("dayTimeLabel — never show a clock time we can't stand behind", () => {
+  /**
+   * An event that began earlier stores the FIRST day's time, so a run that opened
+   * Aug 13 at 10 AM rendered "10 AM" on Aug 21 — a real-looking number that simply
+   * isn't today's. Grouping fixed the ORDER; this fixes the number.
+   */
+  it("an event that began earlier shows how long it runs, not a stale time", () => {
+    const run = ev({
+      title: "Opened Last Week",
+      start: "2026-07-13T10:00",
+      end: "2026-07-13T17:00",
+      multiDayEnd: "2026-07-23T17:00",
+    });
+    expect(dayTimeLabel(run, DAY)).toBe("Through Jul 23");
+    expect(dayTimeLabel(run, DAY)).not.toContain("10");  // no stale clock time
+    expect(dayTimeLabel(run, DAY)).not.toMatch(/AM|PM/);
+  });
+
+  it('says "Last day" when the run ends on the day you are viewing', () => {
+    const closing = ev({
+      title: "Closing Today",
+      start: "2026-07-18T10:00",
+      end: "2026-07-18T17:00",
+      multiDayEnd: "2026-07-20T17:00",
+    });
+    expect(dayTimeLabel(closing, DAY)).toBe("Last day");
+  });
+
+  it("crosses a month boundary correctly", () => {
+    const run = ev({
+      title: "Into August",
+      start: "2026-07-18T10:00",
+      end: "2026-07-18T17:00",
+      multiDayEnd: "2026-08-02T17:00",
+    });
+    expect(dayTimeLabel(run, DAY)).toBe("Through Aug 2");
+  });
+
+  it("KEEPS the real start time for something opening today, even if it runs on", () => {
+    // The whole point: a play opening tonight at 8 PM that runs through Wednesday
+    // should say 8 PM. That it also runs later is on the event page.
+    const opening = ev({ title: "Opens Tonight", start: "2026-07-20T20:00", end: "2026-07-22T22:00" });
+    expect(dayTimeLabel(opening, DAY)).toBe("8 PM");
+  });
+
+  it("a normal single-day event is unaffected", () => {
+    expect(dayTimeLabel(ev({ title: "Just Today", start: "2026-07-20T19:00" }), DAY)).toBe("7 PM");
+  });
+
+  it("an all-day event today still reads All day", () => {
+    const allDay = ev({ title: "All Day", start: "2026-07-20T00:00", allDay: true });
+    expect(dayTimeLabel(allDay, DAY)).toBe("All day");
+  });
+
+  it("degrades to a plain word when there is no usable end date", () => {
+    // Began earlier, no span end recorded — we know it's running, nothing more.
+    // end: null is the real "no usable end" case — the fixture default end
+    // (2026-07-20T21:00) would correctly make this a LAST DAY instead.
+    const vague = ev({ title: "No End", start: "2026-07-18T10:00", end: null });
+    expect(dayTimeLabel(vague, DAY)).toBe("Ongoing");
+  });
+
+  it("both day surfaces use it", () => {
+    const panel = readFileSync(join(__dirname, "..", "..", "components", "DayPanel.tsx"), "utf8");
+    expect(panel).toContain("dayTimeLabel");
+    const card = readFileSync(join(__dirname, "..", "..", "components", "EventDayCard.tsx"), "utf8");
+    expect(card).toContain("dayTimeLabel");
+    const page = readFileSync(join(__dirname, "..", "..", "app", "day", "[date]", "page.tsx"), "utf8");
+    expect(page).toContain("dayKey={date}");
+  });
+
+  it("cards OUTSIDE a day view are untouched (no dayKey ⇒ old span badge)", () => {
+    // this-week / saved / collections have no single day in view.
+    const card = readFileSync(join(__dirname, "..", "..", "components", "EventDayCard.tsx"), "utf8");
+    expect(card).toContain("dayKey?: string");
+    expect(card).toContain("isMultiDay(event)"); // the fallback path survives
   });
 });

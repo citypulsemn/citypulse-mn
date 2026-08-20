@@ -1,5 +1,6 @@
 import type { EventRecord } from "./types";
-import { evDate } from "./dates";
+import { evDate, timeLabel, MONTHS } from "./dates";
+import { spanEnd } from "./multiday";
 
 /**
  * The one true within-a-day ordering (Roadmap UX2 U2), shared by the /day/[date]
@@ -52,4 +53,32 @@ export function splitDayEvents(events: EventRecord[], dayKey: string): DayGroups
 export function orderDayEvents(events: EventRecord[], dayKey: string): EventRecord[] {
   const { ongoing, timed } = splitDayEvents(events, dayKey);
   return [...ongoing, ...timed];
+}
+
+/**
+ * What to show in a day card's time slot, for the day you're looking at.
+ *
+ * The problem this solves: an event that began earlier stores the FIRST day's
+ * clock time, so a run that opened Aug 13 at 10 AM rendered "10 AM" on Aug 21 —
+ * a real-looking time that is simply not today's. Grouping it under "Already
+ * running" explained the ORDER but left the number lying.
+ *
+ *   - began earlier → how much longer you have: "Last day" or "Through Aug 23".
+ *     Never a clock time we cannot stand behind.
+ *   - starts today → its actual start time, EVEN IF it runs on for days. A play
+ *     opening tonight at 8 PM should say 8 PM; that it also runs Saturday is on
+ *     the event page, and on a day view "when today" is the useful fact.
+ *
+ * Pure. `dayKey` is a Chicago wall date ("YYYY-MM-DD"), compared as a string.
+ */
+export function dayTimeLabel(ev: EventRecord, dayKey: string): string {
+  if (ev.start.slice(0, 10) >= dayKey) return timeLabel(ev);
+
+  const end = spanEnd(ev);
+  const endDay = end?.slice(0, 10);
+  if (!endDay || endDay < dayKey) return "Ongoing"; // no usable end — say only what we know
+  if (endDay === dayKey) return "Last day";
+
+  const d = new Date(`${endDay}T12:00:00`); // noon-anchored: DST can't shift the date
+  return `Through ${MONTHS[d.getMonth()].slice(0, 3)} ${d.getDate()}`;
 }

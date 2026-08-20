@@ -60,7 +60,7 @@ Dances with Dalí now sits with the other 8 PM shows; MACT with the 7 PM ones.
 
 - Rendered `/day/2026-08-21` on a dev server and read the DOM order: both headings
   present, times ascending 10 AM → 4 → 5 → 6 → 6:30 → 7 → 7:30 …
-- **Tests +5** (1272 total): a same-day opening sorts by clock not title; the
+- **Tests +5** (1272 at that point): a same-day opening sorts by clock not title; the
   genuinely-ongoing are still protected from a stale start; ongoing lead the flat
   order; a 00:00 start on the day itself is *today's* all-day event, not ongoing;
   and both surfaces carry the headings. The six existing U2 tests still pass
@@ -68,12 +68,45 @@ Dances with Dalí now sits with the other 8 PM shows; MACT with the 7 PM ones.
   is intact, only its criterion narrowed.
 - Gate: `tsc` clean · 1272/1272 · `npm run build` clean · `npm audit` 0.
 
-## Known, not fixed
-An "Already running" event still displays its **original** start time (A Year With
-Frog and Toad shows 10 AM on Aug 21, which is Aug 13's time). The heading now
-explains the grouping, but the time itself is still that first day's. The honest fix
-is to show a run label ("through Aug 23") instead of a clock time for that group —
-a separate change, flagged rather than folded in.
+## The run label (shipped same day)
+Grouping fixed the ORDER, but an "Already running" card still showed its original
+start time — A Year With Frog and Toad rendered **10 AM** on Aug 21, which is
+*Aug 13's* 10 AM. A real-looking number that simply isn't today's.
+
+**`dayTimeLabel(ev, dayKey)`** now decides what goes in the time slot:
+- **began earlier** → how much longer you have: **"Last day"** or **"Through Aug 23"**.
+  Never a clock time we can't stand behind.
+- **starts today** → its **actual start time, even if it runs on for days**. A play
+  opening tonight at 8 PM says 8 PM; that it also runs Saturday belongs on the event
+  page. On a day view, *when today* is the useful fact.
+
+That second half is a deliberate change to existing behaviour: `EventDayCard` used
+to swap in a span badge for **any** multi-day event, so MACT Fact*Fest showed
+"Aug 21 – 22" instead of "7 PM" on its own opening day. Inside a day view that hides
+the one thing the reader came for.
+
+**Scoped by an optional `dayKey` prop.** Only the two day surfaces pass it;
+`/this-week`, `/saved` and collections have no single day in view, so they keep the
+span badge exactly as before — pinned by a test.
+
+Rendered on the real Aug 21 page:
+
+```
+== Already running ==
+   Through Aug 23   A Year With Frog and Toad
+   Through Aug 23   Explorasaurus: A Dinosaur Adventure
+   Last day         Live Music – Amsterdam Bar and Hall
+   Through Aug 31   Minnesota Fringe Festival Fringe Hangover
+   Through Aug 22   Woodbury Days
+== Starting today ==
+   9 AM … 10 PM     (22 events, strictly in order)
+```
+
+**Tests +9** (1281 total): a stale time is never shown for an earlier start; "Last
+day" when the run ends today; month boundaries ("Through Aug 2"); an opening-today
+run keeps its 8 PM; single-day and all-day events unaffected; a missing end degrades
+to "Ongoing" rather than inventing a date; both day surfaces use it; and cards
+outside a day view still take the old path.
 
 ## Deploy steps
 Merge to `main`; Vercel auto-deploys. No schema, no secret.

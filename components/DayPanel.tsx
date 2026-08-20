@@ -1,8 +1,8 @@
 "use client";
 
 import { CATEGORIES } from "@/lib/categories";
-import { DOW, MONTHS, timeLabel } from "@/lib/dates";
-import { splitDayEvents } from "@/lib/day-order";
+import { DOW, MONTHS } from "@/lib/dates";
+import { splitDayEvents, dayTimeLabel } from "@/lib/day-order";
 import { useModalA11y } from "./useModalA11y";
 import type { EventRecord } from "@/lib/types";
 
@@ -60,7 +60,13 @@ export function DayPanel({
               const c = CATEGORIES[ev.category];
               return (
                 <button className="daycard" key={ev.id} onClick={() => onPick(ev)}>
-                  <div className="time">{timeLabel(ev)}</div>
+                  <div className="time">
+                    {ev.start.slice(0, 10) < dateKey ? (
+                      <span className="run-badge">{dayTimeLabel(ev, dateKey)}</span>
+                    ) : (
+                      dayTimeLabel(ev, dateKey)
+                    )}
+                  </div>
                   <div className="dc-body">
                     <div className="dc-title">{ev.title}</div>
                     <div className="dc-meta">

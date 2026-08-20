@@ -1,6 +1,7 @@
 import { CATEGORIES } from "@/lib/categories";
 import { timeLabel } from "@/lib/dates";
 import { isMultiDay, multiDayLabel } from "@/lib/multiday";
+import { dayTimeLabel } from "@/lib/day-order";
 import { SaveButton } from "./SaveButton";
 import type { EventRecord } from "@/lib/types";
 
@@ -16,15 +17,28 @@ import type { EventRecord } from "@/lib/types";
 export function EventDayCard({
   event,
   showSave = true,
+  dayKey,
 }: {
   event: EventRecord;
   showSave?: boolean;
+  /** The day being viewed. When set, the time slot becomes day-aware: an event
+   *  that began earlier shows how long it runs ("Through Aug 23") instead of the
+   *  first day's clock time, and one starting today shows its real start time
+   *  even if it runs on. Omitted elsewhere (this-week, saved, collections), where
+   *  there is no single day in view and the span badge is the right summary. */
+  dayKey?: string;
 }) {
   const c = CATEGORIES[event.category];
   const card = (
     <a className="daycard" href={`/event/${event.id}`}>
       <div className="time">
-        {isMultiDay(event) ? (
+        {dayKey ? (
+          event.start.slice(0, 10) < dayKey ? (
+            <span className="run-badge">{dayTimeLabel(event, dayKey)}</span>
+          ) : (
+            dayTimeLabel(event, dayKey)
+          )
+        ) : isMultiDay(event) ? (
           <span className="run-badge">{multiDayLabel(event)}</span>
         ) : (
           timeLabel(event)
