@@ -1,6 +1,7 @@
 import { EMAIL_HEAD } from "./email-head";
 import { weeklyPicks } from "./content/weekly-picks";
 import { DOW, MONTHS, timeLabel, evDate, dkey } from "./dates";
+import { chiDayKey } from "./clock";
 import { CATEGORIES } from "./categories";
 import { KIND_META, type Place } from "./places";
 import type { EventRecord } from "./types";
@@ -41,6 +42,10 @@ export interface DigestOptions {
   /** ROADMAP v6 1.3 — the events readers saved most this week (`selectMostSaved`).
    *  Absent/empty ⇒ nothing renders (honest emptiness). Same for every recipient. */
   mostSaved?: EventRecord[];
+  /** The second half of the week (Monday onward), from `splitDigestEvents`.
+   *  Absent/empty ⇒ no second section renders — honest emptiness, not an empty
+   *  heading. `events` stays the primary list, so old callers are unchanged. */
+  laterEvents?: EventRecord[];
 }
 
 /** The curated ~8-event set for the email: family + unique + top regulars. */
@@ -62,6 +67,89 @@ export function digestEvents(events: EventRecord[], now: Date): EventRecord[] {
   return out.sort((a, b) => evDate(a).getTime() - evDate(b).getTime());
 }
 
+/**
+ * Split the week into what a Thursday reader actually plans around: the days
+ * right in front of them, and the week after.
+ *
+ * WHY (Aug 2026): the email was landing 8-for-8 weekend events. Not a window bug —
+ * the window has always been the full 7 days. `scoreEvent` gives weekend events a
+ * hardcoded +2, so with 8 slots and ~57 weekend candidates the weekend filled every
+ * slot before a single midweek event was considered. Measured on a real send:
+ * weekend was 45% of the 127 available events and 100% of the picks — while
+ * THURSDAY had the most events of any day (33) and never appeared.
+ *
+ * The fix is a QUOTA, not a re-scoring. `scoreEvent` is shared with the Instagram
+ * picks (lib/content/weekly-picks), so tilting it would silently change that too;
+ * reserving slots per section changes only this email. The weekend bonus still
+ * does its job WITHIN each section.
+ *
+ * Pure. Degrades honestly: if there is nothing after Sunday, `later` is empty and
+ * the caller renders no second section rather than an empty heading.
+ */
+export interface DigestSplit {
+  /** Through the coming Sunday — the send day, plus the weekend. */
+  soon: EventRecord[];
+  /** The following Monday onward, still inside the 7-day window. */
+  later: EventRecord[];
+}
+
+/** Chicago day key of the first Monday STRICTLY after `now` — the boundary
+ *  between "the days in front of you" and "next week". Noon-anchored so a DST
+ *  transition can never shift the date. Pure. */
+export function nextMondayKey(now: Date): string {
+  const d = new Date(`${chiDayKey(now)}T12:00:00Z`);
+  const delta = ((8 - d.getUTCDay()) % 7) || 7; // Thu → +4, Sun → +1, Mon → +7
+  d.setUTCDate(d.getUTCDate() + delta);
+  return d.toISOString().slice(0, 10);
+}
+
+/** Pick from a rank-ordered pool, keeping the spread the single list had:
+ *  at most one per venue, at most two per day. Pure. */
+function pickSpread(pool: EventRecord[], limit: number, taken: Set<string>): EventRecord[] {
+  const out: EventRecord[] = [];
+  const venues = new Set<string>();
+  const perDay = new Map<string, number>();
+  for (const e of pool) {
+    if (out.length >= limit) break;
+    if (taken.has(e.id)) continue;
+    const venue = e.venue.trim().toLowerCase();
+    const day = e.start.slice(0, 10);
+    if (venue && venues.has(venue)) continue;
+    if ((perDay.get(day) ?? 0) >= 2) continue;
+    out.push(e);
+    taken.add(e.id);
+    if (venue) venues.add(venue);
+    perDay.set(day, (perDay.get(day) ?? 0) + 1);
+  }
+  return out;
+}
+
+export function splitDigestEvents(
+  events: EventRecord[],
+  now: Date,
+  opts: { total?: number; laterTarget?: number } = {},
+): DigestSplit {
+  const total = opts.total ?? 8;
+  const laterTarget = opts.laterTarget ?? 3;
+
+  // Reuse weeklyPicks for the window + ranking so there is ONE definition of
+  // "in this week" and one ranking. `all` is already rank-ordered.
+  const pool = weeklyPicks(events, now, {}).all;
+  const boundary = nextMondayKey(now);
+  const soonPool = pool.filter((e) => e.start.slice(0, 10) < boundary);
+  const laterPool = pool.filter((e) => e.start.slice(0, 10) >= boundary);
+
+  const taken = new Set<string>();
+  // Fill "later" FIRST, up to its quota — otherwise the weekend eats the slots
+  // again and we are back where we started.
+  const later = pickSpread(laterPool, Math.min(laterTarget, Math.max(total - 1, 0)), taken);
+  // Whatever "later" could not fill goes back to "soon", so a thin next week
+  // never shrinks the email.
+  const soon = pickSpread(soonPool, total - later.length, taken);
+
+  const byDate = (a: EventRecord, b: EventRecord) => evDate(a).getTime() - evDate(b).getTime();
+  return { soon: soon.sort(byDate), later: later.sort(byDate) };
+}
 /** "July 14 – 20" style label for the week starting at `now`. */
 export function digestWeekLabel(now: Date): string {
   const end = new Date(now.getTime() + 6 * 86_400_000);
@@ -279,10 +367,28 @@ export function renderDigestEmail(opts: DigestOptions): DigestData {
         ? "This week in the Twin Cities"
         : events.length === 1
           ? `This week: ${top.title}`
-          : `This week in the Twin Cities: ${top.title} + ${events.length - 1} more`;
+          // Count BOTH halves — the email carries them, so the subject must say so.
+          : `This week in the Twin Cities: ${top.title} + ${events.length + (opts.laterEvents?.length ?? 0) - 1} more`;
 
   const rows = events.map((e) => eventRowHtml(e, siteUrl)).join("");
   const savedRows = saved.map((e) => eventRowHtml(e, siteUrl)).join("");
+
+  // The week's second half. Labels are deliberately literal: the boundary IS the
+  // coming Monday, so "This weekend" / "Next week" is true for every possible
+  // pick rather than a flourish we'd have to caveat.
+  const later = opts.laterEvents ?? [];
+  const laterRows = later.map((e) => eventRowHtml(e, siteUrl)).join("");
+  const weekendHeading = later.length === 0 ? "" : `
+        <tr><td style="padding:16px 24px 0;">
+          <div style="font:600 13px/1.2 Arial,Helvetica,sans-serif;color:${GOLD};text-transform:uppercase;letter-spacing:1.5px;">This weekend</div>
+        </td></tr>`;
+  const laterSection = later.length === 0 ? "" : `
+        <tr><td style="padding:18px 24px 0;">
+          <div style="font:600 13px/1.2 Arial,Helvetica,sans-serif;color:${GOLD};text-transform:uppercase;letter-spacing:1.5px;">Next week</div>
+        </td></tr>
+        <tr><td style="padding:12px 24px 0;">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0">${laterRows}</table>
+        </td></tr>`;
   const sponsorHtml = sponsorSlotHtml(sponsor);
   const sponsorText = sponsorSlotText(sponsor);
   // v6 1.3 — evergreen Places bridge + honest reader social proof. Both are
@@ -313,10 +419,10 @@ export function renderDigestEmail(opts: DigestOptions): DigestData {
         </td></tr>
         <tr><td style="padding:16px 24px 4px;">
           <div style="font:400 15px/1.6 Arial,Helvetica,sans-serif;color:${CREAM};">${saved.length > 0 ? "Your week, starting with the plans you already made." : "Here's what's worth your time across the metro this week."}</div>
-        </td></tr>${sponsorHtml}${savedSection}
+        </td></tr>${sponsorHtml}${savedSection}${weekendHeading}
         <tr><td style="padding:14px 24px 0;">
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0">${rows}</table>
-        </td></tr>${mostSavedHtmlBlock}${placeHtml}
+        </td></tr>${laterSection}${mostSavedHtmlBlock}${placeHtml}
         <tr><td style="padding:6px 24px 16px;">
           <a href="${siteUrl}?utm_source=email&utm_medium=digest" style="font:600 15px/1.2 Arial,Helvetica,sans-serif;color:${NAVY};background:${GOLD};text-decoration:none;display:inline-block;padding:12px 20px;border-radius:8px;">See everything on City Pulse &rarr;</a>
         </td></tr>
@@ -352,6 +458,7 @@ export function renderDigestEmail(opts: DigestOptions): DigestData {
           "",
         ]
       : []),
+    ...(later.length > 0 ? ["THIS WEEKEND", ""] : []),
     ...events.flatMap((e) => [
       e.title,
       `  ${whenLabel(e)}`,
@@ -359,6 +466,15 @@ export function renderDigestEmail(opts: DigestOptions): DigestData {
       `  ${eventUrl(siteUrl, e.id)}`,
       "",
     ]),
+    ...(later.length > 0
+      ? ["NEXT WEEK", "", ...later.flatMap((e) => [
+          e.title,
+          `  ${whenLabel(e)}`,
+          `  ${[e.venue, e.city].filter(Boolean).join(" · ")} · ${e.price}`,
+          `  ${eventUrl(siteUrl, e.id)}`,
+          "",
+        ])]
+      : []),
     ...(mostSavedTextBlock ? [mostSavedTextBlock, ""] : []),
     ...(placeText ? [placeText, ""] : []),
     `See everything: ${siteUrl}`,

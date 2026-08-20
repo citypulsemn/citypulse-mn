@@ -39,7 +39,11 @@ describe("wiring tripwires", () => {
 
   it("the key check fires BEFORE any composition (no DB work on a doomed run)", () => {
     expect(src.indexOf("!dryRun && !apiKey")).toBeGreaterThan(-1);
-    expect(src.indexOf("!dryRun && !apiKey")).toBeLessThan(src.indexOf("digestEvents("));
+    // Anchor is splitDigestEvents() since the week was split into two halves;
+    // the property is unchanged — no event selection before the key check.
+    const compose = src.indexOf("splitDigestEvents(");
+    expect(compose).toBeGreaterThan(-1);
+    expect(src.indexOf("!dryRun && !apiKey")).toBeLessThan(compose);
   });
 
   it("the old fold — missing key treated as dry-run — is gone", () => {

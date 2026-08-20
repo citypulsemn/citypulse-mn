@@ -1,7 +1,7 @@
 import { getEventsUncached } from "./events";
 import { getSubscribedRecipients } from "./subscribe";
 import { sql } from "./db";
-import { digestEvents, renderDigestEmail, digestWeekLabel, selectMostSaved } from "./digest";
+import { splitDigestEvents, renderDigestEmail, digestWeekLabel, selectMostSaved } from "./digest";
 import { selectSavedUpcoming, categoryAffinity, personalizePicks } from "./digest-personal";
 import { getSavedEvents } from "./saved";
 import { getMostSavedCounts } from "./stats";
@@ -57,7 +57,15 @@ export async function sendWeeklyDigest(opts: { dryRun?: boolean } = {}): Promise
 
   const now = new Date();
   const allEvents = await getEventsUncached();
-  const picks = digestEvents(allEvents, now);
+  // Two halves of the week: what's in front of the reader now, and next week.
+  // Before this the ranking's weekend bonus filled all 8 slots with Fri-Sun and
+  // midweek events were never seen (measured: weekend was 45% of what was
+  // available and 100% of what shipped).
+  const { soon, later } = splitDigestEvents(allEvents, now);
+  // If the weekend half is somehow empty, promote next week rather than render an
+  // empty first section under a 'This weekend' heading.
+  const picks = soon.length > 0 ? soon : later;
+  const laterPicks = soon.length > 0 ? later : [];
   const recipients = await getSubscribedRecipients();
 
   if (picks.length === 0) {
@@ -107,6 +115,7 @@ export async function sendWeeklyDigest(opts: { dryRun?: boolean } = {}): Promise
     if (savedThisWeek.length > 0) personalized++;
     const { subject, html, text } = renderDigestEmail({
       events: myPicks,
+      laterEvents: laterPicks,
       weekLabel,
       unsubscribeUrl: unsub,
       siteUrl,
