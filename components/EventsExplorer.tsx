@@ -313,6 +313,7 @@ export function EventsExplorer({
     // page via orderDayEvents so the two surfaces always agree (U2).
     return orderDayEvents(
       filtered.filter((ev) => active.has(ev.category) && daysSpanned(ev).includes(dayKey)),
+      dayKey,
     );
   }, [filtered, active, dayKey]);
 

@@ -937,6 +937,11 @@ a.daycard { text-decoration: none; }
 /* ---------- This Weekend (roadmap 6.3) ---------- */
 .wknd-section { margin: 26px 0 6px; }
 .wknd-day { font-family: var(--font-oswald); font-weight: 600; font-size: 19px; letter-spacing: 0.03em; margin: 0 0 12px; color: var(--gold); }
+/* Day-page group headings. "Already running" leads with events that began on an
+   earlier day — their stored clock time belongs to that first day, so they are
+   listed alphabetically and the heading says why they are not in clock order. */
+.day-group-head { font-family: var(--font-oswald); font-weight: 500; font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--cream-dim); margin: 4px 0 10px; }
+.day-group-head + .daycard, .day-group-head + .day-card { margin-top: 0; }
 
 /* ---------- Admin Instagram (roadmap 6.4) ---------- */
 .ig-section { margin: 8px 0 26px; }

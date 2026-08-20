@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getEventsForDay } from "@/lib/events";
-import { orderDayEvents } from "@/lib/day-order";
+import { orderDayEvents, splitDayEvents } from "@/lib/day-order";
 import { EventDayCard } from "@/components/EventDayCard";
 import { TopBar } from "@/components/TopBar";
 import { SiteFooter } from "@/components/SiteFooter";
@@ -48,7 +48,10 @@ export default async function DayPage({
   // Order spans-first then chronological by start time, shared with the DayPanel
   // via orderDayEvents so the page and the homepage panel agree (U2). Reorder before
   // the JSON-LD too, so ItemList position matches the visible order.
-  const events = orderDayEvents(await getEventsForDay(date));
+  const events = orderDayEvents(await getEventsForDay(date), date);
+  // Rendered as two groups so the leading run of already-running events is
+  // explained rather than just looking out of clock order.
+  const { ongoing, timed } = splitDayEvents(events, date);
   const { prev, next } = adjacentDayKeys(date);
 
   return (
@@ -86,7 +89,16 @@ export default async function DayPage({
 
         {events.length > 0 ? (
           <section className="day-list">
-            {events.map((e) => (
+            {ongoing.length > 0 && (
+              <>
+                <h2 className="day-group-head">Already running</h2>
+                {ongoing.map((e) => (
+                  <EventDayCard key={e.id} event={e} />
+                ))}
+                {timed.length > 0 && <h2 className="day-group-head">Starting today</h2>}
+              </>
+            )}
+            {timed.map((e) => (
               <EventDayCard key={e.id} event={e} />
             ))}
           </section>

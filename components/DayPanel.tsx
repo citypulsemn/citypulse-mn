@@ -2,6 +2,7 @@
 
 import { CATEGORIES } from "@/lib/categories";
 import { DOW, MONTHS, timeLabel } from "@/lib/dates";
+import { splitDayEvents } from "@/lib/day-order";
 import { useModalA11y } from "./useModalA11y";
 import type { EventRecord } from "@/lib/types";
 
@@ -19,6 +20,10 @@ export function DayPanel({
   const [y, m, d] = dateKey.split("-").map(Number);
   const dateObj = new Date(y, m - 1, d);
   const dialogRef = useModalA11y<HTMLDivElement>();
+  // Same split the /day page renders. `events` arrives already ordered; this
+  // only recovers WHERE the boundary is so the leading run of already-running
+  // events gets a heading instead of just looking out of clock order.
+  const { ongoing, timed } = splitDayEvents(events, dateKey);
 
   return (
     <div className="overlay" onClick={(ev) => ev.target === ev.currentTarget && onClose()}>
@@ -40,7 +45,18 @@ export function DayPanel({
               Try turning more categories on.
             </div>
           ) : (
-            events.map((ev) => {
+            [
+              ...(ongoing.length > 0 ? [{ head: "Already running", list: ongoing }] : []),
+              ...(timed.length > 0
+                ? [{ head: ongoing.length > 0 ? "Starting today" : null, list: timed }]
+                : []),
+            ].flatMap((group) => [
+              group.head ? (
+                <h3 className="day-group-head" key={`h-${group.head}`}>
+                  {group.head}
+                </h3>
+              ) : null,
+              ...group.list.map((ev) => {
               const c = CATEGORIES[ev.category];
               return (
                 <button className="daycard" key={ev.id} onClick={() => onPick(ev)}>
@@ -57,7 +73,8 @@ export function DayPanel({
                   </div>
                 </button>
               );
-            })
+              }),
+            ])
           )}
         </div>
       </div>
