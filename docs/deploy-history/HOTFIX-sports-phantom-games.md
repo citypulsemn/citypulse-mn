@@ -66,12 +66,42 @@ was not busted by `refresh()`. A deploy was pushed immediately after to clear it
 otherwise the hidden games would have sat on cached pages for up to the 1-hour
 `EVENTS_TTL_SECONDS` window.
 
+## Hockey, same day
+
+Confirmed against `api-web.nhle.com/v1/club-schedule-season/MIN/20262027` (which
+includes preseason — two of the listings were preseason games). **13 of 20
+published Wild listings were wrong**, the identical ratio to the Twins:
+
+| Kind | Count | Example |
+|---|---|---|
+| Phantom — no home game that night | 10 | Oct 7 "vs. Sabres", Oct 9 *and* Oct 10 both "vs. Lightning" |
+| Wrong opponent | 3 | Oct 3, Oct 12, Oct 15 — each shown *beside* the correct listing |
+
+Oct 3 was the clearest symptom: the site advertised both the real Bruins home
+opener and a fictional Predators home opener, same arena, same 7 PM.
+
+One listing, Nov 4, was titled **"New York Rangers vs. Minnesota Wild"** — an
+away game framed as a home one. That framing error deserves its own guard: on a
+local events site, the home team belongs on the left.
+
+All 13 hidden the same way (draft + audit row). **39 listings hidden in total
+today.** Wild is now 7 upcoming listings, all matching the NHL feed; Twins 7, all
+matching MLB.
+
+The match filter was `title ilike '%minnesota wild%'`, deliberately not
+`'%wild%'` — the loose pattern also catches the Harriet Alexander **Wild Rice
+Festival** and a Minnesota Zoo listing. A bulk status change is exactly where a
+clever pattern becomes an incident.
+
 ## Still open
 
-The same defect is confirmed in hockey. Against `api-web.nhle.com`, **13 of 20
-published Wild listings are wrong** — including three same-night contradictions
-already visible on the site (Oct 3 lists both the Bruins home opener *and* a
-fictional Predators opener; Oct 12 and Oct 15 likewise). Not yet actioned.
+One true duplicate remains at Allianz Field on Sep 19: the same LA Galaxy match
+listed twice, as "Minnesota United FC vs. Los Angeles Galaxy" and "MNUFC vs. LA
+Galaxy". Not a falsehood — a dedupe that collapse missed because the abbreviated
+form shares almost no characters with the spelled-out one.
+
+MLS, Gophers, Lynx, Timberwolves, Vikings and Saints remain **0-verified** and
+unaudited. There is no reason to believe they are cleaner; they are unchecked.
 
 Hiding the placeholder listings also left **holes on real game dates**: Nov 6
 (vs. Sharks) and Nov 7 (vs. Lightning) are genuine home games whose only listing
