@@ -10,7 +10,7 @@ import {
   type VenueShow,
   type ExistingShow,
 } from "../music-feed";
-import { firstAvenueMonthUrls, FIRST_AVENUE_VENUES } from "../music-sources";
+import { firstAvenueMonthUrls, FIRST_AVENUE_VENUES, PROMOTED_ELSEWHERE } from "../music-sources";
 
 /**
  * Built from what the real First Avenue calendar and our real listings did on
@@ -238,6 +238,53 @@ describe("reconcileShows", () => {
     if (v.kind === "unmatched") expect(v.alternatives).toEqual(["The Dream Syndicate"]);
   });
 
+  describe("rooms the promoter books into but does not run", () => {
+    // The Cedar is on First Avenue's calendar because they promote there. Their
+    // page is not the Cedar's schedule, so absence proves nothing — but a show
+    // they DO list is still a real show.
+    const KNOWN = {
+      authoritativeVenues: new Set(["first avenue", "turf club"]),
+      knownVenues: new Set(["first avenue", "turf club", "the cedar cultural center"]),
+    };
+
+    it("adds a show at a room it only promotes into", () => {
+      const s = show("2026-09-19", "The Cedar Cultural Center", "Aldous Harding");
+      expect(reconcileShows([s], [], TODAY, KNOWN).missing).toEqual([s]);
+    });
+
+    it("confirms one we already list there", () => {
+      const s = show("2026-09-19", "The Cedar Cultural Center", "Aldous Harding");
+      const plan = reconcileShows([s], [row("r1", "2026-09-19", "The Cedar Cultural Center", "Aldous Harding")], TODAY, KNOWN);
+      expect(plan.verdicts[0].kind).toBe("ok");
+      expect(plan.missing).toEqual([]);
+    });
+
+    it("NEVER hides there, even on a night it lists nothing", () => {
+      // The same inputs at an authoritative room would be a phantom.
+      const plan = reconcileShows(
+        [show("2026-09-19", "Turf Club", "Someone Else")],
+        [row("r1", "2026-09-19", "The Cedar Cultural Center", "A Show We Listed")],
+        TODAY, KNOWN,
+      );
+      expect(plan.verdicts[0].kind).toBe("unknown");
+    });
+
+    it("never hides there even when the act appears elsewhere on the calendar", () => {
+      // At an authoritative room this would be "moved".
+      const plan = reconcileShows(
+        [show("2026-10-01", "Turf Club", "Aldous Harding")],
+        [row("r1", "2026-09-19", "The Cedar Cultural Center", "Aldous Harding")],
+        TODAY, KNOWN,
+      );
+      expect(plan.verdicts[0].kind).toBe("unknown");
+    });
+
+    it("defaults knownVenues to the authoritative set when omitted", () => {
+      const s = show("2026-09-19", "The Cedar Cultural Center", "Aldous Harding");
+      expect(reconcileShows([s], [], TODAY, { authoritativeVenues: new Set(["turf club"]) }).missing).toEqual([]);
+    });
+  });
+
   it("says nothing about a room this calendar doesn't speak for", () => {
     // First Avenue promotes shows at the Armory; that page is not the Armory's
     // schedule, so its silence proves nothing about the building.
@@ -336,6 +383,14 @@ describe("the venue registry", () => {
     // the Mainroom's patterns or every Entry show reads as a Mainroom phantom.
     expect(main.titleVenuePatterns).not.toContain("7th St Entry");
     expect(entry.titleVenuePatterns).toContain("First Avenue & 7th St Entry (7th St Entry)");
+  });
+
+  it("marks promoted-elsewhere rooms non-authoritative, and excludes the Armory", () => {
+    for (const v of PROMOTED_ELSEWHERE) expect(v.authoritative).toBe(false);
+    for (const v of FIRST_AVENUE_VENUES) expect(v.authoritative).toBe(true);
+    // First Avenue promotes nothing at the Armory, so this route cannot reach it
+    // and must not pretend otherwise.
+    expect(PROMOTED_ELSEWHERE.map((v) => v.name)).not.toContain("The Armory");
   });
 
   it("asks for one page per month across the horizon", () => {

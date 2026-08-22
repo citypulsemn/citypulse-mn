@@ -242,11 +242,18 @@ export function showWindow(shows: VenueShow[]): { from: string; to: string } | n
 
 export interface ReconcileShowsOptions {
   /**
-   * Rooms this calendar actually speaks for. A listing at any other venue gets
-   * `unknown` — First Avenue promoting a show at the Armory tells us nothing
-   * about what else the Armory is doing that night.
+   * Rooms this calendar actually speaks for — the ones where "nothing listed"
+   * means "nothing on". Only these can produce `phantom` or `moved`.
    */
   authoritativeVenues: Set<string>;
+  /**
+   * Every room we can place: the authoritative ones PLUS rooms the promoter
+   * merely books into, like the Cedar or Amsterdam Bar & Hall. A show at one of
+   * those is still a real show worth listing and worth confirming — we just
+   * can't read the calendar's silence about that room as evidence of anything.
+   * Defaults to the authoritative set.
+   */
+  knownVenues?: Set<string>;
 }
 
 export function reconcileShows(
@@ -282,11 +289,13 @@ export function reconcileShows(
   const matched = new Set<VenueShow>();
   const verdicts: ShowVerdict[] = [];
 
+  const known = opts.knownVenues ?? opts.authoritativeVenues;
+
   for (const row of existing) {
     if (row.day < todayKey) continue;
     const base = { id: row.id, title: row.title };
-    const authoritative = opts.authoritativeVenues.has(row.venue.toLowerCase());
-    if (!authoritative || !inWindow(row.day)) {
+    const venueKey = row.venue.toLowerCase();
+    if (!known.has(venueKey) || !inWindow(row.day)) {
       verdicts.push({ kind: "unknown", ...base });
       continue;
     }
@@ -295,6 +304,13 @@ export function reconcileShows(
     if (hit) {
       matched.add(hit);
       verdicts.push({ kind: "ok", ...base, url: hit.url });
+      continue;
+    }
+    // Past this point every verdict reads meaning into ABSENCE, which only the
+    // rooms the calendar speaks for can support. A promoter's page not
+    // mentioning tonight's show at the Cedar says nothing about the Cedar.
+    if (!opts.authoritativeVenues.has(venueKey)) {
+      verdicts.push({ kind: "unknown", ...base });
       continue;
     }
 
@@ -324,11 +340,10 @@ export function reconcileShows(
     }
   }
 
+  // Adding is safe everywhere we can place the room: a listed show is positive
+  // evidence regardless of who owns the building. Only HIDING needs authority.
   const missing = feed.filter(
-    (s) =>
-      s.day >= todayKey &&
-      opts.authoritativeVenues.has(s.venue.toLowerCase()) &&
-      !matched.has(s),
+    (s) => s.day >= todayKey && known.has(s.venue.toLowerCase()) && !matched.has(s),
   );
 
   return { verdicts, missing, window };

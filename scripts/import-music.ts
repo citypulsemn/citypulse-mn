@@ -135,6 +135,8 @@ async function main() {
     const authoritativeVenues = new Set(
       source.venues.filter((v) => v.authoritative).map((v) => v.feedName.toLowerCase()),
     );
+    // Every room we can place, including the ones this promoter only books into.
+    const knownVenues = new Set(source.venues.map((v) => v.feedName.toLowerCase()));
 
     // Our own listings for these rooms, however we happen to spell them.
     const patterns = source.venues.flatMap((v) => v.titleVenuePatterns);
@@ -162,7 +164,7 @@ async function main() {
       title: r.title,
     }));
 
-    const plan = reconcileShows(shows, existing, today, { authoritativeVenues });
+    const plan = reconcileShows(shows, existing, today, { authoritativeVenues, knownVenues });
 
     const phantom = plan.verdicts.filter((v) => v.kind === "phantom");
     const moved = plan.verdicts.filter((v) => v.kind === "moved");

@@ -123,10 +123,46 @@ bookings — mostly at the Fitzgerald — sit under music. First Avenue publishe
 genre taxonomy with Comedy and Improv terms but tags no events with it, so there
 is no signal to use yet.
 
+## The Armory: blocked, and why
+
+Attempted 22 Aug 2026. **armorymn.com is behind a Sucuri JavaScript challenge.**
+Every HTML path — the calendar, individual event pages, `wp-json`, the Events
+Calendar plugin's iCal exports — answers `307` with an obfuscated script instead
+of content. Getting past it means executing a challenge whose whole purpose is to
+tell scripts from browsers, so we don't.
+
+What *is* open on that host, and what it's worth:
+
+| Path | Status | Useful? |
+|---|---|---|
+| `robots.txt` | 200, `Disallow:` (nothing disallowed) | states a permissive policy the WAF then contradicts |
+| `sitemap.xml` | 200 | event URLs only — and the pages 307 |
+| `/events/feed/` | 200 | **10 items, and `pubDate` is the POST date, not the show date** |
+
+So the RSS feed hits the same wall as First Avenue's WordPress REST route: real
+titles, no dates. There is no keyless primary source for this room.
+
+**First Avenue's calendar does not reach it either** — they promote nothing at the
+Armory in a three-month window, which is why the Armory is deliberately absent
+from `PROMOTED_ELSEWHERE`.
+
+### The way in
+
+The Armory sells through **Ticketmaster** (venue 50674). The Discovery API is
+documented, free, and rate-limited at 5,000 requests a day — and it would not
+just solve the Armory. Xcel Energy Center, Target Center, the Fillmore, Varsity,
+Uptown, Mystic Lake, the Orpheum/State/Pantages and the Ordway all sell there
+too, so one adapter plausibly covers most of what is left unverified.
+
+It needs one thing this project does not have: a free API key, which is an
+account signup and therefore an owner decision, not something to be arranged
+here. Until then the Armory's 26 upcoming listings stay agent-written.
 ## Coverage, honestly
 
-Six rooms of about thirty music venues in `lib/venues.ts`. The other
-twenty-four — the Armory, the Cedar, Icehouse, the Dakota, Orchestra Hall, the
+Twelve rooms of about thirty music venues in `lib/venues.ts`: six First Avenue
+runs, and six it books into (Amsterdam Bar & Hall, the Cedar, Surly Festival
+Field, the State, Grand Casino Arena, Icehouse) which are add-and-confirm only.
+The other eighteen — the Armory, the Cedar, Icehouse, the Dakota, Orchestra Hall, the
 Ordway, Xcel, Target Center, Mystic Lake and the rest — are still
 agent-researched and unverified.
 

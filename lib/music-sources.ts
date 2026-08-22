@@ -97,6 +97,79 @@ export const FIRST_AVENUE_VENUES: MusicVenue[] = [
   },
 ];
 
+/**
+ * Rooms First Avenue books into but does not run. Their shows are real and worth
+ * listing — 28 of them in a three-month window — but the calendar's SILENCE about
+ * these rooms means nothing, because it is not their schedule. So these are
+ * add-and-confirm only: `authoritative: false`, which the reconciler reads as
+ * "never let absence here hide anything".
+ *
+ * Note what is NOT in this list: the Armory. First Avenue promotes nothing there,
+ * so this route does not reach it. See docs/MUSIC-IMPORT.md.
+ */
+export const PROMOTED_ELSEWHERE: MusicVenue[] = [
+  {
+    feedName: "Amsterdam Bar & Hall",
+    name: "Amsterdam Bar and Hall",
+    city: "Saint Paul",
+    address: "6 W 6th Street",
+    lat: 44.946246,
+    lng: -93.095289,
+    authoritative: false,
+    titleVenuePatterns: ["Amsterdam Bar and Hall", "Amsterdam Bar and Hall (St Paul)", "Amsterdam Bar & Hall"],
+  },
+  {
+    feedName: "The Cedar Cultural Center",
+    name: "The Cedar Cultural Center",
+    city: "Minneapolis",
+    address: "416 Cedar Ave S",
+    lat: 44.969406,
+    lng: -93.247614,
+    authoritative: false,
+    titleVenuePatterns: ["The Cedar Cultural Center", "The Cedar Cultural Center (Minneapolis)", "Cedar Cultural Center"],
+  },
+  {
+    feedName: "Surly Brewing Festival Field",
+    name: "Surly Brewing Festival Field",
+    city: "Minneapolis",
+    address: "520 Malcolm Ave SE",
+    lat: 44.973270,
+    lng: -93.210850,
+    authoritative: false,
+    titleVenuePatterns: ["Surly Brewing Festival Field", "Surly Brewing Co."],
+  },
+  {
+    feedName: "State Theatre",
+    name: "State Theatre",
+    city: "Minneapolis",
+    address: "805 Hennepin Ave",
+    lat: 44.976857,
+    lng: -93.276046,
+    authoritative: false,
+    titleVenuePatterns: ["State Theatre", "Hennepin Arts (State Theatre)"],
+  },
+  {
+    feedName: "Grand Casino Arena",
+    name: "Grand Casino Arena",
+    city: "St. Paul",
+    address: "199 W Kellogg Blvd",
+    lat: 44.932149,
+    lng: -93.112696,
+    authoritative: false,
+    titleVenuePatterns: ["Grand Casino Arena"],
+  },
+  {
+    feedName: "icehouse MPLS",
+    name: "Icehouse",
+    city: "Minneapolis",
+    address: "2528 Nicollet Ave S",
+    lat: 44.956163,
+    lng: -93.278354,
+    authoritative: false,
+    titleVenuePatterns: ["Icehouse", "Icehouse (Minneapolis)"],
+  },
+];
+
 /** Month pages, one request each, covering today through the horizon. */
 export function firstAvenueMonthUrls(from: string, to: string): string[] {
   const urls: string[] = [];
@@ -121,7 +194,7 @@ export const MUSIC_SOURCES = [
     key: "first-avenue",
     label: "First Avenue",
     sourceLabel: "the First Avenue calendar",
-    venues: FIRST_AVENUE_VENUES,
+    venues: [...FIRST_AVENUE_VENUES, ...PROMOTED_ELSEWHERE],
     monthUrls: firstAvenueMonthUrls,
   },
 ];
