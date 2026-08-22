@@ -1,0 +1,355 @@
+import { describe, it, expect } from "vitest";
+import {
+  padDay,
+  foldTitle,
+  parseFirstAvenueMonth,
+  parseFirstAvenueTime,
+  showTitlesMatch,
+  showWindow,
+  reconcileShows,
+  type VenueShow,
+  type ExistingShow,
+} from "../music-feed";
+import { firstAvenueMonthUrls, FIRST_AVENUE_VENUES } from "../music-sources";
+
+/**
+ * Built from what the real First Avenue calendar and our real listings did on
+ * 22 Aug 2026 — including Altın Gün, which we had in the wrong room, and the
+ * four rooms that were genuinely dark on nights we advertised shows.
+ */
+
+const AUTH = {
+  authoritativeVenues: new Set(["first avenue", "7th st entry", "turf club", "fine line"]),
+};
+const TODAY = "2026-08-22";
+
+// A cut-down copy of their markup: day anchor, then show blocks, venue name
+// duplicated per block the way the responsive layout does it.
+const monthHtml = (
+  days: { day: string; shows: { venue: string; title: string; slug: string }[] }[],
+) =>
+  days
+    .map(
+      (d) =>
+        `<div id="day-${d.day}"></div>` +
+        d.shows
+          .map(
+            (s) => `
+  <div class="show_list_item" id="post-1">
+    <div class="venue_col"><div class="venue_name"> ${s.venue} </div></div>
+    <div class="venue_col d-none"><div class="venue_name"> ${s.venue} </div></div>
+    <div class="show_name"><h4 class=" lg ">
+      <a href="https://first-avenue.com/event/${s.slug}/"><em>presents</em> <br>${s.title}</a>
+    </h4></div>
+  </div>`,
+          )
+          .join(""),
+    )
+    .join("");
+
+describe("parsing First Avenue's calendar", () => {
+  it("reads day, venue, title and link — and never infers a date", () => {
+    const html = monthHtml([
+      { day: "2026-08-1", shows: [{ venue: "First Avenue", title: "RUDE&nbsp;AWAKENING", slug: "rude" }] },
+      { day: "2026-08-22", shows: [{ venue: "Fine Line", title: "Pajama Rave", slug: "pajama" }] },
+    ]);
+    const shows = parseFirstAvenueMonth(html);
+    expect(shows).toHaveLength(2);
+    // The presenter line sits before a <br>; the show's own name follows it.
+    expect(shows[0]).toMatchObject({ day: "2026-08-01", venue: "First Avenue", title: "RUDE AWAKENING" });
+    expect(shows[1]).toMatchObject({ day: "2026-08-22", venue: "Fine Line", title: "Pajama Rave" });
+    expect(shows[1].url).toContain("first-avenue.com/event/pajama");
+  });
+
+  it("handles several rooms on one night — a day is not a key here", () => {
+    const shows = parseFirstAvenueMonth(
+      monthHtml([{ day: "2026-09-04", shows: [
+        { venue: "Turf Club", title: "Red Desert", slug: "a" },
+        { venue: "7th St Entry", title: "PIVOT", slug: "b" },
+        { venue: "Turf Club", title: "Danny Worsnop", slug: "c" },
+      ] }]),
+    );
+    expect(shows).toHaveLength(3);
+    expect(shows.filter((s) => s.venue === "Turf Club")).toHaveLength(2);
+  });
+
+  it("drops a show that appears before any day anchor rather than guessing", () => {
+    const orphan = `<div class="show_list_item"><div class="venue_name"> Fine Line </div>
+      <h4 class="lg"><a href="https://x/e/1">Orphan</a></h4></div>` +
+      monthHtml([{ day: "2026-08-25", shows: [{ venue: "Fine Line", title: "Real", slug: "r" }] }]);
+    const shows = parseFirstAvenueMonth(orphan);
+    expect(shows.map((s) => s.title)).toEqual(["Real"]);
+  });
+
+  it("survives markup it doesn't recognise", () => {
+    for (const junk of ["", "<html></html>", "<div id=\"day-2026-08-1\"></div>"]) {
+      expect(parseFirstAvenueMonth(junk)).toEqual([]);
+    }
+  });
+
+  it("zero-pads their unpadded day anchors", () => {
+    expect(padDay("2026-08-1")).toBe("2026-08-01");
+    expect(padDay("2026-8-1")).toBe("2026-08-01");
+    expect(padDay("2026-08-22")).toBe("2026-08-22");
+  });
+});
+
+describe("show times — prefer the show, never invent one", () => {
+  const page = (doors: string, show: string) =>
+    `<div><span>Doors Open</span><span>${doors}</span><span>Show Starts</span><span>${show}</span></div>`;
+
+  it("takes Show Starts over Doors Open", () => {
+    expect(parseFirstAvenueTime(page("7PM", "8PM"))).toBe("20:00");
+  });
+
+  it("handles minutes and midday edges", () => {
+    expect(parseFirstAvenueTime(page("6PM", "6:30PM"))).toBe("18:30");
+    expect(parseFirstAvenueTime(page("11AM", "12PM"))).toBe("12:00");
+    expect(parseFirstAvenueTime(page("11PM", "12AM"))).toBe("00:00");
+  });
+
+  it("falls back to doors when there is no show time", () => {
+    expect(parseFirstAvenueTime("<span>Doors Open</span><span>7PM</span>")).toBe("19:00");
+  });
+
+  it("returns null rather than guessing — the caller stores all-day", () => {
+    expect(parseFirstAvenueTime("<p>Tickets on sale Friday</p>")).toBeNull();
+    expect(parseFirstAvenueTime(page("nope", "nope"))).toBeNull();
+    expect(parseFirstAvenueTime("<span>Show Starts</span><span>25PM</span>")).toBeNull();
+  });
+});
+
+describe("showTitlesMatch — generous, because a miss is never destructive", () => {
+  it("sees through presenter framing", () => {
+    expect(showTitlesMatch("GCW presents RUDE AWAKENING", "Rude Awakening")).toBe(true);
+  });
+
+  it("sees through support acts and night markers", () => {
+    expect(showTitlesMatch("Alabama Shakes", "Alabama Shakes – Night 1")).toBe(true);
+    // Our listing spelled it "Altin", the venue "Altın". Folding to ASCII makes
+    // these the same show, which they are.
+    expect(showTitlesMatch("Altın Gün", "Altin Gün with Ale Maes (18+)")).toBe(true);
+    expect(showTitlesMatch("Mini Trees", "Mini Trees (with frown line)")).toBe(true);
+  });
+
+  it("does not match two different acts", () => {
+    expect(showTitlesMatch("Kamelot", "Larry Fleet")).toBe(false);
+    expect(showTitlesMatch("The Dream Syndicate", "Swervedriver")).toBe(false);
+  });
+
+  it("refuses to match on filler alone", () => {
+    expect(showTitlesMatch("Live Show Night", "The Night Live Show")).toBe(false);
+  });
+
+  it("matches a headliner to its full bill — the commonest shape in live music", () => {
+    // Tightening the matcher to also demand a large share of the LONGER title
+    // was tried and broke every one of these, which is most of a venue calendar.
+    expect(showTitlesMatch("Mastodon", "Mastodon with Deafheaven and Alcest (18+)")).toBe(true);
+    expect(showTitlesMatch("Chat Pile", "Chat Pile with Soul Glo and Prize Horse")).toBe(true);
+    expect(showTitlesMatch("FINICK", "FINICK (with Sallyforth, Lone Rock Bride)")).toBe(true);
+    expect(showTitlesMatch("The Format", "The Format w/ Get Up Kids")).toBe(true);
+    expect(showTitlesMatch("Hulvey", "Hulvey with Indie Tribe & Kijan Boone")).toBe(true);
+  });
+
+  it("matches names a naive a-z filter would destroy", () => {
+    // Each of these failed to match ITSELF: "Altın Gün" folded to "alt n",
+    // "Eivør" to "eiv r". They were hidden and re-added on every run.
+    expect(showTitlesMatch("Altın Gün", "Altın Gün")).toBe(true);
+    expect(showTitlesMatch("Eivør", "Eivør")).toBe(true);
+    expect(showTitlesMatch("Mon Rovîa", "Mon Rovîa")).toBe(true);
+    expect(foldTitle("Altın Gün")).toBe("altin gun");
+    expect(foldTitle("Eivør")).toBe("eivor");
+  });
+
+  it("matches a short band name to itself", () => {
+    // The 4-character rule alone meant L7 and RAV could not match themselves.
+    expect(showTitlesMatch("L7", "L7")).toBe(true);
+    expect(showTitlesMatch("RAV", "RAV")).toBe(true);
+    expect(showTitlesMatch("L7", "RAV")).toBe(false);
+  });
+
+  it("needs a distinctive shared word, not a short one", () => {
+    expect(showTitlesMatch("Sun", "Sun Ra Arkestra")).toBe(false);
+  });
+});
+
+describe("reconcileShows", () => {
+  const show = (day: string, venue: string, title: string): VenueShow => ({
+    day, venue, title, url: `https://first-avenue.com/event/${title.replace(/\W/g, "")}/`,
+  });
+  const row = (id: string, day: string, venue: string, title: string): ExistingShow => ({
+    id, day, venue, title,
+  });
+
+  it("verifies a listing the venue confirms", () => {
+    const plan = reconcileShows(
+      [show("2026-09-04", "Turf Club", "Red Desert")],
+      [row("r1", "2026-09-04", "Turf Club", "Red Desert")],
+      TODAY, AUTH,
+    );
+    expect(plan.verdicts[0].kind).toBe("ok");
+    expect(plan.missing).toEqual([]);
+  });
+
+  it("hides a listing for a room that is dark that night", () => {
+    // Garbage, advertised at First Avenue on a night they had nothing there.
+    const plan = reconcileShows(
+      [show("2026-10-04", "Fine Line", "Militarie Gun")],
+      [row("r1", "2026-10-04", "First Avenue", "Garbage")],
+      TODAY, AUTH,
+    );
+    expect(plan.verdicts[0].kind).toBe("phantom");
+  });
+
+  it("calls it MOVED when the show is really on, somewhere else", () => {
+    // Altın Gün: our listing said First Avenue, the calendar said Fine Line,
+    // same night. Positive evidence beats inferred absence.
+    const plan = reconcileShows(
+      [show("2026-09-15", "Fine Line", "Altin Gün")],
+      [row("r1", "2026-09-15", "First Avenue", "Altin Gün with Ale Maes")],
+      TODAY, AUTH,
+    );
+    const v = plan.verdicts[0];
+    expect(v.kind).toBe("moved");
+    if (v.kind === "moved") expect(v.actual).toEqual({ day: "2026-09-15", venue: "Fine Line" });
+  });
+
+  it("calls it MOVED when the date is wrong", () => {
+    const plan = reconcileShows(
+      [show("2026-09-01", "7th St Entry", "Steel Beans"), show("2026-09-12", "7th St Entry", "SUGAR")],
+      [row("r1", "2026-09-12", "7th St Entry", "Steel Beans")],
+      TODAY, AUTH,
+    );
+    const v = plan.verdicts[0];
+    expect(v.kind).toBe("moved");
+    if (v.kind === "moved") expect(v.actual.day).toBe("2026-09-01");
+  });
+
+  it("FLAGS rather than hides when the room is busy and nothing matches", () => {
+    // The safety valve. Far likelier that our fuzzy matcher failed than that the
+    // venue forgot a show, so a person decides and the listing stays up.
+    const plan = reconcileShows(
+      [show("2026-10-04", "Turf Club", "The Dream Syndicate")],
+      [row("r1", "2026-10-04", "Turf Club", "Swervedriver")],
+      TODAY, AUTH,
+    );
+    const v = plan.verdicts[0];
+    expect(v.kind).toBe("unmatched");
+    if (v.kind === "unmatched") expect(v.alternatives).toEqual(["The Dream Syndicate"]);
+  });
+
+  it("says nothing about a room this calendar doesn't speak for", () => {
+    // First Avenue promotes shows at the Armory; that page is not the Armory's
+    // schedule, so its silence proves nothing about the building.
+    const plan = reconcileShows(
+      [show("2026-10-04", "Fine Line", "Militarie Gun")],
+      [row("r1", "2026-10-04", "Armory", "Some Big Tour")],
+      TODAY, AUTH,
+    );
+    expect(plan.verdicts[0].kind).toBe("unknown");
+  });
+
+  it("adds a show the venue lists and we don't", () => {
+    const s = show("2026-08-27", "Fine Line", "Nino Paid");
+    expect(reconcileShows([s], [], TODAY, AUTH).missing).toEqual([s]);
+  });
+
+  it("does not re-add a show that matched an existing listing", () => {
+    const s = show("2026-08-27", "Fine Line", "Nino Paid");
+    const plan = reconcileShows([s], [row("r1", "2026-08-27", "Fine Line", "Nino Paid")], TODAY, AUTH);
+    expect(plan.missing).toEqual([]);
+  });
+
+  it("collapses an early and a late show of the same billing", () => {
+    // Michael Che played two on 29 Aug. event_key is title|venue|day, so we
+    // cannot store them separately; without this the second is "missing" every
+    // run, forever.
+    const a = show("2026-08-29", "First Avenue", "Michael Che");
+    const b = show("2026-08-29", "First Avenue", "Michael Che");
+    const plan = reconcileShows([a, b], [], TODAY, AUTH);
+    expect(plan.missing).toHaveLength(1);
+  });
+
+  it("keeps both of a genuine double-header", () => {
+    const a = show("2026-09-04", "Turf Club", "Red Desert");
+    const b = show("2026-09-04", "Turf Club", "Danny Worsnop and Tyler Rich");
+    const plan = reconcileShows([a, b], [row("r1", "2026-09-04", "Turf Club", "Red Desert")], TODAY, AUTH);
+    expect(plan.verdicts[0].kind).toBe("ok");
+    expect(plan.missing).toEqual([b]);
+  });
+
+  it("an EMPTY calendar changes nothing", () => {
+    const plan = reconcileShows([], [row("r1", "2026-09-04", "Turf Club", "Red Desert")], TODAY, AUTH);
+    expect(plan.window).toBeNull();
+    expect(plan.missing).toEqual([]);
+    expect(plan.verdicts[0].kind).toBe("unknown");
+  });
+
+  it("leaves listings outside the calendar's window alone", () => {
+    const plan = reconcileShows(
+      [show("2026-09-04", "Turf Club", "Red Desert")],
+      [row("r1", "2027-03-01", "Turf Club", "Someone Else")],
+      TODAY, AUTH,
+    );
+    expect(plan.verdicts[0].kind).toBe("unknown");
+  });
+
+  it("never judges or invents anything in the past", () => {
+    const past = show("2026-08-01", "Turf Club", "Old Show");
+    const plan = reconcileShows(
+      [past, show("2026-09-04", "Turf Club", "Red Desert")],
+      [row("r1", "2026-08-01", "Turf Club", "Something Wrong")],
+      TODAY, AUTH,
+    );
+    expect(plan.verdicts).toEqual([]);
+    expect(plan.missing.map((s) => s.day)).toEqual(["2026-09-04"]);
+  });
+});
+
+describe("showWindow", () => {
+  it("spans the calendar's first to last show", () => {
+    const s = (day: string): VenueShow => ({ day, venue: "Turf Club", title: "x", url: "u" });
+    expect(showWindow([s("2026-09-04"), s("2026-08-22"), s("2026-11-01")]))
+      .toEqual({ from: "2026-08-22", to: "2026-11-01" });
+    expect(showWindow([])).toBeNull();
+  });
+});
+
+describe("the venue registry", () => {
+  it("covers the six rooms First Avenue books", () => {
+    expect(FIRST_AVENUE_VENUES.map((v) => v.feedName).sort()).toEqual([
+      "7th St Entry", "Fine Line", "First Avenue", "Palace Theatre",
+      "The Fitzgerald Theater", "Turf Club",
+    ]);
+  });
+
+  it("pins the Fitzgerald to downtown St Paul, not the bad coordinate pair", () => {
+    const fitz = FIRST_AVENUE_VENUES.find((v) => v.feedName === "The Fitzgerald Theater")!;
+    expect(fitz.lat).toBeCloseTo(44.9482, 3);
+    expect(fitz.lng).toBeCloseTo(-93.0916, 3);
+  });
+
+  it("keeps the Mainroom and the Entry apart", () => {
+    const main = FIRST_AVENUE_VENUES.find((v) => v.feedName === "First Avenue")!;
+    const entry = FIRST_AVENUE_VENUES.find((v) => v.feedName === "7th St Entry")!;
+    // Same building, different rooms — the Entry's spellings must not leak into
+    // the Mainroom's patterns or every Entry show reads as a Mainroom phantom.
+    expect(main.titleVenuePatterns).not.toContain("7th St Entry");
+    expect(entry.titleVenuePatterns).toContain("First Avenue & 7th St Entry (7th St Entry)");
+  });
+
+  it("asks for one page per month across the horizon", () => {
+    const urls = firstAvenueMonthUrls("2026-08-22", "2026-11-22");
+    expect(urls).toHaveLength(4);
+    expect(urls[0]).toContain("start_date=20260801");
+    expect(urls[3]).toContain("start_date=20261101");
+    for (const u of urls) expect(u).toMatch(/^https:\/\/first-avenue\.com\/shows\?/);
+  });
+
+  it("rolls over the year", () => {
+    const urls = firstAvenueMonthUrls("2026-11-15", "2027-02-01");
+    expect(urls.map((u) => u.split("start_date=")[1])).toEqual(
+      ["20261101", "20261201", "20270101", "20270201"],
+    );
+  });
+});

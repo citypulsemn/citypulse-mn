@@ -42,6 +42,23 @@ Two corollaries, each paid for in the same incident:
 Corollary from the same audit: **two published events in the same venue at the same
 time is a contradiction the site can detect on its own.** One query. It would have
 caught this in June.
+## 12. A fuzzy match may confirm, but it must never destroy
+The music importer matches our listing titles against a venue's calendar, and that
+matching is unavoidably loose — "Mastodon" is their "Mastodon with Deafheaven and
+Alcest (18+)". So the verdicts are split by how much the evidence actually
+supports: the room being DARK that night, or the show being visible ELSEWHERE on
+the calendar, are strong enough to hide a listing. "The room is busy and nothing
+matched" is not — that is likelier to be our matcher failing than the venue
+forgetting a show, so it is flagged for a person and nothing is touched.
+
+Two corollaries from building it (Aug 2026, `docs/MUSIC-IMPORT.md`):
+- **Tightening a fuzzy matcher can cost more than it saves.** Adding a second
+  threshold to guard an invented edge case broke headliner-plus-support, which is
+  most of a venue calendar. Test matchers against real data, not imagined data.
+- **A record must be able to match ITSELF.** `[^a-z]` folding turned "Altın Gün"
+  into `alt n` and "Eivør" into `eiv r`, so both were hidden and re-created on
+  every run. Any dedupe or reconcile key needs a round-trip test on the real
+  values, accents and two-character band names included.
 ## 7. Smoke conventions
 One `next start` cycle per build (repeated cycles exhaust the container — use plain `node -e`/tsx for pure-lib checks). RSC streaming inserts `<!-- -->` between text expressions — grep static strings only. wkhtmltoimage for visuals, minding rule 3's renderer caveats.
 
