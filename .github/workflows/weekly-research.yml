@@ -34,3 +34,16 @@ jobs:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           MAPBOX_GEOCODING_TOKEN: ${{ secrets.MAPBOX_GEOCODING_TOKEN }}
+
+      # Runs AFTER the pipeline, deliberately: the research agents are the thing
+      # being corrected. Whatever they invented about the Twins this week gets
+      # measured against the league's own schedule before anybody sees it.
+      #
+      # No ANTHROPIC_API_KEY — this step reads public league APIs, no model in
+      # the loop, which is the entire point. A feed that is down reports itself
+      # unavailable and changes nothing, so this step failing the run would be
+      # noise; it only exits non-zero on a real error like a missing DB URL.
+      - name: Reconcile sports against official league schedules
+        run: npm run import-sports
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}

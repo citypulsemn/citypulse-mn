@@ -23,6 +23,25 @@ The dev container has **no database** (all DB paths ship pre-wrapped and are exe
 ## 6. Honest emptiness
 Strips self-hide below minimum (trending, ongoing); pages render honest empty states; generators mark thin cards incomplete rather than padding. No sad placeholders, no fake content, no silent filtering — exclusions are reported with reasons.
 
+## 11. Never derive a fact from prose when the primary source publishes it
+The pipeline learned the Twins' September from *news articles about the schedule
+release*. Four runs read four different articles and produced four Septembers that
+disagreed; 13 of 20 published Twins listings were wrong, and the Wild the same. A
+reader found it before we did (Aug 2026). MLB, the NHL and ESPN all publish exact
+schedules as free JSON — see `docs/SPORTS-IMPORT.md`. A sportswriter's paragraph is
+at best a hint that the feed changed.
+
+Two corollaries, each paid for in the same incident:
+- **A feed's placeholder is not a fact.** "Time not announced" arrives as a
+  real-looking instant (MLB `08:33Z`, ESPN Eastern midnight). Taken literally it
+  puts games on the wrong DAY. Carry the absence; render "All day".
+- **Silence is not evidence of absence.** An empty feed and an offseason look
+  identical. Derive the window from what the source actually returned and judge
+  nothing outside it, or one bad morning at an API archives a season.
+
+Corollary from the same audit: **two published events in the same venue at the same
+time is a contradiction the site can detect on its own.** One query. It would have
+caught this in June.
 ## 7. Smoke conventions
 One `next start` cycle per build (repeated cycles exhaust the container — use plain `node -e`/tsx for pure-lib checks). RSC streaming inserts `<!-- -->` between text expressions — grep static strings only. wkhtmltoimage for visuals, minding rule 3's renderer caveats.
 

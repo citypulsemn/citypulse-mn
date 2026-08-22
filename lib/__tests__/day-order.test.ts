@@ -196,7 +196,7 @@ describe("dayTimeLabel — never show a clock time we can't stand behind", () =>
     // Began earlier, no span end recorded — we know it's running, nothing more.
     // end: null is the real "no usable end" case — the fixture default end
     // (2026-07-20T21:00) would correctly make this a LAST DAY instead.
-    const vague = ev({ title: "No End", start: "2026-07-18T10:00", end: null });
+    const vague = ev({ title: "No End", start: "2026-07-18T10:00", end: undefined });
     expect(dayTimeLabel(vague, DAY)).toBe("Ongoing");
   });
 
