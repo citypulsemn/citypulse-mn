@@ -18,10 +18,15 @@ Fine Line.
 ## Run it
 
 ```bash
-npm run import-music -- --dry-run     # prints the plan, writes nothing
-npm run import-music                  # applies
-npm run import-music -- --days=180    # widen the horizon (default 92)
+npm run import-venues -- --dry-run     # prints the plan, writes nothing
+npm run import-venues                  # applies
+npm run import-venues -- --days=180    # widen the horizon (default 92)
 ```
+
+**Renamed from `import-music` on 26 Aug**, when the Minneapolis Park Board source
+landed and it started importing nature walks and movies in the park. A script
+named for one category while importing four is the drift this project writes
+rules about. The Park Board source has its own doc: `docs/PARKS-IMPORT.md`.
 
 Weekly in `.github/workflows/weekly-research.yml`, after the sports step.
 

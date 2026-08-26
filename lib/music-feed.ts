@@ -48,6 +48,15 @@ export interface VenueShow {
   url: string;
   /** "HH:MM" once the detail page has been read; absent until then. */
   time?: string;
+  /**
+   * The source's OWN category tags, verbatim. Policy lives with the caller —
+   * the parser reports what the feed says and decides nothing.
+   */
+  tags?: string[];
+  /** Category the source itself assigns, when it has a taxonomy. */
+  category?: import("./types").CategoryKey;
+  /** Where the venue is, when the feed says. Lets a source register itself. */
+  venueInfo?: { address: string; city: string; lat: number; lng: number };
 }
 
 export interface ExistingShow {
@@ -91,9 +100,34 @@ export function padDay(raw: string): string {
   return `${m[1]}-${m[2].padStart(2, "0")}-${m[3].padStart(2, "0")}`;
 }
 
+/**
+ * Strip markup and decode entities.
+ *
+ * The named list used to be hand-written — `&amp;`, `&#038;`, `&#8217;` — and
+ * the Park Board promptly published "Early Birders &#8211; May-August", whose
+ * en-dash wasn't on it. A title reaches the site verbatim, so a missed entity is
+ * visible to every reader. Numeric entities are now decoded as a class rather
+ * than one at a time.
+ */
+const NAMED_ENTITIES: Record<string, string> = {
+  amp: "&", nbsp: " ", quot: '"', apos: "'", lt: "<", gt: ">",
+  ndash: "–", mdash: "—", hellip: "…", rsquo: "'", lsquo: "'",
+  ldquo: "“", rdquo: "”",
+};
+
 const stripTags = (s: string) =>
-  s.replace(/<[^>]+>/g, " ").replace(/&nbsp;/g, " ").replace(/&amp;/g, "&")
-    .replace(/&#0?38;/g, "&").replace(/&#8217;/g, "'").replace(/\s+/g, " ").trim();
+  s
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&#x([0-9a-f]+);/gi, (_m, hex) => safeCodePoint(parseInt(hex, 16)))
+    .replace(/&#(\d+);/g, (_m, dec) => safeCodePoint(Number(dec)))
+    .replace(/&([a-z]+);/gi, (m, name) => NAMED_ENTITIES[String(name).toLowerCase()] ?? m)
+    .replace(/\s+/g, " ")
+    .trim();
+
+/** An out-of-range code point is left alone rather than turned into a replacement char. */
+function safeCodePoint(n: number): string {
+  return Number.isFinite(n) && n > 0 && n <= 0x10ffff ? String.fromCodePoint(n) : "";
+}
 
 /**
  * First Avenue's month page. Their markup gives us the two things that matter
@@ -180,12 +214,30 @@ export function parseTribeEvents(json: unknown): VenueShow[] {
     const venue = stripTags(String(venueRec.venue ?? ""));
     const title = stripTags(String(e.title ?? ""));
     if (!venue || !title) continue;
+    const tags = (Array.isArray(e.categories) ? e.categories : [])
+      .map((c) => stripTags(String((c as Record<string, unknown>)?.name ?? "")))
+      .filter(Boolean);
+    // Coordinates come from the feed, so a source can register 44 venues without
+    // anyone hand-typing 44 coordinate pairs — or spending a Mapbox call.
+    const lat = Number(venueRec.geo_lat);
+    const lng = Number(venueRec.geo_lng);
+    const venueInfo =
+      Number.isFinite(lat) && Number.isFinite(lng)
+        ? {
+            address: stripTags(String(venueRec.address ?? "")),
+            city: stripTags(String(venueRec.city ?? "")) || "Minneapolis",
+            lat,
+            lng,
+          }
+        : undefined;
     out.push({
       day: m[1],
       venue,
       title,
       url: String(e.url ?? ""),
       time: `${m[2]}:${m[3]}`,
+      tags,
+      venueInfo,
     });
   }
   return out;

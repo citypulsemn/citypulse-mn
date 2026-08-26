@@ -1,4 +1,6 @@
 import type { SportsVenue } from "./sports-sources";
+import type { VenueShow } from "./music-feed";
+import type { CategoryKey } from "./types";
 
 /**
  * VENUE REGISTRY for the music importer.
@@ -27,6 +29,8 @@ export interface MusicVenue extends SportsVenue {
   authoritative: boolean;
   /** ILIKE patterns matching how our own listings spell this room. */
   titleVenuePatterns: string[];
+  /** Category for listings created here, when the feed has no better answer. */
+  defaultCategory?: CategoryKey;
 }
 
 const FIRST_AVE_BLOCK = {
@@ -210,10 +214,75 @@ export const MPLS_PARKS_VENUES: MusicVenue[] = [
     address: "4135 W Lake Harriet Pkwy",
     lat: 44.922_58,
     lng: -93.309_86,
+    // The ONLY authoritative park venue. It is a bookable stage the Board
+    // programmes exclusively, and a run against it produced zero phantoms.
+    // Every other park is a public space where things happen that the Board's
+    // calendar has no reason to know about — a permitted festival in Loring
+    // Park is not theirs to list, and reading their silence as "nothing on"
+    // would hide it.
     authoritative: true,
     titleVenuePatterns: ["Lake Harriet Bandshell", "Lake Harriet Band Shell"],
   },
 ];
+
+/**
+ * Their own taxonomy → our category. This is the thing First Avenue could not
+ * give us: a category from the people running the event rather than a keyword
+ * scorer guessing at a title.
+ *
+ * `null` means DO NOT LIST.
+ */
+export function mplsParksCategory(tags: string[] = []): CategoryKey | null {
+  const has = (needle: string) => tags.some((t) => t.toLowerCase().includes(needle));
+
+  // Board meetings, budget hearings, "Open House for Lake Nokomis Shoreline
+  // Improvements". Public, minuted, and not a thing to do on a Saturday.
+  if (has("public meeting")) return null;
+
+  // 101 of the feed's 216 entries, and excluded deliberately — see
+  // docs/PARKS-IMPORT.md. They are recurring weekly SHIFTS ("Peace Garden
+  // Volunteering" every Tuesday, "Meadow Makers", buckthorn mornings), not
+  // events, and listing them would more than double the family category with
+  // near-identical repeats. Flip this one line to include them.
+  if (has("volunteer")) return null;
+
+  if (has("music in the parks")) return "music";
+  if (has("movies in the parks")) return "family";
+  // Everything else the Board runs in a park: ice-cream socials, storytimes,
+  // markets, nature walks, open streets.
+  return "family";
+}
+
+/**
+ * Build the venue registry from the feed itself.
+ *
+ * Hand-registering was right for eight sports teams and six First Avenue rooms.
+ * It is wrong for forty-four parks: the Board publishes each venue's address and
+ * coordinates, so typing them out by hand would add forty-four chances to get a
+ * coordinate wrong and nothing else. A venue with no coordinates is skipped
+ * rather than geocoded — this importer keeps Mapbox out of its path.
+ */
+export function mplsParksVenuesFrom(shows: VenueShow[]): MusicVenue[] {
+  const pinned = new Map(MPLS_PARKS_VENUES.map((v) => [v.feedName.toLowerCase(), v]));
+  const out = new Map<string, MusicVenue>(pinned);
+  for (const s of shows) {
+    const key = s.venue.toLowerCase();
+    if (out.has(key) || !s.venueInfo) continue;
+    // A venue whose "name" is a street address names no place a reader can use.
+    if (/^\d+\s/.test(s.venue)) continue;
+    out.set(key, {
+      feedName: s.venue,
+      name: s.venue,
+      address: s.venueInfo.address,
+      city: s.venueInfo.city,
+      lat: s.venueInfo.lat,
+      lng: s.venueInfo.lng,
+      authoritative: false,
+      titleVenuePatterns: [s.venue],
+    });
+  }
+  return [...out.values()];
+}
 
 /**
  * Tribe pages at 50 and 404s past the last page, so the page count has to come
@@ -250,5 +319,9 @@ export const MUSIC_SOURCES = [
     pageUrl: mplsParksPageUrl,
     format: "tribe-json" as const,
     paged: true,
+    /** Their taxonomy decides the category, and decides what not to list. */
+    categoryFor: mplsParksCategory,
+    /** 44 venues, registered from the feed's own coordinates. */
+    venuesFrom: mplsParksVenuesFrom,
   },
 ];

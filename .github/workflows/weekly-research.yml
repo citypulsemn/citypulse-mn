@@ -52,7 +52,7 @@ jobs:
       # because it fetches a detail page per show it adds, paced at 500ms to be a
       # good guest on a venue's site — a few minutes on a week with a lot of new
       # shows, and near-instant once the season is loaded.
-      - name: Reconcile music against venue calendars
-        run: npm run import-music
+      - name: Reconcile listings against venue calendars
+        run: npm run import-venues
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}

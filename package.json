@@ -20,10 +20,10 @@
     "ops-digest": "tsx --env-file-if-exists=.env.local scripts/send-ops-digest.ts",
     "gsc-report": "tsx --env-file-if-exists=.env.local scripts/gsc-report.ts",
     "import-sports": "tsx --env-file-if-exists=.env.local scripts/import-sports.ts",
-    "import-music": "tsx --env-file-if-exists=.env.local scripts/import-music.ts",
     "dedupe-flagged": "tsx --env-file-if-exists=.env.local scripts/dedupe-flagged.ts",
     "hide-placeholders": "tsx --env-file-if-exists=.env.local scripts/hide-placeholders.ts",
-    "resolve-conflicts": "tsx --env-file-if-exists=.env.local scripts/resolve-conflicts.ts"
+    "resolve-conflicts": "tsx --env-file-if-exists=.env.local scripts/resolve-conflicts.ts",
+    "import-venues": "tsx --env-file-if-exists=.env.local scripts/import-venues.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.117.1",

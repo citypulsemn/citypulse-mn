@@ -17,6 +17,8 @@ import {
   FIRST_AVENUE_VENUES,
   PROMOTED_ELSEWHERE,
   MPLS_PARKS_VENUES,
+  mplsParksCategory,
+  mplsParksVenuesFrom,
 } from "../music-sources";
 
 /**
@@ -115,15 +117,62 @@ describe("parsing The Events Calendar's REST feed (Minneapolis Park Board)", () 
         },
       ]),
     );
-    expect(shows).toEqual([
-      {
-        day: "2026-08-26",
-        venue: "Lake Harriet Bandshell",
-        title: "Piece of Cake",
-        url: "https://www.minneapolisparks.org/events/piece-of-cake/",
-        time: "19:30",
-      },
-    ]);
+    expect(shows[0]).toMatchObject({
+      day: "2026-08-26",
+      venue: "Lake Harriet Bandshell",
+      title: "Piece of Cake",
+      url: "https://www.minneapolisparks.org/events/piece-of-cake/",
+      time: "19:30",
+    });
+  });
+
+  it("carries the feed's own category tags through, verbatim", () => {
+    // The tags are what let the Park Board decide the category and decide what
+    // isn't an event. The parser reports them and judges nothing.
+    const [s] = parseTribeEvents(
+      tribe([{
+        title: "Board Meeting",
+        start_date: "2026-09-02 17:00:00",
+        venue: { venue: "Mary Merrill Headquarters" },
+        url: "u",
+        categories: [{ name: "Public Meetings" }],
+      }]),
+    );
+    expect(s.tags).toEqual(["Public Meetings"]);
+  });
+
+  it("carries venue coordinates so a source can register itself", () => {
+    const [s] = parseTribeEvents(
+      tribe([{
+        title: "Garden Storytime",
+        start_date: "2026-08-27 10:00:00",
+        url: "u",
+        venue: {
+          venue: "Eloise Butler Wildflower Garden",
+          address: "1 Theodore Wirth Pkwy",
+          city: "Minneapolis",
+          geo_lat: 44.9745452,
+          geo_lng: -93.3183,
+        },
+      }]),
+    );
+    expect(s.venueInfo).toEqual({
+      address: "1 Theodore Wirth Pkwy",
+      city: "Minneapolis",
+      lat: 44.9745452,
+      lng: -93.3183,
+    });
+  });
+
+  it("decodes entities as a CLASS, not one at a time", () => {
+    // "Early Birders &#8211; May-August" reached the site with a raw entity in
+    // it, because the decoder was a hand-written list that had &#038; and
+    // &#8217; but not the en-dash. A title is shown verbatim to readers.
+    const t = (title: string) =>
+      parseTribeEvents(tribe([{ title, start_date: "2026-08-27 10:00:00", venue: { venue: "V" }, url: "u" }]))[0].title;
+    expect(t("Early Birders &#8211; May-August")).toBe("Early Birders – May-August");
+    expect(t("Rock &amp; Roll &#8212; Night &#x27;26")).toBe("Rock & Roll — Night '26");
+    expect(t("Caf&eacute; Night")).toBe("Caf&eacute; Night"); // unknown name left visible, not mangled
   });
 
   it("unescapes the HTML entities their titles arrive in", () => {
@@ -494,5 +543,65 @@ describe("the Minneapolis Park Board source", () => {
     expect(u1).toContain("page=1");
     expect(mplsParksPageUrl("2026-08-26", "2026-11-26", 4)).toContain("page=4");
     for (const u of [u1, mplsParksPageUrl("a", "b", 2)]) expect(u).toMatch(/^https:\/\//);
+  });
+});
+
+describe("the Park Board's own taxonomy decides what to list", () => {
+  it("refuses board meetings and construction open houses", () => {
+    expect(mplsParksCategory(["Public Meetings"])).toBeNull();
+  });
+
+  it("refuses volunteer shifts — a deliberate, reversible call", () => {
+    // 101 of the feed's 216 entries. Recurring weekly shifts, not events;
+    // listing them would more than double the family category with repeats.
+    expect(mplsParksCategory(["Environmental Volunteer Opportunities"])).toBeNull();
+    expect(mplsParksCategory(["Environmental Volunteer Opportunities", "Events- All"])).toBeNull();
+  });
+
+  it("takes the category from the source rather than guessing at the title", () => {
+    expect(mplsParksCategory(["Music & Movies in the Parks", "Music in the Parks"])).toBe("music");
+    expect(mplsParksCategory(["Movies in the Parks", "Music & Movies in the Parks"])).toBe("family");
+    expect(mplsParksCategory(["Events- All", "Events- MPRB"])).toBe("family");
+    expect(mplsParksCategory([])).toBe("family");
+  });
+});
+
+describe("registering park venues from the feed", () => {
+  const show = (venue: string, info?: VenueShow["venueInfo"]): VenueShow => ({
+    day: "2026-09-01", venue, title: "x", url: "u", venueInfo: info,
+  });
+  const INFO = { address: "1 Theodore Wirth Pkwy", city: "Minneapolis", lat: 44.97, lng: -93.31 };
+
+  it("builds a venue from the coordinates the Board publishes", () => {
+    const v = mplsParksVenuesFrom([show("Eloise Butler Wildflower Garden", INFO)]);
+    const eb = v.find((x) => x.feedName === "Eloise Butler Wildflower Garden")!;
+    expect(eb).toMatchObject({ lat: 44.97, lng: -93.31, city: "Minneapolis", authoritative: false });
+  });
+
+  it("keeps every derived park NON-authoritative", () => {
+    // A public park is not a bookable room. The Board's calendar has no reason
+    // to know about a permitted festival in Loring Park, and reading its silence
+    // as "nothing on" would hide one.
+    const v = mplsParksVenuesFrom([show("Loring Park", INFO), show("Boom Island Park", INFO)]);
+    for (const x of v.filter((y) => y.feedName !== "Lake Harriet Bandshell")) {
+      expect(x.authoritative).toBe(false);
+    }
+  });
+
+  it("keeps the bandshell's pinned entry, authoritative", () => {
+    const v = mplsParksVenuesFrom([show("Lake Harriet Bandshell", INFO)]);
+    const bs = v.find((x) => x.feedName === "Lake Harriet Bandshell")!;
+    expect(bs.authoritative).toBe(true);
+    expect(bs.titleVenuePatterns).toContain("Lake Harriet Band Shell");
+  });
+
+  it("skips a venue with no coordinates rather than geocoding it", () => {
+    expect(mplsParksVenuesFrom([show("Lyndale Park Peace Garden")]).map((v) => v.feedName))
+      .toEqual(["Lake Harriet Bandshell"]);
+  });
+
+  it("skips a 'venue' that is just a street address", () => {
+    const v = mplsParksVenuesFrom([show("4291 Queen Ave S, Minneapolis, MN 55410", INFO)]);
+    expect(v.map((x) => x.feedName)).toEqual(["Lake Harriet Bandshell"]);
   });
 });

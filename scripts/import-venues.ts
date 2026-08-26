@@ -1,9 +1,13 @@
 /**
- * Venue calendar importer (music).
+ * Venue calendar importer.
  *
- * Usage: npm run import-music [-- --dry-run] [-- --days=92]
+ * Usage: npm run import-venues [-- --dry-run] [-- --days=92]
  *
- * Reads First Avenue's own show calendar and reconciles the site against it.
+ * Reads venue calendars — First Avenue's six rooms, and the Minneapolis Park
+ * Board's parks — and reconciles the site against them. It was import-music until
+ * the Park Board source landed and it started adding nature walks and movies in
+ * the park; a script named for one category while importing four is the kind of
+ * drift this project writes rules about.
  * Same spirit as scripts/import-sports.ts, with one deliberate difference: this
  * one is far more reluctant to hide anything, because music titles are fuzzy and
  * a venue calendar is a weaker negative than a league schedule.
@@ -84,7 +88,10 @@ function toEventInput(show: VenueShow, venue: MusicVenue): DbEventInput | null {
   return {
     event_key: computeEventKey(show.title, venue.name, show.day),
     title: show.title,
-    category: "music",
+    // The Park Board tags its own events, which is the signal First Avenue could
+    // not give us. Where a source has no taxonomy, a music room's calendar is
+    // still the best evidence that a listing is a gig.
+    category: show.category ?? venue.defaultCategory ?? "music",
     venue: venue.name,
     address: venue.address,
     city: venue.city,
@@ -146,20 +153,35 @@ async function main() {
       continue;
     }
     shows = shows.filter((s) => s.day >= today && s.day <= horizonEnd);
+
+    // A source with its own taxonomy decides both the category AND what is not
+    // an event at all. Reported, not silent: a feed that suddenly excludes
+    // everything is a broken mapping, not a quiet week.
+    if (source.categoryFor) {
+      const before = shows.length;
+      shows = shows
+        .map((s) => ({ ...s, category: source.categoryFor!(s.tags) ?? undefined }))
+        .filter((s) => source.categoryFor!(s.tags) !== null);
+      const dropped = before - shows.length;
+      if (dropped) console.log(`   ${dropped} entr${dropped === 1 ? "y" : "ies"} its own taxonomy says are not events`);
+    }
     if (!shows.length) {
       console.log("   calendar returned no shows in the horizon (no changes made)");
       continue;
     }
 
-    const byFeedName = new Map(source.venues.map((v) => [v.feedName.toLowerCase(), v]));
+    // Hand-registered for eight teams and six rooms; derived from the feed for
+    // forty-four parks, whose coordinates the Board publishes itself.
+    const venues = source.venuesFrom ? source.venuesFrom(shows) : source.venues;
+    const byFeedName = new Map(venues.map((v) => [v.feedName.toLowerCase(), v]));
     const authoritativeVenues = new Set(
-      source.venues.filter((v) => v.authoritative).map((v) => v.feedName.toLowerCase()),
+      venues.filter((v) => v.authoritative).map((v) => v.feedName.toLowerCase()),
     );
     // Every room we can place, including the ones this promoter only books into.
-    const knownVenues = new Set(source.venues.map((v) => v.feedName.toLowerCase()));
+    const knownVenues = new Set(venues.map((v) => v.feedName.toLowerCase()));
 
     // Our own listings for these rooms, however we happen to spell them.
-    const patterns = source.venues.flatMap((v) => v.titleVenuePatterns);
+    const patterns = venues.flatMap((v) => v.titleVenuePatterns);
     const rows = await sql<{ id: string; day: string; venue: string; title: string }[]>`
       select id::text as id,
              to_char(start_at at time zone 'America/Chicago', 'YYYY-MM-DD') as day,
@@ -174,7 +196,7 @@ async function main() {
     // Map each listing's venue spelling onto the calendar's own name, so
     // "Fine Line Music Cafe" is compared against "Fine Line".
     const spellingToFeed = new Map<string, string>();
-    for (const v of source.venues) {
+    for (const v of venues) {
       for (const p of v.titleVenuePatterns) spellingToFeed.set(p.toLowerCase(), v.feedName);
     }
     const existing: ExistingShow[] = rows.map((r) => ({
@@ -194,7 +216,7 @@ async function main() {
 
     console.log(
       `   ${shows.length} shows on the calendar, ${plan.window?.from}→${plan.window?.to}` +
-        ` · ${rows.length} of our listings in these rooms`,
+        ` · ${venues.length} venues · ${rows.length} of our listings in them`,
     );
     for (const v of phantom) console.log(`   HIDE    ${v.title.slice(0, 52).padEnd(52)} room dark that night`);
     for (const v of moved) {
