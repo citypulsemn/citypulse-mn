@@ -75,18 +75,69 @@ export interface VerifiableEvent {
 }
 
 /**
- * Which events deserve a re-check: published, starting within `days`, soonest
- * first (tonight's show matters more than next Sunday's), capped so the job has
- * a predictable cost. Events with no source or ticket URL are skipped — there's
- * nothing to check them against.
+ * How many events one run may check.
+ *
+ * Was 40, which covered about 25 hours of a 7-day window — and since the job
+ * runs weekly, everything past that hour simply happened without being looked
+ * at. 200 clears a full window with room for a festival week (165 measured on
+ * 26 Aug 2026).
+ *
+ * The cap is the COST ceiling, not the schedule. What actually stops a long run
+ * is `RUN_BUDGET_MS` below, so a slow week ends on time instead of being killed
+ * by the Actions timeout.
+ */
+export const DEFAULT_CAP = 200;
+
+/**
+ * Wall-clock budget for the agent loop, in ms. The GitHub job allows 30 minutes
+ * total; this leaves room for checkout, `npm ci` and the final writes.
+ *
+ * A budget rather than a batch count because per-batch time is not knowable in
+ * advance — it depends on how many web searches each event needs. Guessing a
+ * batch count that "should fit" is how a job gets killed at 90% done.
+ */
+export const RUN_BUDGET_MS = 20 * 60 * 1000;
+
+/**
+ * Should the loop start another batch? Checked BEFORE each batch, never during:
+ * a batch already in flight has been paid for and always finishes.
+ */
+export function withinBudget(startedAt: number, now: number, budgetMs = RUN_BUDGET_MS): boolean {
+  return now - startedAt < budgetMs;
+}
+
+/** A row as the selector sees it: an event plus whether a source ever vouched for it. */
+export type VerificationCandidate = Pick<
+  EventRecord,
+  "id" | "title" | "venue" | "city" | "start" | "sourceUrl" | "ticketUrl" | "status"
+> & {
+  /** When a primary source last confirmed this row. Null/absent = never checked. */
+  verifiedAt?: string | null;
+};
+
+/**
+ * Which events deserve a re-check: published, starting within `days`, with a
+ * source to check against. Events with no source or ticket URL are skipped —
+ * there's nothing to check them against.
+ *
+ * ORDER: never-verified first, then soonest first inside each group.
+ *
+ * It used to be soonest-first only, and that quietly wasted the budget. The
+ * league and venue importers stamp `verified_at` on the rows they cover, so the
+ * soonest slice is thick with music and sports a primary source already vouched
+ * for this week — while the listings nobody has EVER confirmed (arts 8%,
+ * festival 2%, food 1%, weird 0%) sat past the cap and expired unchecked.
+ * Measured 26 Aug 2026: of 165 events in the window, the cap of 40 reached 34
+ * unverified rows and left 71 behind. Re-checking a confirmed row is not
+ * worthless, but it is worth less than the first look at an unconfirmed one.
  */
 export function selectForVerification(
-  events: Pick<EventRecord, "id" | "title" | "venue" | "city" | "start" | "sourceUrl" | "ticketUrl" | "status">[],
+  events: VerificationCandidate[],
   now: Date,
   opts: { days?: number; cap?: number } = {},
 ): VerifiableEvent[] {
   const days = opts.days ?? 7;
-  const cap = opts.cap ?? 40;
+  const cap = opts.cap ?? DEFAULT_CAP;
   // R1.6 (rule 10): walls to walls. The old naive-parse window, run on the
   // Thursday 16:00 UTC Actions runner, dropped tonight's events from
   // verification after ~11 AM CT and let events just past day 7 sneak in.
@@ -95,11 +146,21 @@ export function selectForVerification(
   const fromWall = chiWallClock(now);
   const toWall = chiWallClock(new Date(now.getTime() + days * 86_400_000));
 
+  const neverVerified = (e: VerificationCandidate) => !e.verifiedAt;
+
   return events
     .filter((e) => e.status === "published")
     .filter((e) => (e.sourceUrl || e.ticketUrl).trim().length > 0)
     .filter((e) => e.start >= fromWall && e.start <= toWall)
-    .sort((a, b) => a.start.localeCompare(b.start))
+    .sort((a, b) => {
+      // Never-verified first; soonest first within each group. Tonight's
+      // unconfirmed show outranks tonight's confirmed one, and both outrank
+      // Sunday's.
+      const an = neverVerified(a) ? 0 : 1;
+      const bn = neverVerified(b) ? 0 : 1;
+      if (an !== bn) return an - bn;
+      return a.start.localeCompare(b.start);
+    })
     .slice(0, cap)
     .map((e) => ({
       id: e.id,

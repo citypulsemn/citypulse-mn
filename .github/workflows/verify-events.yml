@@ -3,6 +3,10 @@ name: Verify Upcoming Events
 # Re-checks the next 7 days of events against their sources (roadmap 4.5), so a
 # show cancelled mid-week doesn't sit on the calendar until Monday's research
 # run. Thursday 16:00 UTC (~11am Central) — before the weekend, after the digest.
+#
+# timeout-minutes must stay ABOVE lib/verify.ts RUN_BUDGET_MS (20m) plus setup.
+# The script stops itself at the budget; this is the backstop, not the schedule.
+# If it ever fires, the per-batch flush means the finished batches are saved.
 on:
   schedule:
     - cron: "0 16 * * 4"
@@ -20,7 +24,7 @@ concurrency:
 jobs:
   verify:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
 

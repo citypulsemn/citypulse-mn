@@ -4,6 +4,9 @@ import {
   selectForVerification,
   parseVerdicts,
   batchForVerification,
+  withinBudget,
+  DEFAULT_CAP,
+  RUN_BUDGET_MS,
 } from "../verify";
 import type { EventRecord } from "../types";
 
@@ -86,6 +89,74 @@ describe("selectForVerification", () => {
     for (let i = 1; i < picked.length; i++) {
       expect(picked[i].start >= picked[i - 1].start).toBe(true);
     }
+  });
+
+  it("puts never-verified events ahead of already-verified ones", () => {
+    // The budget bug, in miniature: two confirmed rows sit earlier in the week
+    // than an unconfirmed one. Soonest-first spends both slots re-checking.
+    const list = [
+      { ...ev({ id: "confirmedTonight", start: "2026-07-15T20:00" }), verifiedAt: "2026-07-14T10:00:00Z" },
+      { ...ev({ id: "confirmedTomorrow", start: "2026-07-16T20:00" }), verifiedAt: "2026-07-14T10:00:00Z" },
+      { ...ev({ id: "neverSunday", start: "2026-07-19T19:00" }), verifiedAt: null },
+    ];
+    expect(selectForVerification(list, NOW, { cap: 1 }).map((e) => e.id)).toEqual(["neverSunday"]);
+    expect(selectForVerification(list, NOW).map((e) => e.id)).toEqual([
+      "neverSunday",
+      "confirmedTonight",
+      "confirmedTomorrow",
+    ]);
+  });
+
+  it("still sorts soonest-first inside each group", () => {
+    const list = [
+      { ...ev({ id: "neverLate", start: "2026-07-19T19:00" }), verifiedAt: null },
+      { ...ev({ id: "neverEarly", start: "2026-07-15T20:00" }), verifiedAt: null },
+      { ...ev({ id: "seenLate", start: "2026-07-18T19:00" }), verifiedAt: "2026-07-14T10:00:00Z" },
+      { ...ev({ id: "seenEarly", start: "2026-07-16T19:00" }), verifiedAt: "2026-07-14T10:00:00Z" },
+    ];
+    expect(selectForVerification(list, NOW).map((e) => e.id)).toEqual([
+      "neverEarly",
+      "neverLate",
+      "seenEarly",
+      "seenLate",
+    ]);
+  });
+
+  it("treats a missing verifiedAt as never verified", () => {
+    // Callers that don't select the column must not be silently deprioritized.
+    const list = [
+      { ...ev({ id: "seen", start: "2026-07-15T20:00" }), verifiedAt: "2026-07-14T10:00:00Z" },
+      ev({ id: "absentField", start: "2026-07-19T19:00" }),
+    ];
+    expect(selectForVerification(list, NOW, { cap: 1 }).map((e) => e.id)).toEqual(["absentField"]);
+  });
+
+  it("defaults to a cap that covers a full week's window", () => {
+    const many = Array.from({ length: 200 }, (_, i) =>
+      ev({ id: `e${i}`, start: `2026-07-${String(15 + (i % 6)).padStart(2, "0")}T20:00` }),
+    );
+    // 40 covered about 25 hours of a 7-day window; 165 was the live count.
+    expect(selectForVerification(many, NOW)).toHaveLength(DEFAULT_CAP);
+    expect(DEFAULT_CAP).toBeGreaterThanOrEqual(165);
+  });
+});
+
+describe("withinBudget", () => {
+  const start = 1_000_000;
+
+  it("allows another batch while time remains", () => {
+    expect(withinBudget(start, start + 5 * 60_000, 20 * 60_000)).toBe(true);
+  });
+
+  it("stops starting batches once the budget is spent", () => {
+    expect(withinBudget(start, start + 20 * 60_000, 20 * 60_000)).toBe(false);
+    expect(withinBudget(start, start + 25 * 60_000, 20 * 60_000)).toBe(false);
+  });
+
+  it("leaves the Actions timeout room to be a backstop, not the stop", () => {
+    // The job allows 30 minutes; the script must give up well before that so
+    // the final writes land instead of being killed mid-flush.
+    expect(RUN_BUDGET_MS).toBeLessThan(30 * 60_000);
   });
 
   it("a ticket URL qualifies when there's no source URL", () => {
