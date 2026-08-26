@@ -1,4 +1,4 @@
-import { foldTitle } from "./canonicalize";
+import { foldTitle, canonicalizeVenue } from "./canonicalize";
 
 /**
  * THINGS THE CALENDAR CAN CATCH BY LOOKING AT ITSELF.
@@ -60,6 +60,8 @@ export interface ContradictionReport {
   placeholderVenues: { id: string; title: string; venue: string; day: string }[];
   /** Pairs skipped because the venue runs concurrent programming, with why. */
   skipped: { venue: string; pairs: number }[];
+  /** One room spelled several ways. Its own bug, surfaced in its own right. */
+  venueSpellings: { canonical: string; spellings: string[] }[];
 }
 
 // ── Rules ────────────────────────────────────────────────────────────────────
@@ -117,9 +119,32 @@ export const CONCURRENT_VENUES: Record<string, string> = {
  * cannot be acted on by a reader, which makes it the same class of problem as an
  * invented time.
  */
-const PLACEHOLDER_VENUE = /^(tbd|tba|various|various locations?|multiple venues?|to be announced|n\/?a|unknown|online|virtual)$/;
+const PLACEHOLDER_VENUE =
+  /^(tbd|tba|various|various locations?|various venues?|multiple venues?|multiple locations?|citywide|metro wide|to be announced|n\/?a|unknown|online|virtual)$/;
 
 const norm = (s: string) => foldTitle(s).replace(/\s+/g, " ").trim();
+
+/**
+ * Which physical ROOM a venue string names.
+ *
+ * `canonicalizeVenue` only folds spellings someone has written into
+ * VENUE_ALIASES, so "Turf Club" and "Turf Club (St Paul)" stayed apart — and a
+ * verified show at one spelling never met its duplicate at the other.
+ *
+ * A trailing parenthetical is stripped ONLY when it is a city. That restriction
+ * is the whole point: "First Avenue & 7th St Entry (7th St Entry)" ends in a
+ * parenthetical too, and there it names the OTHER ROOM. Folding the Entry into
+ * the Mainroom would turn every Entry show into a phantom.
+ *
+ * This deliberately does not touch canonicalizeVenue itself, which feeds
+ * event_key — editing that would re-key the database.
+ */
+const CITY_SUFFIX =
+  /\s*\((?:st\.?\s*paul|saint\s*paul|minneapolis|mpls|minnesota|mn)\)\s*$/i;
+
+export function roomKey(venue: string): string {
+  return canonicalizeVenue(venue.replace(CITY_SUFFIX, ""));
+}
 
 /** Words that carry no identity, so they must not make two titles look alike. */
 const NOISE = new Set([
@@ -198,17 +223,29 @@ export function findContradictions(rows: CalendarRow[]): ContradictionReport {
   const placeholderVenues: ContradictionReport["placeholderVenues"] = [];
   const skippedCount = new Map<string, number>();
 
-  // Group by venue + Chicago day. Grouping on the venue STRING, not a
-  // canonical form: two spellings of one room are their own bug (the dedupe
-  // pass), and folding them here would hide it behind a clash report.
+  // Group by CANONICAL venue + Chicago day.
+  //
+  // This grouped on the raw venue string until 26 Aug, on the reasoning that two
+  // spellings of one room are their own bug and folding them would hide it. That
+  // reasoning cost more than it saved: "Turf Club (St Paul)" and "Turf Club" are
+  // one room, so a verified show at one spelling and its duplicate at the other
+  // never met, and the site showed the same gig twice with nothing to notice it.
+  //
+  // The fragmentation still gets surfaced — as `venueSpellings`, in its own
+  // right — rather than being inferred from clashes that go missing.
   const groups = new Map<string, CalendarRow[]>();
+  const spellingsByRoom = new Map<string, Set<string>>();
   for (const r of rows) {
     const day = r.start.slice(0, 10);
     if (PLACEHOLDER_VENUE.test(norm(r.venue))) {
       placeholderVenues.push({ id: r.id, title: r.title, venue: r.venue, day });
       continue; // a non-place can't clash with anything
     }
-    const key = `${r.venue}|${day}`;
+    const room = roomKey(r.venue);
+    const seen = spellingsByRoom.get(room);
+    if (seen) seen.add(r.venue);
+    else spellingsByRoom.set(room, new Set([r.venue]));
+    const key = `${room}|${day}`;
     const list = groups.get(key);
     if (list) list.push(r);
     else groups.set(key, [r]);
@@ -216,7 +253,9 @@ export function findContradictions(rows: CalendarRow[]): ContradictionReport {
 
   for (const [key, list] of groups) {
     if (list.length < 2) continue;
-    const [venue, day] = [key.slice(0, key.lastIndexOf("|")), key.slice(key.lastIndexOf("|") + 1)];
+    const day = key.slice(key.lastIndexOf("|") + 1);
+    // Display the spelling the listings actually carry, not the folded key.
+    const venue = list[0].venue;
     const concurrent = CONCURRENT_VENUES[norm(venue)];
 
     const sorted = [...list].sort((x, y) => x.start.localeCompare(y.start));
@@ -267,9 +306,15 @@ export function findContradictions(rows: CalendarRow[]): ContradictionReport {
   // deniable — then by date.
   conflicts.sort((x, y) => x.minutesApart - y.minutesApart || order(x).localeCompare(order(y)));
 
+  const venueSpellings = [...spellingsByRoom]
+    .filter(([, set]) => set.size > 1)
+    .map(([canonical, set]) => ({ canonical, spellings: [...set].sort() }))
+    .sort((a, b) => a.canonical.localeCompare(b.canonical));
+
   return {
     duplicates,
     conflicts,
+    venueSpellings,
     placeholderVenues: placeholderVenues.sort((p, q) => p.day.localeCompare(q.day)),
     skipped: [...skippedCount]
       .map(([venue, pairs]) => ({ venue, pairs }))

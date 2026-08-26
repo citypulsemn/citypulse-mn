@@ -305,15 +305,42 @@ describe("placeholder titles — listings that name no event", () => {
 });
 
 describe("grouping", () => {
-  it("does NOT fold two spellings of one venue together", () => {
-    // "Turf Club" and "Turf Club (St Paul)" being different strings is its own
-    // bug, for the dedupe pass. Folding them here would hide it inside a clash
-    // report and fix neither.
+  it("folds a CITY qualifier — two spellings are one room", () => {
+    // This used to assert the opposite, on the reasoning that fragmentation is
+    // its own bug and folding would hide it. That cost more than it saved: a
+    // verified show at "Turf Club (St Paul)" never met its duplicate at "Turf
+    // Club", and the site showed one gig twice with nothing to notice it.
     const r = findContradictions([
       row("a", "Turf Club", "2026-09-04T19:00", "Red Desert"),
       row("b", "Turf Club (St Paul)", "2026-09-04T19:00", "Something Else"),
     ]);
+    expect(r.conflicts).toHaveLength(1);
+  });
+
+  it("does NOT fold a parenthetical that names a different ROOM", () => {
+    // The hazard the city-only restriction exists for. The Entry and the
+    // Mainroom share a building and a door; folding them would make every Entry
+    // show a phantom of whatever the Mainroom was doing.
+    const r = findContradictions([
+      row("a", "First Avenue & 7th St Entry", "2026-09-04T20:00", "Big Touring Act"),
+      row("b", "First Avenue & 7th St Entry (7th St Entry)", "2026-09-04T20:00", "Small Local Band"),
+    ]);
     expect(r.conflicts).toEqual([]);
+  });
+
+  it("reports the spelling variants in their own right", () => {
+    const r = findContradictions([
+      row("a", "Turf Club", "2026-09-04T19:00", "Red Desert"),
+      row("b", "Turf Club (St Paul)", "2026-09-11T19:00", "Another Band"),
+    ]);
+    expect(r.venueSpellings).toEqual([
+      { canonical: "turf club", spellings: ["Turf Club", "Turf Club (St Paul)"] },
+    ]);
+  });
+
+  it("says nothing when a room is spelled one way", () => {
+    const r = findContradictions([row("a", "Turf Club", "2026-09-04T19:00", "Red Desert")]);
+    expect(r.venueSpellings).toEqual([]);
   });
 
   it("a lone event at a venue is never a finding", () => {
@@ -322,7 +349,9 @@ describe("grouping", () => {
 
   it("handles an empty calendar", () => {
     const r = findContradictions([]);
-    expect(r).toEqual({ duplicates: [], conflicts: [], placeholderVenues: [], skipped: [] });
+    expect(r).toEqual({
+      duplicates: [], conflicts: [], placeholderVenues: [], skipped: [], venueSpellings: [],
+    });
   });
 });
 

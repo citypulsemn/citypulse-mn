@@ -160,7 +160,17 @@ export interface OpsInputs {
    *  the only alert here, because a stale REPORT means a cancelled event may
    *  still be live on the site (an honest-data failure), whereas an unreviewed
    *  submission just means a queue. */
-  queue: { submissions: number; reports: number; oldestReportDays: number | null };
+  queue: {
+    submissions: number;
+    reports: number;
+    oldestReportDays: number | null;
+    /** Music listings a venue calendar disagreed with, still live and still
+     *  unverified. SELF-CLEARING by construction: the flag is an append-only
+     *  audit row, so "open" is computed from the listing's current state rather
+     *  than from how many times it has been flagged. Nineteen flags were only
+     *  ever one open item. */
+    musicReview: number;
+  };
   /** What the calendar can catch by looking at ITSELF (lib/contradictions.ts).
    *  Needs no outside source, which is the point: arts, family, festival, food
    *  and weird have none. `conflicts` is the alert — two different things
@@ -492,7 +502,7 @@ export function buildSections(inputs: OpsInputs): OpsSection[] {
       alert = true;
     } else {
       const { submissions, reports, oldestReportDays } = inputs.queue;
-      if (submissions === 0 && reports === 0) {
+      if (submissions === 0 && reports === 0 && inputs.queue.musicReview === 0) {
         lines = ["nothing waiting — no open submissions or reports"];
       } else {
         lines = [];
@@ -501,6 +511,11 @@ export function buildSections(inputs: OpsInputs): OpsSection[] {
         }
         if (reports > 0) {
           lines.push(`${reports} listing report${reports === 1 ? "" : "s"} awaiting review → /admin/reports`);
+        }
+        if (inputs.queue.musicReview > 0) {
+          lines.push(
+            `${inputs.queue.musicReview} music listing${inputs.queue.musicReview === 1 ? "" : "s"} a venue calendar disagrees with → /admin/events`,
+          );
         }
         if (oldestReportDays !== null && oldestReportDays >= STALE_REPORT_DAYS) {
           lines.push(`oldest report is ${oldestReportDays} days old — a cancelled event may still be live`);

@@ -183,9 +183,15 @@ check unable to see the very words it tests for, and the detector silently
 found seven listings instead of twenty-one.
 ## Deliberate non-goals
 
-- **It does not fold venue spellings together.** `"Turf Club"` and
-  `"Turf Club (St Paul)"` staying separate is its own bug, for the dedupe pass.
-  Folding them here would hide it inside a clash report and fix neither.
+- **It DOES fold venue spellings** onto the room they name, since 26 Aug.
+  It used to keep them apart, on the reasoning that fragmentation is its own bug
+  and folding would hide it. That cost more than it saved: a verified show at
+  `"Turf Club (St Paul)"` never met its duplicate at `"Turf Club"`, and
+  `"Drake (with NAV)"` and `"Young Thug with NAV"` sat at the Armory on the same
+  night under two spellings with nothing to notice them. The fragmentation is now
+  reported directly as `venueSpellings` instead. `roomKey()` strips a trailing
+  parenthetical ONLY when it is a city — `"First Avenue & 7th St Entry
+  (7th St Entry)"` ends in one too, and there it names the other ROOM.
 - **It changes nothing.** It is an instrument. Every finding names both listings
   so a person can act.
 

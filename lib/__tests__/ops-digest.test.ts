@@ -44,7 +44,7 @@ function healthy(overrides: Partial<OpsInputs> = {}): OpsInputs {
     lastDigestNote: "84 sent, 17 personalized",
     lastDigestDaysAgo: 4, // healthy: Thursday send, Monday report
     feeds: { clicks7: 9, top: [{ label: "venue-first-avenue", count: 5 }, { label: "live-music", count: 3 }] },
-    queue: { submissions: 0, reports: 0, oldestReportDays: null },
+    queue: { submissions: 0, reports: 0, oldestReportDays: null, musicReview: 0 },
     contradictions: { conflicts: 0, duplicates: 0, placeholderVenues: 0, placeholderTitles: 0, examples: [], titleExamples: [] },
     sitemapUrls: 121,
     prevSitemapUrls: 118,
@@ -524,7 +524,7 @@ describe("digest staleness — catching a MISSED weekly send", () => {
 describe("Queue — the backstop that keeps a report from sitting unseen", () => {
   const queueOf = (q: Partial<OpsInputs["queue"]>) =>
     buildSections(
-      healthy({ queue: { submissions: 0, reports: 0, oldestReportDays: null, ...q } }),
+      healthy({ queue: { submissions: 0, reports: 0, oldestReportDays: null, musicReview: 0, ...q } }),
     ).find((s) => s.title === "Queue")!;
 
   it("an empty queue is the NORMAL state — never an alert", () => {
@@ -535,6 +535,18 @@ describe("Queue — the backstop that keeps a report from sitting unseen", () =>
     expect(q.lines[0]).toContain("nothing waiting");
   });
 
+  it("counts music listings a venue calendar disagrees with", () => {
+    const q = queueOf({ musicReview: 1 });
+    expect(q.lines.join(" ")).toContain("1 music listing a venue calendar disagrees with → /admin/events");
+    expect(q.alert).toBe(false); // a queue is not an emergency
+  });
+
+  it("a review flag that no longer applies does not keep the queue looking busy", () => {
+    // The flag is an append-only audit row, so "open" is computed from the
+    // listing's current state. Nineteen flags were only ever one open item.
+    const q = queueOf({ musicReview: 0 });
+    expect(q.lines[0]).toContain("nothing waiting");
+  });
   it("counts pending submissions and reports, with a link to each queue", () => {
     const q = queueOf({ submissions: 2, reports: 1 });
     expect(q.lines.join(" ")).toContain("2 submissions awaiting review → /admin/submissions");

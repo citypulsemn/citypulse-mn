@@ -105,12 +105,27 @@ async function gather(): Promise<OpsInputs> {
   // section honestly rather than reporting "0 reports" when the query threw.
   const queue = await wrap(
     "queue",
-    { submissions: 0, reports: 0, oldestReportDays: null as number | null },
-    async () => ({
-      submissions: await getPendingSubmissionCount(),
-      reports: await getPendingReportCount(),
-      oldestReportDays: await getOldestPendingReportDays(),
-    }),
+    { submissions: 0, reports: 0, oldestReportDays: null as number | null, musicReview: 0 },
+    async () => {
+      if (!sql) throw new Error("no database connection");
+      // OPEN, not flagged-ever. The audit log is append-only, so the count has
+      // to come from the listing's current state: still published, and still
+      // not confirmed by any source. Once a later pass hides or verifies it,
+      // the item closes itself.
+      const [m] = await sql<{ n: number }[]>`
+        select count(distinct a.event_id)::int as n
+        from admin_audit a join events e on e.id = a.event_id
+        where a.action = 'import_music_review'
+          and e.status = 'published'
+          and e.verified_at is null
+          and e.start_at >= now()`;
+      return {
+        submissions: await getPendingSubmissionCount(),
+        reports: await getPendingReportCount(),
+        oldestReportDays: await getOldestPendingReportDays(),
+        musicReview: m?.n ?? 0,
+      };
+    },
   );
 
   // The self-check. No outside source, so it can run for every category —
