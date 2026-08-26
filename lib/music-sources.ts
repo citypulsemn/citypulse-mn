@@ -263,7 +263,18 @@ export function mplsParksCategory(tags: string[] = []): CategoryKey | null {
  * rather than geocoded — this importer keeps Mapbox out of its path.
  */
 export function mplsParksVenuesFrom(shows: VenueShow[]): MusicVenue[] {
-  const pinned = new Map(MPLS_PARKS_VENUES.map((v) => [v.feedName.toLowerCase(), v]));
+  return venuesFromFeed(MPLS_PARKS_VENUES, shows);
+}
+
+/**
+ * Build a venue registry from a Tribe feed, over a pinned base.
+ *
+ * Pinned entries win, which is how a venue the feed gives no coordinates for
+ * still gets listed — the Science Museum publishes none at all — and how the one
+ * authoritative park keeps its status.
+ */
+export function venuesFromFeed(pinnedVenues: MusicVenue[], shows: VenueShow[]): MusicVenue[] {
+  const pinned = new Map(pinnedVenues.map((v) => [v.feedName.toLowerCase(), v]));
   const out = new Map<string, MusicVenue>(pinned);
   for (const s of shows) {
     const key = s.venue.toLowerCase();
@@ -298,6 +309,74 @@ export function mplsParksPageUrl(from: string, to: string, page: number): string
   );
 }
 
+
+/**
+ * MUSEUM CALENDARS — the same Tribe REST API, on two more hosts.
+ *
+ * Found by probing eighteen sites for it. Sixteen had nothing usable: the Walker,
+ * Children's Theatre and Can Can are JavaScript apps with private back-ends, the
+ * Guthrie and Chanhassen refuse us outright (403), Mia rate-limits, and neither
+ * city's calendar nor the State Fair's runs WordPress. These two do.
+ *
+ * Both are ADD-AND-CONFIRM only. A museum runs exhibitions alongside programmes
+ * and rents its rooms out, so "nothing on their calendar that day" is not the
+ * same claim a concert hall's dark night makes, and this importer should not be
+ * able to hide a real listing on the strength of it.
+ */
+const BELL_MUSEUM: MusicVenue = {
+  feedName: "Bell Museum",
+  name: "Bell Museum",
+  city: "St. Paul",
+  address: "2088 Larpenteur Ave W",
+  lat: 44.991_9,
+  lng: -93.185_6,
+  authoritative: false,
+  titleVenuePatterns: ["Bell Museum", "Bell Museum (St Paul)", "Bell Museum of Natural History"],
+  defaultCategory: "family",
+};
+
+const SCIENCE_MUSEUM: MusicVenue = {
+  feedName: "Science Museum of Minnesota",
+  name: "Science Museum of Minnesota",
+  city: "St. Paul",
+  address: "120 W Kellogg Blvd",
+  lat: 44.942_3,
+  lng: -93.098_6,
+  authoritative: false,
+  // Pinned because their feed publishes NO coordinates at all — for any venue —
+  // so nothing here could register itself.
+  titleVenuePatterns: [
+    "Science Museum of Minnesota",
+    "Science Museum of Minnesota (St Paul)",
+  ],
+  defaultCategory: "family",
+};
+
+/** A Tribe feed on any host, paged the same way the Park Board's is. */
+export function tribePageUrl(host: string) {
+  return (from: string, to: string, page: number) =>
+    `https://${host}/wp-json/tribe/events/v1/events` +
+    `?start_date=${from}&end_date=${to}&per_page=50&page=${page}`;
+}
+
+export const MUSEUM_SOURCES = [
+  { key: "bell-museum", label: "Bell Museum", host: "www.bellmuseum.umn.edu", venue: BELL_MUSEUM },
+  { key: "science-museum", label: "Science Museum of Minnesota", host: "www.smm.org", venue: SCIENCE_MUSEUM },
+].map(({ key, label, host, venue }) => ({
+  key,
+  label,
+  sourceLabel: `the ${label} calendar`,
+  venues: [venue],
+  urls: (from: string, to: string) => [tribePageUrl(host)(from, to, 1)],
+  pageUrl: tribePageUrl(host),
+  format: "tribe-json" as const,
+  paged: true,
+  // Their tags are housekeeping ("Offsite", "Tour", "Free with admission"), not
+  // categories, so the venue's default stands rather than a guess at a title.
+  categoryFor: () => venue.defaultCategory ?? "family",
+  venuesFrom: (shows: VenueShow[]) => venuesFromFeed([venue], shows),
+}));
+
 export const MUSIC_SOURCES = [
   {
     key: "first-avenue",
@@ -324,4 +403,5 @@ export const MUSIC_SOURCES = [
     /** 44 venues, registered from the feed's own coordinates. */
     venuesFrom: mplsParksVenuesFrom,
   },
+  ...MUSEUM_SOURCES,
 ];

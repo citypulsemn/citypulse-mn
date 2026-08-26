@@ -19,6 +19,7 @@ import {
   MPLS_PARKS_VENUES,
   mplsParksCategory,
   mplsParksVenuesFrom,
+  MUSEUM_SOURCES,
 } from "../music-sources";
 
 /**
@@ -603,5 +604,37 @@ describe("registering park venues from the feed", () => {
   it("skips a 'venue' that is just a street address", () => {
     const v = mplsParksVenuesFrom([show("4291 Queen Ave S, Minneapolis, MN 55410", INFO)]);
     expect(v.map((x) => x.feedName)).toEqual(["Lake Harriet Bandshell"]);
+  });
+});
+
+describe("the museum sources", () => {
+  it("are add-and-confirm only", () => {
+    // A museum runs exhibitions alongside programmes and rents its rooms out, so
+    // "nothing on their calendar that day" is not the claim a concert hall's
+    // dark night makes. This importer must not hide a listing on that basis.
+    for (const s of MUSEUM_SOURCES) {
+      for (const v of s.venues) expect(v.authoritative).toBe(false);
+    }
+  });
+
+  it("pin their venue, because one feed publishes no coordinates at all", () => {
+    // Every Science Museum event comes back without geo_lat/geo_lng, so nothing
+    // there could register itself the way a park does.
+    const smm = MUSEUM_SOURCES.find((s) => s.key === "science-museum")!;
+    expect(smm.venues[0]).toMatchObject({ name: "Science Museum of Minnesota", authoritative: false });
+    expect(smm.venuesFrom([])).toHaveLength(1);
+  });
+
+  it("use the venue's category, not a guess at the title", () => {
+    // Their tags are housekeeping — "Offsite", "Tour", "Free with admission".
+    for (const s of MUSEUM_SOURCES) expect(s.categoryFor()).toBe("family");
+  });
+
+  it("page on their own host", () => {
+    const bell = MUSEUM_SOURCES.find((s) => s.key === "bell-museum")!;
+    const u = bell.pageUrl("2026-08-26", "2026-11-26", 2);
+    expect(u).toContain("bellmuseum.umn.edu");
+    expect(u).toContain("page=2");
+    expect(u).toMatch(/^https:\/\//);
   });
 });
