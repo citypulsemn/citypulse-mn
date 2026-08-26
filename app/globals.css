@@ -267,14 +267,28 @@ body::before {
   .viewtoggle button, .viewtoggle a { padding: 9px 13px; font-size: 12px; }
 
   /* Controls stack and center; bigger tap targets. */
-  .controls { flex-direction: column; align-items: stretch; gap: 12px; padding: 16px 0 12px; }
-  .presets { justify-content: center; gap: 7px; }
+  .controls { flex-direction: column; align-items: stretch; gap: 10px; padding: 10px 0 8px; }
+  /* ONE ROW, SCROLLED — not wrapped. Wrapping is what pushed the first event
+     card to 731px on a 375px phone: eight category chips became three rows and
+     the date presets two, so a first-time visitor saw controls and no events.
+     Scrolling keeps every option reachable without hiding any behind a
+     disclosure. */
+  .presets, .chips {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+  .presets::-webkit-scrollbar, .chips::-webkit-scrollbar { display: none; }
+  .presets > *, .chips > * { flex: 0 0 auto; }
+  .presets { justify-content: flex-start; gap: 7px; }
   .preset { padding: 10px 15px; font-size: 13px; }
   .monthnav { justify-content: center; }
   .monthnav button { width: 42px; height: 42px; font-size: 18px; }
   .monthnav .label { min-width: 150px; font-size: 18px; }
 
-  .chips { gap: 8px; padding: 4px 0 18px; margin-bottom: 18px; }
+  .chips { gap: 8px; padding: 2px 0 12px; margin-bottom: 12px; }
   .chip { padding: 9px 15px 9px 12px; font-size: 13px; }
 
   /* Calendar: swap the text pills for compact category dots. */
@@ -596,6 +610,13 @@ a.daycard { text-decoration: none; }
 @media (max-width: 560px) {
   .site-footer-inner { flex-direction: column; align-items: stretch; }
   .subscribe-form { max-width: none; }
+  /* flex-basis applies to the MAIN axis, and here the main axis is now HEIGHT.
+     The desktop rules (flex: 1 1 280px / 1 1 320px) were sizing WIDTHS; once
+     this query flips the direction they became minimum heights, so 132px of
+     content rendered as a 622px block — 490px of blank navy under every page.
+     Size to content instead. */
+  .site-footer-inner .sf-pitch,
+  .site-footer-inner .subscribe-form { flex: 0 0 auto; }
 }
 
 /* ---------- Add to calendar (roadmap 2.3) ---------- */

@@ -501,17 +501,24 @@ export function EventsExplorer({
           onMonth={handleMonth}
         />
 
-        <div className="default-view-row">
-          <button
-            type="button"
-            className="default-view-btn"
-            onClick={makeDefault}
-            aria-pressed={isDefault}
-            title="Open the site to this view and range next time"
-          >
-            {isDefault ? "✓ Your default view" : "Make this my default"}
-          </button>
-        </div>
+        {/* Only once it means something. On a first visit the view and range ARE
+            the shipped defaults, so "Make this my default" offered to pin a
+            preference the visitor hadn't formed yet — a row of chrome above the
+            fold on the screen where events matter most. It appears the moment
+            they move off the default, and stays for anyone who has saved one. */}
+        {(isDefault || view !== DEFAULT_VIEW || range !== DEFAULT_RANGE) && (
+          <div className="default-view-row">
+            <button
+              type="button"
+              className="default-view-btn"
+              onClick={makeDefault}
+              aria-pressed={isDefault}
+              title="Open the site to this view and range next time"
+            >
+              {isDefault ? "✓ Your default view" : "Make this my default"}
+            </button>
+          </div>
+        )}
 
         <CategoryChips active={active} onToggle={toggleCat} onToggleAll={toggleAll} />
 
