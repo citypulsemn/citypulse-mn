@@ -277,6 +277,147 @@ export function findContradictions(rows: CalendarRow[]): ContradictionReport {
   };
 }
 
+// ── Placeholder titles ───────────────────────────────────────────────────────
+
+/**
+ * A LISTING THAT NAMES NOTHING.
+ *
+ * "Turf Club Show (Sep 3)" was sitting on the site beside the real, verified
+ * "Clung Tight". "Hopkins Center for the Arts – Concert (September)" beside
+ * "John Jorgenson Quintet". The research agents write these when they can tell a
+ * venue has SOMETHING on but not what — a listing that survives every existing
+ * check because its date, venue and time are all perfectly valid.
+ *
+ * The self-check only caught them by luck, when a real listing happened to land
+ * in the same room at the same hour. This finds them directly.
+ *
+ * THE TEST: strip the venue name, the date, and generic event nouns. Whatever is
+ * left is what the title actually tells a reader. If nothing is left, it tells
+ * them nothing.
+ */
+
+/**
+ * TIER A — nouns that stand in for an event name. "Show", "Concert", "Event".
+ * One of these must be PRESENT for a title to be called a placeholder, and that
+ * requirement is what keeps venue-named events safe.
+ *
+ * Half the Twin Cities' best listings are named after the place they happen:
+ * "Mill City Farmers Market", "Dead End Hayride", "Trail of Terror",
+ * "Sever's Fall Festival". Strip the venue words from those and nothing is left
+ * either — but nothing is left because the venue name IS the event name, not
+ * because the title is empty. Requiring a Tier A noun separates
+ * "Turf Club Show (Sep 3)", which names nothing, from "Dead End Hayride", which
+ * names everything it needs to.
+ */
+const PLACEHOLDER_NOUNS = new Set([
+  "show", "shows", "concert", "concerts", "event", "events",
+  "performance", "performances", "game", "games", "match", "gig", "session",
+]);
+
+/**
+ * TIER B — qualifiers. Stripped before judging, but never a reason on their own.
+ * "Scream Town — Opening Night" and "Utepils Brewing Friday Night Live" are real
+ * recurring events; the qualifier modifies a name rather than replacing one.
+ * "General Admission" lives here too: a zoo being open is a thin listing, but it
+ * is a deliberate one, not an agent's guess.
+ */
+const GENERIC_QUALIFIERS = new Set([
+  "live", "music", "early", "late", "evening", "afternoon", "morning", "matinee",
+  "home", "away", "regular", "season", "opener", "opening", "final", "tickets",
+  "presents", "featuring", "general", "admission", "daily", "visit", "visits",
+  "set", "sets", "doors", "series",
+]);
+
+const MONTHS_AND_DAYS = new Set([
+  "january", "february", "march", "april", "may", "june", "july", "august",
+  "september", "october", "november", "december",
+  "jan", "feb", "mar", "apr", "jun", "jul", "aug", "sep", "sept", "oct", "nov", "dec",
+  "monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday",
+  "mon", "tue", "tues", "wed", "thu", "thur", "thurs", "fri", "sat", "sun",
+  "weekend", "weekday", "today", "tonight", "tomorrow",
+]);
+
+/**
+ * Markers that announce a placeholder outright — a bracketed slot, or a "vs."
+ * with nobody on the other side of it.
+ */
+// The bracket clause is narrow ON PURPOSE. A bare /\[[^\]]*\]/ flags the Walker's
+// "Moriah Evans: }[…/+*^%<>€£¥$&@!!!^^^]{" and a Lara Somogyi piece called
+// "a [time] pattern" — real works whose titles contain punctuation. Only a
+// bracket that names an unfilled SLOT counts.
+const EXPLICIT_PLACEHOLDER =
+  /\[[^\]]*\b(opponent|tbd|tba|team|artist|performer|headliner|act|title|name)\b[^\]]*\]|\b(tbd|tba|to be announced|to be confirmed)\b|\bopponent\b/i;
+
+export interface PlaceholderTitle {
+  id: string;
+  title: string;
+  venue: string;
+  day: string;
+  category: string;
+  reason: "explicit" | "names nothing";
+}
+
+/**
+ * Does this title name an actual event, once the things every listing already
+ * carries are taken away?
+ *
+ * Conservative: a single distinctive word is enough to pass. "Open Jam" keeps
+ * "jam"; "Museum Nights" at the Science Museum keeps "nights". The aim is to
+ * catch titles with NOTHING left, not to judge whether a name is a good one.
+ */
+/**
+ * Grammar words only. Deliberately NOT the NOISE set used by the duplicate
+ * matcher: that one discards "show", "event" and "live" as meaningless, which is
+ * right when comparing two titles and exactly wrong here — those words are the
+ * entire signal we are looking for.
+ */
+const CONNECTORS = new Set([
+  "the", "a", "an", "and", "at", "in", "of", "on", "for", "with", "to", "by",
+  "from", "this", "that", "its",
+]);
+
+const wordsOf = (s: string) => foldTitle(s).split(" ").filter((t) => t.length > 1);
+
+export function isPlaceholderTitle(title: string, venue = ""): boolean {
+  if (EXPLICIT_PLACEHOLDER.test(title)) return true;
+  const words = wordsOf(title);
+  // No stand-in noun, no verdict — see PLACEHOLDER_NOUNS.
+  if (!words.some((t) => PLACEHOLDER_NOUNS.has(t))) return false;
+  const venueWords = new Set(wordsOf(venue));
+  const rest = words.filter(
+    (t) =>
+      !venueWords.has(t) &&
+      !PLACEHOLDER_NOUNS.has(t) &&
+      !GENERIC_QUALIFIERS.has(t) &&
+      !MONTHS_AND_DAYS.has(t) &&
+      !CONNECTORS.has(t) &&
+      !/^\d+(st|nd|rd|th)?$/.test(t),
+  );
+  return rest.length === 0;
+}
+
+export function findPlaceholderTitles(rows: CalendarRow[]): PlaceholderTitle[] {
+  const out: PlaceholderTitle[] = [];
+  for (const r of rows) {
+    if (EXPLICIT_PLACEHOLDER.test(r.title)) {
+      out.push({ ...pick(r), reason: "explicit" });
+    } else if (isPlaceholderTitle(r.title, r.venue)) {
+      out.push({ ...pick(r), reason: "names nothing" });
+    }
+  }
+  return out.sort((a, b) => a.day.localeCompare(b.day));
+}
+
+function pick(r: CalendarRow) {
+  return {
+    id: r.id,
+    title: r.title,
+    venue: r.venue,
+    day: r.start.slice(0, 10),
+    category: r.category,
+  };
+}
+
 /**
  * One line per finding, for the ops digest and the CLI. Kept here so the email
  * and the terminal can never drift into describing the same finding differently.

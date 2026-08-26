@@ -43,7 +43,7 @@ function healthy(overrides: Partial<OpsInputs> = {}): OpsInputs {
     lastDigestDaysAgo: 4, // healthy: Thursday send, Monday report
     feeds: { clicks7: 9, top: [{ label: "venue-first-avenue", count: 5 }, { label: "live-music", count: 3 }] },
     queue: { submissions: 0, reports: 0, oldestReportDays: null },
-    contradictions: { conflicts: 0, duplicates: 0, placeholderVenues: 0, examples: [] },
+    contradictions: { conflicts: 0, duplicates: 0, placeholderVenues: 0, placeholderTitles: 0, examples: [], titleExamples: [] },
     sitemapUrls: 121,
     prevSitemapUrls: 118,
     search: null, // default: not wired → manual GSC line (today's state)
@@ -575,7 +575,7 @@ describe("Self-check — where the calendar contradicts itself", () => {
   const selfOf = (c: Partial<OpsInputs["contradictions"]>) =>
     buildSections(
       healthy({
-        contradictions: { conflicts: 0, duplicates: 0, placeholderVenues: 0, examples: [], ...c },
+        contradictions: { conflicts: 0, duplicates: 0, placeholderVenues: 0, placeholderTitles: 0, examples: [], titleExamples: [], ...c },
       }),
     ).find((s) => s.title === "Self-check")!;
 
@@ -592,6 +592,15 @@ describe("Self-check — where the calendar contradicts itself", () => {
     expect(s.lines.join(" ")).toContain("First Avenue");
   });
 
+  it("reports placeholder TITLES without alerting, with examples", () => {
+    const s = selfOf({
+      placeholderTitles: 21,
+      titleExamples: ['2026-09-03 · Turf Club: "Turf Club Show (Sep 3)"'],
+    });
+    expect(s.alert).toBe(false);
+    expect(s.lines.join(" ")).toContain("21 listings whose TITLE names no event");
+    expect(s.lines.join(" ")).toContain("Turf Club Show (Sep 3)");
+  });
   it("duplicates and placeholder venues report WITHOUT alerting — untidy, not untrue", () => {
     const s = selfOf({ duplicates: 26, placeholderVenues: 6 });
     expect(s.alert).toBe(false);

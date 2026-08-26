@@ -5,6 +5,8 @@ import {
   formatFinding,
   CLASH_WINDOW_MINUTES,
   CONCURRENT_VENUES,
+  isPlaceholderTitle,
+  findPlaceholderTitles,
   type CalendarRow,
 } from "../contradictions";
 
@@ -231,6 +233,72 @@ describe("placeholder venues", () => {
   it("leaves real venues alone", () => {
     const r = findContradictions([row("a", "Turf Club", "2026-09-04T19:00", "Red Desert")]);
     expect(r.placeholderVenues).toEqual([]);
+  });
+});
+
+describe("placeholder titles — listings that name no event", () => {
+  const ph = (title: string, venue = "") => isPlaceholderTitle(title, venue);
+
+  it("catches the class the self-check only found by luck", () => {
+    // Each of these was live, beside a real show, with a perfectly valid date,
+    // venue and time — invisible to every other check.
+    expect(ph("Turf Club Show (Sep 3)", "Turf Club")).toBe(true);
+    expect(ph("Show (Aug 26)", "Amsterdam Bar and Hall (St Paul)")).toBe(true);
+    expect(ph("Live Show – Berlin Minneapolis", "Berlin (Minneapolis)")).toBe(true);
+    expect(ph("Early Evening Show (Sep 4)", "Berlin (Minneapolis)")).toBe(true);
+    expect(ph("Concert at Ordway Concert Hall (The Ordway Presents)", "Ordway Concert Hall")).toBe(true);
+    expect(ph("Hopkins Center for the Arts – Concert (September 26)", "Hopkins Center for the Arts")).toBe(true);
+    expect(ph("Fitzgerald Theater Concert Event", "Fitzgerald Theater")).toBe(true);
+    expect(ph("Bloomington Center for the Arts – Performance Series", "Bloomington Center for the Arts")).toBe(true);
+  });
+
+  it("spares events whose NAME is the venue's name", () => {
+    // The false-positive class, and the reason a Tier A noun must be present.
+    // Strip the venue words from these and nothing is left either — but that is
+    // because the venue name IS the event name.
+    expect(ph("Mill City Farmers Market (Saturday Market)", "Mill City Farmers Market")).toBe(false);
+    expect(ph("Dead End Hayride", "Dead End Hayride")).toBe(false);
+    expect(ph("Trail of Terror", "Trail of Terror Grounds")).toBe(false);
+    expect(ph("Sever's Fall Festival (Weekend V)", "Sever's Fall Festival Grounds")).toBe(false);
+    expect(ph("Scream Town — Opening Night 2026", "Scream Town")).toBe(false);
+    expect(ph("Utepils Brewing Friday Night Live", "Utepils Brewing")).toBe(false);
+    expect(ph("Minnesota Zoo – Daily General Admission", "Minnesota Zoo")).toBe(false);
+  });
+
+  it("spares a real event that merely contains a generic word", () => {
+    expect(ph("Como Zoo & Conservatory Fall Flower Show (General Admission)", "Como Park Zoo & Conservatory")).toBe(false);
+    expect(ph("Museum Nights", "Science Museum of Minnesota")).toBe(false);
+    expect(ph("Late Night Lounge – DJ Set", "Berlin (Minneapolis)")).toBe(false);
+    expect(ph("Emo Nite", "Fine Line")).toBe(false);
+  });
+
+  it("catches an unfilled slot outright", () => {
+    expect(ph("Minnesota United FC vs. [Western Conference Opponent]", "Allianz Field")).toBe(true);
+    expect(ph("Minnesota Gophers Football vs. Big Ten Opponent", "Huntington Bank Stadium")).toBe(true);
+    expect(ph("Headliner TBA", "First Avenue")).toBe(true);
+  });
+
+  it("does NOT treat punctuation in a real title as an unfilled slot", () => {
+    // The Walker programmes a piece literally called "}[…/+*^%<>€£¥$&@!!!^^^]{",
+    // and a Lara Somogyi work called "a [time] pattern". A bare bracket rule
+    // flags both. Only a bracket naming a SLOT counts.
+    expect(ph("Moriah Evans: }[…/+*^%<>€£¥$&@!!!^^^]{", "Walker Art Center – McGuire Theater")).toBe(false);
+    expect(ph("Minneapolis Premiere: Lara Somogyi – 'a [time] pattern'", "Berlin (Minneapolis)")).toBe(false);
+  });
+
+  it("reports what it found, sorted by day, with the reason", () => {
+    const found = findPlaceholderTitles([
+      row("a", "Turf Club", "2026-09-05T20:00", "Turf Club Show (Sep 5)"),
+      row("b", "Turf Club", "2026-09-03T20:00", "Clung Tight"),
+      row("c", "Allianz Field", "2026-09-19T19:30", "MNUFC vs. Opponent", "sports"),
+    ]);
+    expect(found.map((f) => f.title)).toEqual(["Turf Club Show (Sep 5)", "MNUFC vs. Opponent"]);
+    expect(found[0].reason).toBe("names nothing");
+    expect(found[1].reason).toBe("explicit");
+  });
+
+  it("an empty calendar finds nothing", () => {
+    expect(findPlaceholderTitles([])).toEqual([]);
   });
 });
 

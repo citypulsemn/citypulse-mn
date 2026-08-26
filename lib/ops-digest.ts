@@ -165,8 +165,12 @@ export interface OpsInputs {
     conflicts: number;
     duplicates: number;
     placeholderVenues: number;
+    /** Listings whose TITLE names no event — "Turf Club Show (Sep 3)". */
+    placeholderTitles: number;
     /** A few formatted conflict lines, worst first, for the email body. */
     examples: string[];
+    /** A few placeholder titles, so the line is actionable rather than a count. */
+    titleExamples: string[];
   };
   /** Live sitemap URL count (fetched from SITE_URL/sitemap.xml — the number
    *  Google actually sees; zero drift by construction) + last week's. */
@@ -513,8 +517,10 @@ export function buildSections(inputs: OpsInputs): OpsSection[] {
       lines = unavailable(err("contradictions"));
       alert = true;
     } else {
-      const { conflicts, duplicates, placeholderVenues, examples } = inputs.contradictions;
-      if (conflicts === 0 && duplicates === 0 && placeholderVenues === 0) {
+      const {
+        conflicts, duplicates, placeholderVenues, placeholderTitles, examples, titleExamples,
+      } = inputs.contradictions;
+      if (conflicts === 0 && duplicates === 0 && placeholderVenues === 0 && placeholderTitles === 0) {
         lines = ["the calendar does not contradict itself anywhere"];
       } else {
         lines = [];
@@ -527,6 +533,12 @@ export function buildSections(inputs: OpsInputs): OpsSection[] {
         }
         if (duplicates > 0) {
           lines.push(`${duplicates} probable duplicate${duplicates === 1 ? "" : "s"} — same event listed twice`);
+        }
+        if (placeholderTitles > 0) {
+          lines.push(
+            `${placeholderTitles} listing${placeholderTitles === 1 ? "" : "s"} whose TITLE names no event`,
+          );
+          lines.push(...titleExamples.map((e) => `    ${e}`));
         }
         if (placeholderVenues > 0) {
           lines.push(`${placeholderVenues} listing${placeholderVenues === 1 ? "" : "s"} whose venue names no place ("TBD")`);

@@ -18,7 +18,7 @@ import { getFeedAdoption } from "../lib/feed-stats";
 import { getSearchImpressions } from "../lib/search-console";
 import { getPendingSubmissionCount } from "../lib/submissions";
 import { getPendingReportCount, getOldestPendingReportDays } from "../lib/event-reports";
-import { findContradictions, formatFinding, type CalendarRow } from "../lib/contradictions";
+import { findContradictions, findPlaceholderTitles, formatFinding, type CalendarRow } from "../lib/contradictions";
 
 const dryRun = process.argv.includes("--dry-run");
 
@@ -119,7 +119,10 @@ async function gather(): Promise<OpsInputs> {
   // than reporting a reassuring zero.
   const contradictions = await wrap(
     "contradictions",
-    { conflicts: 0, duplicates: 0, placeholderVenues: 0, examples: [] as string[] },
+    {
+      conflicts: 0, duplicates: 0, placeholderVenues: 0, placeholderTitles: 0,
+      examples: [] as string[], titleExamples: [] as string[],
+    },
     async () => {
       if (!sql) throw new Error("no database connection");
       const rows = await sql<CalendarRow[]>`
@@ -128,11 +131,14 @@ async function gather(): Promise<OpsInputs> {
                to_char(start_at at time zone 'America/Chicago', 'YYYY-MM-DD"T"HH24:MI') as start
         from events where status = 'published' and start_at >= now()`;
       const report = findContradictions([...rows]);
+      const titles = findPlaceholderTitles([...rows]);
       return {
         conflicts: report.conflicts.length,
         duplicates: report.duplicates.length,
         placeholderVenues: report.placeholderVenues.length,
+        placeholderTitles: titles.length,
         examples: report.conflicts.slice(0, 5).map(formatFinding),
+        titleExamples: titles.slice(0, 4).map((t) => `${t.day} · ${t.venue}: "${t.title}"`),
       };
     },
   );

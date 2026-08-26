@@ -29,6 +29,7 @@ like any other section.
 |---|---|---|
 | **conflict** | Two *different* things in one room at one time. At most one is happening. | **alerts** |
 | **duplicate** | One event listed twice under different titles. | reported, no alert |
+| **placeholder title** | The TITLE names no event — `"Turf Club Show (Sep 3)"`. | reported, no alert |
 | **placeholder venue** | The venue field names no place — `TBD`, `Various Locations`. | reported, no alert |
 
 A conflict means something false is live on the site, which is exactly the
@@ -106,6 +107,61 @@ building. Venue tokens are stripped from both titles before comparing.
 Seven of the original 26 were one of these. Both fixes push borderline cases
 toward `conflict`, which is the safe direction: a conflict gets read, a
 wrongly-archived event does not.
+## Placeholder titles — listings that name no event
+
+`"Turf Club Show (Sep 3)"` was live beside the real, verified `"Clung Tight"`.
+`"Hopkins Center for the Arts – Concert (September 26)"` beside
+`"John Jorgenson Quintet"`. The research agents write these when they can tell a
+venue has *something* on but not what — and the listing survives every other
+check, because its date, venue and time are all perfectly valid.
+
+The clash report found them only by luck, when a real listing happened to land
+in the same room at the same hour. `findPlaceholderTitles` finds them directly.
+
+**The test:** strip the venue name, the date, and generic event nouns. What's
+left is what the title actually tells a reader. If nothing is left, it tells
+them nothing.
+
+### The two tiers, and why they exist
+
+A first cut flagged **47** listings and most were wrong, all in one way: on this
+calendar a great many events are *named after the place they happen*. Strip the
+venue words from `"Mill City Farmers Market"`, `"Dead End Hayride"`,
+`"Trail of Terror"` or `"Sever's Fall Festival"` and nothing is left either —
+but nothing is left because the venue name **is** the event name.
+
+So the words are split in two:
+
+- **Tier A — `PLACEHOLDER_NOUNS`**: nouns that stand in for a name. *Show,
+  Concert, Event, Performance, Game.* One of these must be **present** before a
+  title can be called a placeholder.
+- **Tier B — `GENERIC_QUALIFIERS`**: *Early, Late, Opening, Season, Live,
+  General Admission, Series.* Stripped before judging, but never a reason on
+  their own.
+
+That single requirement separates `"Turf Club Show (Sep 3)"`, which names
+nothing, from `"Dead End Hayride"`, which names everything it needs to. It also
+spares `"Scream Town — Opening Night 2026"` and
+`"Utepils Brewing Friday Night Live"`, where the qualifier modifies a real name
+instead of replacing one. With it, 47 became **21 — all genuine.**
+
+### An unfilled slot is caught outright
+
+`"Minnesota United FC vs. [Western Conference Opponent]"`,
+`"vs. Big Ten Opponent"`, `"Headliner TBA"`.
+
+The bracket rule is narrow **on purpose**: a bare `/[[^]]*]/` also flags the
+Walker's `"Moriah Evans: }[…/+*^%<>€£¥## Deliberate non-goals@!!!^^^]{"` and a Lara Somogyi piece
+called `"a [time] pattern"` — real works whose titles contain punctuation. Only a
+bracket that names a *slot* counts.
+
+### A separate tokenizer, deliberately
+
+This detector cannot reuse `tokens()`. That one discards `show`, `event` and
+`live` as meaningless noise — correct when comparing two titles, and exactly
+wrong here, where those words are the entire signal. Using it made the Tier A
+check unable to see the very words it tests for, and the detector silently
+found seven listings instead of twenty-one.
 ## Deliberate non-goals
 
 - **It does not fold venue spellings together.** `"Turf Club"` and
@@ -117,11 +173,12 @@ wrongly-archived event does not.
 ## Pieces
 
 - **`lib/contradictions.ts`** — pure: `findContradictions`, `looksLikeSameEvent`,
-  `formatFinding`, `CLASH_WINDOW_MINUTES`, `CONCURRENT_VENUES`.
+  `findPlaceholderTitles`, `isPlaceholderTitle`, `formatFinding`,
+  `CLASH_WINDOW_MINUTES`, `CONCURRENT_VENUES`.
 - **`lib/ops-digest.ts`** — the Self-check section.
 - **`scripts/send-ops-digest.ts`** — the gather, wrapped like every other section
   so a failed read says "unavailable" instead of a reassuring zero.
-- **`lib/__tests__/contradictions.test.ts`** — 24 tests from real pairs.
+- **`lib/__tests__/contradictions.test.ts`** — 35 tests from real listings.
 
 `foldTitle` moved from `lib/music-feed.ts` to `lib/canonicalize.ts`, since both
 this and the music importer need it. It is **not** `normalizeKeyPart`, which feeds
