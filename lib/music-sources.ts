@@ -189,12 +189,66 @@ export function firstAvenueMonthUrls(from: string, to: string): string[] {
   return urls;
 }
 
+/**
+ * The Minneapolis Park Board runs The Events Calendar with its REST API open, so
+ * the Lake Harriet Bandshell — which programmes a free concert almost every night
+ * of the summer — has a primary source after all.
+ *
+ * It was worth finding. The self-check had four unresolvable clashes at the
+ * bandshell, and on 30 August the site listed *two* bands that the Park Board's
+ * own calendar does not have at all.
+ *
+ * Only the bandshell is claimed here. The same feed carries buckthorn-slaying
+ * volunteer mornings and park markets across the whole city; those are real, but
+ * they are not this importer's business.
+ */
+export const MPLS_PARKS_VENUES: MusicVenue[] = [
+  {
+    feedName: "Lake Harriet Bandshell",
+    name: "Lake Harriet Bandshell",
+    city: "Minneapolis",
+    address: "4135 W Lake Harriet Pkwy",
+    lat: 44.922_58,
+    lng: -93.309_86,
+    authoritative: true,
+    titleVenuePatterns: ["Lake Harriet Bandshell", "Lake Harriet Band Shell"],
+  },
+];
+
+/**
+ * Tribe pages at 50 and 404s past the last page, so the page count has to come
+ * from the payload rather than be guessed. Page 1 reports `total_pages`; a fixed
+ * guess either 404s (which the all-or-nothing rule turns into "source
+ * unavailable") or silently truncates the calendar, and a truncated calendar is
+ * the input that makes this importer hide real shows.
+ */
+export function mplsParksPageUrl(from: string, to: string, page: number): string {
+  return (
+    `https://www.minneapolisparks.org/wp-json/tribe/events/v1/events` +
+    `?start_date=${from}&end_date=${to}&per_page=50&page=${page}`
+  );
+}
+
 export const MUSIC_SOURCES = [
   {
     key: "first-avenue",
     label: "First Avenue",
     sourceLabel: "the First Avenue calendar",
     venues: [...FIRST_AVENUE_VENUES, ...PROMOTED_ELSEWHERE],
-    monthUrls: firstAvenueMonthUrls,
+    urls: firstAvenueMonthUrls,
+    /** Their month pages are HTML. */
+    format: "first-avenue-html" as const,
+    paged: false,
+  },
+  {
+    key: "mpls-parks",
+    label: "Minneapolis Park Board",
+    sourceLabel: "the Minneapolis Park Board calendar",
+    venues: MPLS_PARKS_VENUES,
+    /** Page 1 only; the fetcher follows total_pages from the payload. */
+    urls: (from: string, to: string) => [mplsParksPageUrl(from, to, 1)],
+    pageUrl: mplsParksPageUrl,
+    format: "tribe-json" as const,
+    paged: true,
   },
 ];

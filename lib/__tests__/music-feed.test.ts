@@ -4,13 +4,20 @@ import {
   foldTitle,
   parseFirstAvenueMonth,
   parseFirstAvenueTime,
+  parseTribeEvents,
   showTitlesMatch,
   showWindow,
   reconcileShows,
   type VenueShow,
   type ExistingShow,
 } from "../music-feed";
-import { firstAvenueMonthUrls, FIRST_AVENUE_VENUES, PROMOTED_ELSEWHERE } from "../music-sources";
+import {
+  firstAvenueMonthUrls,
+  mplsParksPageUrl,
+  FIRST_AVENUE_VENUES,
+  PROMOTED_ELSEWHERE,
+  MPLS_PARKS_VENUES,
+} from "../music-sources";
 
 /**
  * Built from what the real First Avenue calendar and our real listings did on
@@ -91,6 +98,68 @@ describe("parsing First Avenue's calendar", () => {
     expect(padDay("2026-08-1")).toBe("2026-08-01");
     expect(padDay("2026-8-1")).toBe("2026-08-01");
     expect(padDay("2026-08-22")).toBe("2026-08-22");
+  });
+});
+
+describe("parsing The Events Calendar's REST feed (Minneapolis Park Board)", () => {
+  const tribe = (events: unknown[]) => ({ events, total: events.length, total_pages: 1 });
+
+  it("reads title, venue, day and time — the time is already local", () => {
+    const shows = parseTribeEvents(
+      tribe([
+        {
+          title: "Piece of Cake",
+          start_date: "2026-08-26 19:30:00",
+          url: "https://www.minneapolisparks.org/events/piece-of-cake/",
+          venue: { venue: "Lake Harriet Bandshell" },
+        },
+      ]),
+    );
+    expect(shows).toEqual([
+      {
+        day: "2026-08-26",
+        venue: "Lake Harriet Bandshell",
+        title: "Piece of Cake",
+        url: "https://www.minneapolisparks.org/events/piece-of-cake/",
+        time: "19:30",
+      },
+    ]);
+  });
+
+  it("unescapes the HTML entities their titles arrive in", () => {
+    const [s] = parseTribeEvents(
+      tribe([{
+        title: "Matty &#038; The Subtle Validation",
+        start_date: "2026-08-30 14:00:00",
+        venue: { venue: "Lake Harriet Bandshell" },
+        url: "u",
+      }]),
+    );
+    expect(s.title).toBe("Matty & The Subtle Validation");
+  });
+
+  it("keeps two concerts on one evening apart", () => {
+    // The bandshell really does play a 2 PM and a 5:30 PM on some Sundays.
+    const shows = parseTribeEvents(
+      tribe([
+        { title: "Matty & The Subtle Validation", start_date: "2026-08-30 14:00:00", venue: { venue: "Lake Harriet Bandshell" }, url: "a" },
+        { title: "The Long Honeymoon", start_date: "2026-08-30 17:30:00", venue: { venue: "Lake Harriet Bandshell" }, url: "b" },
+      ]),
+    );
+    expect(shows.map((s) => s.time)).toEqual(["14:00", "17:30"]);
+  });
+
+  it("skips a row with no parseable start rather than guessing", () => {
+    expect(parseTribeEvents(tribe([
+      { title: "Someday", start_date: "", venue: { venue: "Lake Harriet Bandshell" }, url: "u" },
+      { title: "No venue", start_date: "2026-08-30 14:00:00", venue: {}, url: "u" },
+    ]))).toEqual([]);
+  });
+
+  it("degrades to empty on anything it doesn't recognise", () => {
+    for (const junk of [null, undefined, 42, "nope", {}, { events: "x" }, { events: [null, 7] }]) {
+      expect(parseTribeEvents(junk)).toEqual([]);
+    }
   });
 });
 
@@ -406,5 +475,24 @@ describe("the venue registry", () => {
     expect(urls.map((u) => u.split("start_date=")[1])).toEqual(
       ["20261101", "20261201", "20270101", "20270201"],
     );
+  });
+});
+
+describe("the Minneapolis Park Board source", () => {
+  it("claims the bandshell only — not the whole parks calendar", () => {
+    // The same feed carries buckthorn-slaying mornings and park markets across
+    // the city. Those are real events; they are not this importer's business,
+    // and claiming them would make it authoritative over things it never read.
+    expect(MPLS_PARKS_VENUES.map((v) => v.feedName)).toEqual(["Lake Harriet Bandshell"]);
+    expect(MPLS_PARKS_VENUES[0].authoritative).toBe(true);
+  });
+
+  it("pages by number, because Tribe 404s past the last page", () => {
+    const u1 = mplsParksPageUrl("2026-08-26", "2026-11-26", 1);
+    expect(u1).toContain("start_date=2026-08-26");
+    expect(u1).toContain("end_date=2026-11-26");
+    expect(u1).toContain("page=1");
+    expect(mplsParksPageUrl("2026-08-26", "2026-11-26", 4)).toContain("page=4");
+    for (const u of [u1, mplsParksPageUrl("a", "b", 2)]) expect(u).toMatch(/^https:\/\//);
   });
 });

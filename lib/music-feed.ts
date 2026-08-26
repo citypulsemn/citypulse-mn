@@ -155,6 +155,42 @@ export function parseFirstAvenueTime(html: string): string | null {
   return `${String(hour).padStart(2, "0")}:${min}`;
 }
 
+/**
+ * The Events Calendar's REST API ("Tribe"), which the Minneapolis Park Board
+ * leaves open. Shape: `{ events: [{ title, start_date, url, venue: { venue } }] }`
+ * with `start_date` already in the venue's own local time — no zone conversion,
+ * which is why this parser is shorter than it looks like it should be.
+ *
+ * Titles arrive HTML-escaped ("Matty &#038; The Subtle Validation"), so they go
+ * through the same unescaping as the First Avenue markup.
+ */
+export function parseTribeEvents(json: unknown): VenueShow[] {
+  const root = json && typeof json === "object" ? (json as Record<string, unknown>) : {};
+  const events = Array.isArray(root.events) ? root.events : [];
+  const out: VenueShow[] = [];
+  for (const raw of events) {
+    if (!raw || typeof raw !== "object") continue;
+    const e = raw as Record<string, unknown>;
+    const start = typeof e.start_date === "string" ? e.start_date : "";
+    // "2026-08-26 19:30:00" → day + "HH:MM". A row without a parseable start is
+    // skipped rather than guessed at.
+    const m = start.match(/^(\d{4}-\d{2}-\d{2})[ T](\d{2}):(\d{2})/);
+    if (!m) continue;
+    const venueRec = e.venue && typeof e.venue === "object" ? (e.venue as Record<string, unknown>) : {};
+    const venue = stripTags(String(venueRec.venue ?? ""));
+    const title = stripTags(String(e.title ?? ""));
+    if (!venue || !title) continue;
+    out.push({
+      day: m[1],
+      venue,
+      title,
+      url: String(e.url ?? ""),
+      time: `${m[2]}:${m[3]}`,
+    });
+  }
+  return out;
+}
+
 // ── Title matching ───────────────────────────────────────────────────────────
 
 /**

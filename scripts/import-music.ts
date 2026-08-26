@@ -20,6 +20,7 @@ import { MUSIC_SOURCES, type MusicVenue } from "../lib/music-sources";
 import {
   parseFirstAvenueMonth,
   parseFirstAvenueTime,
+  parseTribeEvents,
   reconcileShows,
   type VenueShow,
   type ExistingShow,
@@ -41,6 +42,8 @@ const UA = "Mozilla/5.0 (compatible; CityPulseMN/1.0; +https://citypulsemn.com)"
 const POLITE_DELAY_MS = 500;
 /** Hard ceiling on detail fetches in one run, so a bad parse can't hammer them. */
 const MAX_DETAIL_FETCHES = 260;
+/** Backstop on a paged feed, so a bad total_pages can't loop us into its site. */
+const MAX_FEED_PAGES = 20;
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
@@ -51,7 +54,9 @@ function addDays(day: string, n: number): string {
 }
 
 async function getText(url: string): Promise<string> {
-  const res = await fetch(url, { headers: { "user-agent": UA, accept: "text/html" } });
+  const res = await fetch(url, {
+    headers: { "user-agent": UA, accept: "text/html, application/json" },
+  });
   if (!res.ok) throw new Error(`HTTP ${res.status} from ${new URL(url).host}`);
   return await res.text();
 }
@@ -110,15 +115,30 @@ async function main() {
 
   for (const source of MUSIC_SOURCES) {
     console.log(`\n${source.label}`);
-    const urls = source.monthUrls(today, horizonEnd);
+    const urls = source.urls(today, horizonEnd);
 
-    // ALL-OR-NOTHING, exactly as in sports: these month pages are slices of one
+    // ALL-OR-NOTHING, exactly as in sports: these pages are slices of ONE
     // calendar, and a missing slice reads as "the room was dark" — which is the
     // one verdict here that hides things.
     let shows: VenueShow[] = [];
     try {
       for (const url of urls) {
-        shows.push(...parseFirstAvenueMonth(await getText(url)));
+        const body = await getText(url);
+        if (source.format !== "tribe-json") {
+          shows.push(...parseFirstAvenueMonth(body));
+          await sleep(POLITE_DELAY_MS);
+          continue;
+        }
+        // Tribe reports how many pages there are; walk them all. Guessing the
+        // count either 404s or silently truncates, and a truncated calendar is
+        // exactly the input that makes this importer hide real shows.
+        const first = JSON.parse(body);
+        shows.push(...parseTribeEvents(first));
+        const pages = Math.min(Number(first?.total_pages) || 1, MAX_FEED_PAGES);
+        for (let page = 2; page <= pages; page++) {
+          await sleep(POLITE_DELAY_MS);
+          shows.push(...parseTribeEvents(JSON.parse(await getText(source.pageUrl!(today, horizonEnd, page)))));
+        }
         await sleep(POLITE_DELAY_MS);
       }
     } catch (err) {
@@ -242,6 +262,9 @@ async function main() {
     }
     let timed = 0;
     for (const s of toAdd) {
+      // Tribe hands us the time in the payload; only the HTML calendar needs a
+      // second request per show.
+      if (s.time) { timed++; continue; }
       try {
         const t = parseFirstAvenueTime(await getText(s.url));
         if (t) { s.time = t; timed++; }

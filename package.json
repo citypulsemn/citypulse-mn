@@ -22,7 +22,8 @@
     "import-sports": "tsx --env-file-if-exists=.env.local scripts/import-sports.ts",
     "import-music": "tsx --env-file-if-exists=.env.local scripts/import-music.ts",
     "dedupe-flagged": "tsx --env-file-if-exists=.env.local scripts/dedupe-flagged.ts",
-    "hide-placeholders": "tsx --env-file-if-exists=.env.local scripts/hide-placeholders.ts"
+    "hide-placeholders": "tsx --env-file-if-exists=.env.local scripts/hide-placeholders.ts",
+    "resolve-conflicts": "tsx --env-file-if-exists=.env.local scripts/resolve-conflicts.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.117.1",
