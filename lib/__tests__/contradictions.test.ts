@@ -110,6 +110,43 @@ describe("looksLikeSameEvent", () => {
     expect(looksLikeSameEvent("Sugar", "Fall Harvest Sugar Beet Festival and Parade Day")).toBe(false);
   });
 
+  it("a SERIES is not a duplicate — same prefix, different act", () => {
+    // The Lake Harriet bandshell runs "Free Music in the Parks" all summer. Three
+    // of these were being filed as duplicates of each other and would have had a
+    // real, distinct concert archived.
+    expect(looksLikeSameEvent(
+      "Free Music in the Parks – The Roundabouts",
+      "Free Music in the Parks – Hurricane Blaze",
+    )).toBe(false);
+    expect(looksLikeSameEvent(
+      "First Free Sunday — Minnesota Children's Museum",
+      "First Free Sunday – Securian Financial",
+    )).toBe(false);
+  });
+
+  it("…but the same act with and without the series prefix still is one", () => {
+    expect(looksLikeSameEvent("Dan Israel", "Free Music in the Parks – Dan Israel")).toBe(true);
+    expect(looksLikeSameEvent(
+      "Free Music in the Parks – Dred I Dread",
+      "Free Music in the Parks – Dred I Dread",
+    )).toBe(true);
+  });
+
+  it("ignores the venue's own name inside a title", () => {
+    // Two unrelated performances at the Walker looked alike purely on the
+    // strength of the building they share.
+    expect(looksLikeSameEvent(
+      "Walker Art Center – Dorothée Munyaneza: Tituba",
+      "Moriah Evans – Walker Art Center",
+      "Walker Art Center – McGuire Theater",
+    )).toBe(false);
+    // The same two titles with no venue supplied would have matched.
+    expect(looksLikeSameEvent(
+      "Walker Art Center – Dorothée Munyaneza: Tituba",
+      "Moriah Evans – Walker Art Center",
+    )).toBe(true);
+  });
+
   it("ignores accents, punctuation and filler words", () => {
     expect(looksLikeSameEvent("Altın Gün", "ALTIN GUN!")).toBe(true);
     expect(looksLikeSameEvent("The Show Night Live", "Show Live Night")).toBe(false); // all filler, no identity

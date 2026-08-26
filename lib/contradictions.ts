@@ -142,7 +142,7 @@ function tokens(title: string): Set<string> {
  * attention and a duplicate is comparatively benign. Calling a real conflict a
  * duplicate would file "two different bands in one room" under housekeeping.
  */
-export function looksLikeSameEvent(a: string, b: string): boolean {
+export function looksLikeSameEvent(a: string, b: string, venue = ""): boolean {
   const na = norm(a);
   const nb = norm(b);
   if (na && na === nb) return true;
@@ -150,8 +150,29 @@ export function looksLikeSameEvent(a: string, b: string): boolean {
   // the Parks – Dan Israel") is the commonest duplicate shape on this site.
   if (na.length >= 6 && nb.length >= 6 && (na.includes(nb) || nb.includes(na))) return true;
 
-  const ta = tokens(a);
-  const tb = tokens(b);
+  // A SERIES is not a duplicate. "Free Music in the Parks – The Roundabouts"
+  // and "Free Music in the Parks – Hurricane Blaze" are two different bands on
+  // one bandshell schedule; the shared prefix is the series name and carries no
+  // identity at all. When both titles open with the same run of words and what
+  // follows has nothing in common, they are different events.
+  const wa = na.split(" ").filter(Boolean);
+  const wb = nb.split(" ").filter(Boolean);
+  let i = 0;
+  while (i < wa.length && i < wb.length && wa[i] === wb[i]) i++;
+  if (i >= 2) {
+    const restA = new Set(wa.slice(i).filter((t) => !NOISE.has(t) && t.length > 1));
+    const restB = new Set(wb.slice(i).filter((t) => !NOISE.has(t) && t.length > 1));
+    if (restA.size && restB.size && ![...restA].some((t) => restB.has(t))) return false;
+  }
+
+  // The VENUE NAME carries no identity either — it is already the grouping key.
+  // Without this, "Walker Art Center – Dorothée Munyaneza: Tituba" and
+  // "Moriah Evans … – Walker Art Center" look alike on the strength of the
+  // building they share, and two unrelated performances read as one.
+  const venueTokens = tokens(venue);
+  const strip = (s: Set<string>) => new Set([...s].filter((t) => !venueTokens.has(t)));
+  const ta = strip(tokens(a));
+  const tb = strip(tokens(b));
   if (!ta.size || !tb.size) return false;
   const shared = [...ta].filter((t) => tb.has(t));
   if (!shared.some((t) => t.length >= 4)) return false;
@@ -209,7 +230,7 @@ export function findContradictions(rows: CalendarRow[]): ContradictionReport {
           skippedCount.set(venue, (skippedCount.get(venue) ?? 0) + 1);
           continue;
         }
-        const kind = looksLikeSameEvent(a.title, b.title) ? "duplicate" : "conflict";
+        const kind = looksLikeSameEvent(a.title, b.title, venue) ? "duplicate" : "conflict";
 
         // Two DIFFERENT things, both confirmed against a primary source, are not
         // a contradiction — they are a room that runs concurrent programming and

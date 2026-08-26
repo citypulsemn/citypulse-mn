@@ -72,6 +72,40 @@ both listed. That is deliberate: `"Guthrie Theater"` is a three-stage complex, b
 `"Guthrie Theater – Wurtele Thrust Stage"` is one room, and two performances in it
 at 1 PM is a real finding that must not be suppressed by a prefix match.
 
+## Acting on the duplicates
+
+```bash
+npm run dedupe-flagged            # dry run — prints keep/archive, writes nothing
+npm run dedupe-flagged -- --apply # archives the losers, with a backup
+```
+
+Dry run by DEFAULT, unlike the importers, because this one archives on a fuzzy
+title match rather than a primary source. Keeper order: source-verified, then
+richer, then the more informative title, then earliest created. Pairs are
+collapsed into clusters first — Valleyfair listed one Halloween day three ways,
+and three pairwise decisions would have contradicted each other.
+
+Nothing is deleted; losers become `archived` with an `admin_audit` row naming
+the survivor. See `docs/deploy-history/DEPLOY-DEDUPE-FLAGGED.md`.
+
+## Two things that are NOT duplicates
+
+Both learned by reading all 26 findings before archiving any of them.
+
+**A series.** The Lake Harriet Bandshell runs "Free Music in the Parks" all
+summer, so "Free Music in the Parks – The Roundabouts" and "… – Hurricane Blaze"
+share a long prefix and nothing else. The prefix is the series name and carries
+no identity. When both titles open with the same run of words and the remainders
+are disjoint, they are different events.
+
+**The venue's own name.** It is already the grouping key, so a title repeating it
+says nothing — "Walker Art Center – Dorothée Munyaneza: Tituba" and "Moriah
+Evans … – Walker Art Center" are two unrelated performances that matched on the
+building. Venue tokens are stripped from both titles before comparing.
+
+Seven of the original 26 were one of these. Both fixes push borderline cases
+toward `conflict`, which is the safe direction: a conflict gets read, a
+wrongly-archived event does not.
 ## Deliberate non-goals
 
 - **It does not fold venue spellings together.** `"Turf Club"` and
