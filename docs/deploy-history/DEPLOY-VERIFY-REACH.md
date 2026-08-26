@@ -116,9 +116,10 @@ did not.
 ## Deploy steps
 
 1. Merge to `main`. Nothing is build-time; no schema change; no new secrets.
-2. The workflow change ships with the merge — `timeout-minutes: 30`.
-3. Nothing runs until Thursday 16:00 UTC. To watch it sooner, dispatch **Verify
-   Upcoming Events** manually with dry run **on**.
+2. The workflow change ships with the merge — `timeout-minutes: 30` and the
+   second cron. GitHub picks up schedule changes from `main` automatically.
+3. First scheduled run is **Monday 12:00 UTC**. To watch it sooner, dispatch
+   **Verify Upcoming Events** manually with dry run **on**.
 
 ## Verify
 
@@ -151,12 +152,47 @@ destructive; the cancellation policy is untouched.
 `npm audit` 0 vulnerabilities · new selector run against production rows to
 confirm the 34 → 105 figure rather than deriving it.
 
+## Fourth change — twice weekly (added same day, on request)
+
+The cap was never the binding constraint. **The cadence was.** A pass that looks
+7 days ahead but runs every 7 days gives each event exactly one chance to be
+seen — and if the budget truncates that run, the chance is spent.
+
+Second slot: **Monday 12:00 UTC**, joining Thursday 16:00.
+
+Monday because that is the day the research pipeline runs, and the research
+agents are the thing being corrected. Verifying six hours after they write is
+the first look at what they just invented — the Twins listings survived four
+pipeline runs before a stranger caught them.
+
+12:00 rather than sooner because Weekly Event Research starts at 06:00 with a
+90-minute timeout plus two importer steps, and **GitHub's scheduler is late on
+this repo by observed margins of +1h02m to +3h52m** (documented in
+`weekly-digest.yml` after a run that missed an entire send). Six hours is
+clearance, not politeness.
+
+If they overlap anyway it is harmless: `markVerified` and `cancelVerified` both
+carry `and status = 'published'`, so a row the pipeline just archived cannot be
+stamped verified by a race.
+
+Cost roughly doubles — ~500 searches and ~42 Sonnet calls a week at a full
+window. Reverting is deleting one cron line.
+
 ## Not done
 
-**The cadence is still weekly**, and that is now the binding constraint rather
-than the cap. Two runs a week would roughly double reach for the same cap, since
-the window rolls between runs — a one-line cron change, deliberately not made
-here because it doubles the API spend and that is Taren's call.
+**Verification still runs an hour AFTER the subscriber digest on Thursday**
+(digest 15:00, verify 16:00). The email is the highest-stakes surface on the
+site — it cannot be recalled — and it currently goes out before the week's
+verification pass has looked at anything.
+
+Swapping the times would not fix it: with the scheduler drifting by up to
++3h52m, cron cannot guarantee ordering between two workflows. A real fix makes
+the digest depend on verification via `workflow_run`, the way `ops-digest`
+already depends on the pipeline. That is a change to the send path and wants its
+own session.
+
+The Monday run helps here by accident — it verifies the week's new listings
+three days before Thursday's email — but that is mitigation, not a fix.
 
 **~435 listings in arts/festival/food/weird still have no primary source.** This
 change points a stronger instrument at them; it does not give them a feed. The

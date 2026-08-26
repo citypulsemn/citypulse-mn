@@ -2,13 +2,31 @@ name: Verify Upcoming Events
 
 # Re-checks the next 7 days of events against their sources (roadmap 4.5), so a
 # show cancelled mid-week doesn't sit on the calendar until Monday's research
-# run. Thursday 16:00 UTC (~11am Central) — before the weekend, after the digest.
+# run.
+#
+# TWICE WEEKLY, because the cap was never the binding constraint — the cadence
+# was. The pass looks 7 days ahead but only ran every 7 days, so a single miss
+# meant an event expired unchecked. Two runs ~3.5 days apart means every event
+# falls inside a run's reach at least once, and most twice.
+#   1. Monday 12:00 UTC (~7am Central) — after the research pipeline and the
+#      importers have landed the week's new listings. This is the one that
+#      matters most: the research agents are what invent things, and this is
+#      the first look at what they just wrote.
+#   2. Thursday 16:00 UTC (~11am Central) — before the weekend.
+#
+# Why 12:00 and not sooner: Weekly Event Research starts at 06:00 UTC with a
+# 90-minute timeout, then two importer steps. Six hours of clearance is
+# deliberate — GitHub's scheduler is late by observed margins of +1h02m to
+# +3h52m on this repo (see weekly-digest.yml). If the two do overlap anyway it
+# is harmless: markVerified only touches rows that are still 'published', so a
+# row the pipeline just archived cannot be stamped verified by a race.
 #
 # timeout-minutes must stay ABOVE lib/verify.ts RUN_BUDGET_MS (20m) plus setup.
 # The script stops itself at the budget; this is the backstop, not the schedule.
 # If it ever fires, the per-batch flush means the finished batches are saved.
 on:
   schedule:
+    - cron: "0 12 * * 1"
     - cron: "0 16 * * 4"
   workflow_dispatch:
     inputs:

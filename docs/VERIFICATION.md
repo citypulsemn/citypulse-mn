@@ -4,7 +4,7 @@ Roadmap 4.5. Events are discovered weekly, but reality changes daily — shows g
 
 ## How it works
 
-Every **Thursday morning** (before the weekend, after the digest), the `verify-events` workflow re-checks the next 7 days of published events against their sources:
+**Monday 12:00 UTC** (after the research pipeline and importers land the week's new listings) and **Thursday 16:00 UTC** (before the weekend), the `verify-events` workflow re-checks the next 7 days of published events against their sources:
 
 1. `selectForVerification` picks candidates — published, starting within 7 days, having a source or ticket URL, **never-verified first, then soonest first** within each group, capped at `DEFAULT_CAP` (200).
 2. Batches of 8 go to a verification agent (`verifyEventsBatch`) that reads each event's source page and returns one verdict per event.
@@ -61,8 +61,13 @@ flush means the finished batches are already saved.
 When the cap or the budget truncates a run, the log says so by name rather than
 reporting a clean finish (rule 6).
 
-**The cadence is now the binding constraint, not the cap.** Two runs a week would
-roughly double reach for the same cap, because the window rolls between runs.
-That doubles the spend, so it is an owner decision.
+**Twice weekly since 26 Aug 2026**, because the cadence — not the cap — was the
+binding constraint. A pass that looks 7 days ahead but runs every 7 days gives
+each event exactly one chance to be seen, and a truncated run spends that chance.
+Two runs ~3.5 days apart put every event inside a run's reach at least once.
+
+Roughly **doubles the spend**: ~500 searches and ~42 Sonnet calls a week at a
+full window. Halve it by deleting one cron line; nothing else depends on there
+being two.
 
 Use `npm run verify -- --dry-run --cap=8` to see the shape for one batch.
