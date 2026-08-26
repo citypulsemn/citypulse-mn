@@ -18,6 +18,7 @@ import { getFeedAdoption } from "../lib/feed-stats";
 import { getSearchImpressions } from "../lib/search-console";
 import { getPendingSubmissionCount } from "../lib/submissions";
 import { getPendingReportCount, getOldestPendingReportDays } from "../lib/event-reports";
+import { findContradictions, formatFinding, type CalendarRow } from "../lib/contradictions";
 
 const dryRun = process.argv.includes("--dry-run");
 
@@ -112,6 +113,30 @@ async function gather(): Promise<OpsInputs> {
     }),
   );
 
+  // The self-check. No outside source, so it can run for every category —
+  // including the five that have no feed to verify against. Wrapped like every
+  // other section: if the read throws, the section says "unavailable" rather
+  // than reporting a reassuring zero.
+  const contradictions = await wrap(
+    "contradictions",
+    { conflicts: 0, duplicates: 0, placeholderVenues: 0, examples: [] as string[] },
+    async () => {
+      if (!sql) throw new Error("no database connection");
+      const rows = await sql<CalendarRow[]>`
+        select id::text as id, venue, title, category,
+               (verified_at is not null) as verified,
+               to_char(start_at at time zone 'America/Chicago', 'YYYY-MM-DD"T"HH24:MI') as start
+        from events where status = 'published' and start_at >= now()`;
+      const report = findContradictions([...rows]);
+      return {
+        conflicts: report.conflicts.length,
+        duplicates: report.duplicates.length,
+        placeholderVenues: report.placeholderVenues.length,
+        examples: report.conflicts.slice(0, 5).map(formatFinding),
+      };
+    },
+  );
+
   const subscribers = await wrap("subscribers", { total: 0, delta7: 0, bySource7: [] as { source: string; count: number }[] }, async () => {
     if (!sql) throw new Error("no database connection");
     const [row] = await sql<{ total: number; delta7: number }[]>`
@@ -180,6 +205,7 @@ async function gather(): Promise<OpsInputs> {
     lastDigestDaysAgo,
     feeds,
     queue,
+    contradictions,
     sitemapUrls,
     prevSitemapUrls,
     search,

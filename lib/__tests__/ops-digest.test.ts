@@ -43,6 +43,7 @@ function healthy(overrides: Partial<OpsInputs> = {}): OpsInputs {
     lastDigestDaysAgo: 4, // healthy: Thursday send, Monday report
     feeds: { clicks7: 9, top: [{ label: "venue-first-avenue", count: 5 }, { label: "live-music", count: 3 }] },
     queue: { submissions: 0, reports: 0, oldestReportDays: null },
+    contradictions: { conflicts: 0, duplicates: 0, placeholderVenues: 0, examples: [] },
     sitemapUrls: 121,
     prevSitemapUrls: 118,
     search: null, // default: not wired → manual GSC line (today's state)
@@ -92,7 +93,7 @@ describe("composeOpsDigest — the healthy week", () => {
     expect(subject).toBe("✅ City Pulse ops — all green (Jul 20)");
   });
   it("all nine sections render in both formats", () => {
-    for (const title of ["Pipeline", "Coverage", "Verification", "Engagement (7d)", "Trending", "Index surface", "Subscribers", "Feeds", "Queue"]) {
+    for (const title of ["Pipeline", "Coverage", "Verification", "Engagement (7d)", "Trending", "Index surface", "Subscribers", "Feeds", "Queue", "Self-check"]) {
       expect(text).toContain(title);
       expect(html).toContain(title);
     }
@@ -567,5 +568,50 @@ describe("quiet states that are NOT alerts", () => {
   it("no pipeline rows yet IS an alert (the cockpit should notice silence)", () => {
     const sections = buildSections(healthy({ pipeline: null }));
     expect(sections.find((s) => s.title === "Pipeline")!.alert).toBe(true);
+  });
+});
+
+describe("Self-check — where the calendar contradicts itself", () => {
+  const selfOf = (c: Partial<OpsInputs["contradictions"]>) =>
+    buildSections(
+      healthy({
+        contradictions: { conflicts: 0, duplicates: 0, placeholderVenues: 0, examples: [], ...c },
+      }),
+    ).find((s) => s.title === "Self-check")!;
+
+  it("a clean calendar is not an alert", () => {
+    const s = selfOf({});
+    expect(s.alert).toBe(false);
+    expect(s.lines[0]).toContain("does not contradict itself");
+  });
+
+  it("a CLASH alerts — one of the two is false and live on the site", () => {
+    const s = selfOf({ conflicts: 2, examples: ["2026-09-14 · First Avenue (both 20:00): \"A\" / \"B\""] });
+    expect(s.alert).toBe(true);
+    expect(s.lines[0]).toContain("2 clashes");
+    expect(s.lines.join(" ")).toContain("First Avenue");
+  });
+
+  it("duplicates and placeholder venues report WITHOUT alerting — untidy, not untrue", () => {
+    const s = selfOf({ duplicates: 26, placeholderVenues: 6 });
+    expect(s.alert).toBe(false);
+    expect(s.lines.join(" ")).toContain("26 probable duplicates");
+    expect(s.lines.join(" ")).toContain("6 listings whose venue names no place");
+  });
+
+  it("says one clash, one duplicate — not 1 clashes", () => {
+    const s = selfOf({ conflicts: 1, duplicates: 1, placeholderVenues: 1 });
+    const t = s.lines.join(" ");
+    expect(t).toContain("1 clash —");
+    expect(t).toContain("1 probable duplicate ");
+    expect(t).toContain("1 listing whose");
+  });
+
+  it("a failed read says unavailable and alerts — never a reassuring zero", () => {
+    const s = buildSections(healthy({ errors: { contradictions: "db down" } })).find(
+      (x) => x.title === "Self-check",
+    )!;
+    expect(s.alert).toBe(true);
+    expect(s.lines[0]).toContain("unavailable");
   });
 });

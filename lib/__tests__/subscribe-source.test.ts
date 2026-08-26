@@ -17,6 +17,7 @@ function base(sub: Partial<OpsInputs["subscribers"]>): OpsInputs {
     lastDigestDaysAgo: 4,
     feeds: { clicks7: 0, top: [] },
     queue: { submissions: 0, reports: 0, oldestReportDays: null },
+    contradictions: { conflicts: 0, duplicates: 0, placeholderVenues: 0, examples: [] },
     prevPipeline: null,
     recentPipeline: [],
     sitemapUrls: 120,

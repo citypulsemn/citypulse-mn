@@ -1,0 +1,120 @@
+# Self-check — where the calendar contradicts itself
+
+The third verification pass, and the only one that needs no outside source.
+
+`docs/SPORTS-IMPORT.md` and `docs/MUSIC-IMPORT.md` check listings against a
+league feed and a venue calendar. That works where such a thing exists. **Arts,
+family, festival, food and weird — about 620 upcoming listings — have none**, and
+they come from the same research pipeline that was 65% wrong about the Twins.
+
+This module asks a question that needs no source at all: *does the calendar
+disagree with itself?*
+
+## The idea, and where it came from
+
+On 14 September 2026 the site advertised a Twins–Yankees game at 6:40 PM and a
+Twins–Orioles game at 7:10 PM, both at Target Field. **A stadium holds one game.**
+No feed was required to know one of those was false — only a query. It would have
+caught the whole incident in June, months before a reader did.
+
+## Run it
+
+The check runs inside the weekly ops digest as the **Self-check** section. There
+is no separate command; `lib/contradictions.ts` is pure and the digest gathers it
+like any other section.
+
+## Two findings, because they are two different jobs
+
+| Finding | Meaning | In the digest |
+|---|---|---|
+| **conflict** | Two *different* things in one room at one time. At most one is happening. | **alerts** |
+| **duplicate** | One event listed twice under different titles. | reported, no alert |
+| **placeholder venue** | The venue field names no place — `TBD`, `Various Locations`. | reported, no alert |
+
+A conflict means something false is live on the site, which is exactly the
+failure this project exists to avoid. A duplicate is untidy rather than untrue.
+
+**When the matcher can't tell, it calls it a conflict.** That direction is
+deliberate: a conflict gets read by a person, and the cost of a mislabelled
+duplicate is ten seconds of their attention. Calling a real clash "housekeeping"
+would bury it.
+
+## The four-hour window
+
+Two listings clash if they share a venue and a Chicago day and start within
+**four hours** of each other.
+
+It has to be a window, not an exact match: the Yankees/Orioles pair was thirty
+minutes apart, and an exact-time check sails straight past it. Four hours also
+leaves genuine pairs alone — a 1 PM matinee and a 7:30 PM performance are 5.5
+hours apart and both true.
+
+## What stops it crying wolf
+
+**Two verified rows never conflict.** If a primary source vouches for *both*
+events, the venue simply runs concurrent programming and the calendar isn't
+disagreeing with itself. The Turf Club books three acts some nights; Fine Line
+follows a show with a club night. Their own calendar says so.
+
+This is the mechanism that keeps the allowlist below from growing forever: every
+venue brought under a primary source stops needing an entry. It suppresses only
+*conflicts* — two verified rows with near-identical titles are still worth
+reporting as a duplicate.
+
+**`CONCURRENT_VENUES`** covers the rest: campuses (Como Zoo, the Fairgrounds, the
+museums) and multi-stage houses (Chanhassen, the Guthrie) where simultaneous
+programming is the point. Every entry carries a written reason — a test enforces
+that — and **skipped pairs are counted and reported**, never silently dropped. An
+allowlist that hides its own effect is how a check quietly stops working.
+
+Matching is **exact**, which is why `"Berlin"` and `"Berlin (Minneapolis)"` are
+both listed. That is deliberate: `"Guthrie Theater"` is a three-stage complex, but
+`"Guthrie Theater – Wurtele Thrust Stage"` is one room, and two performances in it
+at 1 PM is a real finding that must not be suppressed by a prefix match.
+
+## Deliberate non-goals
+
+- **It does not fold venue spellings together.** `"Turf Club"` and
+  `"Turf Club (St Paul)"` staying separate is its own bug, for the dedupe pass.
+  Folding them here would hide it inside a clash report and fix neither.
+- **It changes nothing.** It is an instrument. Every finding names both listings
+  so a person can act.
+
+## Pieces
+
+- **`lib/contradictions.ts`** — pure: `findContradictions`, `looksLikeSameEvent`,
+  `formatFinding`, `CLASH_WINDOW_MINUTES`, `CONCURRENT_VENUES`.
+- **`lib/ops-digest.ts`** — the Self-check section.
+- **`scripts/send-ops-digest.ts`** — the gather, wrapped like every other section
+  so a failed read says "unavailable" instead of a reassuring zero.
+- **`lib/__tests__/contradictions.test.ts`** — 24 tests from real pairs.
+
+`foldTitle` moved from `lib/music-feed.ts` to `lib/canonicalize.ts`, since both
+this and the music importer need it. It is **not** `normalizeKeyPart`, which feeds
+`event_key` and must never change — editing that would re-key every row.
+
+## What it found on the first run
+
+Scanning 1,225 upcoming listings: **27 conflicts, 26 duplicates, 6 placeholder
+venues.**
+
+The conflicts are worth reading, because they are a different bug than expected.
+A large share are **placeholder titles** sitting beside the real show:
+`"Turf Club Show (Sep 3)"` next to the verified `"Clung Tight"`;
+`"Hopkins Center for the Arts – Concert (September)"` next to
+`"John Jorgenson Quintet"`; `"Concert at Ordway Concert Hall"` next to Cantus.
+The research agents invent a filler listing when they know a venue has *something*
+on but not what.
+
+Others are real clashes: three different bands at the Lake Harriet Bandshell at
+7:30 on one night; Waiting for Godot listed twice on the Guthrie's Wurtele stage
+at 1 PM; Larry Fleet and The Rapture at First Avenue on the night the venue's own
+calendar says Kamelot is playing — the same rows the music importer flagged, found
+independently and by a different route.
+
+## Known cost
+
+An **abbreviated** duplicate lands in the conflict bucket. `"MNUFC vs. LA Galaxy"`
+and `"Minnesota United FC vs. Los Angeles Galaxy"` share only "galaxy" once
+expanded, so the matcher can't join them. Erring safe is the choice; a person
+resolves it at a glance.

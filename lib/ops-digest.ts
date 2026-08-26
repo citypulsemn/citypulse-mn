@@ -157,6 +157,17 @@ export interface OpsInputs {
    *  still be live on the site (an honest-data failure), whereas an unreviewed
    *  submission just means a queue. */
   queue: { submissions: number; reports: number; oldestReportDays: number | null };
+  /** What the calendar can catch by looking at ITSELF (lib/contradictions.ts).
+   *  Needs no outside source, which is the point: arts, family, festival, food
+   *  and weird have none. `conflicts` is the alert — two different things
+   *  claimed in one room at one time means at most one of them is real. */
+  contradictions: {
+    conflicts: number;
+    duplicates: number;
+    placeholderVenues: number;
+    /** A few formatted conflict lines, worst first, for the email body. */
+    examples: string[];
+  };
   /** Live sitemap URL count (fetched from SITE_URL/sitemap.xml — the number
    *  Google actually sees; zero drift by construction) + last week's. */
   sitemapUrls: number | null;
@@ -487,6 +498,42 @@ export function buildSections(inputs: OpsInputs): OpsSection[] {
       }
     }
     out.push({ title: "Queue", lines, alert });
+  }
+
+  // 10 — Self-check: where the calendar contradicts itself. The only section
+  // here that needs no outside source, which is why it exists — five categories
+  // have none. A CONFLICT alerts (two different things in one room at one time
+  // means the site is publishing something false); duplicates and placeholder
+  // venues are reported without alerting, because they are untidy rather than
+  // untrue.
+  {
+    let lines: string[];
+    let alert = false;
+    if (err("contradictions")) {
+      lines = unavailable(err("contradictions"));
+      alert = true;
+    } else {
+      const { conflicts, duplicates, placeholderVenues, examples } = inputs.contradictions;
+      if (conflicts === 0 && duplicates === 0 && placeholderVenues === 0) {
+        lines = ["the calendar does not contradict itself anywhere"];
+      } else {
+        lines = [];
+        if (conflicts > 0) {
+          lines.push(
+            `${conflicts} clash${conflicts === 1 ? "" : "es"} — one room, one time, two different events`,
+          );
+          lines.push(...examples.map((e) => `    ${e}`));
+          alert = true;
+        }
+        if (duplicates > 0) {
+          lines.push(`${duplicates} probable duplicate${duplicates === 1 ? "" : "s"} — same event listed twice`);
+        }
+        if (placeholderVenues > 0) {
+          lines.push(`${placeholderVenues} listing${placeholderVenues === 1 ? "" : "s"} whose venue names no place ("TBD")`);
+        }
+      }
+    }
+    out.push({ title: "Self-check", lines, alert });
   }
 
   return out;

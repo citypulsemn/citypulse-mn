@@ -19,6 +19,33 @@ export function normalizeKeyPart(s: string): string {
     .trim();
 }
 
+
+/**
+ * Fold a title to comparable ASCII, for MATCHING — never for keying.
+ *
+ * normalizeKeyPart above feeds event_key and must never change: editing it
+ * would re-key every row in the database. This is its safer cousin, used by the
+ * music importer and the contradiction check, and it goes further in the one
+ * place that matters: letters Unicode will not decompose. NFKD leaves "ı" and
+ * "ø" alone, so a bare a-z filter turned "Altın Gün" into "alt n" and "Eivør"
+ * into "eiv r" — names that could not match themselves.
+ */
+const TRANSLIT: Record<string, string> = {
+  ı: "i", ø: "o", Ø: "o", ł: "l", æ: "ae", œ: "oe", ß: "ss",
+  đ: "d", ð: "d", þ: "th", ħ: "h", ŋ: "n", ſ: "s",
+};
+
+export function foldTitle(title: string): string {
+  return title
+    .toLowerCase()
+    .replace(/[ıøØłœæßđðþħŋſ]/g, (ch) => TRANSLIT[ch] ?? ch)
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .replace(/[^a-z0-9\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 /**
  * Known venue name variants → one canonical (NORMALIZED) form.
  * Keys are already normalized (lowercase, no punctuation). Edit freely as you

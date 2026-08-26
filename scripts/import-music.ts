@@ -213,12 +213,20 @@ async function main() {
 
     // Flagged, never actioned. This is the record a person reviews in the admin
     // audit; the listing itself is untouched.
+    // Flag ONCE per listing, not once per run. The first version inserted
+    // unconditionally, so four flagged listings had produced seventeen audit
+    // rows by the fourth run — the review queue burying itself. A flag is a
+    // standing note that this row needs a person, not a log line.
     for (const v of unmatched) {
       if (v.kind !== "unmatched") continue;
       await sql`
         insert into admin_audit (action, event_id, patch)
-        values ('import_music_review', ${v.id}::uuid,
-                ${sql.json({ why: `not found on ${source.sourceLabel}`, venue_lists: v.alternatives.slice(0, 6) } as never)})
+        select 'import_music_review', ${v.id}::uuid,
+               ${sql.json({ why: `not found on ${source.sourceLabel}`, venue_lists: v.alternatives.slice(0, 6) } as never)}
+        where not exists (
+          select 1 from admin_audit
+          where action = 'import_music_review' and event_id = ${v.id}::uuid
+        )
       `;
     }
 

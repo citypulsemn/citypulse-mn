@@ -1,3 +1,9 @@
+import { foldTitle } from "./canonicalize";
+
+// foldTitle was born here and its tests still import it from this module; it now
+// lives in canonicalize.ts because the contradiction check needs it too.
+export { foldTitle } from "./canonicalize";
+
 /**
  * VENUE CALENDARS — the primary-source importer for music (Aug 2026).
  *
@@ -161,30 +167,6 @@ const NOISE = new Set([
   "featuring", "feat", "ft", "live", "tour", "night", "show", "concert", "at",
   "in", "of", "plus", "special", "guest", "guests", "on", "for", "an", "one",
 ]);
-
-/**
- * Fold a title to comparable ASCII.
- *
- * Live music is full of names a naive [^a-z] filter destroys: Altın Gün became
- * "alt n", Eivør became "eiv r", Mon Rovîa became "mon rov a" — so each of them
- * failed to match ITSELF and was hidden-and-re-added on every run. NFD handles
- * the decomposable accents; the map covers the letters Unicode won't split.
- */
-const TRANSLIT: Record<string, string> = {
-  ı: "i", ø: "o", Ø: "o", ł: "l", æ: "ae", œ: "oe", ß: "ss",
-  đ: "d", ð: "d", þ: "th", ħ: "h", ŋ: "n", ſ: "s",
-};
-
-export function foldTitle(title: string): string {
-  return title
-    .toLowerCase()
-    .replace(/[ıøØłœæßđðþħŋſ]/g, (c) => TRANSLIT[c] ?? c)
-    .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
-    .replace(/[^a-z0-9\s]/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-}
 
 function tokens(title: string): string[] {
   return foldTitle(title)
