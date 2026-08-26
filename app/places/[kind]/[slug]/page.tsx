@@ -22,8 +22,27 @@ import { staticMapUrl } from "@/lib/event-view";
 import { SITE_URL } from "@/lib/seo/site";
 
 // Static registry (no DB) — build-time prerender is SAFE (ENGINEERING rule 2 is
-// about DB-backed pages). revalidate keeps the open/closed season note fresh.
-export const revalidate = 3600;
+// about DB-backed pages).
+//
+// NEVER REVALIDATE. This page renders from `lib/places.ts` and nothing else:
+// no database, no clock, no `openNow`. Its output cannot change until someone
+// edits the registry, which requires a deploy, which rebuilds it anyway.
+//
+// It said `revalidate = 3600` with a comment about keeping "the open/closed
+// season note fresh". There is no season note on this page — the open-now
+// filter lives in the client components on the kind and discover pages. So all
+// 519 of these re-rendered hourly, on demand, to produce byte-identical HTML.
+// Measured 26 Aug 2026: 80,539 ISR writes in 30 days against 3,464 human page
+// views, and Fluid Active CPU 4h16m over a 4h allowance. Crawlers walk the long
+// tail about once a day, and a 1-hour TTL means every one of those visits paid
+// for a full re-render.
+//
+// dynamicParams = false so a slug outside the registry is a static 404 at the
+// CDN rather than a function invocation that calls notFound(). Together these
+// take this route — the largest single block of URLs on the site — to zero
+// function invocations.
+export const revalidate = false;
+export const dynamicParams = false;
 
 const COST_LABEL: Record<PlaceCost, string> = { free: "Free", paid: "Paid", donation: "Donation" };
 

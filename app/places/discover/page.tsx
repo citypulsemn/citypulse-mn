@@ -4,9 +4,14 @@ import { SiteFooter } from "@/components/SiteFooter";
 import { PlacesDiscover } from "@/components/PlacesDiscover";
 import { PLACES } from "@/lib/places";
 
-// Static registry (no DB) — safe to prerender; revalidate keeps the season state
-// (the "open this season" filter) fresh.
-export const revalidate = 3600;
+// Static registry (no DB) — safe to prerender.
+//
+// NEVER REVALIDATE, same reasoning as the place detail pages. The "open this
+// season" filter this comment used to cite is CLIENT-side: `PlacesDiscover`
+// evaluates `openNow` in the browser against the reader's own clock, which is
+// both cheaper and more correct than a server render frozen at revalidate time.
+// Nothing in this page's server output depends on the date.
+export const revalidate = false;
 
 const TAGLINE =
   "Every Twin Cities spot in one place — filter by free, indoor, and near you, across pools, museums, parks, dog parks, and more.";

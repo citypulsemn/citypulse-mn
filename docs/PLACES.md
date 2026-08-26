@@ -63,9 +63,31 @@ casing.
 Both are **statically generated** (`generateStaticParams` on the kind page) with
 `revalidate = 3600`. This is safe — and correct for evergreen SEO — precisely
 because places read the in-code registry with zero DB queries; rule 2 forbids
-DB-backed build prerenders, which these are not. Individual places do NOT get
-their own pages (thin content — see `docs/INDEXING.md`); a place earns a detail
-page only with real depth (P4.1).
+DB-backed build prerenders, which these are not.
+
+### Which places pages revalidate, and which never do
+
+These two keep an hourly TTL because they genuinely read the clock:
+`kindsWithPlaces` sets an `open` flag per kind, and `placesSeasonBanner` puts a
+"Closed for the season" line on a kind page.
+
+**The 519 detail pages and `/places/discover` set `revalidate = false`** — they
+never expire, and the detail route also sets `dynamicParams = false` so an
+unknown slug is a static 404 rather than a function invocation. Nothing in their
+server output depends on the date; the "open this season" filter is client-side,
+evaluated against the reader's own clock in `PlacesDiscover` / `PlacesBrowser`.
+
+They previously carried `revalidate = 3600` with a comment about keeping a season
+note fresh — a note that does not exist on those pages. The result was 519 pages
+re-rendering hourly for byte-identical output, which was a measurable share of
+the Fluid Active CPU overage on 26 Aug 2026 (`docs/deploy-history/DEPLOY-PLACES-STATIC.md`).
+
+`lib/__tests__/places-static.test.ts` guards all of it, **including that the
+open-now filter stays client-side** — if it ever moves to the server, these
+frozen pages would claim a splash pad is open after it closed for the season.
+
+Individual places do NOT get their own pages (thin content — see
+`docs/INDEXING.md`); a place earns a detail page only with real depth (P4.1).
 
 ## The map
 
