@@ -23,7 +23,8 @@
     "dedupe-flagged": "tsx --env-file-if-exists=.env.local scripts/dedupe-flagged.ts",
     "hide-placeholders": "tsx --env-file-if-exists=.env.local scripts/hide-placeholders.ts",
     "resolve-conflicts": "tsx --env-file-if-exists=.env.local scripts/resolve-conflicts.ts",
-    "import-venues": "tsx --env-file-if-exists=.env.local scripts/import-venues.ts"
+    "import-venues": "tsx --env-file-if-exists=.env.local scripts/import-venues.ts",
+    "revalidate": "tsx --env-file-if-exists=.env.local scripts/revalidate.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.117.1",

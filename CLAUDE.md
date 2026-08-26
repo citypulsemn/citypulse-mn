@@ -17,7 +17,7 @@ Read this first, every session. It is the contract for how work happens on this 
 
 **Scripts:** `dev` · `build` · `test` · `lint` · `pipeline` (weekly research) · `digest` (subscriber email) · `ops-digest` (operator email; `-- --dry-run` is safe) · `verify` · `collapse` · `reclassify`
 
-**Secrets** live in Vercel and in GitHub Actions: `DATABASE_URL`, `RESEND_API_KEY`, `UNSUBSCRIBE_SECRET`, `SITE_URL`, `DIGEST_FROM`, `OPS_DIGEST_TO`, Mapbox token. Never print or commit them.
+**Secrets** live in Vercel and in GitHub Actions: `DATABASE_URL`, `RESEND_API_KEY`, `UNSUBSCRIBE_SECRET`, `REVALIDATE_SECRET`, `SITE_URL`, `DIGEST_FROM`, `OPS_DIGEST_TO`, Mapbox token. Never print or commit them.
 
 ## The working agreement
 

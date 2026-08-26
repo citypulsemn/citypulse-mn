@@ -18,6 +18,7 @@
  * Nothing is deleted: extras are archived, so this is reversible.
  */
 import { sql } from "../lib/db";
+import { revalidateAndReport } from "../lib/revalidate-client";
 import { planCollapse } from "../lib/multiday";
 
 async function main() {
@@ -76,6 +77,9 @@ async function main() {
   );
   console.log(`[collapse] ${rows.length} → ${rows.length - archived} events`);
   if (dryRun) console.log("\n[collapse] dry run — nothing written. Re-run without --dry-run to apply.");
+  else if (archived > 0 || collapsed > 0) {
+    await revalidateAndReport("collapse", `${collapsed} run(s) collapsed, ${archived} row(s) archived`);
+  }
 
   await sql.end({ timeout: 5 });
 }

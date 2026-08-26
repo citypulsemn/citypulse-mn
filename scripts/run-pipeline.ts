@@ -31,6 +31,7 @@ import { partitionCancellations } from "../lib/cancellations";
 import { dueWindows } from "../lib/horizon";
 import { NEW_EVENT_STATUS } from "../lib/pipeline-config";
 import { sql } from "../lib/db";
+import { revalidateAndReport } from "../lib/revalidate-client";
 import type { DbEventInput } from "../lib/types";
 
 async function main() {
@@ -50,6 +51,7 @@ async function main() {
   let timeNormalized = 0; // times whose zone noise / date-only form was corrected (4.6)
   let improbableTimes = 0; // starts before 7 AM kept but flagged (4.6)
   let unnamedDropped = 0; // agent listings whose title named no event (Aug 2026)
+  let archived = 0; // function-scoped: the revalidate call after the try/catch reports it
   const perBand: Record<string, number> = {};
 
   let runId: number | undefined;
@@ -232,7 +234,7 @@ async function main() {
   const pruned = await pruneRateEvents();
   if (pruned > 0) console.log(`[pipeline] pruned ${pruned} stale rate-limit bucket(s)`);
 
-  const archived = await archivePastEvents();
+  archived = await archivePastEvents();
 
   // F2.6 — per-stage counts WITH diffs vs the previous run, plus the stampede
   // tripwire (a flood of archives/dedupes is how R0.2 would have announced
@@ -317,6 +319,14 @@ async function main() {
     }
     throw err;
   }
+
+  // The pipeline is the biggest writer on the site: new events, archived ones,
+  // collapsed runs. Without this the public pages carried yesterday's slate
+  // until each ISR window happened to expire.
+  await revalidateAndReport(
+    "pipeline",
+    `weekly pipeline — ${totalUpserted} upserted, ${archived} archived`,
+  );
 
   await sql?.end({ timeout: 5 });
 }

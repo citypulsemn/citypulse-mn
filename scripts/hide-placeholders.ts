@@ -17,6 +17,7 @@
  */
 import { writeFileSync } from "node:fs";
 import { sql } from "../lib/db";
+import { revalidateAndReport } from "../lib/revalidate-client";
 import { findPlaceholderTitles, type CalendarRow } from "../lib/contradictions";
 
 const apply = process.argv.includes("--apply");
@@ -103,6 +104,7 @@ async function main() {
     `;
   }
   console.log(`[placeholders] hidden ${ids.length}`);
+  if (ids.length > 0) await revalidateAndReport("placeholders", `hid ${ids.length} unnamed listing(s)`, ids);
 }
 
 main().then(() => process.exit(0)).catch((err) => { console.error(err); process.exit(1); });

@@ -23,6 +23,7 @@
  */
 import { writeFileSync } from "node:fs";
 import { sql } from "../lib/db";
+import { revalidateAndReport } from "../lib/revalidate-client";
 import { findContradictions, type CalendarRow } from "../lib/contradictions";
 
 const apply = process.argv.includes("--apply");
@@ -114,6 +115,7 @@ async function main() {
     `;
   }
   console.log(`[conflicts] hidden ${ids.length}; ${undecidable.length} left for a person`);
+  if (ids.length > 0) await revalidateAndReport("conflicts", `hid ${ids.length} clashing listing(s)`, ids);
 }
 
 main().then(() => process.exit(0)).catch((err) => { console.error(err); process.exit(1); });

@@ -64,4 +64,5 @@ jobs:
         run: npm run verify ${{ github.event.inputs.dry_run == 'true' && '-- --dry-run' || '' }}
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          REVALIDATE_SECRET: ${{ secrets.REVALIDATE_SECRET }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}

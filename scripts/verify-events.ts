@@ -9,6 +9,7 @@
  *   - time changes are flagged for the admin, never auto-applied
  */
 import { sql } from "../lib/db";
+import { revalidateAndReport } from "../lib/revalidate-client";
 import {
   selectForVerification,
   batchForVerification,
@@ -130,6 +131,17 @@ async function main() {
     console.log("[verify] dry run — nothing written.");
   } else if (cancelled > 0) {
     console.log(`[verify] ${cancelled} event(s) marked cancelled (with evidence, audited)`);
+  }
+
+  // A cancellation is the one thing here that must reach readers immediately —
+  // it is the whole reason this pass exists. Pass the cancelled ids so their
+  // event pages are busted by name on top of the shared tag.
+  if (!dryRun && (cancels.length > 0 || confirms.length > 0)) {
+    await revalidateAndReport(
+      "verify",
+      `verify pass — ${cancels.length} cancelled, ${confirms.length} confirmed`,
+      cancels.map((c) => c.id),
+    );
   }
 
   await sql.end({ timeout: 5 });

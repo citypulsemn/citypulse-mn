@@ -17,6 +17,7 @@
  * between them would archive a whole season. Failure is reported, never acted on.
  */
 import { sql } from "../lib/db";
+import { revalidateAndReport } from "../lib/revalidate-client";
 import { SPORTS_SOURCES, type SportsSource } from "../lib/sports-sources";
 import { reconcile, gameTitle, type FeedGame, type ExistingListing } from "../lib/sports-feed";
 import { computeEventKey } from "../lib/event-key";
@@ -305,6 +306,7 @@ async function main() {
     console.log(`[import-sports] UNAVAILABLE: ${failed.map((r) => `${r.key} (${r.note})`).join(", ")}`);
   }
   if (dryRun) console.log("[import-sports] dry run — nothing was written");
+  else await revalidateAndReport("import-sports", `league feeds — ${sum((r) => r.hidden)} hidden, ${sum((r) => r.added)} added`);
 }
 
 main().then(() => process.exit(0)).catch((err) => { console.error(err); process.exit(1); });

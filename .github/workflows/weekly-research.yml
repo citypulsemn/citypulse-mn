@@ -32,6 +32,7 @@ jobs:
         run: npm run pipeline
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          REVALIDATE_SECRET: ${{ secrets.REVALIDATE_SECRET }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           MAPBOX_GEOCODING_TOKEN: ${{ secrets.MAPBOX_GEOCODING_TOKEN }}
 
@@ -47,6 +48,7 @@ jobs:
         run: npm run import-sports
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          REVALIDATE_SECRET: ${{ secrets.REVALIDATE_SECRET }}
 
       # Reads First Avenue's own show calendar. Slower than the sports step
       # because it fetches a detail page per show it adds, paced at 500ms to be a
@@ -56,3 +58,4 @@ jobs:
         run: npm run import-venues
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          REVALIDATE_SECRET: ${{ secrets.REVALIDATE_SECRET }}

@@ -13,6 +13,7 @@
  */
 import { writeFileSync } from "node:fs";
 import { sql } from "../lib/db";
+import { revalidateAndReport } from "../lib/revalidate-client";
 import { findContradictions, type CalendarRow } from "../lib/contradictions";
 import { foldTitle } from "../lib/canonicalize";
 
@@ -167,6 +168,7 @@ async function main() {
     `;
   }
   console.log(`[dedupe] archived ${ids.length}`);
+  if (ids.length > 0) await revalidateAndReport("dedupe", `archived ${ids.length} duplicate listing(s)`);
 }
 
 main().then(() => process.exit(0)).catch((err) => { console.error(err); process.exit(1); });

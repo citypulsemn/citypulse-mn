@@ -20,6 +20,7 @@
  * As with sports: a fetch that fails changes nothing at all.
  */
 import { sql } from "../lib/db";
+import { revalidateAndReport } from "../lib/revalidate-client";
 import { MUSIC_SOURCES, type MusicVenue } from "../lib/music-sources";
 import {
   parseFirstAvenueMonth,
@@ -119,6 +120,10 @@ async function main() {
   console.log(
     `[import-music] ${today}→${horizonEnd}${dryRun ? " · DRY RUN" : ""}`,
   );
+
+  // Counted across every source so the cache is busted once at the end rather
+  // than per venue — one call, or none if the calendars agreed with us.
+  let changed = 0;
 
   for (const source of MUSIC_SOURCES) {
     console.log(`\n${source.label}`);
@@ -238,6 +243,7 @@ async function main() {
     if (dryRun) continue;
 
     const toHide = [...phantom, ...moved];
+    changed += toHide.length;
     if (toHide.length) {
       const ids = toHide.map((v) => v.id);
       await sql`update events set status = 'draft' where id::text = any(${ids})`;
@@ -317,7 +323,12 @@ async function main() {
       if (woken.count) console.log(`   (republished ${woken.count} row(s) an earlier pass had hidden)`);
       await sql`update events set verified_at = now() where event_key = any(${keys})`;
       console.log(`   added ${inputs.length} (${timed} with a show time, ${inputs.length - timed} all-day)`);
+      changed += inputs.length;
     }
+  }
+
+  if (!dryRun && changed > 0) {
+    await revalidateAndReport("import-music", `venue calendars — ${changed} listing(s) changed`);
   }
 }
 
