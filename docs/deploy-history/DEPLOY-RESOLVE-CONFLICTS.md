@@ -82,9 +82,10 @@ Expect `0 decided by evidence`, `15 left for a person`.
 
 ## Rollback
 
-Backup JSON holds every id, its prior status and the listing it lost to:
-`update events set status='published' where id = any(...)`. Or one click per row
-in Admin → Events.
+From `admin_audit`, action `resolve_conflict` — it carries every id, the status it
+was set to, and the listing it lost to. Recipe in `docs/ADMIN.md` under "Undoing a
+bulk change". The `--backup=` file is a convenience for whoever ran the script,
+not a durable record. Or one click per row in Admin → Events.
 
 ## Quality gate
 

@@ -64,10 +64,10 @@ all rather than a hollow one.
 
 ## Rollback
 
-The backup JSON holds every id with its prior status:
-`update events set status='published' where id = any(...)`. Or one click per row
-in Admin → Events. `admin_audit` action `hide_placeholder_title` carries the same
-record.
+**Restore from `admin_audit`**, action `hide_placeholder_title` — see
+`docs/ADMIN.md`, "Undoing a bulk change". The `--backup=` file is a convenience
+for whoever ran the script, not a durable record. Or one click per row in
+Admin → Events.
 
 ## Quality gate
 

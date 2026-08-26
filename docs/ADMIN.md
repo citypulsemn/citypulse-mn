@@ -26,6 +26,54 @@ Roadmap 1.5. A password-protected `/admin` for running City Pulse from a phone �
 
 Every mutation writes a row to `admin_audit` (action, event_id, patch, timestamp) — cheap insurance and a record of what changed when.
 
+## Undoing a bulk change
+
+`admin_audit` is the undo, and it is the ONLY durable one. The importers and
+cleanup scripts each write a backup file too, but those are a convenience for
+the operator running them — do not plan a rollback around a path someone typed
+on the day. Every hide records the status it set and the event it set it on, so
+the database can reverse itself.
+
+Restore everything one action hid, but only rows still sitting in that state —
+so a later, deliberate decision is never clobbered:
+
+```sql
+update events e
+set status = 'published'
+from admin_audit a
+where a.event_id = e.id
+  and a.action = 'dedupe_flagged'        -- the action to reverse
+  and e.status = a.patch->>'status'      -- untouched since
+  and e.start_at >= now();
+```
+
+Actions this workstream wrote, all reversible the same way:
+
+| Action | What it did |
+|---|---|
+| `hide_bad_sports_data` | phantom / wrong-opponent sports listings |
+| `import_sports_hide` | the same, from the weekly importer |
+| `import_music_hide` | a room dark that night, or the show found elsewhere |
+| `hide_placeholder_title` | titles naming no event |
+| `dedupe_flagged` | one copy of a duplicate |
+| `resolve_conflict` | the unverified side of a clash |
+
+`import_sports_retime` is the exception — it changed a time, not a status, and
+its `patch->>'from'` holds the original:
+
+```sql
+update events e
+set start_at = (a.patch->>'from')::text::timestamp at time zone 'America/Chicago'
+from admin_audit a
+where a.event_id = e.id and a.action = 'import_sports_retime';
+```
+
+Check before you write:
+
+```sql
+select a.action, count(*) from admin_audit a join events e on e.id = a.event_id
+where e.status = a.patch->>'status' and e.start_at >= now() group by a.action;
+```
 ## Data model
 
 Two idempotent tables in `db/schema.sql`, both with RLS enabled and no anon policy (reached only through the service `DATABASE_URL`):

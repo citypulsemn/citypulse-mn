@@ -57,9 +57,10 @@ Hid **26 listings** (`published` → `draft`, reversible, nothing deleted):
 Each hide wrote an `admin_audit` row with its reason. The report was closed
 `actioned` / `hidden` with a note recording the verification.
 
-**Rollback:** every affected id and its prior status is in the backup JSON noted
-in the session log; restoring is `update events set status='published' where
-id = any(...)`, or one click per row in Admin → Events.
+**Rollback:** from `admin_audit`, action `hide_bad_sports_data` — the recipe is in
+`docs/ADMIN.md` under "Undoing a bulk change". A backup file was written at the
+time, but it lives wherever the operator pointed it and is not a durable record;
+the audit log is. Or one click per row in Admin → Events.
 
 Because the hide ran as a script rather than through `setStatus`, Vercel's cache
 was not busted by `refresh()`. A deploy was pushed immediately after to clear it —

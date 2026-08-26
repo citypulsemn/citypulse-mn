@@ -89,10 +89,11 @@ ValleySCARE event, with two redundant titles archived.
 
 ## Rollback
 
-The backup JSON holds every archived id with its prior status and the id kept
-instead. To restore: `update events set status='published' where id = any(...)`.
-Or one click per row in Admin → Events. `admin_audit` action `dedupe_flagged`
-carries the same record.
+**Restore from `admin_audit`, not from the backup file** — the file is written
+wherever the operator pointed `--backup=` and is not a durable record. Action
+`dedupe_flagged` carries every archived id and the status it was set to; the
+recipe is in `docs/ADMIN.md` under "Undoing a bulk change". Or one click per row
+in Admin → Events.
 
 ## Quality gate
 
