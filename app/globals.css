@@ -12,7 +12,12 @@
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
-html, body { height: 100%; }
+/* min-height, NOT height. `height: 100%` caps <body> at one viewport, and a
+   sticky element can only stick inside its parent's box — so .topbar, which has
+   said `position: sticky; top: 0` all along, scrolled away after the first
+   screen on every page. The 100% is here so short pages still paint a full
+   background; min-height keeps that and lets body grow with the content. */
+html, body { min-height: 100%; }
 
 html {
   /* Base coat everywhere (incl. overscroll) — the glow layer sits on top. */
@@ -452,6 +457,12 @@ a.daycard { text-decoration: none; }
 
 /* ---------- Search (roadmap 1.3) ---------- */
 .searchrow { margin: 18px 0 10px; }
+/* COMPACT BAR — the mobile control surface. Desktop shows every control on the
+   page as before; only the phone collapses them behind this button. */
+.compactbar-row { display: flex; align-items: center; gap: 10px; }
+.compactbar-row > :first-child { flex: 1 1 auto; min-width: 0; }
+.controls-toggle { display: none; }
+.controls-drawer { display: block; }
 .searchbox { display: flex; align-items: center; gap: 9px; max-width: 460px; padding: 11px 13px; border: 1px solid var(--line); border-radius: 12px; background: rgba(255, 255, 255, 0.02); transition: border-color 0.18s; }
 .searchbox:focus-within { border-color: var(--gold); }
 .search-ic { color: var(--cream-dim); flex: none; }
@@ -467,6 +478,67 @@ a.daycard { text-decoration: none; }
 @media (max-width: 820px) {
   .searchbox { max-width: 100%; }
   .searchrow { margin: 14px 0 8px; }
+
+  /* Sticky BENEATH the topbar, which is itself sticky at top:0. --topbar-h is
+     measured at runtime (EventsExplorer) because the topbar's height moves with
+     the section-nav wrapping and the safe-area inset; the fallback keeps the
+     first paint sane before that lands. */
+  /* On a phone the topbar stops being sticky and the compact bar takes its
+     place. Both stuck would be 178px — 27% of a 660px screen permanently spent
+     on chrome. While you scroll a long list the control bar earns that space;
+     the wordmark does not, and it is one flick away at the top. */
+  .topbar { position: static; }
+
+  .compactbar {
+    position: sticky;
+    top: 0;
+    z-index: 30; /* under .topbar (40), over the list */
+    margin: 0 0 8px;
+    padding: 8px 0;
+    background: var(--navy-900);
+    border-bottom: 1px solid var(--line);
+  }
+  .controls-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    flex: 0 0 auto;
+    min-height: 44px;
+    padding: 10px 16px;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: rgba(255,255,255,0.02);
+    color: var(--cream);
+    font-family: var(--font-oswald);
+    font-weight: 500;
+    font-size: 13px;
+    letter-spacing: 0.03em;
+    cursor: pointer;
+  }
+  .controls-toggle.on { border-color: var(--gold); color: var(--gold); }
+  .controls-toggle[aria-expanded="true"] { background: var(--navy-700); }
+  .controls-toggle-count {
+    display: inline-grid;
+    place-items: center;
+    min-width: 19px;
+    height: 19px;
+    padding: 0 5px;
+    border-radius: 999px;
+    background: var(--gold);
+    color: var(--navy-900);
+    font-size: 11.5px;
+    font-weight: 600;
+  }
+
+  /* The drawer itself. display:none rather than height:0 so nothing inside is
+     focusable while it is shut — a hidden control you can still Tab into is
+     worse than one that is simply gone. */
+  .controls-drawer[data-open="false"] { display: none; }
+  .controls-drawer[data-open="true"] {
+    display: block;
+    border-bottom: 1px solid var(--line);
+    margin-bottom: 14px;
+  }
 }
 
 /* ---------- Admin dashboard (roadmap 1.5) ---------- */

@@ -147,6 +147,9 @@ export function EventsExplorer({
   // clobber shared/reloaded params.
   const [ready, setReady] = useState(false);
   const [isDefault, setIsDefault] = useState(false); // current view/range == saved default
+  // The compact bar's drawer. Closed on load: the whole point is that a phone
+  // opens to EVENTS, with one control surface a tap away.
+  const [controlsOpen, setControlsOpen] = useState(false);
 
   // Defer the expensive filtering so the input stays responsive while typing.
   const deferredQuery = useDeferredValue(query);
@@ -285,6 +288,34 @@ export function EventsExplorer({
     return () => window.removeEventListener("popstate", onPop);
   }, [applyParsed]);
 
+  // Escape closes the drawer. A panel that covers the page and can only be
+  // dismissed by finding its button again is a trap for keyboard users.
+  useEffect(() => {
+    if (!controlsOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setControlsOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [controlsOpen]);
+
+  // The topbar is already sticky, so the compact bar has to know how tall it is
+  // to sit directly beneath it. Measured rather than hardcoded: the topbar's
+  // height changes with the section-nav wrapping and with the safe-area inset.
+  useEffect(() => {
+    const bar = document.querySelector(".topbar");
+    if (!bar) return;
+    const sync = () =>
+      document.documentElement.style.setProperty(
+        "--topbar-h",
+        `${Math.round(bar.getBoundingClientRect().height)}px`,
+      );
+    sync();
+    const ro = new ResizeObserver(sync);
+    ro.observe(bar);
+    return () => ro.disconnect();
+  }, []);
+
   // Keep the "your default" label truthful as the view/range change.
   useEffect(() => {
     const saved = loadDefaultView();
@@ -293,6 +324,16 @@ export function EventsExplorer({
 
   const isSearching = deferredQuery.trim().length > 0;
   const filtersActive = prices.size > 0 || areas.size > 0 || location !== null;
+  // What the Filters button admits to. It has to count EVERYTHING the drawer
+  // hides, or the bar quietly lies about why the list looks short — categories
+  // switched off are the easiest to forget you set.
+  const categoriesOff = CATEGORY_KEYS.length - active.size;
+  const activeFilterCount =
+    categoriesOff +
+    prices.size +
+    areas.size +
+    (location !== null ? 1 : 0) +
+    (range !== DEFAULT_RANGE ? 1 : 0);
   const isFiltering = isSearching || filtersActive;
   const matchCount = windowedEvents.length;
 
@@ -447,8 +488,25 @@ export function EventsExplorer({
 
       <main className="wrap">
         <h1 className="sr-only">This week in the Twin Cities — events, concerts &amp; things to do</h1>
-        <div className="searchrow">
-          <SearchBox value={query} onChange={setQuery} />
+        <div className="searchrow compactbar">
+          <div className="compactbar-row">
+            <SearchBox value={query} onChange={setQuery} />
+            {/* Mobile only (CSS). Desktop keeps every control on the page —
+                there is room for them there, and hiding them would be a
+                regression, not a simplification. */}
+            <button
+              type="button"
+              className={`controls-toggle ${activeFilterCount > 0 ? "on" : ""}`}
+              aria-expanded={controlsOpen}
+              aria-controls="controls-drawer"
+              onClick={() => setControlsOpen((o) => !o)}
+            >
+              Filters
+              {activeFilterCount > 0 && (
+                <span className="controls-toggle-count">{activeFilterCount}</span>
+              )}
+            </button>
+          </div>
           {isFiltering && (
             <div className="search-count">
               {matchCount > 0 ? (
@@ -493,6 +551,11 @@ export function EventsExplorer({
           )}
         </div>
 
+        <div
+          id="controls-drawer"
+          className="controls-drawer"
+          data-open={controlsOpen ? "true" : "false"}
+        >
         <ControlBar
           range={range}
           year={year}
@@ -538,6 +601,7 @@ export function EventsExplorer({
           onRadius={changeRadius}
           onClear={clearLocation}
         />
+        </div>
 
         {view === "calendar" ? (
           <CalendarView
