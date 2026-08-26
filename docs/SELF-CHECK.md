@@ -122,6 +122,25 @@ in the same room at the same hour. `findPlaceholderTitles` finds them directly.
 left is what the title actually tells a reader. If nothing is left, it tells
 them nothing.
 
+### Acting on them
+
+```bash
+npm run hide-placeholders            # dry run — prints the list, writes nothing
+npm run hide-placeholders -- --apply # hides them, with a backup
+```
+
+Hidden means `status = 'draft'`, not `archived`. A draft 404s; an archived event
+page says "This event has already happened", which for a show still to come would
+put a fresh falsehood where an empty one was.
+
+**Not wired into the weekly workflow.** The pipeline keeps producing these so the
+tool is repeatable, but a word list should not be quietly hiding listings every
+Monday without someone reading the list first.
+
+The dry run says, per listing, whether a real listing already covers that room
+that night. It does not change the decision — a listing that names nothing is
+unusable either way — but tidying a covered room and emptying a night are
+different acts, and the operator should see which is which.
 ### The two tiers, and why they exist
 
 A first cut flagged **47** listings and most were wrong, all in one way: on this
