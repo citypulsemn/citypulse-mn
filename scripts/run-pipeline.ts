@@ -18,6 +18,7 @@ import type { AgentEvent } from "../lib/agents/research-agent";
 import { classifyEvent } from "../lib/classify";
 import { venuesFor, shardVenues, isVenueAnchored } from "../lib/venues";
 import { normalizeAgentTime, isImprobableStart } from "../lib/time-integrity";
+import { isPlaceholderTitle } from "../lib/contradictions";
 import { assessCoverage, formatCoverageAlerts } from "../lib/coverage";
 import type { CoverageInput } from "../lib/coverage";
 import { VENUES_PER_SHARD, VENUE_SWEEP_SEARCHES } from "../lib/pipeline-config";
@@ -48,6 +49,7 @@ async function main() {
   let venueSwept = 0;   // events found by venue-anchored sweeps (4.2)
   let timeNormalized = 0; // times whose zone noise / date-only form was corrected (4.6)
   let improbableTimes = 0; // starts before 7 AM kept but flagged (4.6)
+  let unnamedDropped = 0; // agent listings whose title named no event (Aug 2026)
   const perBand: Record<string, number> = {};
 
   let runId: number | undefined;
@@ -137,6 +139,25 @@ async function main() {
           console.warn(
             `[pipeline] ⏰ improbable start ${startT.wallClock.slice(11)} — "${ev.title}" (kept; check the source)`,
           );
+        }
+
+        // A LISTING WE CANNOT NAME IS NOT A LISTING (Aug 2026).
+        //
+        // When an agent can tell a venue has SOMETHING on but not what, it has
+        // been writing the venue and the date into the title and calling that an
+        // event: "Turf Club Show (Sep 3)", "Show (Aug 26)", "Fitzgerald Theater
+        // Concert Event". Twenty-one of those were live on the site, and they
+        // survive every other check because their date, venue and time are all
+        // perfectly valid — there is nothing wrong with them except that they
+        // tell a reader nothing.
+        //
+        // Rule 6: an honest blank beats invented filler. Dropped here rather
+        // than stored and hidden later, because the row was never a fact.
+        // Counted and logged so a spike is visible instead of silent.
+        if (isPlaceholderTitle(ev.title, ev.venue)) {
+          unnamedDropped++;
+          console.warn(`[pipeline] ✂ names no event, dropping: "${ev.title}" @ ${ev.venue}`);
+          continue;
         }
 
         const geo = await geocode(ev.address, ev.city);
@@ -235,7 +256,8 @@ async function main() {
       `deduped ${collapsed}${dd(collapsed, prevRun?.collapsed)}, ` +
       `collapsed ${runs.collapsed}${dd(runs.collapsed, prevRun?.collapsed_runs)}, ` +
       `archived ${archived}${dd(archived, prevRun?.archived)}, reclassified ${reclassified}, ` +
-      `venue-swept ${venueSwept}, times normalized ${timeNormalized}, improbable ${improbableTimes}`,
+      `venue-swept ${venueSwept}, times normalized ${timeNormalized}, improbable ${improbableTimes}, ` +
+        `unnamed dropped ${unnamedDropped}`,
     perBand,
   );
   const stampede = stampedeReason(
@@ -278,6 +300,7 @@ async function main() {
         upserted = ${totalUpserted}, cancelled = ${totalCancelled},
         archived = ${archived}, collapsed = ${collapsed},
         collapsed_runs = ${runs.collapsed},
+        unnamed_dropped = ${unnamedDropped},
         bands = ${sql.json(perBand)}
       where id = ${runId}
     `;

@@ -6,7 +6,7 @@ const NOW = new Date("2026-07-20T15:30:00Z"); // a Monday, 10:30am Chicago
 /** A recent successful run carrying just the counts the stampede baseline uses. */
 const recentRow = (archived: number, collapsed: number): PipelineRow => ({
   started_at: "2026-07-06T13:00:00Z", finished_at: "2026-07-06T13:20:00Z", ok: true,
-  upserted: 130, cancelled: 2, archived, collapsed, collapsed_runs: 5, error: null,
+  upserted: 130, cancelled: 2, archived, collapsed, collapsed_runs: 5, unnamed_dropped: 0, error: null,
 });
 
 function healthy(overrides: Partial<OpsInputs> = {}): OpsInputs {
@@ -16,6 +16,7 @@ function healthy(overrides: Partial<OpsInputs> = {}): OpsInputs {
       finished_at: "2026-07-20T13:22:10Z",
       ok: true,
       upserted: 148, cancelled: 3, archived: 12, collapsed: 5, collapsed_runs: 4,
+      unnamed_dropped: 0,
       error: null,
     },
     prevPipeline: {
@@ -23,6 +24,7 @@ function healthy(overrides: Partial<OpsInputs> = {}): OpsInputs {
       finished_at: "2026-07-13T13:20:00Z",
       ok: true,
       upserted: 136, cancelled: 2, archived: 15, collapsed: 8, collapsed_runs: 6,
+      unnamed_dropped: 0,
       error: null,
     },
     // Rolling stampede baseline: the last few successful runs (archived ~15,

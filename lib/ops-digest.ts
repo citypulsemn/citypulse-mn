@@ -31,6 +31,10 @@ export interface PipelineRow {
   archived: number | null;
   collapsed: number | null; // the DEDUPE count (near-duplicate merges)
   collapsed_runs: number | null; // F2.6: multi-day runs folded into spans
+  /** Agent listings dropped at ingest for naming no event (Aug 2026). Null on
+   *  rows written before the guard existed, which deltaTag renders as silence
+   *  rather than as a fall to zero. */
+  unnamed_dropped: number | null;
   error: string | null;
 }
 
@@ -293,6 +297,9 @@ export function buildSections(inputs: OpsInputs): OpsSection[] {
         lines = [
           `ok ✓ — ${stage("upserted", p.upserted, pv?.upserted)} · ${stage("deduped", p.collapsed, pv?.collapsed)} · ${stage("collapsed", p.collapsed_runs, pv?.collapsed_runs)} · ${stage("archived", p.archived, pv?.archived)}`,
           `started ${p.started_at} · duration ${fmtDuration(p.started_at, p.finished_at)}${pv ? " · Δ vs last run" : ""}`,
+          ...(p.unnamed_dropped
+            ? [`${stage("listings dropped for naming no event", p.unnamed_dropped, pv?.unnamed_dropped)} — the agents guessed that often`]
+            : []),
         ];
         // Stampede tripwire — spike vs the MEDIAN of recent runs, not a fixed
         // number and not a single (possibly noisy) prior run.

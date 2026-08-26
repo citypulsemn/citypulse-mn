@@ -1,4 +1,6 @@
 import { describe, it, expect } from "vitest";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import {
   findContradictions,
   looksLikeSameEvent,
@@ -343,5 +345,44 @@ describe("formatFinding", () => {
     const line = formatFinding(r.conflicts[0]);
     expect(line).toContain("18:40 vs 19:10");
     expect(line).toContain("…"); // the Orioles title is over the limit
+  });
+});
+
+describe("the upstream guard — the pipeline must not store what it cannot name", () => {
+  const read = (...parts: string[]) => readFileSync(join(__dirname, "..", "..", ...parts), "utf8");
+
+  it("run-pipeline drops a placeholder BEFORE geocoding it", () => {
+    const src = read("scripts", "run-pipeline.ts");
+    expect(src).toContain('import { isPlaceholderTitle } from "../lib/contradictions"');
+    // Guard first, geocode second: a listing we are going to throw away must
+    // not spend a Mapbox call on the way to the bin.
+    const guard = src.indexOf("if (isPlaceholderTitle(ev.title, ev.venue))");
+    const geo = src.indexOf("await geocode(ev.address, ev.city)");
+    expect(guard).toBeGreaterThan(-1);
+    expect(guard).toBeLessThan(geo);
+  });
+
+  it("the drop is COUNTED, not silent", () => {
+    // A silent drop is as dishonest as a silent invention: if the agents start
+    // guessing more, the number has to move somewhere a person looks.
+    const src = read("scripts", "run-pipeline.ts");
+    expect(src).toContain("unnamedDropped++");
+    expect(src).toContain("unnamed_dropped = ${unnamedDropped}");
+    expect(src).toContain("unnamed dropped ${unnamedDropped}");
+  });
+
+  it("both research prompts tell the agent to omit what it cannot name", () => {
+    // The guard is the backstop; the prompt is the actual fix. Losing it would
+    // leave the pipeline quietly binning work it never should have done.
+    const src = read("lib", "agents", "prompts.ts");
+    expect(src).toMatch(/IF YOU CANNOT NAME WHAT IS HAPPENING, OMIT THE EVENT/);
+    expect(src).toMatch(/IF A CALENDAR SHOWS A DATE IS BUSY BUT DOES NOT NAME THE ACT, SKIP THAT DATE/);
+    // Named examples, so the instruction is unambiguous rather than abstract.
+    expect(src).toContain("Turf Club Show");
+  });
+
+  it("the column is additive and idempotent", () => {
+    const schema = read("db", "schema.sql");
+    expect(schema).toContain("alter table pipeline_runs add column if not exists unnamed_dropped int;");
   });
 });

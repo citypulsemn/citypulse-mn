@@ -54,6 +54,11 @@ For each event, gather:
 
 Rules:
 - Only include events you can verify from a real source. Always include source_url.
+- IF YOU CANNOT NAME WHAT IS HAPPENING, OMIT THE EVENT. Never build a title out of
+  the venue and the date. "Show (Aug 26)", "Turf Club Show (Sep 3)" and
+  "Fitzgerald Theater Concert Event" are not events — they tell a reader nothing,
+  and a missing listing is far better than a hollow one. Knowing a venue is busy
+  is not knowing what is on there.
 - Spread coverage across the metro: actively look for suburban events, not only the two downtowns.
 - If you confirm an event was cancelled, still include it with "cancelled": true so we can remove it.
 - Do NOT geocode or assign a price tier — a later step handles that.
@@ -104,6 +109,12 @@ For each event, gather:
 Rules:
 - Only include events you can verify on a real source. Always include source_url.
 - Prioritize completeness per venue over commentary. Do not invent shows.
+- IF A CALENDAR SHOWS A DATE IS BUSY BUT DOES NOT NAME THE ACT, SKIP THAT DATE.
+  Do not manufacture a title from the venue and the date — "Turf Club Show
+  (Sep 3)", "Show (Aug 26)" and "Fitzgerald Theater Concert Event" are not
+  events. This is the single most common way this sweep has gone wrong: seeing
+  that a room is booked and writing that down as if it were a listing. A missing
+  night is honest; a night with a nameless show on it is not.
 - Do NOT geocode or assign a price tier — a later step handles that.
 
 Output ONLY a JSON array of event objects inside a single \`\`\`json code block, no other text. If you found nothing, output \`\`\`json\n[]\n\`\`\`.`;

@@ -379,6 +379,9 @@ alter table feed_events enable row level security;
 -- diffed run-over-run or tripwired. Additive, nullable — historical rows read
 -- null (shown as "no prior number", never a fake zero).
 alter table pipeline_runs add column if not exists collapsed_runs int;
+-- Listings an agent could not NAME, dropped at ingest rather than stored and
+-- hidden later (Aug 2026). A spike here means the agents are guessing.
+alter table pipeline_runs add column if not exists unnamed_dropped int;
 
 -- ── Featured placements (Monetization R2.2) ──────────────────────────────────
 -- The labeled, capped, no-reorder paid-placement mechanism. One row per booking:

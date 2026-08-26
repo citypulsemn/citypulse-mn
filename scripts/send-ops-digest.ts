@@ -41,7 +41,7 @@ async function gather(): Promise<OpsInputs> {
     const rows = await sql<PipelineRow[]>`
       select to_char(started_at at time zone 'America/Chicago', 'YYYY-MM-DD HH24:MI') as started_at,
              to_char(finished_at at time zone 'America/Chicago', 'YYYY-MM-DD HH24:MI') as finished_at,
-             ok, upserted, cancelled, archived, collapsed, collapsed_runs, error
+             ok, upserted, cancelled, archived, collapsed, collapsed_runs, unnamed_dropped, error
       from pipeline_runs order by started_at desc limit 6`;
     return [...rows];
   });
