@@ -106,7 +106,7 @@ Each run ends by folding consecutive-day runs into one spanning event and mergin
 
 ## Freshness verification (roadmap 4.5)
 
-A separate Thursday workflow (`verify-events`) re-checks the next 7 days of events against their sources. Cancellations with evidence are applied automatically (audited); everything else is flagged, never auto-edited. See `docs/VERIFICATION.md`.
+The verify pass re-checks the next 7 days of events against their sources, twice a week: `verify-events` on Monday at 12:00 UTC (six hours after this pipeline, so it reads what the agents just wrote), and again as a step inside `weekly-digest` immediately before Thursday's email. Cancellations with evidence are applied automatically (audited); everything else is flagged, never auto-edited. See `docs/VERIFICATION.md`.
 
 ## Time integrity (roadmap 4.6)
 

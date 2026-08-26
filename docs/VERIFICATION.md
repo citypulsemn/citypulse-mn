@@ -4,7 +4,14 @@ Roadmap 4.5. Events are discovered weekly, but reality changes daily — shows g
 
 ## How it works
 
-**Monday 12:00 UTC** (after the research pipeline and importers land the week's new listings) and **Thursday 16:00 UTC** (before the weekend), the `verify-events` workflow re-checks the next 7 days of published events against their sources:
+Twice a week, the pass re-checks the next 7 days of published events against their sources:
+
+- **Monday 12:00 UTC** — `verify-events.yml`, after the research pipeline and importers land the week's new listings.
+- **Thursday, immediately before the subscriber email** — a step *inside* `weekly-digest.yml`, not a separate workflow.
+
+The Thursday slot lives in the digest workflow on purpose. It used to be a 16:00 cron, an hour **after** the 15:00 send, so the one surface that cannot be recalled went out ahead of the week's verification. Cron cannot fix that — this repo has seen the scheduler drift +1h02m to +3h52m, so two workflows cannot be ordered by their start times. Two steps in one job can.
+
+That step is `continue-on-error: true`: a verification hiccup must never cost the list its email. It is skipped on the 20:00 safety-net run (the primary already did it) and on dry runs.
 
 1. `selectForVerification` picks candidates — published, starting within 7 days, having a source or ticket URL, **never-verified first, then soonest first** within each group, capped at `DEFAULT_CAP` (200).
 2. Batches of 8 go to a verification agent (`verifyEventsBatch`) that reads each event's source page and returns one verdict per event.
@@ -44,7 +51,7 @@ Cancellations and flags are written to the existing `admin_audit` table (`verify
 - `lib/verify.ts` — selection, batching, verdict parsing, and the action policy (all pure).
 - `buildVerifyPrompt` — tells the agent explicitly that absence ≠ cancellation and to prefer the less drastic verdict when unsure.
 - `verifyEventsBatch` in the research agent; `markVerified` / `cancelVerified` / `flagVerification` in `lib/upsert.ts`.
-- `scripts/verify-events.ts` (`npm run verify`, `--dry-run` and `--cap=N` supported) + `.github/workflows/verify-events.yml` (Thu 16:00 UTC cron + manual dispatch with a dry-run input).
+- `scripts/verify-events.ts` (`npm run verify`, `--dry-run` and `--cap=N` supported) + `.github/workflows/verify-events.yml` (Mon 12:00 UTC cron + manual dispatch with a dry-run input) + the pre-send step in `.github/workflows/weekly-digest.yml`.
 - Schema: `events.verified_at timestamptz` (additive, idempotent).
 
 ## Cost, and what actually limits a run

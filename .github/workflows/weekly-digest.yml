@@ -30,11 +30,18 @@ concurrency:
 jobs:
   digest:
     runs-on: ubuntu-latest
-    # 30, not 15: the Aug 6 job was never SLOW — it was never STARTED, and the old
+    # 60, and the reason has two halves.
+    #
+    # Not 15: the Aug 6 job was never SLOW — it was never STARTED, and the old
     # 15-minute ceiling cancelled it while it was still waiting for a runner. A
-    # higher ceiling costs nothing on a healthy run (they finish in ~1 min) and
-    # gives a queued one more chance to be picked up.
-    timeout-minutes: 30
+    # higher ceiling costs nothing on a healthy run and gives a queued one more
+    # chance to be picked up. That slack is the whole point of this number.
+    #
+    # Not 30 any more: the verify step below can take up to 20 minutes
+    # (lib/verify.ts RUN_BUDGET_MS), so a 30-minute ceiling would have left only
+    # ~9 minutes of queue slack — re-creating the Aug 6 failure while appearing
+    # to fix something else. 60 leaves ~39, more than the 29 this job had before.
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
 
@@ -44,6 +51,28 @@ jobs:
           cache: npm
 
       - run: npm ci --prefer-offline --no-audit --no-fund
+
+      # ORDERING, not an optimization. This used to be a separate workflow at
+      # 16:00 — an hour AFTER the 15:00 send — so the highest-stakes surface on
+      # the site went out ahead of the week's verification pass. An email cannot
+      # be recalled. Swapping the two cron times would not have fixed it: this
+      # repo has seen the scheduler drift +1h02m to +3h52m, so cron cannot order
+      # two workflows. Same job, sequential steps, can.
+      #
+      # continue-on-error: a verification hiccup must never cost the list its
+      # email. Unverified content is a worse-than-usual digest; no digest is a
+      # missed week. The step reports its own failure in the log.
+      #
+      # Skipped on the safety-net run (the primary already did it, and re-running
+      # would spend a full pass re-checking rows verified five hours earlier) and
+      # on dry runs (a preview should not write verified_at).
+      - name: Verify upcoming events before sending
+        if: github.event.schedule != '0 20 * * 4' && github.event.inputs.dry_run != 'true'
+        continue-on-error: true
+        run: npm run verify
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
 
       - name: Send weekly digest
         env:

@@ -120,6 +120,9 @@ did not.
    second cron. GitHub picks up schedule changes from `main` automatically.
 3. First scheduled run is **Monday 12:00 UTC**. To watch it sooner, dispatch
    **Verify Upcoming Events** manually with dry run **on**.
+4. Thursday's pass now runs inside **Weekly Email Digest**. Nothing to enable —
+   but note that job's log will now show a verify step ahead of the send, and
+   the run will take ~20 minutes instead of ~1.
 
 ## Verify
 
@@ -178,21 +181,46 @@ stamped verified by a race.
 Cost roughly doubles — ~500 searches and ~42 Sonnet calls a week at a full
 window. Reverting is deleting one cron line.
 
+## Fifth change — verification now runs before the email, not after it
+
+Verification ran an hour **after** the subscriber digest: send 15:00, verify
+16:00. The email is the one surface on this site that cannot be recalled, and it
+went out ahead of the week's verification pass.
+
+**Swapping the cron times would not have fixed it.** This repo has watched the
+scheduler drift +1h02m, +1h39m, +3h48m and +3h52m, and once drop a job entirely.
+Two workflows cannot be ordered by their start times when the start times move
+by hours.
+
+So the Thursday pass stopped being a workflow and became a **step**: `npm run
+verify` immediately before `npm run digest`, in the same job. Sequential steps
+are ordered by construction. The 16:00 cron in `verify-events.yml` is gone —
+leaving it would have paid for a second full pass an hour after one already ran.
+That file now has one cron and the cadence is still two.
+
+Three things make the step safe:
+
+- **`continue-on-error: true`.** A verification hiccup must never cost the list
+  its email. Unverified content is a worse-than-usual digest; no digest is a
+  missed week, which is the failure this workflow was rebuilt around in August.
+- **Skipped on the 20:00 safety-net run.** The primary already verified; a second
+  full pass five hours later would spend its budget re-checking rows it just
+  confirmed.
+- **Skipped on dry runs.** A preview must not write `verified_at`.
+
+### The timeout was the trap
+
+The digest job's ceiling was 30 minutes, and the comment above it explains why:
+the Aug 6 job was never slow, it was never *started*, and a 15-minute ceiling
+cancelled it while it queued. **That slack is the entire point of the number.**
+
+A 20-minute verify step inside a 30-minute ceiling would have left ~9 minutes of
+queue slack — quietly re-creating the Aug 6 failure while appearing to fix
+something else. 60 minutes leaves ~39, more than the 29 the job had before.
+
+If you ever shorten this timeout, read `RUN_BUDGET_MS` first.
+
 ## Not done
-
-**Verification still runs an hour AFTER the subscriber digest on Thursday**
-(digest 15:00, verify 16:00). The email is the highest-stakes surface on the
-site — it cannot be recalled — and it currently goes out before the week's
-verification pass has looked at anything.
-
-Swapping the times would not fix it: with the scheduler drifting by up to
-+3h52m, cron cannot guarantee ordering between two workflows. A real fix makes
-the digest depend on verification via `workflow_run`, the way `ops-digest`
-already depends on the pipeline. That is a change to the send path and wants its
-own session.
-
-The Monday run helps here by accident — it verifies the week's new listings
-three days before Thursday's email — but that is mitigation, not a fix.
 
 **~435 listings in arts/festival/food/weird still have no primary source.** This
 change points a stronger instrument at them; it does not give them a feed. The

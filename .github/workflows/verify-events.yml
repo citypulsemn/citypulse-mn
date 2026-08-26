@@ -8,11 +8,19 @@ name: Verify Upcoming Events
 # was. The pass looks 7 days ahead but only ran every 7 days, so a single miss
 # meant an event expired unchecked. Two runs ~3.5 days apart means every event
 # falls inside a run's reach at least once, and most twice.
-#   1. Monday 12:00 UTC (~7am Central) — after the research pipeline and the
-#      importers have landed the week's new listings. This is the one that
+#
+#   1. Monday 12:00 UTC (~7am Central) — HERE. After the research pipeline and
+#      the importers have landed the week's new listings. This is the one that
 #      matters most: the research agents are what invent things, and this is
 #      the first look at what they just wrote.
-#   2. Thursday 16:00 UTC (~11am Central) — before the weekend.
+#   2. Thursday, before the subscriber email — NOT HERE. It is a step inside
+#      weekly-digest.yml, because ordering against the send is the point and
+#      cron cannot guarantee it when the scheduler drifts by hours. It used to
+#      be a 16:00 cron in this file, one hour AFTER the 15:00 send.
+#
+# So this file has one schedule and the cadence is still two. If you are adding
+# a Thursday cron back here, check weekly-digest.yml first — you would be
+# paying for a second full pass an hour after one already ran.
 #
 # Why 12:00 and not sooner: Weekly Event Research starts at 06:00 UTC with a
 # 90-minute timeout, then two importer steps. Six hours of clearance is
@@ -27,7 +35,6 @@ name: Verify Upcoming Events
 on:
   schedule:
     - cron: "0 12 * * 1"
-    - cron: "0 16 * * 4"
   workflow_dispatch:
     inputs:
       dry_run:
