@@ -463,6 +463,77 @@ a.daycard { text-decoration: none; }
 .compactbar-row > :first-child { flex: 1 1 auto; min-width: 0; }
 .controls-toggle { display: none; }
 .controls-drawer { display: block; }
+
+/* ---------- Desktop: two control rows, not four (Aug 2026) ----------
+   Measured on the live site: the control stack was 322px tall at EVERY width,
+   because it was a fixed column of rows. The first event card sat at 523px —
+   ONE card above the fold on a 1152x648 window, three on a 1366x768 laptop.
+
+   The cause was not a shortage of space. Two of the four rows were nearly
+   empty: the Filters disclosure used 81px of a 1200px row (93% of it unused)
+   and the location picker 202px (83%). They each took a full 44px of height to
+   show a control that fits in a corner, while 400-1100px sat idle beside them.
+
+   So: two rows, grouped by meaning. WHEN on top (search, date presets, month
+   nav), WHAT & WHERE below (categories, Filters, location).
+
+   NOTHING IS HIDDEN. The phone collapses controls behind a button because it
+   genuinely has no room; desktop has the room, and putting the category chips
+   — the main way anyone browses this site — behind a click here would be a
+   regression dressed as a tidy-up.
+
+   `display: contents` lifts the drawer's children into this grid so the search
+   row and the controls can share rows. The drawer is still a real element
+   under 560px, where it hides everything but search. */
+@media (min-width: 1000px) {
+  .controls-shell {
+    display: grid;
+    align-items: center;
+    gap: 10px 16px;
+    /* The divider and spacing the chips row used to carry. Moved up here so it
+       spans the full width instead of only the chips' columns. */
+    border-bottom: 1px solid var(--line);
+    margin-bottom: 24px;
+    /* Spacing lives on the shell, not on the children. A grid item's own margin
+       fights `align-items: center` and leaves the search box and the date
+       presets sitting a few pixels apart on the same row. */
+    padding: 18px 0 16px;
+    /* THREE rows between 1000 and 1240. The two-row layout below needs 1152px
+       of content for the chips alone, and forcing it narrower makes BOTH rows
+       wrap to two lines — 246px, worse than the three unwrapped rows' 187px.
+       A row that wraps costs more height than the row it saved. */
+    grid-template-columns: minmax(220px, 360px) auto auto 1fr;
+  }
+  .controls-drawer { display: contents; }
+
+  /* Explicit placement, so DOM order does not decide the layout — the
+     conditional "make this my default" row sits between two of these in the
+     markup and must not push anything sideways. */
+  .controls-shell .searchrow { grid-column: 1; grid-row: 1; margin: 0; }
+  .controls-shell .filterpanel { grid-column: 2; grid-row: 1; margin: 0; }
+  .controls-shell .locctl { grid-column: 3; grid-row: 1; margin: 0; }
+  .controls-shell .controls { grid-column: 1 / -1; grid-row: 2; padding: 0; }
+  .controls-shell .chips {
+    grid-column: 1 / -1; grid-row: 3;
+    padding: 0; margin-bottom: 0; border-bottom: 0;
+  }
+  .controls-shell .default-view-row { grid-column: 1 / -1; grid-row: 4; margin: 0; }
+}
+
+/* TWO rows once there is genuinely room for them: 1240px viewport is where the
+   wrap hits its 1240px max-width and the content settles at 1200px — comfortably
+   over the 1152px the chips-plus-Filters-plus-location row needs to stay on one
+   line. Measured at 1440x900: the control block is 133px and the first event
+   card sits at 312px, with nine cards above the fold instead of six. */
+@media (min-width: 1240px) {
+  .controls-shell { grid-template-columns: minmax(220px, 360px) 1fr auto auto; }
+  .controls-shell .searchrow { grid-column: 1; grid-row: 1; }
+  .controls-shell .controls { grid-column: 2 / -1; grid-row: 1; }
+  .controls-shell .chips { grid-column: 1 / 3; grid-row: 2; }
+  .controls-shell .filterpanel { grid-column: 3; grid-row: 2; margin: 0; }
+  .controls-shell .locctl { grid-column: 4; grid-row: 2; margin: 0; }
+  .controls-shell .default-view-row { grid-row: 3; }
+}
 .searchbox { display: flex; align-items: center; gap: 9px; max-width: 460px; padding: 11px 13px; border: 1px solid var(--line); border-radius: 12px; background: rgba(255, 255, 255, 0.02); transition: border-color 0.18s; }
 .searchbox:focus-within { border-color: var(--gold); }
 .search-ic { color: var(--cream-dim); flex: none; }

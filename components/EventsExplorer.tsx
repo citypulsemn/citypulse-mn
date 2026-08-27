@@ -488,6 +488,10 @@ export function EventsExplorer({
 
       <main className="wrap">
         <h1 className="sr-only">This week in the Twin Cities — events, concerts &amp; things to do</h1>
+        {/* One shell so the desktop grid can lay the search row and the drawer's
+            controls out together (globals.css, min-width 1000px). It is a plain
+            wrapper everywhere else — the phone's drawer behaviour is unchanged. */}
+        <div className="controls-shell">
         <div className="searchrow compactbar">
           <div className="compactbar-row">
             <SearchBox value={query} onChange={setQuery} />
@@ -601,6 +605,7 @@ export function EventsExplorer({
           onRadius={changeRadius}
           onClear={clearLocation}
         />
+        </div>
         </div>
 
         {view === "calendar" ? (
