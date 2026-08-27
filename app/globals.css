@@ -47,6 +47,23 @@ body::before {
 
 .wrap { position: relative; z-index: 1; max-width: 1240px; margin: 0 auto; padding: 0 max(20px, env(safe-area-inset-right)) 60px max(20px, env(safe-area-inset-left)); }
 
+/* ---------- Wide screens get the width (Aug 2026) ----------
+   The 1240px cap was applied at every size, so a 1920px monitor showed 340px of
+   empty navy down each side while the event grid ran three columns. The cap is
+   a READING constraint — it exists so prose does not run to 200 characters a
+   line — but the homepage, the day pages and the places lists are card grids,
+   where it was only costing a column.
+
+   1600 at 1500px+, so laptops are untouched: at 1440 the wrap is still 1240.
+   The grid is repeat(auto-fill, minmax(330px, 1fr)) with a 26px gap, so 1560px
+   of content runs FOUR columns instead of three.
+
+   Prose is constrained separately below, because widening the page must not
+   widen a paragraph. */
+@media (min-width: 1500px) {
+  .wrap { max-width: 1600px; }
+}
+
 /* ---------- Top bar ---------- */
 .topbar {
   position: sticky; top: 0; z-index: 40;
@@ -1145,5 +1162,8 @@ a.daycard { text-decoration: none; }
    band, giving above-the-fold readers a path to the one ask (no second form). */
 .page-intro-cta { color: var(--gold); text-decoration: underline; text-decoration-color: rgba(201,169,97,0.55); text-underline-offset: 3px; font-weight: 500; white-space: nowrap; }
 .page-intro-cta:hover { text-decoration-color: var(--gold); }
-.subscribe-band-sub { margin: 0; font-size: 13.5px; line-height: 1.5; color: var(--cream-dim); }
+/* 68ch because the band's copy column is `flex: 1 1 260px` — it grows to fill
+   whatever the row leaves it, which was fine at a 1240px wrap and became a
+   115-character line at 1600px. Widening the page must not widen a sentence. */
+.subscribe-band-sub { margin: 0; font-size: 13.5px; line-height: 1.5; color: var(--cream-dim); max-width: 68ch; }
 .subscribe-band .subscribe-form { flex: 0 1 320px; }
