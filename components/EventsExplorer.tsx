@@ -486,7 +486,10 @@ export function EventsExplorer({
         </nav>
       </header>
 
-      <main className="wrap">
+      {/* explorer-layout is the hook for the left filter rail (globals.css,
+          min-width 1800px). Below that it is an inert class and the controls
+          stay above the list. */}
+      <main className="wrap explorer-layout">
         <h1 className="sr-only">This week in the Twin Cities — events, concerts &amp; things to do</h1>
         {/* One shell so the desktop grid can lay the search row and the drawer's
             controls out together (globals.css, min-width 1000px). It is a plain

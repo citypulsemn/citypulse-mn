@@ -64,6 +64,15 @@ body::before {
   .wrap { max-width: 1600px; }
 }
 
+/* Wider again at 1800, and this tier exists FOR the filter rail below. The list
+   needs 1398px to hold four card columns (4x330 + 3x26). Adding a 264px rail
+   and a 32px gutter makes that 1694px of content, so the wrap has to reach 1760
+   for the rail to cost nothing. Below this width it would cost a column, which
+   is exactly why the rail does not appear there. */
+@media (min-width: 1800px) {
+  .wrap { max-width: 1760px; }
+}
+
 /* ---------- Top bar ---------- */
 .topbar {
   position: sticky; top: 0; z-index: 40;
@@ -1167,3 +1176,89 @@ a.daycard { text-decoration: none; }
    115-character line at 1600px. Widening the page must not widen a sentence. */
 .subscribe-band-sub { margin: 0; font-size: 13.5px; line-height: 1.5; color: var(--cream-dim); max-width: 68ch; }
 .subscribe-band .subscribe-form { flex: 0 1 320px; }
+
+/* ---------- The left filter rail (Aug 2026) ----------
+   The controls move into a 264px column and the event list starts at the TOP of
+   the page instead of below 133px of chrome. Filters stay visible while you
+   scroll a 24,000px list, which is what a rail is actually for.
+
+   WHY 1800px AND NOT SOONER. A rail is only free if the list keeps its columns.
+   The arithmetic, and it is tighter than it looks:
+
+     4 columns of cards   4x330 + 3x26          = 1398px of GRID
+     .day-list padding    + 16px each side      = 1430px of COLUMN
+     rail + gutter        + 240 + 32            = 1702px of CONTENT
+     .wrap padding        + 20px each side      = 1742px of WRAP
+
+   The 1760px tier above clears that with 18px to spare. The `.day-list` padding
+   is the part worth writing down: at a 264px rail the list came out SIX pixels
+   short of a fourth column and silently rendered three.
+
+   At 1600 the same rail would drop the list from four columns to three — a
+   worse page than the one it replaced. So the rail appears exactly where it
+   costs nothing, and every narrower screen keeps the two-row control block.
+
+   Every direct child goes to column 2 by default, so a new view mode lands in
+   the right place without another rule. `.sr-only` is absolutely positioned and
+   so is not a grid item at all. */
+@media (min-width: 1800px) {
+  .explorer-layout {
+    display: grid;
+    grid-template-columns: 240px minmax(0, 1fr);
+    column-gap: 32px;
+    align-items: start;
+  }
+  /* margin-inline: 0 is load-bearing. `.list-view` carries `margin: 8px auto 0`
+     for its narrow-screen reading column, and AUTO MARGINS MAKE A GRID ITEM
+     SHRINK-TO-FIT instead of stretching — it collapsed to 887px inside a 1424px
+     column and the card grid fell from four columns to two. As a plain block it
+     had filled the width, so this only surfaces once it becomes a grid item. */
+  .explorer-layout > * { grid-column: 2; margin-inline: 0; }
+
+  .explorer-layout > .controls-shell {
+    grid-column: 1;
+    grid-row: 1;
+    /* Back to a vertical stack: the two-row grid was for a full-width block.
+       grid-column/grid-row on the children are simply ignored in a flex box. */
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    /* stretch, not the `center` inherited from the two-row block above — with
+       `center` every control sizes to its own content and sits in the middle of
+       the rail, which is how `.chips` ended up 126px wide next to a 298px
+       `.controls` in a 240px column. */
+    align-items: stretch;
+    /* The full-width divider belongs to a horizontal control block, not a rail. */
+    border-bottom: 0;
+    margin-bottom: 0;
+    padding: 18px 0 0;
+    /* Sticky beneath the topbar, which is itself sticky at top:0. --topbar-h is
+       measured in EventsExplorer rather than hardcoded, because the topbar's
+       height moves with the section-nav wrapping. max-height + overflow is a
+       safety valve: if the rail ever grows past the viewport it scrolls itself
+       instead of stranding its last control off-screen. */
+    position: sticky;
+    top: calc(var(--topbar-h, 123px) + 14px);
+    max-height: calc(100vh - var(--topbar-h, 123px) - 28px);
+    overflow-y: auto;
+    scrollbar-width: thin;
+  }
+  /* The drawer stays `display: contents` so its controls are flex items of the
+     rail, stacking in DOM order: dates, categories, Filters, location. */
+  .explorer-layout > .controls-shell > .searchrow { margin: 0; }
+  .explorer-layout .searchbox { max-width: 100%; }
+  /* In a 264px column these read as a filter list, one control per line. */
+  .explorer-layout .controls { flex-direction: column; align-items: stretch; gap: 12px; padding: 0; }
+  .explorer-layout .presets { flex-wrap: wrap; }
+  .explorer-layout .chips { flex-direction: column; align-items: stretch; gap: 8px; padding: 0; margin: 0; border-bottom: 0; }
+  .explorer-layout .filterpanel,
+  .explorer-layout .locctl { margin: 0; }
+  .explorer-layout .locctl { flex-direction: column; align-items: stretch; }
+  .explorer-layout .locctl select { width: 100%; }
+  /* The month label reserves min-width: clamp(150px, 16vw, 190px), which at this
+     viewport is 190 — plus two 44px buttons and two 10px gaps that is a 298px
+     minimum, wider than the rail itself. Let it take what is left instead. */
+  .explorer-layout .monthnav { justify-content: space-between; }
+  .explorer-layout .monthnav .label { min-width: 0; flex: 1 1 auto; font-size: 17px; }
+  .explorer-layout .default-view-row { justify-content: flex-start; margin: 0; }
+}
