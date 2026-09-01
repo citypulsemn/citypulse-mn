@@ -786,6 +786,28 @@ a.daycard { text-decoration: none; }
      Size to content instead. */
   .site-footer-inner .sf-pitch,
   .site-footer-inner .subscribe-form { flex: 0 0 auto; }
+
+  /* Once the links wrap onto three or four lines, the "·" separators stop
+     reading as separators — one lands at the start of a line as often as not.
+     The row gap does that job on a phone, so drop them and give the links more
+     room to be tapped apart from each other. */
+  .site-footer-links { gap: 12px 18px; }
+  .site-footer-links span { display: none; }
+
+  /* A flex item stretches to its container's width, but never below its own
+     MIN-CONTENT — so at 320px the pitch and the form stayed 335px wide inside a
+     288px column and pushed the page sideways again, 38px this time.
+     `min-width: 0` is the release valve. The 42ch measure on .sf-sub and the
+     420px cap on the form are both wider than a small phone, so they need a
+     percentage ceiling too. */
+  .site-footer-inner > * { min-width: 0; }
+  .sf-sub, .subscribe-form { max-width: 100%; }
+  /* The input carries `flex: 1; min-width: 0`, so it will shrink to nothing
+     rather than push the button onto a second line — it came out 97px wide next
+     to a 170px button. Give it a floor and let the button wrap instead when
+     there is genuinely no room; the thing you type in should be the wide one. */
+  .subscribe-row { flex-wrap: wrap; }
+  .subscribe-row input[type="email"] { min-width: 150px; }
 }
 
 /* ---------- Add to calendar (roadmap 2.3) ---------- */
@@ -869,7 +891,12 @@ a.daycard { text-decoration: none; }
 .submit-done-check { width: 48px; height: 48px; line-height: 48px; margin: 0 auto 14px; border-radius: 50%; background: var(--gold); color: var(--navy-900); font-size: 26px; font-weight: 700; }
 .submit-done p { color: var(--cream); font-size: 16px; margin: 0 0 18px; }
 
-.site-footer-links { display: flex; gap: 10px; justify-content: center; margin-top: 14px; font-size: 13px; }
+/* WRAP, or this row drags the whole page sideways. Eleven links and ten "·"
+   separators need ~740px on one line; with the default `nowrap` it simply
+   overflowed the viewport, and because overflow-x is visible the excess became
+   HORIZONTAL PAGE SCROLL — on a phone the entire site panned right into empty
+   navy. It is a footer: vertical space is the cheap thing here, so it wraps. */
+.site-footer-links { display: flex; flex-wrap: wrap; gap: 8px 10px; justify-content: center; margin-top: 14px; font-size: 13px; }
 .site-footer-links a { color: var(--gold); text-decoration: none; }
 .site-footer-links a:hover { text-decoration: underline; }
 .site-footer-links span { color: var(--cream-dim); }
