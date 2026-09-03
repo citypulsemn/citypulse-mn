@@ -401,3 +401,26 @@ create table if not exists featured (
 );
 create index if not exists idx_featured_window on featured (starts_at, ends_at);
 alter table featured enable row level security;
+
+-- ── Place visits (Places P5 — "Been there") ──────────────────────────────────
+-- One row per (anonymous saver token, place slug) the visitor has checked off.
+-- Same identity as saved_events (the httpOnly `cpid` cookie from lib/saver.ts),
+-- same RLS shape, same merge-on-restore. No foreign key on place_slug: the
+-- places registry lives in code (lib/places.ts), so validity is enforced in the
+-- server action (the slug must resolve in the registry) and a slug that later
+-- leaves the registry is simply not counted. Additive + idempotent.
+create table if not exists place_visits (
+  user_token text not null,
+  place_slug text not null,
+  visited_at timestamptz not null default now(),
+  primary key (user_token, place_slug)
+);
+create index if not exists idx_place_visits_user on place_visits (user_token, visited_at desc);
+
+alter table place_visits enable row level security;
+
+drop policy if exists place_visits_owner on place_visits;
+create policy place_visits_owner on place_visits
+  for all
+  using  (user_token = current_setting('request.saver_token', true))
+  with check (user_token = current_setting('request.saver_token', true));

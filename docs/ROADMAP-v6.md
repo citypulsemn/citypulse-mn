@@ -242,6 +242,17 @@ story **before the list is big enough for a mistake to be expensive** — which 
 exactly the window 1.1/1.2 are trying to open. **Size:** S–M. Product call for
 Taren embedded (opt-in yes/no). Spec: `ROADMAP-v5.md` F2.3.
 
+### 1.5 "Been there" place checklist (Places P5)  — the first thing a visitor can lose
+**Why:** the retro's finding is that the blocker is audience, not features. A
+check-off list over the finite, hand-curated Places registry ("Been to 12 of 50
+splash pads") gives a visitor something *of their own* — and the existing keep-list
+magic link is how they keep it, which is a far stronger email ask than "get a
+digest." Rides the `cpid` saver identity (no login), hydrates client-side so the
+static place pages stay static (the 26 Aug CPU fix holds), and renders nothing at
+zero (no dark patterns). **Size:** M, one session. Depends: nothing. Spec:
+`ROADMAP-PLACES.md` **P5** (self-contained: schema, files, tests, deploy, Taren's
+three calls).
+
 ---
 
 ## Tier 2 — Unlock the personalization chain (the data finally supports it)

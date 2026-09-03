@@ -62,6 +62,13 @@ F1 ripening (mid-August) or the F2 proposals — nothing is urgent.**
 
 ## Pending — the watch list (nothing is blocked; everything here has a date or an owner)
 
+0. **Sep 3, 2026 — Places P5 "Been there" is BUILT, uncommitted, and needs its table.**
+   Deploy step 1 is Taren's: paste the `place_visits` block (end of `db/schema.sql`)
+   into the Supabase SQL editor, then push. Until the table exists the site behaves
+   exactly as before (rule-1 wrap) but every check-off tap reverts. Full guide + phone
+   verify checklist: `docs/deploy-history/DEPLOY-PLACES-P5-BEEN-THERE.md`. Copy to
+   own: `PLACE_VISIT_COPY` in `lib/editorial.ts`.
+
 1. **Mon Jul 21** — pipeline + digest. Check: `folded N sub-event group(s)` in the log,
    festivals still one card each, WoW percentages (not "first report"), a sitemap count
    in the Index line. **New (R2.7): open the delivered digest in Gmail → "Show

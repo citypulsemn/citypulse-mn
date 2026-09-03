@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { TopBar } from "@/components/TopBar";
 import { SiteFooter } from "@/components/SiteFooter";
 import { SubscribeBand } from "@/components/SubscribeBand";
+import { VisitButton } from "@/components/VisitButton";
 import {
   KIND_META,
   placeForKindSlug,
@@ -139,6 +140,8 @@ export default async function PlaceDetailPage({
             )}
             {" · "}
             <a href={directions} target="_blank" rel="noopener noreferrer">Directions ↗</a>
+            {/* "Been there" (P5) — a client island; the page itself stays static. */}
+            <VisitButton slug={place.slug} kind={k} />
           </div>
           <p className="page-intro">{place.intro}</p>
         </div>

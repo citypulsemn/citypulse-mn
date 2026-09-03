@@ -69,6 +69,13 @@ export async function requestSavedLink(rawEmail: string): Promise<RequestLinkRes
       where user_token = ${priorToken}
       on conflict do nothing
     `;
+    // Places P5 — check-offs ride the same identity, so they merge the same way.
+    await sql`
+      insert into place_visits (user_token, place_slug)
+      select ${token}, place_slug from place_visits
+      where user_token = ${priorToken}
+      on conflict do nothing
+    `;
   }
 
   // Find-or-create, storing THIS browser's token. New emails are 'pending':
@@ -121,6 +128,13 @@ export async function mergeAndRestore(
       where user_token = ${current}
       on conflict do nothing
     `;
+    // Places P5 — the places checked off on this device come along too.
+    await sql`
+      insert into place_visits (user_token, place_slug)
+      select ${restored}, place_slug from place_visits
+      where user_token = ${current}
+      on conflict do nothing
+    `;
   }
 
   await setSaverToken(restored);
@@ -138,9 +152,9 @@ export function renderRestoreEmail(url: string): { subject: string; html: string
       </td></tr>
       <tr><td style="padding:14px 24px 4px;">
         <div style="font:400 15px/1.6 Arial,Helvetica,sans-serif;color:#f1ece0;">
-          Here's the link to your saved events. Open it on any device — phone, laptop,
-          a fresh browser — and your list comes with you. Anything you've saved on that
-          device gets merged in too; nothing is lost.
+          Here's the link to your saved events and the places you've checked off. Open
+          it on any device — phone, laptop, a fresh browser — and your list comes with
+          you. Anything you've saved on that device gets merged in too; nothing is lost.
         </div>
       </td></tr>
       <tr><td style="padding:18px 24px 8px;">
@@ -157,7 +171,7 @@ export function renderRestoreEmail(url: string): { subject: string; html: string
   const text = [
     "CITY PULSE MN — your saved events",
     "",
-    "Open this link on any device and your saved list comes with you",
+    "Open this link on any device and your saved events and checked-off places come with you",
     "(saves already on that device are merged in — nothing is lost):",
     "",
     url,

@@ -3,6 +3,8 @@
 import { useMemo, useState } from "react";
 import { PlacesList } from "./PlacesList";
 import { PlacesMapInteractive } from "./PlacesMapInteractive";
+import { useVisited } from "./useVisited";
+import { PLACE_VISIT_COPY } from "@/lib/editorial";
 import {
   filterPlaces,
   placeCities,
@@ -27,15 +29,23 @@ import {
  */
 type GeoStatus = "idle" | "loading" | "error";
 
+/** Before hydration (and for a cookieless visitor) every row renders unchecked. */
+const NO_VISITS: ReadonlySet<string> = new Set();
+
 export function PlacesBrowser({ places, plural }: { places: Place[]; plural: string }) {
   const [filters, setFilters] = useState<PlaceFilters>(NO_PLACE_FILTERS);
   const [now] = useState(() => new Date());
   const [origin, setOrigin] = useState<LatLng | null>(null);
   const [geo, setGeo] = useState<GeoStatus>("idle");
+  // "Been there" (P5): one shared fetch per page, live on every toggle.
+  const visited = useVisited() ?? NO_VISITS;
 
   const cities = useMemo(() => placeCities(places), [places]);
   const detailKeys = useMemo(() => activeDetailKeys(places), [places]);
-  const filtered = useMemo(() => filterPlaces(places, filters, now), [places, filters, now]);
+  const filtered = useMemo(
+    () => filterPlaces(places, filters, now, visited),
+    [places, filters, now, visited],
+  );
 
   // Near-me: rank the FILTERED set nearest-first and carry each row's distance.
   const ranked = useMemo(() => (origin ? placesByDistance(filtered, origin) : null), [origin, filtered]);
@@ -47,6 +57,7 @@ export function PlacesBrowser({ places, plural }: { places: Place[]; plural: str
     filters.openNow ||
     filters.city !== null ||
     filters.details.length > 0 ||
+    filters.been !== undefined ||
     origin !== null;
   const set = (patch: Partial<PlaceFilters>) => setFilters((f) => ({ ...f, ...patch }));
   const toggleDetail = (k: keyof PlaceDetails) =>
@@ -138,6 +149,24 @@ export function PlacesBrowser({ places, plural }: { places: Place[]; plural: str
           </div>
         )}
 
+        {/* The chips exist only once there is something to filter by — a
+            visitor with no check-offs never sees an empty "Been there" axis. */}
+        {visited.size > 0 && (
+          <div className="pf-group" role="group" aria-label={PLACE_VISIT_COPY.button}>
+            {(["been", "not-yet"] as const).map((b) => (
+              <button
+                key={b}
+                type="button"
+                className={`pf-chip${filters.been === b ? " is-on" : ""}`}
+                aria-pressed={filters.been === b}
+                onClick={() => set({ been: filters.been === b ? undefined : b })}
+              >
+                {b === "been" ? PLACE_VISIT_COPY.filterBeen : PLACE_VISIT_COPY.filterNotYet}
+              </button>
+            ))}
+          </div>
+        )}
+
         <button
           type="button"
           className={`pf-chip pf-nearme${origin ? " is-on" : ""}`}
@@ -165,7 +194,7 @@ export function PlacesBrowser({ places, plural }: { places: Place[]; plural: str
       )}
 
       {list.length > 0 ? (
-        <PlacesList places={list} distances={distances} />
+        <PlacesList places={list} distances={distances} visited={visited} />
       ) : (
         <div className="places-empty">
           No {plural.toLowerCase()} match these filters.{" "}

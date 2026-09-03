@@ -203,6 +203,38 @@ export const KIND_META: Record<PlaceKind, KindMeta> = {
 };
 
 /**
+ * What each kind's list IS (Places P5, "Been there"). A checklist implies the
+ * list is complete, and for some kinds it isn't — so the progress line says
+ * "12 of 50 splash pads in the metro" only where the registry section is a
+ * documented metro-wide sweep, and "4 of the 22 parks on our list" where it's
+ * a curated pick. Conservative by default: a kind is `exhaustive` only when its
+ * registry header says so. The Record type makes a missing kind a compile error.
+ */
+export type KindCoverage = "exhaustive" | "curated";
+
+export const KIND_COVERAGE: Record<PlaceKind, KindCoverage> = {
+  beach: "exhaustive", // metro-wide exhaustive sweep (Aug 2026)
+  "splash-pad": "exhaustive", // 7-county source-driven sweep (Aug 2026)
+  pool: "exhaustive", // metro sweep (Aug 2026)
+  playground: "curated", // destination playgrounds — curated by design
+  park: "curated", // "the parks worth crossing town for"
+  rink: "curated", // marquee + neighborhood set; not every flooded rink
+  sledding: "curated",
+  "golf-course": "exhaustive", // every public course, 7 counties (Aug 2026)
+  "music-venue": "curated", // a bridge to the venue registry
+  "farmers-market": "exhaustive", // metro-wide, regular public markets (Aug 2026)
+  "dog-park": "curated", // verified set; not claimed complete
+  "disc-golf": "curated", // "initial verified set — the metro has 40+"
+  "nature-center": "exhaustive", // exhaustive pass (Aug 2026)
+  garden: "exhaustive", // exhaustive pass (Aug 2026)
+  "ski-hill": "exhaustive", // every in-box hill; exclusions documented
+  museum: "exhaustive", // exhaustive pass (Aug 2026)
+  orchard: "exhaustive", // exhaustive pass (Aug 2026)
+  "indoor-playground": "curated",
+  "trampoline-climbing": "curated",
+};
+
+/**
  * Themed groupings for cross-linking (Roadmap v6 Tier 1.2). A kind may sit in more
  * than one theme; `relatedKinds` uses these to link each guide to its siblings —
  * pure internal-link equity that turns the leaf kind pages into a mesh, with no new
@@ -5528,6 +5560,10 @@ export interface PlaceFilters {
   /** Restrict to these kinds — for the cross-kind discover view. Empty/undefined
    *  means all kinds (a per-kind page never sets it). */
   kinds?: PlaceKind[];
+  /** "Been there" (P5): only places the visitor has checked off, or only the
+   *  ones they haven't. Undefined means no filter. Needs the visited set passed
+   *  to filterPlaces; with none, "been" matches nothing and "not-yet" everything. */
+  been?: "been" | "not-yet";
 }
 
 export const NO_PLACE_FILTERS: PlaceFilters = { cost: "all", openNow: false, city: null, details: [] };
@@ -5541,13 +5577,20 @@ export const NO_PLACE_FILTERS: PlaceFilters = { cost: "all", openNow: false, cit
  * a place must have the fact set to `true` (absent/unverified never matches, so
  * the filter never over-promises a fact we haven't confirmed).
  */
-export function filterPlaces(places: Place[], f: PlaceFilters, now: Date): Place[] {
+export function filterPlaces(
+  places: Place[],
+  f: PlaceFilters,
+  now: Date,
+  visited?: ReadonlySet<string>,
+): Place[] {
   return places.filter((p) => {
     if (f.kinds && f.kinds.length > 0 && !f.kinds.includes(p.kind)) return false;
     if (f.cost === "free" && p.cost !== "free") return false;
     if (f.cost === "paid" && p.cost !== "paid") return false;
     if (f.openNow && !openNow(p, now)) return false;
     if (f.city && p.city !== f.city) return false;
+    if (f.been === "been" && !visited?.has(p.slug)) return false;
+    if (f.been === "not-yet" && visited?.has(p.slug)) return false;
     for (const k of f.details) {
       if (p.details?.[k] !== true) return false;
     }

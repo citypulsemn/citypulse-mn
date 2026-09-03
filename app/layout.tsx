@@ -5,6 +5,7 @@ import { SpeedInsights } from "@vercel/speed-insights/next";
 import { SITE_URL } from "@/lib/seo/site";
 import { ServiceWorkerRegistration } from "@/components/ServiceWorkerRegistration";
 import { FirstSaveNudge } from "@/components/FirstSaveNudge";
+import { FirstVisitNudge } from "@/components/FirstVisitNudge";
 import { BackToTop } from "@/components/BackToTop";
 import "./globals.css";
 
@@ -62,6 +63,7 @@ export default function RootLayout({
         {children}
         <BackToTop />
         <FirstSaveNudge />
+        <FirstVisitNudge />
         <ServiceWorkerRegistration />
         <Analytics />
         <SpeedInsights />

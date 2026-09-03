@@ -42,3 +42,13 @@ Unlike the *sealed* tables (subscribers, digest_sends, event_submissions — no 
 - Saves cascade-delete with their event (`on delete cascade`), so removing an event can't leave orphans.
 - Saved events that later become drafts simply drop out of the list (`getEventsByIds` returns only visible statuses).
 - This is the groundwork for a personalized digest ("your saved events this week") later.
+
+## The identity now carries two lists (Places P5)
+
+Place check-offs ("Been there", `docs/PLACES.md`) key on the **same** `user_token`
+in their own table, `place_visits`, with the same owner-scoped RLS policy. Both
+merge points in `lib/saved-restore.ts` — merge-on-request (R2.7) and
+merge-on-restore (R0.4) — copy `place_visits` alongside `saved_events`, so one
+keep-list link moves both, and nothing is lost in either direction.
+`saved-restore-queries.test.ts` tripwires that the two merges stay paired.
+`/saved` offers the keep-list form when either list is non-empty.

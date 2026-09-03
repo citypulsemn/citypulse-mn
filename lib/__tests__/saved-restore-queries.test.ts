@@ -47,3 +47,26 @@ describe("requestSavedLink (R2.7) — merge-on-request, merge BEFORE repoint", (
     expect(body).toContain("priorToken && priorToken !== token");
   });
 });
+
+describe("Places P5 — check-offs ride the same identity as saves", () => {
+  it("both merge sites copy place_visits alongside saved_events", () => {
+    expect((src.match(/insert into place_visits \(user_token, place_slug\)/g) ?? []).length).toBe(2);
+    expect(src).toContain("select ${token}, place_slug from place_visits");
+    expect(src).toContain("select ${restored}, place_slug from place_visits");
+  });
+
+  it("the request-side visits merge also runs BEFORE the subscribers upsert", () => {
+    const body = src.slice(
+      src.indexOf("export async function requestSavedLink"),
+      src.indexOf("export type RestoreResult"),
+    );
+    const merge = body.indexOf("insert into place_visits");
+    const repoint = body.indexOf("insert into subscribers");
+    expect(merge).toBeGreaterThan(-1);
+    expect(merge).toBeLessThan(repoint);
+  });
+
+  it("the restore email says the link carries places too", () => {
+    expect(src).toContain("the places you've checked off");
+  });
+});

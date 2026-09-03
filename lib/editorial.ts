@@ -144,3 +144,23 @@ export const FOR_VENUES = {
   wrong: "Already listed, but cancelled or wrong — a date that moved, a room that changed, a night that's off? Tell us. A person checks every report, usually within a day, and nothing about your listing changes automatically.",
   rules: "Listing is free and stays free. Placement can't be bought: no pay-to-list, no pay-to-rank, ever. The calendar is chronological — what's on top is whatever happens next, not whoever paid.",
 };
+
+/**
+ * "Been there" — the place checklist (Places P5). Plain strings, edit freely.
+ * `button` is THE word: it's on every check on every place, the filter chips,
+ * and the /saved section, so renaming it here renames it everywhere at once
+ * ("Visited", "Done", "Checked off"…). The progress line itself ("Been to 12
+ * of 50 splash pads in the metro") is built in lib/place-progress.ts because
+ * its numbers are computed — the honest denominator is never hand-typed.
+ */
+export const PLACE_VISIT_COPY = {
+  button: "Been there",
+  buttonOn: "Been there",
+  filterBeen: "✓ Been there",
+  filterNotYet: "Not yet",
+  nudge: "Checked off in this browser.",
+  nudgeLink: "Email yourself a link to keep your list on any device.",
+  savedHeading: "Places you've been",
+  keepListSub:
+    "Your saved events and the places you've checked off live in this browser. Email yourself a link and open it anywhere — phone, laptop, a fresh browser — to bring both with you.",
+};

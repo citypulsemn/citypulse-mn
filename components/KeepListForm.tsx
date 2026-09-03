@@ -3,10 +3,12 @@
 import { useActionState } from "react";
 import { requestSavedLinkAction } from "@/lib/saved-restore-actions";
 import { initialSubscribeState } from "@/lib/subscribe-types";
+import { PLACE_VISIT_COPY } from "@/lib/editorial";
 
 /**
  * "Keep this list" (roadmap 5.4) — shown on /saved when there's a list worth
- * keeping. Same interaction pattern as the footer subscribe form.
+ * keeping. Same interaction pattern as the footer subscribe form. The link
+ * carries saved events AND place check-offs (Places P5) — one identity.
  */
 export function KeepListForm() {
   const [state, action, pending] = useActionState(requestSavedLinkAction, initialSubscribeState);
@@ -14,10 +16,7 @@ export function KeepListForm() {
   return (
     <div className="keep-list">
       <div className="keep-list-title">Keep this list</div>
-      <p className="keep-list-sub">
-        Your saves live in this browser. Email yourself a link and open it anywhere —
-        phone, laptop, a fresh browser — to bring the list with you.
-      </p>
+      <p className="keep-list-sub">{PLACE_VISIT_COPY.keepListSub}</p>
       {state.status === "success" ? (
         <p className="keep-list-done" role="status">{state.message}</p>
       ) : (

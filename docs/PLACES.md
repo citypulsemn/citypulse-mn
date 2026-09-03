@@ -103,6 +103,40 @@ production only (the list stands on its own regardless).
 Social cards (`app/places/opengraph-image.tsx`,
 `app/places/[kind]/opengraph-image.tsx`) use the shared `OgCard` shell.
 
+## "Been there" — the place checklist (P5)
+
+Every place carries a **Been there** check; a kind page shows "Been to 12 of 50
+splash pads in the metro"; `/saved` grows a "Places you've been" section. It
+rides the **same anonymous identity as saved events** (`cpid` cookie, keep-list
+magic link, merge-on-restore — see `docs/SAVED.md`), so there is still no login
+and one emailed link carries both lists.
+
+- **Data:** `place_visits (user_token, place_slug, visited_at)` with the same
+  owner-scoped RLS policy as `saved_events`. No foreign key — the registry is
+  code — so `lib/place-visits.ts` accepts only slugs that resolve in
+  `lib/places.ts`, and a slug that later leaves the registry is simply not
+  counted (never an error, never a ghost row). `VISITS_CAP` sits above the
+  registry size so a full sweep can finish. Verify script: `db/verify-rls-visits.sql`.
+- **Honest denominators:** `KIND_COVERAGE` (in `lib/places.ts`) declares each
+  kind `exhaustive` (a documented metro-wide sweep → "of 50 splash pads in the
+  metro") or `curated` (a pick → "of the 22 parks on our list"). Conservative by
+  default. The line itself is built by `lib/place-progress.ts` and golden-tested;
+  the number on the page is never hand-typed.
+- **Static pages stay static.** The kind and detail pages never read the cookie.
+  State hydrates in the browser from `/api/visited` through one shared store
+  (`components/useVisited.ts`): one fetch per page however many rows, a live
+  update on every toggle via the `citypulse:visit` broadcast, and **no cookie
+  means an empty list with zero database reads**. `places-static.test.ts`
+  tripwires the no-cookie rule on all three page files.
+- **Quiet by design:** zero renders nothing — no empty bar, no "0 of 50". The
+  "Been there / Not yet" filter chips appear only once something is checked.
+  No streaks, badges, or new header count. The one-time nudge
+  (`FirstVisitNudge`) is the same dismissible bottom strip as the save nudge,
+  with its own dismissal key.
+- **Copy:** `PLACE_VISIT_COPY` in `lib/editorial.ts` — `button` is the word on
+  every check, the chips, and the saved section; rename it there and it changes
+  everywhere.
+
 ## Adding to the registry
 
 - **A new entry:** append to `PLACES` with a real `sourceUrl` and today's

@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { TopBar } from "@/components/TopBar";
 import { SiteFooter } from "@/components/SiteFooter";
 import { PlacesBrowser } from "@/components/PlacesBrowser";
+import { PlaceProgress } from "@/components/PlaceProgress";
 import {
   KIND_META,
   placesByKind,
@@ -98,6 +99,9 @@ export default async function PlacesKindPage({
             {places.length} across the Twin Cities metro
           </div>
         </div>
+
+        {/* "Been there" (P5) — hydrates client-side; this page stays cacheable. */}
+        <PlaceProgress kind={k} />
 
         {banner && <div className="places-banner">{banner}</div>}
 

@@ -4,6 +4,9 @@ import { SiteFooter } from "@/components/SiteFooter";
 import { SavedList } from "@/components/SavedList";
 import { getSaverToken } from "@/lib/saver";
 import { getSavedEvents } from "@/lib/saved";
+import { getVisitedSlugsSafe } from "@/lib/place-visits";
+import { visitedByKind } from "@/lib/place-progress";
+import { VisitedPlaces } from "@/components/VisitedPlaces";
 import { KeepListForm } from "@/components/KeepListForm";
 
 // Per-visitor content: never cached, never indexed.
@@ -22,7 +25,12 @@ export default async function SavedPage({
 }) {
   const sp = await searchParams;
   const token = await getSaverToken();
-  const events = token ? await getSavedEvents(token) : [];
+  // Both lists ride the same anonymous identity (Places P5). The visits read
+  // is wrapped (rule 1): a failure there must not take the saved list down.
+  const [events, visitedSlugs] = token
+    ? await Promise.all([getSavedEvents(token), getVisitedSlugsSafe(token)])
+    : [[], []];
+  const visitedGroups = visitedByKind(new Set(visitedSlugs));
 
   return (
     <>
@@ -34,15 +42,17 @@ export default async function SavedPage({
           <h1 className="dayhdr-title">Saved events</h1>
           <div className="dayhdr-count">
             {events.length === 0
-              ? "Nothing saved yet"
+              ? visitedGroups.length > 0
+                ? "No events saved yet"
+                : "Nothing saved yet"
               : `${events.length} event${events.length > 1 ? "s" : ""} saved`}
           </div>
         </div>
 
         {sp.restored === "1" && (
           <div className="restore-banner ok" role="status">
-            Your list is back — this device now carries your saved events, merged with
-            anything you&apos;d saved here already.
+            Your list is back — this device now carries your saved events and the places
+            you&apos;ve checked off, merged with anything you&apos;d saved here already.
           </div>
         )}
         {sp.restore === "invalid" && (
@@ -54,8 +64,11 @@ export default async function SavedPage({
 
         <SavedList events={events} />
 
-        {/* Roadmap 5.4 — only offer to keep a list that exists. */}
-        {events.length > 0 && <KeepListForm />}
+        {/* Places P5 — "Places you've been"; renders nothing at zero. */}
+        <VisitedPlaces groups={visitedGroups} />
+
+        {/* Roadmap 5.4 — only offer to keep a list that exists (events OR check-offs). */}
+        {(events.length > 0 || visitedSlugs.length > 0) && <KeepListForm />}
 
         <SiteFooter source="saved" />
       </main>

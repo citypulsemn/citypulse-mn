@@ -31,8 +31,20 @@ const codeOnly = (src: string) =>
 
 const DETAIL = "app/places/[kind]/[slug]/page.tsx";
 const DISCOVER = "app/places/discover/page.tsx";
+const KIND = "app/places/[kind]/page.tsx";
 
 describe("the places pages stay static", () => {
+  it.each([DETAIL, KIND, DISCOVER])("%s never reads the visitor cookie on the server (P5)", (file) => {
+    // "Been there" state is per visitor. Reading the cookie here would make
+    // every one of these pages render per request — the exact CPU stampede
+    // above. The state hydrates client-side from /api/visited instead.
+    const body = codeOnly(read(file));
+    expect(body).not.toMatch(/next\/headers/);
+    expect(body).not.toMatch(/@\/lib\/saver/);
+    expect(body).not.toMatch(/@\/lib\/place-visits/);
+    expect(body).not.toMatch(/getSaverToken|getVisitedSlugs/);
+  });
+
   it("place detail never revalidates", () => {
     const src = read(DETAIL);
     expect(src).toMatch(/export const revalidate = false/);

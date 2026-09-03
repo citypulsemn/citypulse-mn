@@ -1,5 +1,6 @@
 import { neighborhoodByKey } from "@/lib/neighborhoods";
 import { KIND_META, PLACE_DETAIL_LABELS, type Place, type PlaceCost, type PlaceDetails } from "@/lib/places";
+import { VisitButton } from "./VisitButton";
 
 const COST_LABEL: Record<PlaceCost, string> = { free: "Free", paid: "Paid", donation: "Donation" };
 
@@ -25,6 +26,7 @@ export function PlacesList({
   places,
   distances,
   showKind = false,
+  visited,
 }: {
   places: Place[];
   /** Optional slug → straight-line miles from the user (set by the "Near me"
@@ -33,6 +35,10 @@ export function PlacesList({
   /** Cross-kind mode (the discover view): show each row's kind as a link, since
    *  the list mixes pools, museums, parks, etc. */
   showKind?: boolean;
+  /** "Been there" (P5): the visitor's checked-off slugs. When present, each row
+   *  carries a compact check and checked rows get a filled ordinal. Absent
+   *  (the discover view) → no checks. */
+  visited?: ReadonlySet<string>;
 }) {
   return (
     <ol className="places-list">
@@ -40,8 +46,9 @@ export function PlacesList({
         const hood = p.neighborhood ? neighborhoodByKey(p.neighborhood) : null;
         const miles = distances?.get(p.slug);
         const badges = detailBadges(p.details);
+        const been = visited?.has(p.slug) ?? false;
         return (
-          <li key={p.slug} id={p.slug} className="place-row">
+          <li key={p.slug} id={p.slug} className={`place-row${been ? " visited" : ""}`}>
             <div className="place-num" aria-hidden="true">
               {i + 1}
             </div>
@@ -51,6 +58,7 @@ export function PlacesList({
                   <a href={`/places/${p.kind}/${p.slug}`}>{p.name}</a>
                 </h2>
                 <span className={`place-cost cost-${p.cost}`}>{COST_LABEL[p.cost]}</span>
+                {visited && <VisitButton slug={p.slug} kind={p.kind} variant="compact" />}
               </div>
               <div className="place-meta">
                 {showKind && (
