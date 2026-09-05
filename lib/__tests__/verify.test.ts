@@ -7,7 +7,9 @@ import {
   withinBudget,
   DEFAULT_CAP,
   RUN_BUDGET_MS,
+  VERDICTS,
 } from "../verify";
+import { buildVerifyPrompt } from "../agents/prompts";
 import type { EventRecord } from "../types";
 
 const NOW = new Date("2026-07-15T09:00:00-05:00");
@@ -209,5 +211,104 @@ describe("selectForVerification — CI runner boundary (R1.6, rule 10)", () => {
     const runnerNow = new Date("2026-07-16T16:00:00Z"); // wall 11:00, so far edge is 7/23 11:00 wall
     const sneaky = ev({ id: "late", start: "2026-07-23T14:00" }); // old fake-UTC edge admitted this
     expect(selectForVerification([sneaky], runnerNow)).toEqual([]);
+  });
+});
+
+/**
+ * THE MARLEY/FILLMORE FIX (Sep 2026).
+ *
+ * The freshness pass CONFIRMED a fabricated event: "Damian 'Jr. Gong' Marley &
+ * Stephen Marley" at The Fillmore, when the venue had Masego that night and the
+ * roundup article we cited never mentioned the Marleys. `verified_at` was
+ * stamped two days before a reader caught it.
+ */
+describe("wrong_event — the venue lists something else that night", () => {
+  it("is a real verdict", () => {
+    expect(VERDICTS).toContain("wrong_event");
+  });
+
+  it("FLAGS rather than hiding, and never stamps verified_at", () => {
+    // The stamp is the specific failure: it made a fabricated listing look
+    // trustworthy and stopped anyone looking again.
+    const a = actionFor({ id: "x", verdict: "wrong_event", evidence: "Fillmore lists Masego" });
+    expect(a.kind).toBe("flag");
+    expect(a.kind === "flag" && a.verdict).toBe("wrong_event");
+  });
+
+  it("carries what the venue actually has into the note", () => {
+    const a = actionFor({
+      id: "x",
+      verdict: "wrong_event",
+      evidence: "The Fillmore's calendar lists Masego — Fix Your Face Tour",
+    });
+    expect(a.kind === "flag" && a.note).toContain("Masego");
+  });
+
+  it("still flags when the model gives no evidence, and says so", () => {
+    const a = actionFor({ id: "x", verdict: "wrong_event" });
+    expect(a.kind).toBe("flag");
+    expect(a.kind === "flag" && a.note).toMatch(/no evidence given/);
+  });
+
+  it("does not auto-hide — one instrument is not two", () => {
+    // The house standard for hiding is two instruments agreeing
+    // (scripts/resolve-conflicts.ts). A support act or a renamed billing can
+    // look like "a different act", and a false removal deletes a real event.
+    for (const v of ["wrong_event", "not_found", "moved", "sold_out"] as const) {
+      expect(actionFor({ id: "x", verdict: v }).kind).toBe("flag");
+    }
+  });
+});
+
+describe("parseVerdicts no longer defaults to confirmed", () => {
+  const ids = new Set(["a"]);
+
+  it("SKIPS an entry with no verdict field", () => {
+    // This used to default to "confirmed", so a malformed answer stamped
+    // verified_at on an event nobody had checked. Silence is not confirmation.
+    expect(parseVerdicts('```json\n[{"id":"a"}]\n```', ids)).toEqual([]);
+    expect(parseVerdicts('```json\n[{"id":"a","verdict":null}]\n```', ids)).toEqual([]);
+    expect(parseVerdicts('```json\n[{"id":"a","verdict":123}]\n```', ids)).toEqual([]);
+  });
+
+  it("still accepts a well-formed verdict", () => {
+    expect(parseVerdicts('```json\n[{"id":"a","verdict":"confirmed"}]\n```', ids)).toHaveLength(1);
+    const wrong = parseVerdicts('```json\n[{"id":"a","verdict":"wrong_event","evidence":"x"}]\n```', ids);
+    expect(wrong[0]).toMatchObject({ verdict: "wrong_event", evidence: "x" });
+  });
+});
+
+describe("the verify prompt asks the question that catches a fabrication", () => {
+  const prompt = buildVerifyPrompt([
+    {
+      id: "a",
+      title: "Damian 'Jr. Gong' Marley & Stephen Marley",
+      venue: "The Fillmore Minneapolis",
+      city: "Minneapolis",
+      start: "2026-09-05T19:00",
+      sourceUrl: "https://www.exploreminnesota.com/events/best-fall-concerts-minneapolis-st-paul",
+      ticketUrl: "",
+    },
+  ]);
+
+  it("makes the venue's own calendar the authority", () => {
+    expect(prompt).toMatch(/VENUE'S OWN CALENDAR/i);
+    expect(prompt).toMatch(/outranks the source we cite/i);
+  });
+
+  it("says a source that does not name the event confirms nothing", () => {
+    expect(prompt).toMatch(/does not actually name this event, it confirms nothing/i);
+  });
+
+  it("forbids confirming an event that was not found", () => {
+    // The exact failure: the agent returned "confirmed" for an event that
+    // appears in no authoritative listing anywhere.
+    expect(prompt).toMatch(/NEVER "confirmed"/);
+    expect(prompt).toMatch(/"confirmed" is not the safe default/i);
+  });
+
+  it("offers wrong_event and asks it to name what the venue has", () => {
+    expect(prompt).toContain('"wrong_event"');
+    expect(prompt).toMatch(/naming what the venue actually has/i);
   });
 });

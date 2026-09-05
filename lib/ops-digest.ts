@@ -170,6 +170,17 @@ export interface OpsInputs {
      *  than from how many times it has been flagged. Nineteen flags were only
      *  ever one open item. */
     musicReview: number;
+    /** Sep 2026 — listings the freshness pass FLAGGED, still published.
+     *
+     *  Every `verify_flag` row ever written was invisible: nothing read the
+     *  table. A pass that raises its hand into a void is not an instrument, so
+     *  its flags now reach this email. Self-clearing the same way `musicReview`
+     *  is — computed from the listing's current state, not from flag count. */
+    verifyFlags: number;
+    /** A few of those, worst first, so the line is actionable rather than a
+     *  count. `wrong_event` sorts first: the venue's own calendar contradicting
+     *  us is the strongest negative the pass can produce. */
+    verifyFlagExamples: string[];
   };
   /** What the calendar can catch by looking at ITSELF (lib/contradictions.ts).
    *  Needs no outside source, which is the point: arts, family, festival, food
@@ -532,7 +543,12 @@ export function buildSections(inputs: OpsInputs): OpsSection[] {
       alert = true;
     } else {
       const { submissions, reports, oldestReportDays } = inputs.queue;
-      if (submissions === 0 && reports === 0 && inputs.queue.musicReview === 0) {
+      if (
+        submissions === 0 &&
+        reports === 0 &&
+        inputs.queue.musicReview === 0 &&
+        inputs.queue.verifyFlags === 0
+      ) {
         lines = ["nothing waiting — no open submissions or reports"];
       } else {
         lines = [];
@@ -546,6 +562,17 @@ export function buildSections(inputs: OpsInputs): OpsSection[] {
           lines.push(
             `${inputs.queue.musicReview} music listing${inputs.queue.musicReview === 1 ? "" : "s"} a venue calendar disagrees with → /admin/events`,
           );
+        }
+        if (inputs.queue.verifyFlags > 0) {
+          lines.push(
+            `${inputs.queue.verifyFlags} listing${inputs.queue.verifyFlags === 1 ? "" : "s"} the verify pass flagged, still live → /admin/events`,
+          );
+          for (const ex of inputs.queue.verifyFlagExamples) lines.push(`    ${ex}`);
+          // An alert, because these are listings our own pass doubts that are
+          // still on the site. The Marley listing was never flagged at all —
+          // it was CONFIRMED — but had it been flagged, this is the line that
+          // would have carried it.
+          alert = true;
         }
         if (oldestReportDays !== null && oldestReportDays >= STALE_REPORT_DAYS) {
           lines.push(`oldest report is ${oldestReportDays} days old — a cancelled event may still be live`);

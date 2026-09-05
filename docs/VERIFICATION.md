@@ -33,6 +33,45 @@ unconfirmed one.
 Fresh looks per run went **34 → 105**. Full write-up in
 `docs/deploy-history/DEPLOY-VERIFY-REACH.md`.
 
+## The Marley fix (5 Sep 2026) — asking the right question
+
+The pass **confirmed a fabricated event**. Our listing said *Damian 'Jr. Gong'
+Marley & Stephen Marley* at The Fillmore Minneapolis; the venue had Masego that
+night, Live Nation had no Marley dates anywhere, and the roundup article we cited
+never mentioned them. `verified_at` was stamped two days before a reader caught
+it.
+
+**The prompt was the cause.** It asked whether an event "still appears as
+scheduled" against *its own source* — and when that source is an article that
+never named the event, that question cannot catch a fabrication. Three changes:
+
+1. **The venue's own calendar is the authority**, and it outranks the source we
+   cite. A roundup that does not name the event confirms nothing.
+2. **`confirmed` now means "I saw this event named"** — not "the venue exists".
+   The prompt says it outright: if you cannot find the event named somewhere
+   authoritative, that is `not_found`, **never** `confirmed`.
+3. **New verdict `wrong_event`** — the venue lists a different act in that room
+   that night, with evidence naming what it actually has.
+
+Proven on the same listing, the same source and the same agent:
+`confirmed` → **`wrong_event`**, citing the Fillmore's own calendar, with no
+`verified_at` stamp.
+
+`wrong_event` **flags, it does not hide.** It is still one instrument, and a
+support act or a renamed billing can look like "a different act"; the house
+standard for hiding is two instruments agreeing (`scripts/resolve-conflicts.ts`).
+What it guarantees is that the listing is not stamped verified.
+
+**Also fixed:** `parseVerdicts` defaulted a missing `verdict` field to
+`"confirmed"`, so a malformed answer stamped `verified_at` on an event nobody had
+checked. It now skips the entry. Silence is not a confirmation.
+
+**And flags are now visible.** Every `verify_flag` row ever written went into
+`admin_audit` and *nothing read it* — a pass raising its hand into a void. The
+ops digest Queue section now carries flagged listings that are still published
+and still unverified, `wrong_event` first, and alerts on them. Self-clearing:
+open is computed from the listing's current state, not from flag count.
+
 ## The policy — deliberately asymmetric
 
 | Verdict | Action | Why |
@@ -43,6 +82,7 @@ Fresh looks per run went **34 → 105**. Full write-up in
 | `moved` | flag only, never auto-applied | Auto-editing a start time on an LLM's reading of a webpage risks corrupting good data. The admin fixes times with the 1.5 editor. |
 | `sold_out` | flag (informational) | — |
 | `not_found` | flag only — **never cancels** | A vanished page is not evidence of anything; sites reorganize constantly. A false cancellation is worse than a stale listing. |
+| `wrong_event` | flag only — and **never stamps `verified_at`** | The venue's own calendar shows a different act that night. The strongest negative the pass can produce, but still one instrument: a support act or a renamed billing can look like a different act. |
 
 Cancellations and flags are written to the existing `admin_audit` table (`verify_cancel` / `verify_flag`), and cancelled events use the existing cancellation display (banner on the event page, `STATUS:CANCELLED` in the .ics).
 

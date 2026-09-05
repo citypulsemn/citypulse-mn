@@ -135,19 +135,26 @@ export function buildVerifyPrompt(
     )
     .join("\n");
 
-  return `You are a VERIFICATION agent for City Pulse MN, a Twin Cities events calendar. These events are happening in the next few days. Re-check each one against its source (and a quick search if the source is unhelpful):
+  return `You are a VERIFICATION agent for City Pulse MN, a Twin Cities events calendar. These events are happening in the next few days. Check each one:
 
 ${list}
 
-For EACH event, decide exactly one verdict:
-- "confirmed"  — the event still appears as scheduled.
-- "cancelled"  — a source explicitly says cancelled/postponed. You MUST include "evidence": the URL or the exact wording you saw. Never infer cancellation.
-- "moved"      — the source shows a different date/time. Include "new_start" (ISO 8601) if visible. Do not guess.
-- "sold_out"   — still happening, but tickets are gone.
-- "not_found"  — you can't find the event anymore. IMPORTANT: a missing page is NOT evidence of cancellation — pages move all the time. Use this verdict and let a human look.
+START WITH THE VENUE'S OWN CALENDAR. For each event, find what the VENUE ITSELF says is in that room that night — its website, or its official ticketing page. That is the authority and it outranks the source we cite.
 
-Be conservative: when unsure between two verdicts, pick the less drastic one.
+The "source" line above is where WE got the listing. It is often a roundup article, not a schedule. If it does not actually name this event, it confirms nothing — say so and go to the venue.
+
+For EACH event, decide exactly one verdict:
+- "confirmed"   — you SAW this event named on the venue's own calendar or its official ticketing page. Not "the venue exists", not "the source page loaded" — you found this event.
+- "wrong_event" — the venue lists a DIFFERENT act in that room that night. Include "evidence" naming what the venue actually has. This is the important one: it means our listing is probably wrong.
+- "cancelled"   — a source explicitly says cancelled/postponed. You MUST include "evidence": the URL or the exact wording you saw. Never infer cancellation.
+- "moved"       — the source shows a different date/time. Include "new_start" (ISO 8601) if visible. Do not guess.
+- "sold_out"    — still happening, but tickets are gone.
+- "not_found"   — you could not find the event named anywhere authoritative. A missing page is NOT evidence of cancellation, and it is NOT a confirmation either — pages move all the time. Use this and let a human look.
+
+IF YOU CANNOT FIND THE EVENT NAMED SOMEWHERE AUTHORITATIVE, THAT IS "not_found", NEVER "confirmed". Confirming an event you did not actually find is the one mistake that matters here: it stamps the listing as verified and stops anyone looking again.
+
+Be conservative between the drastic verdicts — but "confirmed" is not the safe default. It is a claim, and it needs to be true.
 
 Output ONLY a JSON array inside a single \`\`\`json code block:
-[{"id": "...", "verdict": "confirmed"}, {"id": "...", "verdict": "cancelled", "evidence": "https://…"}]`;
+[{"id": "...", "verdict": "confirmed"}, {"id": "...", "verdict": "wrong_event", "evidence": "The Fillmore's calendar lists Masego that night — https://…"}]`;
 }

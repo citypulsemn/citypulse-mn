@@ -44,7 +44,7 @@ function healthy(overrides: Partial<OpsInputs> = {}): OpsInputs {
     lastDigestNote: "84 sent, 17 personalized",
     lastDigestDaysAgo: 4, // healthy: Thursday send, Monday report
     feeds: { clicks7: 9, top: [{ label: "venue-first-avenue", count: 5 }, { label: "live-music", count: 3 }] },
-    queue: { submissions: 0, reports: 0, oldestReportDays: null, musicReview: 0 },
+    queue: { submissions: 0, reports: 0, oldestReportDays: null, musicReview: 0, verifyFlags: 0, verifyFlagExamples: [] },
     contradictions: { conflicts: 0, duplicates: 0, placeholderVenues: 0, placeholderTitles: 0, examples: [], titleExamples: [] },
     sitemapUrls: 121,
     prevSitemapUrls: 118,
@@ -524,7 +524,17 @@ describe("digest staleness — catching a MISSED weekly send", () => {
 describe("Queue — the backstop that keeps a report from sitting unseen", () => {
   const queueOf = (q: Partial<OpsInputs["queue"]>) =>
     buildSections(
-      healthy({ queue: { submissions: 0, reports: 0, oldestReportDays: null, musicReview: 0, ...q } }),
+      healthy({
+        queue: {
+          submissions: 0,
+          reports: 0,
+          oldestReportDays: null,
+          musicReview: 0,
+          verifyFlags: 0,
+          verifyFlagExamples: [],
+          ...q,
+        },
+      }),
     ).find((s) => s.title === "Queue")!;
 
   it("an empty queue is the NORMAL state — never an alert", () => {
@@ -713,5 +723,49 @@ describe("Reports section", () => {
       .find((x) => x.title === "Reports")!;
     expect(s.alert).toBe(false);
     expect(s.items![0].lines.join(" ")).toMatch(/Not checked yet/);
+  });
+});
+
+/**
+ * VERIFY FLAGS IN THE QUEUE (Sep 2026).
+ *
+ * Every `verify_flag` row ever written was invisible — nothing read the table.
+ * A pass that raises its hand into a void is not an instrument.
+ */
+describe("Queue — verify flags are visible", () => {
+  const q = (over: Partial<OpsInputs["queue"]>) =>
+    buildSections(
+      healthy({
+        queue: {
+          submissions: 0,
+          reports: 0,
+          oldestReportDays: null,
+          musicReview: 0,
+          verifyFlags: 0,
+          verifyFlagExamples: [],
+          ...over,
+        },
+      }),
+    ).find((s) => s.title === "Queue")!;
+
+  it("a flagged listing still live is an alert", () => {
+    const s = q({
+      verifyFlags: 1,
+      verifyFlagExamples: ['wrong_event: "Damian Marley" @ The Fillmore · Sep 05'],
+    });
+    expect(s.alert).toBe(true);
+    expect(s.lines.join(" ")).toMatch(/1 listing the verify pass flagged, still live/);
+    expect(s.lines.join(" ")).toContain("Damian Marley");
+  });
+
+  it("does not report an empty queue as empty when flags are open", () => {
+    const s = q({ verifyFlags: 2 });
+    expect(s.lines.join(" ")).not.toMatch(/nothing waiting/);
+  });
+
+  it("stays quiet and unalarmed when there are none", () => {
+    const s = q({});
+    expect(s.alert).toBe(false);
+    expect(s.lines.join(" ")).toMatch(/nothing waiting/);
   });
 });

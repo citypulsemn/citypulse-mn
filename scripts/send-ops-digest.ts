@@ -107,7 +107,14 @@ async function gather(): Promise<OpsInputs> {
   // section honestly rather than reporting "0 reports" when the query threw.
   const queue = await wrap(
     "queue",
-    { submissions: 0, reports: 0, oldestReportDays: null as number | null, musicReview: 0 },
+    {
+      submissions: 0,
+      reports: 0,
+      oldestReportDays: null as number | null,
+      musicReview: 0,
+      verifyFlags: 0,
+      verifyFlagExamples: [] as string[],
+    },
     async () => {
       if (!sql) throw new Error("no database connection");
       // OPEN, not flagged-ever. The audit log is append-only, so the count has
@@ -121,11 +128,35 @@ async function gather(): Promise<OpsInputs> {
           and e.status = 'published'
           and e.verified_at is null
           and e.start_at >= now()`;
+      // Listings the freshness pass flagged that are STILL LIVE and still
+      // unverified. Same self-clearing shape as the music-review count above:
+      // the flag is an append-only audit row, so "open" has to be computed from
+      // the listing's current state. `wrong_event` first — the venue's own
+      // calendar contradicting us is the strongest negative the pass produces.
+      const flagged = await sql<{ verdict: string; title: string; venue: string; day: string }[]>`
+        select distinct on (e.id)
+               coalesce(a.patch->>'verdict', 'flag') as verdict,
+               e.title, e.venue,
+               to_char(e.start_at at time zone 'America/Chicago', 'Mon DD') as day
+        from admin_audit a
+        join events e on e.id = a.event_id
+        where a.action = 'verify_flag'
+          and e.status = 'published'
+          and e.verified_at is null
+          and e.start_at >= now()
+        order by e.id, a.at desc`;
+      const rank = (v: string) => (v === "wrong_event" ? 0 : v === "cancelled" ? 1 : 2);
+      const sorted = flagged.slice().sort((x, y) => rank(x.verdict) - rank(y.verdict));
+
       return {
         submissions: await getPendingSubmissionCount(),
         reports: await getPendingReportCount(),
         oldestReportDays: await getOldestPendingReportDays(),
         musicReview: m?.n ?? 0,
+        verifyFlags: sorted.length,
+        verifyFlagExamples: sorted
+          .slice(0, 4)
+          .map((f) => `${f.verdict}: "${f.title.slice(0, 44)}" @ ${f.venue.slice(0, 28)} · ${f.day}`),
       };
     },
   );

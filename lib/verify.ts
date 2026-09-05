@@ -24,7 +24,19 @@ import { chiWallClock } from "./clock";
  *   - confirmed  → stamps verified_at.
  */
 
-export const VERDICTS = ["confirmed", "cancelled", "moved", "sold_out", "not_found"] as const;
+export const VERDICTS = [
+  "confirmed",
+  "cancelled",
+  "moved",
+  "sold_out",
+  "not_found",
+  // Sep 2026, from the Marley/Fillmore incident: the venue's own calendar shows
+  // a DIFFERENT act in that room that night. Distinct from `not_found` (which
+  // means "I couldn't find it") and from `cancelled` (which means it was real
+  // and got called off). This one says the room is demonstrably busy with
+  // something else — the single fact that settled that report in one read.
+  "wrong_event",
+] as const;
 export type Verdict = (typeof VERDICTS)[number];
 
 export interface VerificationVerdict {
@@ -61,6 +73,25 @@ export function actionFor(v: VerificationVerdict): VerifyAction {
       return { kind: "flag", id: v.id, verdict: "sold_out", note: "listed as sold out" };
     case "not_found":
       return { kind: "flag", id: v.id, verdict: "not_found", note: "source page not found — NOT cancelled on absence" };
+    case "wrong_event":
+      // FLAGGED, not auto-hidden, and deliberately so. This is the strongest
+      // negative the pass can produce, but it is still ONE instrument, and a
+      // support act, a co-headline or a renamed billing can all look like "a
+      // different act". The house standard for hiding is two instruments
+      // agreeing (see scripts/resolve-conflicts.ts); `import-venues` flags
+      // rather than hides for the same reason. A false removal deletes a real
+      // event and nobody ever reports THAT.
+      //
+      // What it does guarantee is that `verified_at` is NOT stamped — which is
+      // the specific failure that let a fabricated listing look trustworthy.
+      return {
+        kind: "flag",
+        id: v.id,
+        verdict: "wrong_event",
+        note: v.evidence
+          ? `venue lists something else that night — ${v.evidence.slice(0, 200)}`
+          : "venue appears to list something else that night (no evidence given)",
+      };
   }
 }
 
@@ -190,7 +221,11 @@ export function parseVerdicts(text: string, validIds: Set<string>): Verification
     if (typeof item !== "object" || item === null) continue;
     const o = item as Record<string, unknown>;
     const id = typeof o.id === "string" ? o.id : "";
-    const verdict = typeof o.verdict === "string" ? (o.verdict as Verdict) : "confirmed";
+    // NO DEFAULT. This used to fall back to "confirmed" when the field was
+    // missing or not a string, so a malformed answer stamped `verified_at` on
+    // an event nobody had checked. Silence is not a confirmation.
+    if (typeof o.verdict !== "string") continue;
+    const verdict = o.verdict as Verdict;
     if (!validIds.has(id)) continue;
     if (!VERDICTS.includes(verdict)) continue;
     out.push({
