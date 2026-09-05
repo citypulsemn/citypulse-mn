@@ -18,6 +18,7 @@
     "reclassify": "tsx --env-file-if-exists=.env.local scripts/reclassify.ts",
     "collapse": "tsx --env-file-if-exists=.env.local scripts/collapse-multiday.ts",
     "verify": "tsx --env-file-if-exists=.env.local scripts/verify-events.ts",
+    "check-reports": "tsx --env-file-if-exists=.env.local scripts/check-reports.ts",
     "ops-digest": "tsx --env-file-if-exists=.env.local scripts/send-ops-digest.ts",
     "gsc-report": "tsx --env-file-if-exists=.env.local scripts/gsc-report.ts",
     "import-sports": "tsx --env-file-if-exists=.env.local scripts/import-sports.ts",

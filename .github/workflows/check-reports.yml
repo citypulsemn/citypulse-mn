@@ -1,0 +1,56 @@
+name: Check Listing Reports
+
+# Checks reader reports against the venue's own calendar and emails Taren the
+# verdict with one-tap Take-it-down / Keep buttons.
+#
+# WHY THIS IS ITS OWN SCHEDULE and not part of the weekly ops digest: on
+# 5 Sep 2026 a reader reported at 11:20 that our Damian Marley listing at The
+# Fillmore was wrong. It was — the venue had Masego that night. The show was
+# THAT EVENING. A weekly digest would have reached Taren four days after the
+# doors opened. Reports are about things that are happening now.
+#
+# Every 2 hours. The job no-ops in seconds when nothing is pending (it only
+# spends an agent call when there is an unchecked report), so the frequency
+# costs essentially nothing on a quiet week.
+on:
+  schedule:
+    - cron: "17 */2 * * *"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Dry run (check + print, write nothing, send nothing)"
+        type: boolean
+        default: false
+
+concurrency:
+  group: check-reports
+  cancel-in-progress: false
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci --prefer-offline --no-audit --no-fund
+
+      - name: Check pending listing reports
+        run: npm run check-reports ${{ github.event.inputs.dry_run == 'true' && '-- --dry-run' || '' }}
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          NOTIFY_TO: ${{ secrets.NOTIFY_TO }}
+          OPS_DIGEST_TO: ${{ secrets.OPS_DIGEST_TO }}
+          DIGEST_FROM: ${{ secrets.DIGEST_FROM }}
+          SITE_URL: ${{ secrets.SITE_URL }}
+          # Signs the one-tap decision links. Falls back to UNSUBSCRIBE_SECRET
+          # when unset, so the buttons work from day one (see lib/report-token.ts).
+          REPORT_ACTION_SECRET: ${{ secrets.REPORT_ACTION_SECRET }}
+          UNSUBSCRIBE_SECRET: ${{ secrets.UNSUBSCRIBE_SECRET }}

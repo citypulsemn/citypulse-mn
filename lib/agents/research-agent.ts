@@ -4,6 +4,12 @@ import { CATEGORY_KEYS } from "../categories";
 import { buildResearchPrompt, buildVenueSweepPrompt, buildVerifyPrompt } from "./prompts";
 import { parseVerdicts, type VerifiableEvent, type VerificationVerdict } from "../verify";
 import type { Venue } from "../venues";
+import {
+  buildReportCheckPrompt,
+  parseReportChecks,
+  type ReportCheckInput,
+  type ReportCheckResult,
+} from "../report-check";
 
 /**
  * A category research subagent. Runs Claude (Sonnet) with the web_search tool
@@ -169,4 +175,33 @@ export async function verifyEventsBatch(
     .join("\n");
 
   return parseVerdicts(text, new Set(events.map((e) => e.id)));
+}
+
+/**
+ * Check reader reports against the venue's own calendar (Sep 2026).
+ * Returns verdicts about the READER'S CLAIM; the caller stores them and a human
+ * decides. See lib/report-check.ts for the incident that produced this.
+ */
+export async function checkReportedListings(
+  items: ReportCheckInput[],
+  maxSearchUses = 10,
+): Promise<ReportCheckResult[]> {
+  if (items.length === 0) return [];
+
+  const stream = anthropic.messages.stream({
+    model: "claude-sonnet-4-6",
+    max_tokens: 4000,
+    tools: [
+      { type: "web_search_20250305", name: "web_search", max_uses: maxSearchUses },
+    ] as unknown as Anthropic.Tool[],
+    messages: [{ role: "user", content: buildReportCheckPrompt(items) }],
+  });
+
+  const res = await stream.finalMessage();
+  const text = res.content
+    .filter((b): b is Anthropic.TextBlock => b.type === "text")
+    .map((b) => b.text)
+    .join("\n");
+
+  return parseReportChecks(text, new Set(items.map((i) => i.reportId)));
 }

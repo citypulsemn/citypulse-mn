@@ -424,3 +424,30 @@ create policy place_visits_owner on place_visits
   for all
   using  (user_token = current_setting('request.saver_token', true))
   with check (user_token = current_setting('request.saver_token', true));
+
+-- ── Automated check on reported listings (Sep 2026) ─────────────────────────
+-- A reader reported that "Damian 'Jr. Gong' Marley & Stephen Marley" was playing
+-- the Fillmore on 5 Sep 2026. The Fillmore's own calendar had Masego that night,
+-- Live Nation showed no upcoming Marley dates at all, and the article we cited as
+-- the source never mentioned the Marleys. The listing was invented, it was live,
+-- and the verify pass had stamped it `verified_at` two days earlier.
+--
+-- So every report now gets checked against the VENUE'S OWN CALENDAR before it
+-- reaches Taren, and the verdict travels with the report into the email.
+-- Additive and nullable: existing rows read as "never checked", which is true.
+alter table event_reports add column if not exists check_verdict text
+  check (check_verdict in ('supported','contradicted','unclear','error'));
+-- The verdict is about the REPORTER'S CLAIM, not the listing:
+--   supported     — evidence backs the reporter; the listing looks wrong
+--   contradicted  — evidence backs the listing; the reporter looks mistaken
+--   unclear       — nothing decisive found (a missing page is not evidence)
+--   error         — the check itself could not run
+alter table event_reports add column if not exists check_note text;
+alter table event_reports add column if not exists check_evidence text;
+alter table event_reports add column if not exists checked_at timestamptz;
+-- How the decision was made, so an emailed one-tap decision is distinguishable
+-- from one taken in the admin UI.
+alter table event_reports add column if not exists decided_via text
+  check (decided_via in ('admin','email'));
+create index if not exists idx_event_reports_unchecked
+  on event_reports (created_at) where status = 'pending' and checked_at is null;

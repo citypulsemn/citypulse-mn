@@ -638,3 +638,80 @@ describe("Self-check — where the calendar contradicts itself", () => {
     expect(s.lines[0]).toContain("unavailable");
   });
 });
+
+/**
+ * REPORTS SECTION (Sep 2026) — the Marley/Fillmore incident.
+ *
+ * The Queue section counted "1 listing report awaiting review" while a listing
+ * nobody could stand behind was live on the site. A count is not actionable;
+ * this section carries the reader's words, what the automated check found, and
+ * the two buttons.
+ */
+describe("Reports section", () => {
+  const report = (over: Partial<NonNullable<OpsInputs["reports"]>[number]> = {}) => ({
+    title: "Damian 'Jr. Gong' Marley & Stephen Marley",
+    venue: "The Fillmore Minneapolis",
+    start: "2026-09-05 19:00",
+    kind: "removal",
+    reason: "The show is wrong. Masego tonight at Fillmore",
+    verdict: "supported",
+    verdictLine: "The check agrees with the reporter — the listing looks wrong.",
+    actions: [
+      { label: "Take it down", href: "https://x/report-action?id=1&a=delete&t=aaa", danger: true },
+      { label: "Keep it", href: "https://x/report-action?id=1&a=keep&t=bbb" },
+    ],
+    ...over,
+  });
+
+  const sectionsFor = (reports: OpsInputs["reports"]) =>
+    buildSections(healthy({ reports }));
+
+  it("does not exist when nothing is pending", () => {
+    // An empty block every week is noise; the Queue line already says so.
+    expect(sectionsFor([]).find((s) => s.title === "Reports")).toBeUndefined();
+    expect(sectionsFor(undefined).find((s) => s.title === "Reports")).toBeUndefined();
+  });
+
+  it("alerts when the check backs the reporter", () => {
+    const s = sectionsFor([report()]).find((x) => x.title === "Reports")!;
+    expect(s.alert).toBe(true);
+    expect(s.lines[0]).toMatch(/1 of 1 checked report looks like a real problem/);
+  });
+
+  it("does not alert when nothing was confirmed wrong", () => {
+    const s = sectionsFor([report({ verdict: "contradicted" })]).find((x) => x.title === "Reports")!;
+    expect(s.alert).toBe(false);
+    expect(s.lines[0]).toMatch(/none confirmed wrong/);
+  });
+
+  it("carries the reader's words, the verdict and both buttons per item", () => {
+    const s = sectionsFor([report()]).find((x) => x.title === "Reports")!;
+    expect(s.items).toHaveLength(1);
+    expect(s.items![0].lines.join(" ")).toContain("Masego tonight at Fillmore");
+    expect(s.items![0].lines.join(" ")).toContain("looks wrong");
+    expect(s.items![0].actions!.map((a) => a.label)).toEqual(["Take it down", "Keep it"]);
+  });
+
+  it("renders the buttons as real links in the HTML and as URLs in the text", () => {
+    const { html, text } = composeOpsDigest(healthy({ reports: [report()] }), new Date("2026-09-07T12:00:00Z"));
+    expect(html).toContain('href="https://x/report-action?id=1&amp;a=delete&amp;t=aaa"');
+    expect(html).toContain(">Take it down</a>");
+    expect(text).toContain("Take it down: https://x/report-action?id=1&a=delete&t=aaa");
+  });
+
+  it("escapes the reader's prose — it is a stranger's input", () => {
+    const { html } = composeOpsDigest(
+      healthy({ reports: [report({ reason: '<img src=x onerror="alert(1)">' })] }),
+      new Date("2026-09-07T12:00:00Z"),
+    );
+    expect(html).not.toContain("<img src=x");
+    expect(html).toContain("&lt;img");
+  });
+
+  it("says so plainly when a report has not been checked yet", () => {
+    const s = sectionsFor([report({ verdict: "unchecked", verdictLine: "Not checked yet — run `npm run check-reports`." })])
+      .find((x) => x.title === "Reports")!;
+    expect(s.alert).toBe(false);
+    expect(s.items![0].lines.join(" ")).toMatch(/Not checked yet/);
+  });
+});

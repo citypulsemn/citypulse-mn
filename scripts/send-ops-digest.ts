@@ -17,7 +17,9 @@ import { getDigestSends, getDaysSinceLastDigest } from "../lib/digest-send";
 import { getFeedAdoption } from "../lib/feed-stats";
 import { getSearchImpressions } from "../lib/search-console";
 import { getPendingSubmissionCount } from "../lib/submissions";
-import { getPendingReportCount, getOldestPendingReportDays } from "../lib/event-reports";
+import { getPendingReportCount, getOldestPendingReportDays, getPendingReportsWithChecks } from "../lib/event-reports";
+import { formatCheckLine, type CheckVerdict } from "../lib/report-check";
+import { reportActionUrl, reportActionSecret } from "../lib/report-token";
 import { findContradictions, findPlaceholderTitles, formatFinding, type CalendarRow } from "../lib/contradictions";
 
 const dryRun = process.argv.includes("--dry-run");
@@ -128,6 +130,36 @@ async function gather(): Promise<OpsInputs> {
     },
   );
 
+  // The open reports themselves, with whatever the automated check found. This
+  // is the backstop copy — `npm run check-reports` mails the same verdicts and
+  // the same buttons as soon as a check completes, which is the timely channel.
+  // Wrapped like everything else: a failure here degrades to no section rather
+  // than to a reassuring empty one.
+  const reports = await wrap("reports", [] as OpsInputs["reports"], async () => {
+    const secret = reportActionSecret();
+    const site = (process.env.SITE_URL ?? "https://citypulsemn.com").replace(/\/+$/, "");
+    const rows = await getPendingReportsWithChecks();
+    return rows.map((r) => ({
+      title: r.event_title,
+      venue: r.event_venue,
+      start: r.event_start,
+      kind: r.kind,
+      reason: r.reason,
+      verdict: r.check_verdict ?? "unchecked",
+      verdictLine: r.check_verdict
+        ? formatCheckLine({
+            verdict: r.check_verdict as CheckVerdict,
+            note: r.check_note,
+            evidence: r.check_evidence,
+          })
+        : "Not checked yet — run `npm run check-reports`.",
+      actions: [
+        { label: "Take it down", href: reportActionUrl(site, r.id, "delete", secret), danger: true },
+        { label: "Keep it", href: reportActionUrl(site, r.id, "keep", secret) },
+      ],
+    }));
+  });
+
   // The self-check. No outside source, so it can run for every category —
   // including the five that have no feed to verify against. Wrapped like every
   // other section: if the read throws, the section says "unavailable" rather
@@ -226,6 +258,7 @@ async function gather(): Promise<OpsInputs> {
     lastDigestDaysAgo,
     feeds,
     queue,
+    reports,
     contradictions,
     sitemapUrls,
     prevSitemapUrls,

@@ -186,6 +186,21 @@ export interface OpsInputs {
     /** A few placeholder titles, so the line is actionable rather than a count. */
     titleExamples: string[];
   };
+  /** Open listing reports WITH their automated check (Sep 2026), newest last.
+   *  Absent or empty renders no section at all — the Queue line already covers
+   *  "nothing waiting", and an empty block every week is noise. */
+  reports?: {
+    title: string;
+    venue: string;
+    start: string;
+    kind: string;
+    /** The reader's own words. Public input; escaped at render. */
+    reason: string;
+    /** `formatCheckLine` output, or a plain "not checked yet". */
+    verdictLine: string;
+    verdict: string;
+    actions: OpsAction[];
+  }[];
   /** Live sitemap URL count (fetched from SITE_URL/sitemap.xml — the number
    *  Google actually sees; zero drift by construction) + last week's. */
   sitemapUrls: number | null;
@@ -201,10 +216,25 @@ export interface OpsInputs {
   errors: Record<string, string>;
 }
 
+/** A tappable decision rendered as a button in the HTML email. */
+export interface OpsAction {
+  label: string;
+  href: string;
+  /** Styles the button as the destructive one. */
+  danger?: boolean;
+}
+
 export interface OpsSection {
   title: string;
   lines: string[];
   alert: boolean;
+  /**
+   * Rendered after `lines`, one block per item, each with its own buttons.
+   * Separate from `lines` because those are escaped as plain text — a link in a
+   * line would arrive as visible markup. Labels and hrefs are still escaped
+   * when rendered; only the anchor itself is structural.
+   */
+  items?: { lines: string[]; actions?: OpsAction[] }[];
 }
 
 const SECTION_KEYS = [
@@ -526,6 +556,38 @@ export function buildSections(inputs: OpsInputs): OpsSection[] {
     out.push({ title: "Queue", lines, alert });
   }
 
+  // 9b — Reports, with the automated check attached (Sep 2026).
+  //
+  // The Queue section above counts reports; this one says what each of them
+  // actually is, whether the check backs the reporter, and gives the two
+  // buttons. It exists because a count is not actionable: the Marley/Fillmore
+  // report sat as "1 listing report awaiting review" while a listing nobody
+  // could stand behind was live on the site.
+  //
+  // Only rendered when something is pending — an empty section every week is
+  // noise, and the Queue line already says "nothing waiting".
+  if (inputs.reports && inputs.reports.length > 0) {
+    const supported = inputs.reports.filter((r) => r.verdict === "supported").length;
+    const lines = [
+      supported > 0
+        ? `${supported} of ${inputs.reports.length} checked report${inputs.reports.length === 1 ? "" : "s"} look${supported === 1 ? "s" : ""} like a real problem`
+        : `${inputs.reports.length} open report${inputs.reports.length === 1 ? "" : "s"}, none confirmed wrong by the check`,
+    ];
+    out.push({
+      title: "Reports",
+      lines,
+      alert: supported > 0,
+      items: inputs.reports.map((r) => ({
+        lines: [
+          `${r.title} — ${r.venue} · ${r.start}`,
+          `Reader (${r.kind}): ${r.reason}`,
+          r.verdictLine,
+        ].filter(Boolean),
+        actions: r.actions,
+      })),
+    });
+  }
+
   // 10 — Self-check: where the calendar contradicts itself. The only section
   // here that needs no outside source, which is why it exists — five categories
   // have none. A CONFLICT alerts (two different things in one room at one time
@@ -590,7 +652,19 @@ export function composeOpsDigest(
       : `⚠️ City Pulse ops — ${alerts} alert${alerts > 1 ? "s" : ""} (${dateLabel})`;
 
   const text = sections
-    .map((s) => `## ${s.title}${s.alert ? " ⚠️" : ""}\n${s.lines.map((l) => `- ${l}`).join("\n")}`)
+    .map((s) => {
+      const head = `## ${s.title}${s.alert ? " ⚠️" : ""}\n${s.lines.map((l) => `- ${l}`).join("\n")}`;
+      if (!s.items?.length) return head;
+      const items = s.items
+        .map((it) =>
+          [
+            ...it.lines.map((l) => `  ${l}`),
+            ...(it.actions ?? []).map((a) => `  ${a.label}: ${a.href}`),
+          ].join("\n"),
+        )
+        .join("\n\n");
+      return `${head}\n\n${items}`;
+    })
     .join("\n\n");
 
   const html = `<!doctype html><html><head>${EMAIL_HEAD}</head><body style="margin:0;padding:24px;background:#0d1526;font-family:Georgia,serif;color:#f2ecdd;">
@@ -602,6 +676,23 @@ ${sections
     (s) => `<div style="margin:0 0 16px;padding:12px 16px;border:1px solid ${s.alert ? "#a05c3b" : "#2a3550"};border-radius:10px;background:#131d33;">
 <div style="font-size:12px;letter-spacing:0.08em;text-transform:uppercase;color:${s.alert ? "#e0b070" : "#c9a961"};margin:0 0 6px;">${esc(s.title)}${s.alert ? " ⚠️" : ""}</div>
 ${s.lines.map((l) => `<div style="font-size:13.5px;line-height:1.55;">${esc(l)}</div>`).join("")}
+${(s.items ?? [])
+  .map(
+    (it) => `<div style="margin:10px 0 0;padding:10px 12px;border:1px solid #2a3550;border-radius:8px;background:#0f1729;">
+${it.lines.map((l) => `<div style="font-size:13px;line-height:1.5;">${esc(l)}</div>`).join("")}
+${
+  it.actions?.length
+    ? `<div style="margin-top:9px;">${it.actions
+        .map(
+          (a) =>
+            `<a href="${esc(a.href)}" style="display:inline-block;padding:10px 15px;margin:0 7px 6px 0;border-radius:8px;text-decoration:none;font-size:13px;background:${a.danger ? "#a05c3b" : "#c9a961"};color:${a.danger ? "#ffffff" : "#0d1526"};">${esc(a.label)}</a>`,
+        )
+        .join("")}</div>`
+    : ""
+}
+</div>`,
+  )
+  .join("")}
 </div>`,
   )
   .join("")}
