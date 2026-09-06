@@ -5816,7 +5816,11 @@ export const PLACES: Place[] = [
   // Gardens
   {
     slug: "arneson-acres-park", name: "Arneson Acres Park", kind: "garden",
-    lat: 44.8731, lng: -93.3736, address: "4711 W 70th St, Edina, MN 55424",
+    // Coordinates corrected 6 Sep 2026. The research agent supplied
+    // 44.8731,-93.3736 — about 2.7km west of the actual address. Caught when the
+    // Edina History Museum, which shares this site, geocoded to a different
+    // point from the same street address.
+    lat: 44.87627, lng: -93.34352, address: "4711 W 70th St, Edina, MN 55424",
     city: "Edina", neighborhood: null, season: WARM_SEASON, cost: "free",
     tags: ["formal", "perennial"],
     intro: "Twenty-eight separate gardens on one small Edina block — formal beds, a daylily garden, a hosta glade, a woodland walk — plus a greenhouse, a gazebo, and the Edina Historical Society in the same grounds.",
@@ -5962,6 +5966,63 @@ export const PLACES: Place[] = [
     tags: ["historic", "kids"],
     intro: "Saturdays 11 to 3, and small enough to see properly in one. The standing exhibit runs through the Ewald Bros. dairy, the old high school and the garden club — and there is a firefighter's kit children can put on.",
     sourceUrl: "https://goldenvalleyhistoricalsociety.org/museum",
+    verifiedAt: "2026-09-06", venueSlug: null,
+  },
+
+  // ── CITY HISTORICAL SOCIETIES (6 Sep 2026) ─────────────────────────────────
+  // The suburban half of the museum list, finishing what the county societies
+  // started. All five are small, most are free, and every one keeps hours a
+  // reader would otherwise have to ring up for — which is exactly what a
+  // directory is for.
+  //
+  // Two of these needed a second hop to source properly. Lakeville's city page
+  // gives hours but no street address and points at mnlahs.org, which has the
+  // address; both are the society's own, so the listing carries the city page.
+  // Bloomington was originally offered with a WIKIPEDIA source; the society's
+  // own site at bloomingtonhistoricalsociety.org/about/museum.html has it.
+  {
+    slug: "chaska-history-center", name: "Chaska History Center", kind: "museum",
+    lat: 44.78733, lng: -93.60141, address: "112 W 4th St, Chaska, MN 55318",
+    city: "Chaska", neighborhood: null, season: YEAR_ROUND, cost: "donation",
+    tags: ["historic"],
+    intro: "Tuesday, Friday and Saturday afternoons, one to four. Chaska's own collection — and it closes when Eastern Carver County Schools close, so check in bad weather.",
+    sourceUrl: "https://chaskahistory.org/",
+    verifiedAt: "2026-09-06", venueSlug: null,
+  },
+  {
+    slug: "edina-history-museum", name: "Edina History Museum", kind: "museum",
+    lat: 44.87627, lng: -93.34352, address: "4711 W 70th St, Edina, MN 55424",
+    city: "Edina", neighborhood: null, season: YEAR_ROUND, cost: "donation",
+    tags: ["historic"],
+    intro: "In the grounds at Arneson Acres, so you can pair it with the gardens. Displays on the Edina Mill and the dig that went looking for it, plus the school history. Tuesdays 11 to 1 and Saturday mornings.",
+    sourceUrl: "https://www.edinamn.gov/1002/Historical-Society",
+    verifiedAt: "2026-09-06", venueSlug: null,
+  },
+  {
+    slug: "maple-grove-history-museum", name: "Maple Grove History Museum", kind: "museum",
+    lat: 45.11844, lng: -93.42893, address: "9030 Forestview Ln N, Maple Grove, MN 55369",
+    city: "Maple Grove", neighborhood: null, season: YEAR_ROUND, cost: "free",
+    tags: ["historic"],
+    intro: "Open the second Sunday of the month, one to four, with a second open house on the fourth Sunday from April through October. No charge; tours by request the rest of the time.",
+    sourceUrl: "https://maplegrovemnhistory.org/",
+    verifiedAt: "2026-09-06", venueSlug: null,
+  },
+  {
+    slug: "lakeville-area-historical-society", name: "Lakeville Area Historical Society Museum", kind: "museum",
+    lat: 44.65731, lng: -93.24166, address: "20110 Holyoke Ave, Lakeville, MN 55044",
+    city: "Lakeville", neighborhood: null, season: YEAR_ROUND, cost: "donation",
+    tags: ["historic"],
+    intro: "On Holyoke Avenue in downtown Lakeville, open Monday and Thursday mornings. Visits outside those hours are by appointment — ring ahead rather than turning up.",
+    sourceUrl: "https://www.lakevillemn.gov/394/Lakeville-Area-Historical-Society",
+    verifiedAt: "2026-09-06", venueSlug: null,
+  },
+  {
+    slug: "old-town-hall-museum-bloomington", name: "Old Town Hall Museum", kind: "museum",
+    lat: 44.8192, lng: -93.30895, address: "10200 Penn Ave S, Bloomington, MN 55431",
+    city: "Bloomington", neighborhood: null, season: YEAR_ROUND, cost: "free",
+    tags: ["historic"],
+    intro: "An 1892 town hall at Penn and Old Shakopee Road, the Historical Society's home since 1964. Free, Tuesday to Thursday and Saturday afternoons. The Tom Burnett material is here.",
+    sourceUrl: "https://bloomingtonhistoricalsociety.org/about/museum.html",
     verifiedAt: "2026-09-06", venueSlug: null,
   },
 ];
