@@ -175,6 +175,20 @@ async function main() {
   const fresh = drafts.filter((d) => !known.has(d.name.toLowerCase()));
 
   console.log(`[research-places] ${drafts.length} sourced candidate(s); ${fresh.length} not already on file\n`);
+
+  // AN INDEX PAGE IS NOT A SOURCE FOR ONE PLACE. When the same URL is handed
+  // back for several entries it is usually a directory — rinkfinder.com's
+  // facilities list, a "best outdoor rinks" roundup — and opening it does not
+  // show a reader the place it is attached to. Same failure as citing a
+  // fall-concerts roundup for one show. Flag it rather than silently listing it.
+  const bySource = new Map<string, number>();
+  for (const d of fresh) bySource.set(d.source_url, (bySource.get(d.source_url) ?? 0) + 1);
+  const shared = [...bySource].filter(([, n]) => n > 2).sort((a, b) => b[1] - a[1]);
+  if (shared.length > 0) {
+    console.log(`[research-places] ⚠ these look like INDEX pages, not sources — re-source before listing:`);
+    for (const [url, n] of shared) console.log(`    ${n}x  ${url}`);
+    console.log();
+  }
   for (const d of fresh) {
     console.log(`  ${d.name} — ${d.city}${d.lat === undefined ? "  (no coords)" : ""}`);
     console.log(`    ${d.source_url}`);

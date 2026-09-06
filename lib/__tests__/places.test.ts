@@ -699,9 +699,12 @@ describe("pool features (winning detail — moat, kind 5; source-verified)", () 
   const pools = placesByKind("pool");
 
   it("locks the source-confirmed counts (indoor reuses the shared field)", () => {
-    expect(pools.length).toBe(25);
+    // 25 → 27 on 6 Sep 2026: Northview Pool and Lorraine Splash Pool, South St.
+    // Paul. Both outdoor, so `indoor: true` stays at 6; neither has a slide, so
+    // waterSlide stays at 22; Lorraine adds one zero-depth (20 → 21).
+    expect(pools.length).toBe(27);
     expect(pools.filter((p) => p.details?.waterSlide === true).length).toBe(22);
-    expect(pools.filter((p) => p.details?.zeroDepth === true).length).toBe(20);
+    expect(pools.filter((p) => p.details?.zeroDepth === true).length).toBe(21);
     expect(pools.filter((p) => p.details?.indoor === true).length).toBe(6);
   });
 
@@ -780,8 +783,12 @@ describe("orchard features (winning detail — moat, kind 8; fall outing)", () =
   const orchards = placesByKind("orchard");
 
   it("locks the source-confirmed counts", () => {
-    expect(orchards.length).toBe(12);
-    expect(orchards.filter((p) => p.details?.uPick === true).length).toBe(7);
+    // 12 → 14 on 6 Sep 2026: Applewood (Lakeville) and the Arboretum AppleHouse
+    // (Victoria), both checked against the operator's own page for the season
+    // that is open right now. uPick 7 → 8 with Applewood; the AppleHouse is a
+    // shop, not a u-pick, and does not claim it.
+    expect(orchards.length).toBe(14);
+    expect(orchards.filter((p) => p.details?.uPick === true).length).toBe(8);
     expect(orchards.filter((p) => p.details?.ciderDonuts === true).length).toBe(5);
     expect(orchards.filter((p) => p.details?.pumpkinPatch === true).length).toBe(10);
     expect(orchards.filter((p) => p.details?.cornMaze === true).length).toBe(7);

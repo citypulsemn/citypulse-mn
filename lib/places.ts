@@ -1518,6 +1518,35 @@ export const PLACES: Place[] = [
     details: { indoor: true, waterSlide: true },
     verifiedAt: "2026-08-17", venueSlug: null,
   },
+  // ── POOLS, coverage-box sweep (Sep 2026) ───────────────────────────────────
+  // The thinnest pass of the four. Twelve leads, most sourced to magazine
+  // round-ups, and the city sites that would settle them (Eden Prairie,
+  // Plymouth) refuse automated requests. Only South St. Paul's aquatics page
+  // could be read — and it corrected the lead, which had merged two pools in two
+  // different parks into a single row. They are two places.
+  //
+  // Pools are also the least urgent of the four: the outdoor season is eight
+  // months out, so the next pass has time to do this properly.
+  {
+    slug: "northview-pool-south-st-paul", name: "Northview Pool", kind: "pool",
+    lat: 44.90062, lng: -93.05705, address: "Northview Park, South St. Paul, MN 55075",
+    city: "South St. Paul", neighborhood: null, season: WARM_SEASON, cost: "paid",
+    tags: ["outdoor", "diving-board"],
+    intro: "The deep one — three to twelve feet, with a diving board, a climbing wall and basketball hoops over the water.",
+    sourceUrl: "https://www.southstpaulmn.gov/171/Aquatics",
+    details: { indoor: false },
+    verifiedAt: "2026-09-06", venueSlug: null,
+  },
+  {
+    slug: "lorraine-splash-pool-south-st-paul", name: "Lorraine Splash Pool", kind: "pool",
+    lat: 44.87873, lng: -93.0374, address: "Lorraine Park, South St. Paul, MN 55075",
+    city: "South St. Paul", neighborhood: null, season: WARM_SEASON, cost: "paid",
+    tags: ["outdoor", "zero-depth"],
+    intro: "The little-kid counterpart to Northview: a big interactive play structure, zero-depth entry on two sides, and deck space to sit on. Closed for the 2026 season.",
+    sourceUrl: "https://www.southstpaulmn.gov/171/Aquatics",
+    details: { indoor: false, zeroDepth: true },
+    verifiedAt: "2026-09-06", venueSlug: null,
+  },
   {
     slug: "brooklyn-center-community-center-pool", name: "Brooklyn Center Community Center Pool", kind: "pool",
     lat: 45.0680, lng: -93.3300, address: "6301 Shingle Creek Pkwy, Brooklyn Center, MN 55430",
@@ -1972,6 +2001,45 @@ export const PLACES: Place[] = [
     intro: "The sledding hill on the west side of Roseville's Central Park, just north of the Victoria West playground — an easy family hill.",
     sourceUrl: "https://www.cityofroseville.com/200/Central-Park---Lexington",
     verifiedAt: "2026-08-13", venueSlug: null,
+  },
+
+  // ── SLEDDING, coverage-box sweep (Sep 2026) ────────────────────────────────
+  // Only three of 37 leads are here, and the reason is worth writing down:
+  // CITIES DO NOT PUBLISH SLEDDING PAGES. 28 of the 37 came back sourced to
+  // family-blog roundups (twincitiesfamily.com, familyfuntwincities.com) or a
+  // 2022 PDF, because that is genuinely where this information lives — a hill is
+  // a hill, and most park departments never write it down.
+  //
+  // The three below are the exception: Three Rivers Park District runs its
+  // winter recreation as a programme and documents it. Everything else stays a
+  // lead until somebody can point at an operator saying "you may sled here",
+  // which is the same bar every other row in this file had to clear.
+  {
+    slug: "elm-creek-sledding-hill", name: "Elm Creek Park Reserve Sledding Hill", kind: "sledding",
+    lat: 45.1017, lng: -93.4589, address: "12400 James Deane Pkwy, Maple Grove, MN 55369",
+    city: "Maple Grove", neighborhood: null, season: WINTER, cost: "free",
+    tags: ["lit"],
+    intro: "The free sledding hill in the Winter Recreation Area, up from the swim pond parking lot. The lighted tubing hill next door has lifts and snowmaking, but that one is ticketed and worth reserving ahead.",
+    sourceUrl: "https://www.threeriversparks.org/location/elm-creek-winter-recreation-area",
+    verifiedAt: "2026-09-06", venueSlug: null,
+  },
+  {
+    slug: "french-regional-sledding-hill", name: "French Regional Park Sledding Hill", kind: "sledding",
+    lat: 45.0044, lng: -93.4544, address: "12605 Rockford Rd, Plymouth, MN 55441",
+    city: "Plymouth", neighborhood: null, season: WINTER, cost: "free",
+    tags: ["lit", "groomed"],
+    intro: "Lighted and groomed, next to the visitor centre — so it stays good after dark. Non-rail sleds only. Nearly six miles of lit ski trail run from the same car park.",
+    sourceUrl: "https://www.threeriversparks.org/location/french-regional-park",
+    verifiedAt: "2026-09-06", venueSlug: null,
+  },
+  {
+    slug: "hyland-lake-sledding-hill", name: "Hyland Lake Park Reserve Sledding Hill", kind: "sledding",
+    lat: 44.8636, lng: -93.3936, address: "10145 Bush Lake Rd, Bloomington, MN 55438",
+    city: "Bloomington", neighborhood: null, season: WINTER, cost: "free",
+    tags: [],
+    intro: "Free sledding in the shadow of the Hyland ski hill, with the chalet and nine and a half miles of groomed ski trail on the same site.",
+    sourceUrl: "https://www.threeriversparks.org/HylandLakeParkReserve",
+    verifiedAt: "2026-09-06", venueSlug: null,
   },
 
   // ── Golf courses — public, metro-wide exhaustive sweep (Aug 2026, F2.7) ───
@@ -4772,14 +4840,40 @@ export const PLACES: Place[] = [
     verifiedAt: "2026-08-17", venueSlug: null,
   },
   {
-    slug: "sponsels-minnesota-harvest", name: "Sponsel's Minnesota Harvest", kind: "orchard",
+    // RENAMED, not a new orchard: this is the old Sponsel's Minnesota Harvest at
+    // the same 8251 Old Highway 169 Blvd, now Ferguson's. Caught on 6 Sep 2026
+    // when a sweep proposed "Ferguson's Minnesota Harvest" as a new listing and
+    // the address matched this row exactly. The old `minnesotaharvest.net`
+    // source and `cost: "free"` were both wrong — the orchard now charges
+    // admission to go out to the trees, though the store and bakery stay free.
+    // The slug is deliberately unchanged so existing links keep working.
+    slug: "sponsels-minnesota-harvest", name: "Ferguson's Minnesota Harvest", kind: "orchard",
     lat: 44.6820, lng: -93.5700, address: "8251 Old Highway 169 Blvd, Jordan, MN 55352",
-    city: "Jordan", neighborhood: null, season: FALL_SEASON, cost: "free",
+    city: "Jordan", neighborhood: null, season: FALL_SEASON, cost: "paid",
     tags: ["apples", "pumpkins"],
-    intro: "Minnesota Harvest in the Jordan river valley — a wagon out to blufftop apple trees, a pumpkin patch, and a cider-scented barn. Free to visit; pay for your apples.",
-    sourceUrl: "https://www.minnesotaharvest.net",
+    intro: "The old Minnesota Harvest in the Jordan river valley, under new owners. A wagon runs out to the blufftop trees; there's a corn maze, a corn pit, an apple cannon and a cider bar. Admission covers the orchard — the store and bakery are free to walk into.",
+    sourceUrl: "https://fergusonsorchard.com/twin-cities-home/",
     details: { uPick: true, pumpkinPatch: true, cornMaze: true },
-    verifiedAt: "2026-08-17", venueSlug: null,
+    verifiedAt: "2026-09-06", venueSlug: null,
+  },
+  {
+    slug: "applewood-orchard-lakeville", name: "Applewood Orchard", kind: "orchard",
+    lat: 44.62164, lng: -93.22302, address: "22702 Hamburg Ave, Lakeville, MN 55044",
+    city: "Lakeville", neighborhood: null, season: FALL_SEASON, cost: "free",
+    tags: ["apples"],
+    intro: "One of the few pick-your-own orchards in Dakota County, out past the edge of Lakeville. Opens for the season in early September.",
+    sourceUrl: "https://applewoodorchard.net/",
+    details: { uPick: true },
+    verifiedAt: "2026-09-06", venueSlug: null,
+  },
+  {
+    slug: "arboretum-applehouse", name: "Minnesota Landscape Arboretum AppleHouse", kind: "orchard",
+    lat: 44.862, lng: -93.692, address: "7485 Rolling Acres Rd, Victoria, MN 55386",
+    city: "Victoria", neighborhood: null, season: FALL_SEASON, cost: "free",
+    tags: ["apples", "bakery"],
+    intro: "The shop for the University's fruit-breeding program — Honeycrisp, SweeTango and Zestar were all bred a mile and a half up the road. Apples, pumpkins and cider donuts daily until 5 November, then it turns into a holiday shop. Free to enter and to park.",
+    sourceUrl: "https://arb.umn.edu/AppleHouse",
+    verifiedAt: "2026-09-06", venueSlug: null,
   },
 
   // ── PARKS — deepening pass (Places G1.2, Aug 2026) ─────────────────────────
@@ -5098,6 +5192,83 @@ export const PLACES: Place[] = [
     verifiedAt: "2026-08-17",
     details: { warmingHouse: true },
     venueSlug: null,
+  },
+  // ── INDOOR ARENAS, coverage-box sweep (Sep 2026) ───────────────────────────
+  // The registry held 27 rinks across only 9 cities, almost all of them outdoor
+  // neighbourhood sheets — every one of the 47 uncovered cities has an arena.
+  // These seven are the ones whose OPERATOR page could be opened and read.
+  //
+  // Held rather than listed: Plymouth Ice Center and both Lakeville arenas (the
+  // city sites 403 automated requests), Eagan Civic Arena (the lead cited a
+  // generic parks index, not the arena), Eden Prairie (no coordinates), and a
+  // dozen more that came back sourced only to rinkfinder.com's facilities list
+  // or Minnesota Hockey's find-an-arena page. A directory is not a source for
+  // one rink — the same rule that killed the fall-concert listings.
+  // Also held: the "Outdoor Ice Rinks" leads for Woodbury, Burnsville, Lakeville,
+  // Shakopee, Rosemount and Farmington, which each bundle three or four separate
+  // sheets into one row. A place is one location; those need splitting first.
+  {
+    slug: "brooklyn-park-cac-ice-arenas", name: "Brooklyn Park Community Activity Center Ice Arenas", kind: "rink",
+    lat: 45.0978, lng: -93.3748, address: "5600 85th Ave N, Brooklyn Park, MN 55443",
+    city: "Brooklyn Park", neighborhood: null, season: YEAR_ROUND, cost: "paid",
+    tags: ["indoor", "hockey", "open-skate"],
+    intro: "Two sheets at the Community Activity Center — 1,200 seats in Arena 1, 310 in Arena 2 — running about 6,700 hours of ice a year between them.",
+    sourceUrl: "https://www.brooklynpark.org/our-facilities/ice-arenas/",
+    verifiedAt: "2026-09-06", venueSlug: null,
+  },
+  {
+    slug: "m-health-fairview-sports-center", name: "M Health Fairview Sports Center", kind: "rink",
+    lat: 44.88749, lng: -92.93911, address: "4125 Radio Dr, Woodbury, MN 55129",
+    city: "Woodbury", neighborhood: null, season: YEAR_ROUND, cost: "paid",
+    tags: ["indoor", "hockey", "open-skate"],
+    intro: "Woodbury's arena: two indoor sheets at full 200-by-85, eight locker rooms, and the ice the local high school teams play on.",
+    sourceUrl: "https://www.woodburymn.gov/170/Ice-Arenas",
+    verifiedAt: "2026-09-06", venueSlug: null,
+  },
+  {
+    slug: "burnsville-ice-center", name: "Burnsville Ice Center", kind: "rink",
+    lat: 44.7665, lng: -93.2777, address: "251 Civic Center Pkwy, Burnsville, MN 55337",
+    city: "Burnsville", neighborhood: null, season: YEAR_ROUND, cost: "paid",
+    tags: ["indoor", "hockey", "open-skate"],
+    intro: "Two rinks on Civic Center Parkway. Open skate runs $8, or $6 if you are under 5 or over 61, with rentals and training aids at the counter.",
+    sourceUrl: "https://burnsvillemn.gov/217/Burnsville-Ice-Center",
+    verifiedAt: "2026-09-06", venueSlug: null,
+  },
+  {
+    slug: "apple-valley-sports-arena", name: "Apple Valley Sports Arena", kind: "rink",
+    lat: 44.7319, lng: -93.2175, address: "14452 Hayes Rd, Apple Valley, MN 55124",
+    city: "Apple Valley", neighborhood: null, season: OFF_SEASON, cost: "paid",
+    tags: ["indoor", "hockey"],
+    intro: "Ice from mid-October to mid-March; the rest of the year the floor comes up dry for everything else. Open 9 a.m. to 10 p.m.",
+    sourceUrl: "https://www.applevalleymn.gov/1226/Arenas",
+    verifiedAt: "2026-09-06", venueSlug: null,
+  },
+  {
+    slug: "wings-arena-apple-valley", name: "Wings Arena", kind: "rink",
+    lat: 44.7313, lng: -93.2171, address: "14595 Hayes Rd, Apple Valley, MN 55124",
+    city: "Apple Valley", neighborhood: null, season: YEAR_ROUND, cost: "paid",
+    tags: ["indoor", "hockey"],
+    intro: "The city's second sheet, a few hundred yards up Hayes Road from the Sports Arena. Long known as Hayes Park Arena — Apple Valley is renaming it Wings Arena. Open 8 a.m. to 8 p.m.",
+    sourceUrl: "https://www.applevalleymn.gov/1226/Arenas",
+    verifiedAt: "2026-09-06", venueSlug: null,
+  },
+  {
+    slug: "shakopee-ice-arena", name: "Shakopee Ice Arena", kind: "rink",
+    lat: 44.7762, lng: -93.5261, address: "1225 Fuller St S, Shakopee, MN 55379",
+    city: "Shakopee", neighborhood: null, season: YEAR_ROUND, cost: "paid",
+    tags: ["indoor", "hockey", "open-skate"],
+    intro: "Two sheets, built in 2016. Open skate is included with a Community Center membership or a day pass; skate rental is $6 for residents, $9 otherwise.",
+    sourceUrl: "https://www.shakopeemn.gov/recreation/shakopee_ice_arena/index.php",
+    verifiedAt: "2026-09-06", venueSlug: null,
+  },
+  {
+    slug: "richfield-ice-arena", name: "Richfield Ice Arena", kind: "rink",
+    lat: 44.8854, lng: -93.2651, address: "636 E 66th St, Richfield, MN 55423",
+    city: "Richfield", neighborhood: null, season: YEAR_ROUND, cost: "paid",
+    tags: ["indoor", "hockey", "open-skate"],
+    intro: "Running since 1971, with two full 200-by-85 sheets. Open skate is $7, or $56 for ten. The lobby is being rebuilt through 1 November and skating is paused while it is.",
+    sourceUrl: "https://www.richfieldmn.gov/icearena",
+    verifiedAt: "2026-09-06", venueSlug: null,
   },
   {
     slug: "brookside-park-rink", name: "Brookside Park", kind: "rink",
