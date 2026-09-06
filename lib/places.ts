@@ -199,7 +199,13 @@ export interface KindMeta {
  */
 export const METRO_BOX = {
   minLat: 44.6, // ~10km south of Apple Valley / Burnsville (44.73)
-  maxLat: 45.3, // ~15km north of Blaine / Coon Rapids (45.16)
+  // ~26km north of Blaine / Coon Rapids (45.16). Was 45.3 until the 6 Sep 2026
+  // coordinate audit: Pinehaven Farm (Wyoming, 45.356) and Coon Lake County
+  // Park (Columbus, 45.326) had both been sitting inside the old edge only
+  // because their coordinates were wrong. Correcting the pins pushed them out.
+  // The box is here to catch a place invented in Duluth, not to hold a pin at a
+  // false latitude, so the edge moved rather than the fact.
+  maxLat: 45.4,
   minLng: -93.95, // ~12km west of Delano / Rockford (-93.79)
   maxLng: -92.65, // ~12km east of Stillwater (-92.81)
   /** The corner cities Taren named, kept here so the intent survives the numbers. */
@@ -403,7 +409,7 @@ export const PLACES: Place[] = [
   },
   {
     slug: "lake-hiawatha-beach", name: "Lake Hiawatha Beach", kind: "beach",
-    lat: 44.9160, lng: -93.2410, address: "2701 E 44th St, Minneapolis, MN 55406",
+    lat: 44.9232, lng: -93.23351, address: "2701 E 44th St, Minneapolis, MN 55406",
     city: "Minneapolis", neighborhood: null, season: SUMMER, cost: "free",
     tags: ["lifeguard-seasonal", "sand"],
     intro: "A neighborhood lake beach off the Hiawatha parkway, with a guarded swimming area and the regional trail running past.",
@@ -502,7 +508,7 @@ export const PLACES: Place[] = [
   },
   {
     slug: "elm-creek-swim-pond", name: "Elm Creek Swim Pond", kind: "beach",
-    lat: 45.1460, lng: -93.4560, address: "12420 James Deane Pkwy, Maple Grove, MN 55369",
+    lat: 45.13837, lng: -93.43719, address: "12420 James Deane Pkwy, Maple Grove, MN 55369",
     city: "Maple Grove", neighborhood: null, season: SUMMER, cost: "paid",
     tags: ["sand", "restrooms", "concessions"],
     intro: "Three Rivers' chlorinated swim pond at Elm Creek Park Reserve in Maple Grove — filtered water, a sand beach, a changing shelter, and concessions. A daily or season wristband is required.",
@@ -511,7 +517,7 @@ export const PLACES: Place[] = [
   },
   {
     slug: "bush-lake-beach", name: "Bush Lake Beach", kind: "beach",
-    lat: 44.8470, lng: -93.3830, address: "9140 E Bush Lake Rd, Bloomington, MN 55438",
+    lat: 44.83858, lng: -93.37583, address: "9140 E Bush Lake Rd, Bloomington, MN 55438",
     city: "Bloomington", neighborhood: null, season: SUMMER, cost: "free",
     tags: ["sand", "concessions"],
     intro: "One of the state's most-visited beaches — a wide sand beach on Bush Lake in Bloomington's Hyland area, now run by Three Rivers, with a volleyball court and a concession stand.",
@@ -520,7 +526,7 @@ export const PLACES: Place[] = [
   },
   {
     slug: "fish-lake-regional-park-beach", name: "Fish Lake Regional Park Beach", kind: "beach",
-    lat: 45.0950, lng: -93.4570, address: "14900 Bass Lake Rd, Maple Grove, MN 55311",
+    lat: 45.07684, lng: -93.46901, address: "14900 Bass Lake Rd, Maple Grove, MN 55311",
     city: "Maple Grove", neighborhood: null, season: SUMMER, cost: "free",
     tags: ["sand"],
     intro: "A clean, shallow sand beach on Fish Lake in Maple Grove — gentle water that suits young kids, free and unguarded.",
@@ -645,7 +651,7 @@ export const PLACES: Place[] = [
   },
   {
     slug: "coon-lake-county-beach", name: "Coon Lake County Park Beach", kind: "beach",
-    lat: 45.2930, lng: -93.0650, address: "5450 197th Ave NE, Columbus, MN 55092",
+    lat: 45.32625, lng: -93.13195, address: "5450 197th Ave NE, Columbus, MN 55092",
     city: "Columbus", neighborhood: null, season: SUMMER, cost: "free",
     tags: ["sand"],
     intro: "An Anoka County sand beach on Coon Lake in Columbus, at the north edge of the metro — a vehicle permit gets you in.",
@@ -672,7 +678,7 @@ export const PLACES: Place[] = [
   },
   {
     slug: "rice-creek-chain-beach", name: "Rice Creek Chain of Lakes Beach", kind: "beach",
-    lat: 45.1650, lng: -93.0900, address: "7373 Main St, Lino Lakes, MN 55038",
+    lat: 45.17221, lng: -93.06956, address: "7373 Main St, Lino Lakes, MN 55038",
     city: "Lino Lakes", neighborhood: null, season: SUMMER, cost: "free",
     tags: ["sand"],
     intro: "The swimming beach at Anoka County's Rice Creek Chain of Lakes Park Reserve in Lino Lakes, with camping and trails through the reserve.",
@@ -681,7 +687,7 @@ export const PLACES: Place[] = [
   },
   {
     slug: "schulze-lake-beach", name: "Schulze Lake Beach", kind: "beach",
-    lat: 44.7820, lng: -93.1900, address: "860 Cliff Road, Eagan, MN 55123",
+    lat: 44.78828, lng: -93.12828, address: "860 Cliff Road, Eagan, MN 55123",
     city: "Eagan", neighborhood: null, season: SUMMER, cost: "free",
     tags: ["sand"],
     intro: "The Schulze Lake beach at Lebanon Hills Regional Park in Eagan — Dakota County's main swimming beach, with water tested weekly through the season.",
@@ -717,7 +723,7 @@ export const PLACES: Place[] = [
   },
   {
     slug: "roundhouse-park-beach", name: "Roundhouse Park Beach", kind: "beach",
-    lat: 44.8720, lng: -93.6000, address: "3950 Kings Road, Chanhassen, MN 55317",
+    lat: 44.87802, lng: -93.62383, address: "3950 Kings Road, Chanhassen, MN 55317",
     city: "Chanhassen", neighborhood: null, season: SUMMER, cost: "free",
     tags: ["sand"],
     intro: "A neighborhood beach on Lake Minnewashta at Chanhassen's Roundhouse Park, with a playground, fishing pier, and restrooms.",
@@ -726,7 +732,7 @@ export const PLACES: Place[] = [
   },
   {
     slug: "lake-waconia-regional-beach", name: "Lake Waconia Regional Park Beach", kind: "beach",
-    lat: 44.8560, lng: -93.7500, address: "8170 Paradise Lane, Waconia, MN 55387",
+    lat: 44.85375, lng: -93.76306, address: "8170 Paradise Lane, Waconia, MN 55387",
     city: "Waconia", neighborhood: null, season: SUMMER, cost: "free",
     tags: ["sand"],
     intro: "A sand beach on big Lake Waconia at Carver County's regional park, with kayak and paddleboard rentals at the water's edge.",
@@ -753,7 +759,7 @@ export const PLACES: Place[] = [
   },
   {
     slug: "lake-elmo-swim-pond", name: "Lake Elmo Park Reserve Swim Pond", kind: "beach",
-    lat: 44.9580, lng: -92.9050, address: "1515 Keats Ave N, Lake Elmo, MN 55042",
+    lat: 44.97121, lng: -92.9032, address: "1515 Keats Ave N, Lake Elmo, MN 55042",
     city: "Lake Elmo", neighborhood: null, season: SUMMER, cost: "paid",
     tags: ["sand", "lifeguards"],
     intro: "A chlorinated, sand-bottomed swim pond at Washington County's Lake Elmo Park Reserve — lake feel with pool-clean water and lifeguards. A daily pass is required.",
@@ -792,7 +798,7 @@ export const PLACES: Place[] = [
   },
   {
     slug: "phelps-field-splash-pad", name: "Phelps Field Park Splash Pad", kind: "splash-pad",
-    lat: 44.9378, lng: -93.2610, address: "701 E 39th St, Minneapolis, MN 55407",
+    lat: 44.93229, lng: -93.26488, address: "701 E 39th St, Minneapolis, MN 55407",
     city: "Minneapolis", neighborhood: "south-minneapolis", season: SUMMER, cost: "free",
     tags: ["adjacent-playground", "restrooms"],
     intro: "The splash pad at Phelps Field in south Minneapolis, alongside the rec center, the playground, and the wading pool.",
@@ -822,7 +828,7 @@ export const PLACES: Place[] = [
   },
   {
     slug: "roy-wilkins-splash-pad", name: "Roy Wilkins (Lewis) Park Splash Pad", kind: "splash-pad",
-    lat: 44.9705, lng: -93.1032, address: "900 N Marion St, Saint Paul, MN 55117",
+    lat: 44.96871, lng: -93.10964, address: "900 N Marion St, Saint Paul, MN 55117",
     city: "St. Paul", neighborhood: null, season: SUMMER, cost: "free",
     tags: [],
     intro: "A free splash pad at Roy Wilkins (Lewis) Park in St. Paul's North End.",
@@ -862,7 +868,7 @@ export const PLACES: Place[] = [
   },
   {
     slug: "maple-grove-central-park-splash-pad", name: "Maple Grove Central Park Splash Pad", kind: "splash-pad",
-    lat: 45.0700, lng: -93.4430, address: "12000 Central Park Way, Maple Grove, MN 55369",
+    lat: 45.101, lng: -93.43347, address: "12000 Central Park Way, Maple Grove, MN 55369",
     city: "Maple Grove", neighborhood: null, season: SUMMER, cost: "free",
     tags: ["adjacent-playground"],
     intro: "The interactive fountain at Maple Grove's Central Park — dozens of jets on a plaza that becomes an LED light show after dark, with the playground and Arbor Lakes shops next door.",
@@ -872,7 +878,7 @@ export const PLACES: Place[] = [
   },
   {
     slug: "woodbury-sports-center-splash-pad", name: "M Health Fairview Sports Center Splash Pad", kind: "splash-pad",
-    lat: 44.9080, lng: -92.9560, address: "4125 Radio Dr, Woodbury, MN 55129",
+    lat: 44.88828, lng: -92.94152, address: "4125 Radio Dr, Woodbury, MN 55129",
     city: "Woodbury", neighborhood: null, season: SUMMER, cost: "free",
     tags: ["restrooms"],
     intro: "A free splash pad at the M Health Fairview Sports Center in Woodbury — press a button to restart the jets, with restrooms on site.",
@@ -892,7 +898,7 @@ export const PLACES: Place[] = [
   },
   {
     slug: "round-lake-park-splash-pad", name: "Round Lake Park Splash Pad", kind: "splash-pad",
-    lat: 44.8650, lng: -93.4625, address: "16691 Valley View Rd, Eden Prairie, MN 55346",
+    lat: 44.87001, lng: -93.48948, address: "16691 Valley View Rd, Eden Prairie, MN 55346",
     city: "Eden Prairie", neighborhood: null, season: SUMMER, cost: "free",
     tags: ["adjacent-playground"],
     intro: "A free splash pad at Round Lake Park in Eden Prairie, a short walk from the lake's swimming beach and the playground.",
@@ -912,7 +918,7 @@ export const PLACES: Place[] = [
   },
   {
     slug: "oak-hill-park-splash-pad", name: "Oak Hill Park Splash Pad", kind: "splash-pad",
-    lat: 44.9380, lng: -93.3780, address: "3201 Rhode Island Ave S, St. Louis Park, MN 55426",
+    lat: 44.94527, lng: -93.37819, address: "3201 Rhode Island Ave S, St. Louis Park, MN 55426",
     city: "St. Louis Park", neighborhood: null, season: SUMMER, cost: "free",
     tags: ["adjacent-playground"],
     intro: "St. Louis Park's splash pad at Oak Hill Park — bubbling hoses, nozzles, and sprinkler arches kids can set off themselves.",
@@ -922,7 +928,7 @@ export const PLACES: Place[] = [
   },
   {
     slug: "lions-park-splash-pad", name: "Lions Park Splash Pad", kind: "splash-pad",
-    lat: 44.7920, lng: -93.5350, address: "1103 Adams St S, Shakopee, MN 55379",
+    lat: 44.78596, lng: -93.54089, address: "1103 Adams St S, Shakopee, MN 55379",
     city: "Shakopee", neighborhood: null, season: SUMMER, cost: "free",
     tags: ["adjacent-playground"],
     intro: "A free splash pad at Lions Park in Shakopee, next to the Fun For All accessible playground.",
@@ -932,7 +938,7 @@ export const PLACES: Place[] = [
   },
   {
     slug: "nicollet-commons-splash-pad", name: "Nicollet Commons Park Splash Pad", kind: "splash-pad",
-    lat: 44.7740, lng: -93.2880, address: "100 Civic Center Pkwy, Burnsville, MN 55337",
+    lat: 44.77399, lng: -93.2785, address: "100 Civic Center Pkwy, Burnsville, MN 55337",
     city: "Burnsville", neighborhood: null, season: SUMMER, cost: "free",
     tags: [],
     intro: "Jets in the plaza at Nicollet Commons Park in downtown Burnsville — press the button to turn them on.",
@@ -942,7 +948,7 @@ export const PLACES: Place[] = [
   },
   {
     slug: "cedarcrest-park-splash-pad", name: "Cedarcrest Park Splash Pad", kind: "splash-pad",
-    lat: 44.8560, lng: -93.2630, address: "8700 Bloomington Ave S, Bloomington, MN 55425",
+    lat: 44.84606, lng: -93.25308, address: "8700 Bloomington Ave S, Bloomington, MN 55425",
     city: "Bloomington", neighborhood: null, season: SUMMER, cost: "free",
     tags: ["adjacent-playground", "restrooms"],
     intro: "Bloomington's splash pad at Cedarcrest Park, with a playground, ball fields, and seasonal restrooms.",
@@ -989,7 +995,7 @@ export const PLACES: Place[] = [
   },
   {
     slug: "eagan-central-park-splash-pad", name: "Eagan Central Park Splash Pad", kind: "splash-pad",
-    lat: 44.8320, lng: -93.1610, address: "1501 Central Parkway, Eagan, MN 55121",
+    lat: 44.83864, lng: -93.17111, address: "1501 Central Parkway, Eagan, MN 55121",
     city: "Eagan", neighborhood: null, season: SUMMER, cost: "free",
     tags: ["shade"],
     intro: "Ground sprays, overhead fountains, and dump buckets at Eagan's Central Park, with a sun shelter and picnic tables alongside.",
@@ -1187,7 +1193,7 @@ export const PLACES: Place[] = [
   },
   {
     slug: "becker-park-splash-pad", name: "Becker Park Splash Pad", kind: "splash-pad",
-    lat: 45.0565, lng: -93.3642, address: "5530 Douglas Dr N, Crystal, MN 55429",
+    lat: 45.05193, lng: -93.36014, address: "5530 Douglas Dr N, Crystal, MN 55429",
     city: "Crystal", neighborhood: null, season: SUMMER, cost: "free",
     tags: ["adjacent-playground", "restrooms"],
     intro: "Crystal's splash pad sits at the center of the rebuilt, inclusive Becker Park playground, with the community center and restrooms next door.",
@@ -1319,7 +1325,7 @@ export const PLACES: Place[] = [
   },
   {
     slug: "como-regional-park-pool", name: "Como Regional Park Pool", kind: "pool",
-    lat: 44.9850, lng: -93.1520, address: "1151 Wynne Ave, Saint Paul, MN 55108",
+    lat: 44.97556, lng: -93.16063, address: "1151 Wynne Ave, Saint Paul, MN 55108",
     city: "St. Paul", neighborhood: "como", season: POOL_SUMMER, cost: "paid",
     tags: ["outdoor", "zero-depth-entry", "waterslide"],
     intro: "St. Paul's outdoor pool at Como Regional Park, an easy pairing with the zoo and conservatory next door. Open mid-June to late August.",
@@ -1419,7 +1425,7 @@ export const PLACES: Place[] = [
   },
   {
     slug: "highland-park-aquatic-center", name: "Highland Park Aquatic Center", kind: "pool",
-    lat: 44.9180, lng: -93.1880, address: "1840 Edgcumbe Rd, Saint Paul, MN 55116",
+    lat: 44.91114, lng: -93.15589, address: "1840 Edgcumbe Rd, Saint Paul, MN 55116",
     city: "St. Paul", neighborhood: "highland-park", season: POOL_SUMMER, cost: "paid",
     tags: ["outdoor", "zero-depth-entry", "waterslide"],
     intro: "St. Paul's outdoor aquatic center on Edgcumbe, with a zero-depth entry and a waterslide, open early June through Labor Day.",
@@ -1691,7 +1697,7 @@ export const PLACES: Place[] = [
   },
   {
     slug: "madisons-place-playground", name: "Madison's Place Playground", kind: "playground",
-    lat: 44.9080, lng: -92.9560, address: "4125 Radio Dr, Woodbury, MN 55129",
+    lat: 44.88828, lng: -92.94152, address: "4125 Radio Dr, Woodbury, MN 55129",
     city: "Woodbury", neighborhood: null, season: YEAR_ROUND, cost: "free",
     tags: ["accessible", "fenced", "shade"],
     intro: "Woodbury's fully inclusive playground on the M Health Fairview Sports Center campus — shaded decks, sensory play, and wheelchair ramps, built for kids of every ability.",
@@ -1710,7 +1716,7 @@ export const PLACES: Place[] = [
   },
   {
     slug: "maple-grove-central-park-playground", name: "Central Park Playground (Maple Grove)", kind: "playground",
-    lat: 45.0700, lng: -93.4430, address: "12000 Central Park Way, Maple Grove, MN 55369",
+    lat: 45.101, lng: -93.43347, address: "12000 Central Park Way, Maple Grove, MN 55369",
     city: "Maple Grove", neighborhood: null, season: YEAR_ROUND, cost: "free",
     tags: ["accessible"],
     intro: "The big destination playground at Maple Grove's Central Park, steps from the interactive fountain and the Arbor Lakes shops.",
@@ -1775,7 +1781,7 @@ export const PLACES: Place[] = [
   },
   {
     slug: "becker-park-playground", name: "Becker Park Playground", kind: "playground",
-    lat: 45.0565, lng: -93.3642, address: "5530 Douglas Dr N, Crystal, MN 55429",
+    lat: 45.05193, lng: -93.36014, address: "5530 Douglas Dr N, Crystal, MN 55429",
     city: "Crystal", neighborhood: null, season: YEAR_ROUND, cost: "free",
     tags: ["inclusive", "accessible"],
     intro: "Crystal's Becker Park — a fully inclusive, ramped playground rebuilt in 2020 with poured-in-place surfacing, wrapped around the splash pad and community center.",
@@ -1859,7 +1865,7 @@ export const PLACES: Place[] = [
   },
   {
     slug: "maple-grove-central-park-ice-loop", name: "Central Park Ice Skating Loop (Maple Grove)", kind: "rink",
-    lat: 45.1005, lng: -93.4540, address: "12000 Central Park Way, Maple Grove, MN 55369",
+    lat: 45.101, lng: -93.43347, address: "12000 Central Park Way, Maple Grove, MN 55369",
     city: "Maple Grove", neighborhood: null, season: WINTER, cost: "free",
     tags: ["outdoor", "refrigerated", "skate-rental"],
     intro: "One of the metro's few refrigerated outdoor rinks — a skating loop through Maple Grove's Central Park, free with your own skates and rentals on site.",
@@ -1950,7 +1956,7 @@ export const PLACES: Place[] = [
   },
   {
     slug: "highland-park-sledding-hill", name: "Highland Park Sledding Hill", kind: "sledding",
-    lat: 44.9180, lng: -93.1880, address: "1200 Montreal Ave, Saint Paul, MN 55116",
+    lat: 44.91236, lng: -93.15029, address: "1200 Montreal Ave, Saint Paul, MN 55116",
     city: "St. Paul", neighborhood: null, season: WINTER, cost: "free",
     tags: ["steep", "parking-nearby"],
     intro: "St. Paul's fan-favorite hill at Highland Park — the city rates it 'steep,' so it's a fast one; free and open all winter.",
@@ -2025,7 +2031,7 @@ export const PLACES: Place[] = [
   },
   {
     slug: "french-regional-sledding-hill", name: "French Regional Park Sledding Hill", kind: "sledding",
-    lat: 45.0044, lng: -93.4544, address: "12605 Rockford Rd, Plymouth, MN 55441",
+    lat: 45.02284, lng: -93.43458, address: "12605 Rockford Rd, Plymouth, MN 55441",
     city: "Plymouth", neighborhood: null, season: WINTER, cost: "free",
     tags: ["lit", "groomed"],
     intro: "Lighted and groomed, next to the visitor centre — so it stays good after dark. Non-rail sleds only. Nearly six miles of lit ski trail run from the same car park.",
@@ -3045,7 +3051,7 @@ export const PLACES: Place[] = [
   },
   {
     slug: "champlin-farmers-market", name: "Champlin Farmers Market", kind: "farmers-market",
-    lat: 45.1717, lng: -93.3838, address: "7200 117th Ave N, Champlin, MN 55316",
+    lat: 45.16638, lng: -93.37278, address: "7200 117th Ave N, Champlin, MN 55316",
     city: "Champlin", neighborhood: null, season: MARKET_SEASON, cost: "free",
     tags: ["tuesday"],
     intro: "A Tuesday-afternoon market at Champlin's Andrews Park, its new permanent home.",
@@ -3288,7 +3294,7 @@ export const PLACES: Place[] = [
   },
   {
     slug: "chanhassen-farmers-market", name: "Chanhassen Farmers Market", kind: "farmers-market",
-    lat: 44.8622, lng: -93.5308, address: "7700 Market Blvd, Chanhassen, MN 55317",
+    lat: 44.86331, lng: -93.53803, address: "7700 Market Blvd, Chanhassen, MN 55317",
     city: "Chanhassen", neighborhood: null, season: MARKET_SEASON, cost: "free",
     tags: ["saturday"],
     intro: "A Saturday market at Chanhassen's City Center Park, off Kerber Boulevard.",
@@ -4250,7 +4256,7 @@ export const PLACES: Place[] = [
   },
   {
     slug: "shakopee-lions-disc-golf", name: "Lions Park Disc Golf Course", kind: "disc-golf",
-    lat: 44.7910, lng: -93.5330, address: "1103 Adams St S, Shakopee, MN 55379",
+    lat: 44.78596, lng: -93.54089, address: "1103 Adams St S, Shakopee, MN 55379",
     city: "Shakopee", neighborhood: null, season: YEAR_ROUND, cost: "free",
     tags: ["18-hole"],
     intro: "A free full-length 18 at Lions Park in Shakopee, off Adams Street on the south side — no fee, walk right on.",
@@ -4442,7 +4448,7 @@ export const PLACES: Place[] = [
   },
   {
     slug: "wood-lake-nature-center", name: "Wood Lake Nature Center", kind: "nature-center",
-    lat: 44.8680, lng: -93.2830, address: "6710 Lake Shore Dr S, Richfield, MN 55423",
+    lat: 44.88262, lng: -93.29085, address: "6710 Lake Shore Dr S, Richfield, MN 55423",
     city: "Richfield", neighborhood: null, season: YEAR_ROUND, cost: "free",
     tags: ["trails", "boardwalk", "wetland"],
     intro: "Richfield's 150-acre marsh preserve, with a floating boardwalk out over the water and an interpretive building. Free.",
@@ -4517,7 +4523,7 @@ export const PLACES: Place[] = [
   },
   {
     slug: "lyndale-park-gardens", name: "Lyndale Park Gardens", kind: "garden",
-    lat: 44.9230, lng: -93.2880, address: "4124 Roseway Rd, Minneapolis, MN 55409",
+    lat: 44.92793, lng: -93.29623, address: "4124 Roseway Rd, Minneapolis, MN 55409",
     city: "Minneapolis", neighborhood: null, season: YEAR_ROUND, cost: "free",
     tags: ["rose-garden", "peace-garden"],
     intro: "The gardens above Lake Harriet — the nation's second-oldest public rose garden, plus a peace garden and perennial beds. Free, year-round.",
@@ -4535,7 +4541,7 @@ export const PLACES: Place[] = [
   },
   {
     slug: "normandale-japanese-garden", name: "Normandale Japanese Garden", kind: "garden",
-    lat: 44.8380, lng: -93.3280, address: "9700 France Ave S, Bloomington, MN 55431",
+    lat: 44.83003, lng: -93.33124, address: "9700 France Ave S, Bloomington, MN 55431",
     city: "Bloomington", neighborhood: null, season: MARKET_SEASON, cost: "free",
     tags: ["japanese-garden", "koi"],
     intro: "A two-acre Japanese garden on the Normandale college campus in Bloomington — koi ponds, bridges, and clipped pines. Free; open spring through fall.",
@@ -4574,7 +4580,7 @@ export const PLACES: Place[] = [
   },
   {
     slug: "buck-hill", name: "Buck Hill", kind: "ski-hill",
-    lat: 44.7350, lng: -93.2880, address: "15400 Buck Hill Rd, Burnsville, MN 55306",
+    lat: 44.72521, lng: -93.28345, address: "15400 Buck Hill Rd, Burnsville, MN 55306",
     city: "Burnsville", neighborhood: null, season: SKI_SEASON, cost: "paid",
     tags: ["downhill", "terrain-park"],
     intro: "Burnsville's storied training hill — where Lindsey Vonn learned to race — with runs, rails, and a race program. A lift ticket to ski or ride.",
@@ -4618,7 +4624,7 @@ export const PLACES: Place[] = [
   },
   {
     slug: "green-acres-recreation", name: "Green Acres Recreation", kind: "ski-hill",
-    lat: 44.9860, lng: -92.8890, address: "8989 55th St N, Lake Elmo, MN 55042",
+    lat: 45.02893, lng: -92.92372, address: "8989 55th St N, Lake Elmo, MN 55042",
     city: "Lake Elmo", neighborhood: null, season: SKI_SEASON, cost: "paid",
     tags: ["tubing", "reservations"],
     intro: "A snow-tubing hill in Lake Elmo — one open hill, no lanes, with a tow rope to haul you back up. Around $22 a person; you must be 42 inches to ride solo, and weekends fill, so reserve. December into March, snow permitting.",
@@ -4688,7 +4694,7 @@ export const PLACES: Place[] = [
   },
   {
     slug: "bell-museum", name: "Bell Museum", kind: "museum",
-    lat: 44.9910, lng: -93.1810, address: "2088 Larpenteur Ave W, Falcon Heights, MN 55113",
+    lat: 44.99141, lng: -93.18875, address: "2088 Larpenteur Ave W, Falcon Heights, MN 55113",
     city: "Falcon Heights", neighborhood: null, season: YEAR_ROUND, cost: "paid",
     tags: ["natural-history", "planetarium"],
     intro: "The U's natural history museum on the St. Paul campus — the famous wildlife dioramas, a Touch and See lab, and a digital planetarium. Paid; free on Sundays.",
@@ -4801,7 +4807,7 @@ export const PLACES: Place[] = [
   },
   {
     slug: "pine-tree-apple-orchard", name: "Pine Tree Apple Orchard", kind: "orchard",
-    lat: 45.1020, lng: -92.9760, address: "450 Apple Orchard Rd, White Bear Lake, MN 55110",
+    lat: 45.10695, lng: -92.95527, address: "450 Apple Orchard Rd, White Bear Lake, MN 55110",
     city: "White Bear Lake", neighborhood: null, season: FALL_SEASON, cost: "free",
     tags: ["apples", "pumpkins", "bakery"],
     intro: "A White Bear Lake classic — pick-your-own apples and pumpkins, a corn maze, wagon rides, and a bakery famous for its pies. Free to enter; pay by the bag.",
@@ -4848,7 +4854,7 @@ export const PLACES: Place[] = [
     // admission to go out to the trees, though the store and bakery stay free.
     // The slug is deliberately unchanged so existing links keep working.
     slug: "sponsels-minnesota-harvest", name: "Ferguson's Minnesota Harvest", kind: "orchard",
-    lat: 44.6820, lng: -93.5700, address: "8251 Old Highway 169 Blvd, Jordan, MN 55352",
+    lat: 44.64294, lng: -93.6917, address: "8251 Old Highway 169 Blvd, Jordan, MN 55352",
     city: "Jordan", neighborhood: null, season: FALL_SEASON, cost: "paid",
     tags: ["apples", "pumpkins"],
     intro: "The old Minnesota Harvest in the Jordan river valley, under new owners. A wagon runs out to the blufftop trees; there's a corn maze, a corn pit, an apple cannon and a cider bar. Admission covers the orchard — the store and bakery are free to walk into.",
@@ -4936,7 +4942,7 @@ export const PLACES: Place[] = [
   },
   {
     slug: "phalen-regional-park", name: "Phalen Regional Park", kind: "park",
-    lat: 44.9780, lng: -93.0560, address: "1600 Phalen Dr, St. Paul, MN 55106",
+    lat: 44.99056, lng: -93.06123, address: "1600 Phalen Dr, St. Paul, MN 55106",
     city: "St. Paul", neighborhood: null, season: YEAR_ROUND, cost: "free",
     tags: ["lake", "beach", "trails"],
     intro: "St. Paul's East Side lake park — a swimming beach, a golf course, a paved loop, and a Chinese garden on the island. Free.",
@@ -4968,7 +4974,7 @@ export const PLACES: Place[] = [
   // "every playground" tail is the OSM bulk map layer.
   {
     slug: "shakopee-fun-for-all-playground", name: "Fun For All Playground", kind: "playground",
-    lat: 44.7920, lng: -93.5330, address: "1103 Adams St S, Shakopee, MN 55379",
+    lat: 44.78596, lng: -93.54089, address: "1103 Adams St S, Shakopee, MN 55379",
     city: "Shakopee", neighborhood: null, season: YEAR_ROUND, cost: "free",
     tags: ["inclusive", "accessible"],
     intro: "Shakopee's fully inclusive playground at Lions Park — ramped, sensory-rich structures built so kids of every ability play together. Free.",
@@ -5014,7 +5020,7 @@ export const PLACES: Place[] = [
   },
   {
     slug: "schwan-super-rink", name: "Schwan Super Rink", kind: "rink",
-    lat: 45.1550, lng: -93.2330, address: "1700 105th Ave NE, Blaine, MN 55449",
+    lat: 45.16266, lng: -93.22553, address: "1700 105th Ave NE, Blaine, MN 55449",
     city: "Blaine", neighborhood: null, season: YEAR_ROUND, cost: "paid",
     tags: ["indoor", "open-skate"],
     intro: "Eight sheets of ice at the National Sports Center in Blaine — the world's largest ice complex, with public open-skate hours. Admission per skater, year-round.",
@@ -5052,7 +5058,7 @@ export const PLACES: Place[] = [
   },
   {
     slug: "van-cleve-park-rink", name: "Van Cleve Park", kind: "rink",
-    lat: 44.9877, lng: -93.2244, address: "901 15th Ave SE, Minneapolis, MN 55414",
+    lat: 44.98544, lng: -93.23047, address: "901 15th Ave SE, Minneapolis, MN 55414",
     city: "Minneapolis", neighborhood: null, season: WINTER, cost: "free",
     tags: ["outdoor", "warming-house", "hockey", "broomball"],
     intro: "Hockey, open skate, and broomball at the Southeast rec center near Como, all with a warming room. Free, park-board-flooded from December into February.",
@@ -5151,7 +5157,7 @@ export const PLACES: Place[] = [
   },
   {
     slug: "north-dale-rec-rink", name: "North Dale Recreation Center", kind: "rink",
-    lat: 44.9770, lng: -93.1290, address: "1414 St. Albans St N, St. Paul, MN 55117",
+    lat: 44.98413, lng: -93.12848, address: "1414 St. Albans St N, St. Paul, MN 55117",
     city: "St. Paul", neighborhood: null, season: WINTER, cost: "free",
     tags: ["outdoor", "warming-house", "hockey", "refrigerated"],
     intro: "A refrigerated hockey sheet that outlasts the thaws, a second rink, and open skate in the North End, with a warming room. Free and city-flooded.",
@@ -5162,7 +5168,7 @@ export const PLACES: Place[] = [
   },
   {
     slug: "edgcumbe-rec-rink", name: "Edgcumbe Recreation Center", kind: "rink",
-    lat: 44.9260, lng: -93.1660, address: "320 Griggs St S, St. Paul, MN 55105",
+    lat: 44.93212, lng: -93.15161, address: "320 Griggs St S, St. Paul, MN 55105",
     city: "St. Paul", neighborhood: null, season: WINTER, cost: "free",
     tags: ["outdoor", "warming-house", "hockey", "open-skate"],
     intro: "Hockey and open skate near Highland, with a warming room. Free St. Paul neighborhood ice through the winter.",
@@ -5209,7 +5215,7 @@ export const PLACES: Place[] = [
   // sheets into one row. A place is one location; those need splitting first.
   {
     slug: "brooklyn-park-cac-ice-arenas", name: "Brooklyn Park Community Activity Center Ice Arenas", kind: "rink",
-    lat: 45.0978, lng: -93.3748, address: "5600 85th Ave N, Brooklyn Park, MN 55443",
+    lat: 45.1099, lng: -93.35219, address: "5600 85th Ave N, Brooklyn Park, MN 55443",
     city: "Brooklyn Park", neighborhood: null, season: YEAR_ROUND, cost: "paid",
     tags: ["indoor", "hockey", "open-skate"],
     intro: "Two sheets at the Community Activity Center — 1,200 seats in Arena 1, 310 in Arena 2 — running about 6,700 hours of ice a year between them.",
@@ -5236,7 +5242,7 @@ export const PLACES: Place[] = [
   },
   {
     slug: "apple-valley-sports-arena", name: "Apple Valley Sports Arena", kind: "rink",
-    lat: 44.7319, lng: -93.2175, address: "14452 Hayes Rd, Apple Valley, MN 55124",
+    lat: 44.74208, lng: -93.23294, address: "14452 Hayes Rd, Apple Valley, MN 55124",
     city: "Apple Valley", neighborhood: null, season: OFF_SEASON, cost: "paid",
     tags: ["indoor", "hockey"],
     intro: "Ice from mid-October to mid-March; the rest of the year the floor comes up dry for everything else. Open 9 a.m. to 10 p.m.",
@@ -5245,7 +5251,7 @@ export const PLACES: Place[] = [
   },
   {
     slug: "wings-arena-apple-valley", name: "Wings Arena", kind: "rink",
-    lat: 44.7313, lng: -93.2171, address: "14595 Hayes Rd, Apple Valley, MN 55124",
+    lat: 44.73804, lng: -93.23441, address: "14595 Hayes Rd, Apple Valley, MN 55124",
     city: "Apple Valley", neighborhood: null, season: YEAR_ROUND, cost: "paid",
     tags: ["indoor", "hockey"],
     intro: "The city's second sheet, a few hundred yards up Hayes Road from the Sports Arena. Long known as Hayes Park Arena — Apple Valley is renaming it Wings Arena. Open 8 a.m. to 8 p.m.",
@@ -5254,7 +5260,7 @@ export const PLACES: Place[] = [
   },
   {
     slug: "shakopee-ice-arena", name: "Shakopee Ice Arena", kind: "rink",
-    lat: 44.7762, lng: -93.5261, address: "1225 Fuller St S, Shakopee, MN 55379",
+    lat: 44.78541, lng: -93.52734, address: "1225 Fuller St S, Shakopee, MN 55379",
     city: "Shakopee", neighborhood: null, season: YEAR_ROUND, cost: "paid",
     tags: ["indoor", "hockey", "open-skate"],
     intro: "Two sheets, built in 2016. Open skate is included with a Community Center membership or a day pass; skate rental is $6 for residents, $9 otherwise.",
@@ -5272,7 +5278,7 @@ export const PLACES: Place[] = [
   },
   {
     slug: "brookside-park-rink", name: "Brookside Park", kind: "rink",
-    lat: 44.8560, lng: -93.3130, address: "10000 Xerxes Ave S, Bloomington, MN 55431",
+    lat: 44.82352, lng: -93.31921, address: "10000 Xerxes Ave S, Bloomington, MN 55431",
     city: "Bloomington", neighborhood: null, season: WINTER, cost: "free",
     tags: ["outdoor", "warming-house", "hockey", "lit"],
     intro: "A lighted hockey-and-general-skate rink with a warming house, one of nine free neighborhood rinks Bloomington floods each winter.",
@@ -5285,7 +5291,7 @@ export const PLACES: Place[] = [
   // ── NATURE CENTERS — exhaustive pass (Places G1.2, Aug 2026) ────────────────
   {
     slug: "belwin-conservancy", name: "Belwin Conservancy", kind: "nature-center",
-    lat: 44.8700, lng: -92.7900, address: "1553 Stagecoach Trail S, Afton, MN 55001",
+    lat: 44.92745, lng: -92.80011, address: "1553 Stagecoach Trail S, Afton, MN 55001",
     city: "Afton", neighborhood: null, season: YEAR_ROUND, cost: "free",
     tags: ["trails", "prairie", "bison"],
     intro: "1,600 acres of prairie, savanna, and St. Croix Valley woods in Afton, with seven miles of public trails, a restored bison herd, and guided hikes. Free, open daily.",
@@ -5295,7 +5301,7 @@ export const PLACES: Place[] = [
   },
   {
     slug: "wargo-nature-center", name: "Wargo Nature Center", kind: "nature-center",
-    lat: 45.1600, lng: -93.0900, address: "7701 Main St, Lino Lakes, MN 55038",
+    lat: 45.18373, lng: -93.07159, address: "7701 Main St, Lino Lakes, MN 55038",
     city: "Lino Lakes", neighborhood: null, season: YEAR_ROUND, cost: "free",
     tags: ["trails", "wetland", "exhibits"],
     intro: "Anoka County's nature center in the Rice Creek Chain of Lakes reserve at Lino Lakes — a lakeside interpretive building, boardwalks, and trails through marsh and woods. Free.",
@@ -5307,7 +5313,7 @@ export const PLACES: Place[] = [
   // ── GARDENS — exhaustive pass (Places G1.2, Aug 2026) ──────────────────────
   {
     slug: "china-friendship-garden", name: "St. Paul-Changsha China Friendship Garden", kind: "garden",
-    lat: 44.9780, lng: -93.0560, address: "1624 Phalen Dr, St. Paul, MN 55106",
+    lat: 44.99073, lng: -93.06199, address: "1624 Phalen Dr, St. Paul, MN 55106",
     city: "St. Paul", neighborhood: null, season: YEAR_ROUND, cost: "free",
     tags: ["chinese-garden", "pavilion"],
     intro: "A St. Paul–Changsha friendship garden on Lake Phalen — a three-story pavilion modeled on Changsha's Aiwan Pavilion, a moon bridge, and a Hmong cultural plaza. Free.",
@@ -5328,7 +5334,7 @@ export const PLACES: Place[] = [
   // ── MUSEUMS — exhaustive pass (Places G1.2, Aug 2026) ──────────────────────
   {
     slug: "twin-city-model-railroad-museum", name: "Twin City Model Railroad Museum", kind: "museum",
-    lat: 44.9660, lng: -93.1960, address: "668 Transfer Rd, St. Paul, MN 55114",
+    lat: 44.96151, lng: -93.18561, address: "668 Transfer Rd, St. Paul, MN 55114",
     city: "St. Paul", neighborhood: null, season: YEAR_ROUND, cost: "paid",
     tags: ["trains", "kids"],
     intro: "A giant O-scale model railroad in St. Paul's Bandana Square — trains running through a miniature 1930s–50s Twin Cities, plus a toddler play area. Paid.",
@@ -5348,7 +5354,7 @@ export const PLACES: Place[] = [
   },
   {
     slug: "pavek-museum", name: "Pavek Museum", kind: "museum",
-    lat: 44.9480, lng: -93.3530, address: "3517 Raleigh Ave, St. Louis Park, MN 55416",
+    lat: 44.93932, lng: -93.34395, address: "3517 Raleigh Ave, St. Louis Park, MN 55416",
     city: "St. Louis Park", neighborhood: null, season: YEAR_ROUND, cost: "paid",
     tags: ["broadcasting", "science"],
     intro: "A St. Louis Park museum of radio and TV history — a working broadcast studio, vintage sets, and hands-on electronics. Paid.",
@@ -5429,7 +5435,7 @@ export const PLACES: Place[] = [
   },
   {
     slug: "pinehaven-farm", name: "Pinehaven Farm", kind: "orchard",
-    lat: 45.3400, lng: -92.9500, address: "28186 Kettle River Blvd, Wyoming, MN 55092",
+    lat: 45.35567, lng: -92.99901, address: "28186 Kettle River Blvd, Wyoming, MN 55092",
     city: "Wyoming", neighborhood: null, season: FALL_SEASON, cost: "paid",
     tags: ["pumpkins", "corn-maze", "activities"],
     intro: "A Wyoming fall-fun farm north of the metro — a corn maze, pumpkin patch, jumping pillows, and a barnyard. Admission for the activity farm.",
@@ -5439,7 +5445,7 @@ export const PLACES: Place[] = [
   },
   {
     slug: "waldoch-farm", name: "Waldoch Farm", kind: "orchard",
-    lat: 45.1600, lng: -93.0800, address: "8174 Lake Dr, Lino Lakes, MN 55014",
+    lat: 45.20233, lng: -93.09656, address: "8174 Lake Dr, Lino Lakes, MN 55014",
     city: "Lino Lakes", neighborhood: null, season: FALL_SEASON, cost: "paid",
     tags: ["pumpkins", "corn-maze"],
     intro: "A Lino Lakes garden center that throws a full fall festival each September and October — a corn maze, pumpkin patch, and hayrides. Admission for the fall activities.",
@@ -5486,7 +5492,7 @@ export const PLACES: Place[] = [
   },
   {
     slug: "the-blast-eagan", name: "The Blast (Eagan Community Center)", kind: "indoor-playground",
-    lat: 44.8230, lng: -93.1570, address: "1501 Central Parkway, Eagan, MN 55121",
+    lat: 44.83864, lng: -93.17111, address: "1501 Central Parkway, Eagan, MN 55121",
     city: "Eagan", neighborhood: null, season: YEAR_ROUND, cost: "paid",
     tags: ["community-center", "toddler-zone", "climbing-structure"],
     intro: "A space-themed, climb-up rocket ship at the Eagan Community Center for ages two to twelve. $8 a child, with adults and the under-eighteen-months free; a ten-punch pass runs $70. Seasonal hours.",
@@ -5536,7 +5542,7 @@ export const PLACES: Place[] = [
   },
   {
     slug: "kube-plymouth", name: "K.U.B.E. (Plymouth Community Center)", kind: "indoor-playground",
-    lat: 45.0170, lng: -93.4780, address: "14800 34th Ave N, Plymouth, MN 55447",
+    lat: 45.0207, lng: -93.4684, address: "14800 34th Ave N, Plymouth, MN 55447",
     city: "Plymouth", neighborhood: null, season: YEAR_ROUND, cost: "paid",
     tags: ["community-center", "toddler-zone", "accessible"],
     intro: "A 28-foot tower with a spiral slide, rock wall, and accessible ramps inside Plymouth's community center, built in 2024, for ages two to twelve. $8 a child, $6 for Plymouth residents.",
@@ -5546,7 +5552,7 @@ export const PLACES: Place[] = [
   },
   {
     slug: "inneractive-mounds-view", name: "InnerActive Playground — Mounds View", kind: "indoor-playground",
-    lat: 45.0980, lng: -93.2080, address: "2240 Woodale Dr, Mounds View, MN 55112",
+    lat: 45.09744, lng: -93.19647, address: "2240 Woodale Dr, Mounds View, MN 55112",
     city: "Mounds View", neighborhood: null, season: YEAR_ROUND, cost: "paid",
     tags: ["self-supervised", "toddler-zone", "infant-zone"],
     intro: "A self-supervised play space in Mounds View open 364 days a year, with separate infant, toddler, and general zones. A day pass is $13.25 a child, and up to two adults come free.",
@@ -5556,7 +5562,7 @@ export const PLACES: Place[] = [
   },
   {
     slug: "inneractive-plymouth", name: "InnerActive Playground — Plymouth", kind: "indoor-playground",
-    lat: 45.0100, lng: -93.4750, address: "14600 28th Ave N, Plymouth, MN 55447",
+    lat: 45.01055, lng: -93.46536, address: "14600 28th Ave N, Plymouth, MN 55447",
     city: "Plymouth", neighborhood: null, season: YEAR_ROUND, cost: "paid",
     tags: ["self-supervised", "toddler-zone", "infant-zone"],
     intro: "The Plymouth sister to the Mounds View play space, same self-supervised setup and separate infant and toddler zones. A day pass runs $13.25 a child, up to two adults free.",
@@ -5576,7 +5582,7 @@ export const PLACES: Place[] = [
   },
   {
     slug: "rebes-play-cafe", name: "Rebe's Play Cafe", kind: "indoor-playground",
-    lat: 44.9340, lng: -93.1740, address: "2054 St Clair Ave, St. Paul, MN 55105",
+    lat: 44.93425, lng: -93.18711, address: "2054 St Clair Ave, St. Paul, MN 55105",
     city: "St. Paul", neighborhood: null, season: YEAR_ROUND, cost: "free",
     tags: ["cafe", "toddler-zone", "free-play"],
     intro: "A St. Paul play café on St. Clair with no entry fee — a play kitchen, a magnatile wall, climbing 'picklers,' and a slide, plus coffee and snacks for the parents. Also runs classes and camps.",
@@ -5592,7 +5598,7 @@ export const PLACES: Place[] = [
   // Plymouth → Urban Air; Rockin' Jump Eagan → Sky Zone) were caught and excluded.
   {
     slug: "sky-zone-edina", name: "Sky Zone Edina", kind: "trampoline-climbing",
-    lat: 44.8590, lng: -93.3540, address: "7625 Cahill Rd, Edina, MN 55439",
+    lat: 44.86569, lng: -93.36329, address: "7625 Cahill Rd, Edina, MN 55439",
     city: "Edina", neighborhood: null, season: YEAR_ROUND, cost: "paid",
     tags: ["trampoline", "ninja-course", "grip-socks"],
     intro: "The Edina Sky Zone — freestyle courts, a foam zone, Ultimate Dodgeball, plus a climbing wall and a ninja course. Grip socks required; Little Leapers hours for the toddlers. Jump time by the hour.",
@@ -5622,7 +5628,7 @@ export const PLACES: Place[] = [
   },
   {
     slug: "sky-zone-st-paul", name: "Sky Zone St. Paul", kind: "trampoline-climbing",
-    lat: 44.9660, lng: -92.9650, address: "595 Hale Ave N, Oakdale, MN 55128",
+    lat: 44.95667, lng: -92.96124, address: "595 Hale Ave N, Oakdale, MN 55128",
     city: "Oakdale", neighborhood: null, season: YEAR_ROUND, cost: "paid",
     tags: ["trampoline", "dodgeball", "grip-socks"],
     intro: "Sky Zone's east-metro park, in Oakdale — trampolines, dodgeball, and a foam pit. Grip socks required; jump time by the hour.",
@@ -5642,7 +5648,7 @@ export const PLACES: Place[] = [
   },
   {
     slug: "urban-air-plymouth", name: "Urban Air Plymouth", kind: "trampoline-climbing",
-    lat: 45.0100, lng: -93.4890, address: "3580 Holly Lane N, Plymouth, MN 55447",
+    lat: 45.02141, lng: -93.49542, address: "3580 Holly Lane N, Plymouth, MN 55447",
     city: "Plymouth", neighborhood: null, season: YEAR_ROUND, cost: "paid",
     tags: ["trampoline", "ropes-course", "climbing"],
     intro: "The Plymouth Urban Air, in the former Sky Zone space — trampolines, a ropes course, ninja obstacles, and climbing walls. Open daily.",
@@ -5652,7 +5658,7 @@ export const PLACES: Place[] = [
   },
   {
     slug: "urban-air-coon-rapids", name: "Urban Air Coon Rapids", kind: "trampoline-climbing",
-    lat: 45.1700, lng: -93.3090, address: "10 Coon Rapids Blvd NW, Coon Rapids, MN 55448",
+    lat: 45.13463, lng: -93.2688, address: "10 Coon Rapids Blvd NW, Coon Rapids, MN 55448",
     city: "Coon Rapids", neighborhood: null, season: YEAR_ROUND, cost: "paid",
     tags: ["trampoline", "ropes-course", "go-karts"],
     intro: "Coon Rapids' Urban Air — trampolines, go-karts, a ropes course, ninja obstacles, and climbing. Tiered wristbands, open daily.",
@@ -5662,7 +5668,7 @@ export const PLACES: Place[] = [
   },
   {
     slug: "zero-gravity-mounds-view", name: "Zero Gravity Adventure Park", kind: "trampoline-climbing",
-    lat: 45.0930, lng: -93.2080, address: "2292 Woodale Dr, Mounds View, MN 55112",
+    lat: 45.09712, lng: -93.19789, address: "2292 Woodale Dr, Mounds View, MN 55112",
     city: "Mounds View", neighborhood: null, season: YEAR_ROUND, cost: "paid",
     tags: ["trampoline", "dodgeball", "ninja-course"],
     intro: "A Mounds View adventure park built around 11,000 square feet of trampolines, with two dodgeball courts, a foam pit, and an aerial ninja course. Laser tag and an arcade too.",
@@ -5722,7 +5728,7 @@ export const PLACES: Place[] = [
   },
   {
     slug: "vertical-endeavors-bouldering-st-paul", name: "Vertical Endeavors — Twin Cities Bouldering", kind: "trampoline-climbing",
-    lat: 44.9660, lng: -93.1960, address: "2550 Wabash Ave, St. Paul, MN 55114",
+    lat: 44.96074, lng: -93.20517, address: "2550 Wabash Ave, St. Paul, MN 55114",
     city: "St. Paul", neighborhood: null, season: YEAR_ROUND, cost: "paid",
     tags: ["bouldering"],
     intro: "Vertical Endeavors' bouldering-only gym in St. Anthony Park — no ropes, just problems, for a drop-in or a membership.",
@@ -5732,7 +5738,7 @@ export const PLACES: Place[] = [
   },
   {
     slug: "vertical-endeavors-bloomington", name: "Vertical Endeavors — Bloomington", kind: "trampoline-climbing",
-    lat: 44.8450, lng: -93.3010, address: "9601 James Ave S, Bloomington, MN 55431",
+    lat: 44.82957, lng: -93.30092, address: "9601 James Ave S, Bloomington, MN 55431",
     city: "Bloomington", neighborhood: null, season: YEAR_ROUND, cost: "paid",
     tags: ["climbing", "bouldering", "ropes"],
     intro: "Vertical Endeavors' south-metro gym in Bloomington — ropes and bouldering under one roof, beginner auto-belays to lead walls. Day passes and rentals.",
@@ -5742,7 +5748,7 @@ export const PLACES: Place[] = [
   },
   {
     slug: "bouldering-project-minneapolis", name: "Bouldering Project — Minneapolis", kind: "trampoline-climbing",
-    lat: 45.0050, lng: -93.2900, address: "1433 W River Rd N, Minneapolis, MN 55411",
+    lat: 44.99365, lng: -93.27674, address: "1433 W River Rd N, Minneapolis, MN 55411",
     city: "Minneapolis", neighborhood: null, season: YEAR_ROUND, cost: "paid",
     tags: ["bouldering", "yoga"],
     intro: "The North Minneapolis Bouldering Project, on the river — ropes-free climbing plus a yoga studio and a fitness floor. Day passes or a membership.",
@@ -5752,7 +5758,7 @@ export const PLACES: Place[] = [
   },
   {
     slug: "bouldering-project-st-paul", name: "Bouldering Project — St. Paul", kind: "trampoline-climbing",
-    lat: 44.9290, lng: -93.0840, address: "42 W Water St, St. Paul, MN 55107",
+    lat: 44.9388, lng: -93.09128, address: "42 W Water St, St. Paul, MN 55107",
     city: "St. Paul", neighborhood: null, season: YEAR_ROUND, cost: "paid",
     tags: ["bouldering", "yoga"],
     intro: "The St. Paul Bouldering Project near downtown, opened in 2025 — 11,000-plus square feet of steep bouldering, training boards, and yoga, with on-site parking.",
@@ -5831,7 +5837,7 @@ export const PLACES: Place[] = [
   // Museums
   {
     slug: "the-works-museum", name: "The Works Museum", kind: "museum",
-    lat: 44.8568, lng: -93.3118, address: "9740 Grand Ave S, Bloomington, MN 55420",
+    lat: 44.82714, lng: -93.2858, address: "9740 Grand Ave S, Bloomington, MN 55420",
     city: "Bloomington", neighborhood: null, season: YEAR_ROUND, cost: "paid",
     tags: ["kids", "hands-on"],
     intro: "An engineering museum for 5-to-12s where everything is meant to be handled — build it, test it, knock it down. $14, under-2s free, ten minutes from the Mall of America.",
@@ -5869,7 +5875,7 @@ export const PLACES: Place[] = [
   // Indoor playgrounds
   {
     slug: "kids-empire-bloomington", name: "Kids Empire Bloomington", kind: "indoor-playground",
-    lat: 44.8395, lng: -93.3437, address: "10590 France Ave S, Bloomington, MN 55431",
+    lat: 44.81168, lng: -93.33104, address: "10590 France Ave S, Bloomington, MN 55431",
     city: "Bloomington", neighborhood: null, season: YEAR_ROUND, cost: "paid",
     tags: ["ages-1-12"],
     intro: "Climbing, slides and soft play for ages 1 to 12. $19.90 a child gets two adults in free; open to 10pm Friday through Sunday, which is later than most.",

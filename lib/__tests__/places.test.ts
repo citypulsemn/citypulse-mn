@@ -113,6 +113,70 @@ describe("places registry — drift guards (the honesty anchors)", () => {
     }
   });
 
+  it("coordinates are precise enough to have been read rather than guessed", () => {
+    // The 6 Sep 2026 audit found 71 pins in the wrong place, and they shared a
+    // tell: the number was round. 44.87, 45.16, 44.682 — three decimals is
+    // ~110m of precision, which is not a coordinate anyone copied off a map,
+    // it is a research agent estimating from a city name. Four decimals is
+    // ~11m. This does not prove a coordinate is right, but it does refuse the
+    // shape that was reliably wrong.
+    //
+    // Read the SOURCE TEXT, not the parsed value: `lat: 44.9520` is a real
+    // four-decimal coordinate, but the number it parses to stringifies as
+    // "44.952" and would look estimated. What matters is how many decimals the
+    // author wrote, and only the file still knows that.
+    const src = readFileSync(new URL("../places.ts", import.meta.url), "utf8");
+    const written = new Map<string, number>();
+    for (const m of src.matchAll(
+      /slug: "([^"]+)"[\s\S]{0,400}?\n\s*lat: (-?\d+\.?(\d*)), lng: (-?\d+\.?(\d*)),/g,
+    )) {
+      written.set(m[1], Math.max(m[3].length, m[5].length));
+    }
+    const KNOWN_ROUND = new Set([
+      // Single-provider disagreement, uncorroborated: Census has no match for
+      // 7485 Rolling Acres Rd and OSM has no AppleHouse feature, so there is
+      // nothing to correct it TO. Left as found, deliberately, rather than
+      // moved on one geocoder's word. See docs/deploy-history/
+      // DEPLOY-PLACES-COORD-AUDIT.md.
+      "arboretum-applehouse",
+    ]);
+    // If the regex ever stops finding rows, the guard has silently stopped
+    // guarding — that is worse than a failure, so assert the reach first.
+    expect(written.size, "the source scan found no coordinates — fix the guard").toBe(PLACES.length);
+
+    for (const p of PLACES) {
+      if (KNOWN_ROUND.has(p.slug)) continue;
+      expect(
+        written.get(p.slug),
+        `${p.slug} (${p.lat},${p.lng}) looks estimated, not read — check it against the address`,
+      ).toBeGreaterThanOrEqual(4);
+    }
+  });
+
+  it("no two places at different addresses share a coordinate", () => {
+    // Phalen Regional Park and the China Friendship Garden both carried
+    // 44.978,-93.056 despite being at different addresses — one had been copied
+    // from the other. A shared pin across distinct addresses means at least one
+    // of them was never looked up.
+    // Compare the numbers, not the prose: two amenities in one park share an
+    // address that gets typed two ways ("Theodore Wirth Pkwy" / "…Pkwy N"),
+    // and they are entitled to share a pin. A different house number or zip is
+    // a different building.
+    const numbersIn = (a: string) => (a.match(/\d+/g) ?? []).join("-");
+    const seen = new Map<string, { slug: string; address: string }>();
+    for (const p of PLACES) {
+      const key = `${p.lat},${p.lng}`;
+      const prior = seen.get(key);
+      if (prior && numbersIn(prior.address) !== numbersIn(p.address)) {
+        throw new Error(
+          `${p.slug} and ${prior.slug} share ${key} but sit at different addresses ` +
+            `(“${p.address}” vs “${prior.address}”) — one of them was copied, not looked up`,
+        );
+      }
+      if (!prior) seen.set(key, { slug: p.slug, address: p.address });
+    }
+  });
+
   it("cost is a valid tier", () => {
     for (const p of PLACES) expect(["free", "paid", "donation"]).toContain(p.cost);
   });

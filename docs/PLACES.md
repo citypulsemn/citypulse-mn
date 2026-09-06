@@ -144,6 +144,14 @@ and one emailed link carries both lists.
   slug, resolvable neighborhood key + venueSlug, https sourceUrl, real date,
   house-voice intro length, banned-word check, coordinates inside the metro
   bounding box, valid cost. Never invent a fact — trace every field to the source.
+- **The coordinate specifically:** read it off a map, don't estimate it. Two
+  guards enforce this — a pin written with fewer than 4 decimals is rejected as
+  a guess, and two places at different addresses may not share a pin. Both
+  exist because the 6 Sep 2026 audit found 74 pins in the wrong place, one of
+  them by 10.5km. `npx tsx scripts/places-coord-audit.ts` re-checks every row
+  against its own published address using two independent geocoders; it writes
+  nothing, and a disagreement is a question for a human, not a verdict. See
+  `docs/deploy-history/DEPLOY-PLACES-COORD-AUDIT.md`.
 - **A new kind:** add it to `PlaceKind` + `KIND_META`, seed entries, and
   (optionally) a `PLACES_KIND_INTRO`. The index and kind pages pick it up
   automatically once it has entries; add it to the winter/summer season as
