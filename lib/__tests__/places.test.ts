@@ -948,7 +948,11 @@ describe("disc-golf features (winning detail — moat)", () => {
   const courses = placesByKind("disc-golf");
 
   it("locks the source-confirmed counts", () => {
-    expect(courses.length).toBe(24);
+    // 24 → 32 on 6 Sep 2026: the coverage-box sweep added eight, each checked
+    // by hand against the operator's own page. The `details` counts below are
+    // deliberately unchanged — the new eight carry no `details` yet, because
+    // that flags block is curated per course and nothing verified it.
+    expect(courses.length).toBe(32);
     expect(courses.filter((p) => p.details?.full18Holes === true).length).toBe(12);
     expect(courses.filter((p) => p.details?.wooded === true).length).toBe(4);
     expect(courses.filter((p) => p.details?.beginnerFriendly === true).length).toBe(2);

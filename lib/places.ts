@@ -180,6 +180,46 @@ export interface KindMeta {
   blurb: string; // one line for the index card (house voice)
 }
 
+/**
+ * THE COVERAGE BOX (Sep 2026).
+ *
+ * "Be exhaustive" is not checkable until the area is written down. Taren's
+ * guideline, verbatim: Delano/Rockford to the west, Stillwater to the east,
+ * Blaine/Coon Rapids to the north, Apple Valley/Burnsville to the south — "don't
+ * be too restrictive on that".
+ *
+ * So these are the corner cities, padded outward rather than drawn tight around
+ * them. The pad is what makes Forest Lake, Lakeville, Monticello and Hudson land
+ * INSIDE rather than being argued about one at a time.
+ *
+ * This is a COVERAGE TARGET, not a filter: nothing already in the registry gets
+ * dropped for sitting outside it, and a genuinely notable spot beyond the edge
+ * is still worth listing. What the box does is turn "are we exhaustive?" into a
+ * number per kind — see `scripts/places-coverage.ts`.
+ */
+export const METRO_BOX = {
+  minLat: 44.6, // ~10km south of Apple Valley / Burnsville (44.73)
+  maxLat: 45.3, // ~15km north of Blaine / Coon Rapids (45.16)
+  minLng: -93.95, // ~12km west of Delano / Rockford (-93.79)
+  maxLng: -92.65, // ~12km east of Stillwater (-92.81)
+  /** The corner cities Taren named, kept here so the intent survives the numbers. */
+  anchors: {
+    west: ["Delano", "Rockford"],
+    east: ["Stillwater"],
+    north: ["Blaine", "Coon Rapids"],
+    south: ["Apple Valley", "Burnsville"],
+  },
+} as const;
+
+export function inMetroBox(p: { lat: number; lng: number }): boolean {
+  return (
+    p.lat >= METRO_BOX.minLat &&
+    p.lat <= METRO_BOX.maxLat &&
+    p.lng >= METRO_BOX.minLng &&
+    p.lng <= METRO_BOX.maxLng
+  );
+}
+
 export const KIND_META: Record<PlaceKind, KindMeta> = {
   beach: { kind: "beach", label: "Beach", plural: "Beaches", blurb: "Lake swimming across the metro — guarded sand beaches, mapped." },
   "splash-pad": { kind: "splash-pad", label: "Splash Pad", plural: "Splash Pads", blurb: "Free water play for hot afternoons, every one in the metro." },
@@ -4188,6 +4228,92 @@ export const PLACES: Place[] = [
     intro: "Nine free holes at Donie Galloway Riverside Park in Champlin, along the Mississippi on Dayton River Road.",
     sourceUrl: "https://www.dgcoursereview.com/course.php?id=9131",
     verifiedAt: "2026-08-14", venueSlug: null,
+  },
+
+  // ── DISC GOLF, coverage-box sweep (Sep 2026) ───────────────────────────────
+  // Found by `scripts/research-places.ts disc-golf`, which asks for what is
+  // MISSING inside METRO_BOX and requires a source page per lead, then checked
+  // by hand. Coordinates from Nominatim; two of them (Zachary, Arcola) matched
+  // OpenStreetMap independently to within 25 metres.
+  //
+  // THIRTEEN LEADS CAME BACK; EIGHT ARE HERE. Five were held rather than listed:
+  // Moir Park (Bloomington) was REJECTED outright — Bloomington's own park page
+  // lists the amenities and disc golf is not among them, so the source did not
+  // support the claim. Coon Rapids DGC and Kenwood Trails (Lakeville) cite PDGA
+  // pages that will not serve to us; Lakewood Hills (White Bear Lake) and Arcola
+  // Heights (Stillwater Township) could not be confirmed on the operator's own
+  // site. They are real leads, not entries — the next sweep can source them.
+  {
+    slug: "central-park-brooklyn-park-disc-golf", name: "Central Park Disc Golf Course", kind: "disc-golf",
+    lat: 45.1476, lng: -93.3503, address: "8440 Regent Ave N, Brooklyn Park, MN 55443",
+    city: "Brooklyn Park", neighborhood: null, season: YEAR_ROUND, cost: "free",
+    tags: ["9-hole"],
+    intro: "Nine free holes threading through Central Park. Discs and refreshments are sold at the Brookland Golf Park clubhouse next door, so you can turn up without gear.",
+    sourceUrl: "https://www.brooklynpark.org/parks/park-amenities/",
+    verifiedAt: "2026-09-06", venueSlug: null,
+  },
+  {
+    slug: "plymouth-creek-playfield-disc-golf", name: "Plymouth Creek Playfield Disc Golf Course", kind: "disc-golf",
+    lat: 45.0231, lng: -93.4654, address: "3625 Fernbrook Ln N, Plymouth, MN 55446",
+    city: "Plymouth", neighborhood: null, season: YEAR_ROUND, cost: "free",
+    tags: [],
+    intro: "One of Plymouth's two free municipal courses, wooded with concrete tees. The city closes it for mowing on some weekday mornings — check the parks page before driving out.",
+    sourceUrl: "https://www.plymouthmn.gov/departments/parks-recreation/parks-trails/disc-golf",
+    verifiedAt: "2026-09-06", venueSlug: null,
+  },
+  {
+    slug: "zachary-playfield-disc-golf", name: "Zachary Playfield Disc Golf Course", kind: "disc-golf",
+    lat: 45.03412, lng: -93.42098, address: "4355 Zachary Ln N, Plymouth, MN 55442",
+    city: "Plymouth", neighborhood: null, season: YEAR_ROUND, cost: "free",
+    tags: ["9-hole"],
+    intro: "Nine free holes with concrete tees and tee signs. The first four are tight and wooded under the water tower; the rest open out, with a pond in play on five.",
+    sourceUrl: "https://www.plymouthmn.gov/departments/parks-recreation/parks-trails/disc-golf",
+    verifiedAt: "2026-09-06", venueSlug: null,
+  },
+  {
+    slug: "tamarack-disc-golf-woodbury", name: "Tamarack Disc Golf Course", kind: "disc-golf",
+    lat: 44.9219, lng: -92.9431, address: "1825 Tower Dr, Woodbury, MN 55125",
+    city: "Woodbury", neighborhood: null, season: YEAR_ROUND, cost: "free",
+    tags: ["9-hole"],
+    intro: "Nine holes in the forested southern end of Tamarack Nature Preserve, kept clear of the natural-resources easement. Gravel tee pads, Chainstar baskets.",
+    sourceUrl: "https://www.woodburymn.gov/1365/Tamarack-Disc-Golf-Course",
+    verifiedAt: "2026-09-06", venueSlug: null,
+  },
+  {
+    slug: "wintercrest-park-disc-golf", name: "Wintercrest Park Disc Golf Course", kind: "disc-golf",
+    lat: 45.16104, lng: -93.28752, address: "10300 Woodcrest Dr, Coon Rapids, MN 55433",
+    city: "Coon Rapids", neighborhood: null, season: YEAR_ROUND, cost: "free",
+    tags: [],
+    intro: "Twenty-one holes running through Wintercrest and Woodcrest parks, dropping to eighteen for the winter. Built with the Coon Rapids Disc Golf Club.",
+    sourceUrl: "https://www.coonrapidsmn.gov/1205/Special-Use-Facilities",
+    verifiedAt: "2026-09-06", venueSlug: null,
+  },
+  {
+    slug: "acorn-park-disc-golf", name: "Acorn Park Disc Golf Course", kind: "disc-golf",
+    lat: 45.02113, lng: -93.16854, address: "286 County Road C W, Roseville, MN 55113",
+    city: "Roseville", neighborhood: null, season: YEAR_ROUND, cost: "free",
+    tags: ["18-hole"],
+    intro: "Eighteen holes redesigned in 2015, with baskets left up year-round — rolling grass on one half, wooded finesse on the other.",
+    sourceUrl: "https://www.cityofroseville.com/194/Acorn-Park",
+    verifiedAt: "2026-09-06", venueSlug: null,
+  },
+  {
+    slug: "alimagnet-park-disc-golf", name: "Alimagnet Park Disc Golf Course", kind: "disc-golf",
+    lat: 44.74301, lng: -93.25161, address: "211 Ridgeview Dr, Apple Valley, MN 55124",
+    city: "Apple Valley", neighborhood: null, season: YEAR_ROUND, cost: "free",
+    tags: [],
+    intro: "Twelve holes in eighty-five wooded acres on Alimagnet Lake. Restrooms, water and a canoe launch on site, which is more than most courses offer.",
+    sourceUrl: "https://www.applevalleymn.gov/facilities/facility/details/Alimagnet-Park-12",
+    verifiedAt: "2026-09-06", venueSlug: null,
+  },
+  {
+    slug: "bassett-creek-park-disc-golf", name: "Bassett Creek Park Disc Golf Course", kind: "disc-golf",
+    lat: 45.01275, lng: -93.35156, address: "3075 Welcome Ave N, Crystal, MN 55422",
+    city: "Crystal", neighborhood: null, season: YEAR_ROUND, cost: "free",
+    tags: ["18-hole"],
+    intro: "Eighteen holes over 5,000 feet, rebuilt in 2023 with concrete tee pads and Prodigy T2 baskets throughout. Open 6 a.m. to 10 p.m.",
+    sourceUrl: "https://parksandrec.crystalmn.gov/recreation/parks_and_trails/bessett_creek/disc_golf_course",
+    verifiedAt: "2026-09-06", venueSlug: null,
   },
 
   // ── NATURE CENTERS (Places G1.2, Aug 2026) ─────────────────────────────────

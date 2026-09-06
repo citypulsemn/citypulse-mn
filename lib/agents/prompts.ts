@@ -174,3 +174,52 @@ Be conservative between the drastic verdicts — but "confirmed" is not the safe
 Output ONLY a JSON array inside a single \`\`\`json code block:
 [{"id": "...", "verdict": "confirmed"}, {"id": "...", "verdict": "wrong_event", "evidence": "The Fillmore's calendar lists Masego that night — https://…"}]`;
 }
+
+/**
+ * PLACES RESEARCH (Sep 2026) — exhaustive enumeration of one kind in the metro.
+ *
+ * The Places registry is the evergreen half of the site and its honesty contract
+ * is stricter than the events pipeline's: every entry carries a `sourceUrl` that
+ * a reader could open, and a `verifiedAt` date. So this prompt asks for the one
+ * thing that makes an entry usable — an authoritative page naming the place —
+ * and tells the agent to drop anything it cannot source.
+ *
+ * The `known` list is what we already have. It is passed in so the agent spends
+ * its search budget on what is MISSING rather than re-describing the registry.
+ */
+export function buildPlacesResearchPrompt(
+  kindLabel: string,
+  cities: string[],
+  known: string[],
+  box: { minLat: number; maxLat: number; minLng: number; maxLng: number },
+): string {
+  return `You are building an EXHAUSTIVE directory of ${kindLabel} for City Pulse MN, a Twin Cities guide.
+
+AREA — everything inside roughly latitude ${box.minLat}..${box.maxLat}, longitude ${box.minLng}..${box.maxLng}. That runs from Delano and Rockford in the west to Stillwater in the east, Blaine and Coon Rapids in the north, Apple Valley and Burnsville in the south. Suburbs count as much as the two downtowns — most of what is missing is suburban.
+
+${cities.length > 0 ? `Pay particular attention to these cities, which currently have none on file:\n${cities.join(", ")}\n` : ""}
+ALREADY ON FILE — do not return these again:
+${known.length > 0 ? known.map((k) => `- ${k}`).join("\n") : "(nothing yet)"}
+
+Work from AUTHORITATIVE directories: city and county parks & recreation pages, the park district that runs the site, the operator's own website, the state or governing association's directory. Those are the pages that also serve as the source link.
+
+For EACH place you find that is NOT already on file, return:
+- "name": what the operator calls it
+- "city": the municipality
+- "address": street address if the source gives one, else ""
+- "lat" and "lng": decimal degrees. Only include them if you are confident; otherwise omit both and we will geocode.
+- "source_url": THE PAGE THAT NAMES IT, on the operator's own site wherever possible. REQUIRED.
+- "cost": "free", "paid" or "donation"
+- "season": "year-round", or "seasonal" plus "open_month" and "close_month" (1-12) and a short "season_label" like "May–September"
+- "note": one or two concrete sentences a local would find useful — what makes this one different. Specific over promotional: the number of holes, the length of the hill, whether the warming house is staffed. Never "hidden gem", "nestled", "vibrant", "a great spot for the whole family".
+
+RULES:
+- IF YOU CANNOT FIND A PAGE THAT NAMES THE PLACE, DO NOT RETURN IT. An entry without a real source is worse than a missing entry — the whole registry is built on the source link being openable.
+- Do not invent addresses or coordinates. Omitting a field is always allowed; guessing is not.
+- Do not return places outside the area, and do not return anything already on file.
+- Prefer completeness over commentary. A short honest note beats a paragraph.
+- If a place has permanently closed, leave it out.
+
+Output ONLY a JSON array inside a single \`\`\`json code block:
+[{"name":"…","city":"…","address":"…","lat":44.9,"lng":-93.2,"source_url":"https://…","cost":"free","season":"year-round","note":"…"}]`;
+}
