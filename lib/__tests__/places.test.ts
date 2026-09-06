@@ -932,7 +932,10 @@ describe("museum features (winning detail — moat)", () => {
     // Coverage-box sweep, 6 Sep 2026 — the new rows carry no `details` yet
     // (that flags block is curated per place and nothing verified it), so every
     // detail count below is deliberately unchanged.
-    expect(museums.length).toBe(24);
+    // 24 → 31: the county and city historical societies (Carver, Scott, Anoka,
+    // three Washington County sites, Golden Valley). Detail counts unchanged —
+    // none of them carries a curated details block.
+    expect(museums.length).toBe(31);
     expect(museums.filter((p) => p.details?.handsOn === true).length).toBe(12);
     expect(museums.filter((p) => p.details?.cafe === true).length).toBe(5);
     expect(museums.filter((p) => p.details?.planetarium === true).length).toBe(2);

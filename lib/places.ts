@@ -5881,6 +5881,89 @@ export const PLACES: Place[] = [
     sourceUrl: "https://kidsempire.com/park/roseville",
     verifiedAt: "2026-09-06", venueSlug: null,
   },
+
+  // ── COUNTY & CITY HISTORICAL SOCIETIES (6 Sep 2026) ────────────────────────
+  // The museum list ran 24 across 9 cities and was still weighted to the two
+  // downtowns. County historical societies are the fix: every county runs one,
+  // they are in the county seat rather than the core, and they keep real
+  // websites. Hennepin and Ramsey were already covered (Hennepin History Museum,
+  // Gibbs Farm), so this fills Carver, Scott, Anoka and Washington.
+  //
+  // Dakota County is missing and it is not for want of trying — dakotahistory.org
+  // returned 503 on two attempts an hour apart. It is the one county-level gap
+  // left, and it is a retry, not a research problem.
+  //
+  // Washington County turned out to run THREE public sites, not one. The Warden's
+  // House was already a lead but sourced to a chamber-of-commerce directory
+  // listing; going to the society's own site both fixed the source and turned up
+  // the other two.
+  {
+    slug: "carver-county-historical-society", name: "Carver County Historical Society Museum", kind: "museum",
+    lat: 44.84907, lng: -93.79488, address: "555 W 1st St, Waconia, MN 55387",
+    city: "Waconia", neighborhood: null, season: YEAR_ROUND, cost: "donation",
+    tags: ["historic", "county"],
+    intro: "The county's own museum and archive in Waconia, open weekdays 9 to 4.30 and Saturday mornings — the place to go for anything west-metro before the suburbs arrived.",
+    sourceUrl: "https://www.carvercountyhistoricalsociety.org/",
+    verifiedAt: "2026-09-06", venueSlug: null,
+  },
+  {
+    slug: "scott-county-historical-society", name: "Scott County Historical Society", kind: "museum",
+    lat: 44.79672, lng: -93.5275, address: "235 Fuller St S, Shakopee, MN 55379",
+    city: "Shakopee", neighborhood: null, season: YEAR_ROUND, cost: "free",
+    tags: ["historic", "county"],
+    intro: "Free to walk into, Tuesday to Saturday, in the Stans house on Fuller Street. Donations welcome but not asked for at the door.",
+    sourceUrl: "https://www.scottcountyhistory.org/",
+    verifiedAt: "2026-09-06", venueSlug: null,
+  },
+  {
+    slug: "anoka-county-historical-society", name: "Anoka County Historical Society", kind: "museum",
+    lat: 45.19977, lng: -93.38759, address: "2135 Third Ave N, Anoka, MN 55303",
+    city: "Anoka", neighborhood: null, season: YEAR_ROUND, cost: "donation",
+    tags: ["historic", "county"],
+    intro: "An exhibit hall and county archive in downtown Anoka. Hours shift with the season — through the autumn ghost-tour run it opens Thursday to Saturday afternoons and into the evening.",
+    sourceUrl: "https://anokacountyhistory.org/",
+    verifiedAt: "2026-09-06", venueSlug: null,
+  },
+  {
+    slug: "washington-county-heritage-center", name: "Washington County Heritage Center", kind: "museum",
+    lat: 45.03904, lng: -92.82152, address: "1862 Greeley St S, Stillwater, MN 55082",
+    city: "Stillwater", neighborhood: null, season: YEAR_ROUND, cost: "donation",
+    tags: ["historic", "county"],
+    intro: "The county society's year-round home on Greeley Street, Tuesday to Saturday 10 to 4 — the one of its three sites that stays open through the winter.",
+    sourceUrl: "https://www.wchsmn.org/",
+    verifiedAt: "2026-09-06", venueSlug: null,
+  },
+  {
+    slug: "wardens-house-museum", name: "Warden's House Museum", kind: "museum",
+    lat: 45.0727, lng: -92.80743, address: "602 Main St N, Stillwater, MN 55082",
+    city: "Stillwater", neighborhood: null,
+    season: { type: "seasonal", openMonth: 5, closeMonth: 10, label: "May–October" },
+    cost: "donation",
+    tags: ["historic", "guided-tour"],
+    intro: "The old state-prison warden's house on Main Street, shown by guided tour only — Thursday to Sunday, on the hour from one o'clock to four.",
+    sourceUrl: "https://www.wchsmn.org/",
+    verifiedAt: "2026-09-06", venueSlug: null,
+  },
+  {
+    slug: "hay-lake-school-erickson-log-home", name: "Hay Lake School & Erickson Log Home", kind: "museum",
+    lat: 45.23169, lng: -92.82033, address: "14020 195th St N, Marine on St. Croix, MN 55047",
+    city: "Marine on St. Croix", neighborhood: null,
+    season: { type: "seasonal", openMonth: 5, closeMonth: 10, label: "May–October" },
+    cost: "donation",
+    tags: ["historic", "one-room-school"],
+    intro: "An 1896 brick schoolhouse and a Swedish immigrant log home on the same plot, out past Scandia. Friday to Sunday afternoons in season.",
+    sourceUrl: "https://www.wchsmn.org/",
+    verifiedAt: "2026-09-06", venueSlug: null,
+  },
+  {
+    slug: "golden-valley-history-museum", name: "Golden Valley History Museum", kind: "museum",
+    lat: 44.98955, lng: -93.36553, address: "6731 Golden Valley Rd, Golden Valley, MN 55427",
+    city: "Golden Valley", neighborhood: null, season: YEAR_ROUND, cost: "donation",
+    tags: ["historic", "kids"],
+    intro: "Saturdays 11 to 3, and small enough to see properly in one. The standing exhibit runs through the Ewald Bros. dairy, the old high school and the garden club — and there is a firefighter's kit children can put on.",
+    sourceUrl: "https://goldenvalleyhistoricalsociety.org/museum",
+    verifiedAt: "2026-09-06", venueSlug: null,
+  },
 ];
 
 // ── Selectors (pure) ────────────────────────────────────────────────────────
