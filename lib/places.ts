@@ -5760,6 +5760,127 @@ export const PLACES: Place[] = [
     details: { rockClimbing: true },
     verifiedAt: "2026-08-17", venueSlug: null,
   },
+
+  // ── INSTITUTION KINDS, coverage-box sweep (6 Sep 2026) ─────────────────────
+  // Nature centres, gardens, museums and indoor playgrounds — the kinds that
+  // survive a source check, because institutions keep websites. 52 leads came
+  // back and these eleven are the ones whose own page could be opened and read.
+  //
+  // Grouped here rather than filed under each kind's section on purpose: they
+  // came from one sweep on one day, and keeping the provenance together is
+  // worth more than alphabetical tidiness. `kind` is what the app sorts on.
+  //
+  // Two duplicates the sweep would have created, caught by reading the registry:
+  // Gibbs Farm came back as a GARDEN and is already listed as a museum, and
+  // Edinborough Park came back as a garden while Adventure Peak inside it is
+  // already an indoor playground.
+
+  // Nature centres
+  {
+    slug: "gateway-center-mississippi-gateway", name: "Gateway Center at Mississippi Gateway Regional Park", kind: "nature-center",
+    lat: 45.141, lng: -93.3142, address: "10360 West River Rd, Brooklyn Park, MN 55444",
+    city: "Brooklyn Park", neighborhood: null, season: YEAR_ROUND, cost: "free",
+    tags: ["exhibits", "river"],
+    intro: "New building on the Mississippi with a wrap-around deck onto the Treetop Trail, river exhibits, and free backpack kits to borrow — trees, birds, insects — before you walk out.",
+    sourceUrl: "https://www.threeriversparks.org/GatewayCenter",
+    verifiedAt: "2026-09-06", venueSlug: null,
+  },
+  {
+    slug: "silverwood-visitor-center", name: "Silverwood Visitor Center", kind: "nature-center",
+    lat: 45.0297, lng: -93.2098, address: "2500 County Road E, St. Anthony, MN 55421",
+    city: "St. Anthony", neighborhood: null, season: YEAR_ROUND, cost: "free",
+    tags: ["art", "cafe"],
+    intro: "A nature centre that is also an art gallery, on the bank of Silver Lake. Rotating shows, a café doing local snacks, and canoes and kayaks to rent from Memorial Day to Labor Day. Daily 9 to 5.",
+    sourceUrl: "https://www.threeriversparks.org/location/silverwood-visitor-center",
+    verifiedAt: "2026-09-06", venueSlug: null,
+  },
+  {
+    slug: "harriet-alexander-nature-center", name: "Harriet Alexander Nature Center", kind: "nature-center",
+    lat: 45.0072, lng: -93.1475, address: "2660 Civic Center Dr, Roseville, MN 55113",
+    city: "Roseville", neighborhood: null, season: YEAR_ROUND, cost: "free",
+    tags: ["boardwalk", "exhibits"],
+    intro: "Fifty-two acres of marsh and forest with boardwalk through both, free to walk. The interpretive building is open Tuesday to Saturday 10–4 and Sunday afternoons — painted turtles on the logs, migrating songbirds in spring.",
+    sourceUrl: "https://www.cityofroseville.com/183/Harriet-Alexander-Nature-Center",
+    verifiedAt: "2026-09-06", venueSlug: null,
+  },
+  {
+    slug: "blaine-wetland-sanctuary", name: "Blaine Wetland Sanctuary", kind: "nature-center",
+    lat: 45.1609, lng: -93.2355, address: "11980 Lexington Ave NE, Blaine, MN 55449",
+    city: "Blaine", neighborhood: null, season: YEAR_ROUND, cost: "free",
+    tags: ["boardwalk"],
+    intro: "Over five hundred acres of wetland and upland with a boardwalk running from the Lexington Avenue car park through to East Lake Park. Free, and quiet on a weekday.",
+    sourceUrl: "https://www.blainemn.gov/4039/Blaine-Wetland-Sanctuary",
+    verifiedAt: "2026-09-06", venueSlug: null,
+  },
+
+  // Gardens
+  {
+    slug: "arneson-acres-park", name: "Arneson Acres Park", kind: "garden",
+    lat: 44.8731, lng: -93.3736, address: "4711 W 70th St, Edina, MN 55424",
+    city: "Edina", neighborhood: null, season: WARM_SEASON, cost: "free",
+    tags: ["formal", "perennial"],
+    intro: "Twenty-eight separate gardens on one small Edina block — formal beds, a daylily garden, a hosta glade, a woodland walk — plus a greenhouse, a gazebo, and the Edina Historical Society in the same grounds.",
+    sourceUrl: "https://www.edinamn.gov/986/Arneson-Acres",
+    verifiedAt: "2026-09-06", venueSlug: null,
+  },
+
+  // Museums
+  {
+    slug: "the-works-museum", name: "The Works Museum", kind: "museum",
+    lat: 44.8568, lng: -93.3118, address: "9740 Grand Ave S, Bloomington, MN 55420",
+    city: "Bloomington", neighborhood: null, season: YEAR_ROUND, cost: "paid",
+    tags: ["kids", "hands-on"],
+    intro: "An engineering museum for 5-to-12s where everything is meant to be handled — build it, test it, knock it down. $14, under-2s free, ten minutes from the Mall of America.",
+    sourceUrl: "https://theworks.org/hours-location",
+    verifiedAt: "2026-09-06", venueSlug: null,
+  },
+  {
+    slug: "oliver-kelley-farm", name: "Oliver Kelley Farm", kind: "museum",
+    lat: 45.2575, lng: -93.5383, address: "15788 Kelley Farm Rd, Elk River, MN 55330",
+    city: "Elk River", neighborhood: null, season: YEAR_ROUND, cost: "paid",
+    tags: ["historic", "kids", "outdoor"],
+    intro: "A working 1860s farm on the Mississippi run by the Historical Society — animals, gardens, staff doing the actual work in period, and nature trails through restored prairie. $12 adults, $8 for 5–17.",
+    sourceUrl: "https://www.mnhs.org/kelleyfarm",
+    verifiedAt: "2026-09-06", venueSlug: null,
+  },
+  {
+    slug: "wings-of-the-north-air-museum", name: "Wings of the North Air Museum", kind: "museum",
+    lat: 44.821, lng: -93.4573, address: "14893 Sierra Ln #72D, Eden Prairie, MN 55347",
+    city: "Eden Prairie", neighborhood: null, season: YEAR_ROUND, cost: "paid",
+    tags: ["historic", "aviation"],
+    intro: "Aircraft in a hangar at Flying Cloud, in through Gate H. A full-size Spirit of St. Louis film prop sits at the centre of it. Weekends 11 to 3, $12 adults and $5 for kids, one child free per adult.",
+    sourceUrl: "https://wotn.org/museum/",
+    verifiedAt: "2026-09-06", venueSlug: null,
+  },
+  {
+    slug: "bruentrup-heritage-farm", name: "Bruentrup Heritage Farm", kind: "museum",
+    lat: 45.0328, lng: -93.03788, address: "2170 County Road D E, Maplewood, MN 55109",
+    city: "Maplewood", neighborhood: null, season: YEAR_ROUND, cost: "donation",
+    tags: ["historic"],
+    intro: "An 1891 farm the Maplewood Area Historical Society keeps working — craft fairs each spring and autumn, candlemaking classes, and a German St Nikolaustag in December. Tours are by appointment, so ring first.",
+    sourceUrl: "https://maplewoodmuseum.org/",
+    verifiedAt: "2026-09-06", venueSlug: null,
+  },
+
+  // Indoor playgrounds
+  {
+    slug: "kids-empire-bloomington", name: "Kids Empire Bloomington", kind: "indoor-playground",
+    lat: 44.8395, lng: -93.3437, address: "10590 France Ave S, Bloomington, MN 55431",
+    city: "Bloomington", neighborhood: null, season: YEAR_ROUND, cost: "paid",
+    tags: ["ages-1-12"],
+    intro: "Climbing, slides and soft play for ages 1 to 12. $19.90 a child gets two adults in free; open to 10pm Friday through Sunday, which is later than most.",
+    sourceUrl: "https://kidsempire.com/park/bloomington",
+    verifiedAt: "2026-09-06", venueSlug: null,
+  },
+  {
+    slug: "kids-empire-roseville", name: "Kids Empire Roseville", kind: "indoor-playground",
+    lat: 45.02029, lng: -93.14588, address: "1621 County Road C, Roseville, MN 55113",
+    city: "Roseville", neighborhood: null, season: YEAR_ROUND, cost: "paid",
+    tags: ["ages-1-12"],
+    intro: "The north-metro Kids Empire, same shape as Bloomington's: $19.90 a child with two adults included, open daily and late at weekends.",
+    sourceUrl: "https://kidsempire.com/park/roseville",
+    verifiedAt: "2026-09-06", venueSlug: null,
+  },
 ];
 
 // ── Selectors (pure) ────────────────────────────────────────────────────────

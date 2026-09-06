@@ -820,7 +820,10 @@ describe("nature-center features (winning detail — moat, kind 8)", () => {
   const centers = placesByKind("nature-center");
 
   it("locks the source-confirmed counts (live animals came back universal)", () => {
-    expect(centers.length).toBe(12);
+    // Coverage-box sweep, 6 Sep 2026 — the new rows carry no `details` yet
+    // (that flags block is curated per place and nothing verified it), so every
+    // detail count below is deliberately unchanged.
+    expect(centers.length).toBe(16);
     expect(centers.filter((p) => p.details?.liveAnimals === true).length).toBe(12);
     expect(centers.filter((p) => p.details?.indoorExhibits === true).length).toBe(10);
     expect(centers.filter((p) => p.details?.naturePlayArea === true).length).toBe(8);
@@ -852,7 +855,10 @@ describe("indoor-playground features (winning detail — moat)", () => {
   const venues = placesByKind("indoor-playground");
 
   it("locks the source-confirmed counts", () => {
-    expect(venues.length).toBe(13);
+    // Coverage-box sweep, 6 Sep 2026 — the new rows carry no `details` yet
+    // (that flags block is curated per place and nothing verified it), so every
+    // detail count below is deliberately unchanged.
+    expect(venues.length).toBe(15);
     expect(venues.filter((p) => p.details?.toddlerArea === true).length).toBe(8);
     expect(venues.filter((p) => p.details?.cafe === true).length).toBe(3);
     expect(venues.filter((p) => p.details?.socksRequired === true).length).toBe(10);
@@ -923,7 +929,10 @@ describe("museum features (winning detail — moat)", () => {
   const museums = placesByKind("museum");
 
   it("locks the source-confirmed counts", () => {
-    expect(museums.length).toBe(20);
+    // Coverage-box sweep, 6 Sep 2026 — the new rows carry no `details` yet
+    // (that flags block is curated per place and nothing verified it), so every
+    // detail count below is deliberately unchanged.
+    expect(museums.length).toBe(24);
     expect(museums.filter((p) => p.details?.handsOn === true).length).toBe(12);
     expect(museums.filter((p) => p.details?.cafe === true).length).toBe(5);
     expect(museums.filter((p) => p.details?.planetarium === true).length).toBe(2);
@@ -991,7 +1000,10 @@ describe("garden features (winning detail — moat's thin tail)", () => {
   const gardens = placesByKind("garden");
 
   it("locks the source-confirmed counts", () => {
-    expect(gardens.length).toBe(9);
+    // Coverage-box sweep, 6 Sep 2026 — the new rows carry no `details` yet
+    // (that flags block is curated per place and nothing verified it), so every
+    // detail count below is deliberately unchanged.
+    expect(gardens.length).toBe(10);
     expect(gardens.filter((p) => p.details?.conservatory === true).length).toBe(2);
     expect(gardens.filter((p) => p.details?.culturalGarden === true).length).toBe(4);
   });
