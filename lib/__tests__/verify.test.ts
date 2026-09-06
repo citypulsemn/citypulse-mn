@@ -9,7 +9,7 @@ import {
   RUN_BUDGET_MS,
   VERDICTS,
 } from "../verify";
-import { buildVerifyPrompt } from "../agents/prompts";
+import { buildVerifyPrompt, buildResearchPrompt, buildVenueSweepPrompt } from "../agents/prompts";
 import type { EventRecord } from "../types";
 
 const NOW = new Date("2026-07-15T09:00:00-05:00");
@@ -310,5 +310,41 @@ describe("the verify prompt asks the question that catches a fabrication", () =>
   it("offers wrong_event and asks it to name what the venue has", () => {
     expect(prompt).toContain('"wrong_event"');
     expect(prompt).toMatch(/naming what the venue actually has/i);
+  });
+});
+
+/**
+ * THE YEAR-SHIFT (6 Sep 2026).
+ *
+ * The research agent read `exploreminnesota.com/events/best-fall-concerts-…` —
+ * an EVERGREEN URL carrying the 2025 fall season — and wrote every show with the
+ * current year. All 15 listings from that one article were real shows at real
+ * venues on the right day of the month, in the wrong year. Seven were still live
+ * a year later, including The Black Keys at The Armory "tonight".
+ */
+describe("the research prompts guard against a stale year", () => {
+  it("the category prompt tells the agent to check the year on every page", () => {
+    const p = buildResearchPrompt("music", "2026-09-06", "2026-09-13");
+    expect(p).toMatch(/CHECK THE YEAR ON EVERY PAGE YOU READ/);
+    expect(p).toMatch(/evergreen URLs/i);
+    expect(p).toMatch(/DO NOT include the event/);
+  });
+
+  it("the category prompt says a roundup is not a schedule", () => {
+    const p = buildResearchPrompt("music", "2026-09-06", "2026-09-13");
+    expect(p).toMatch(/A ROUNDUP ARTICLE IS NOT A SCHEDULE/);
+    // An article is only usable when it pins all three.
+    expect(p).toMatch(/the full date including the year/);
+  });
+
+  it("the venue sweep carries the same guard", () => {
+    const p = buildVenueSweepPrompt(
+      "music",
+      [{ name: "Turf Club", city: "St. Paul" }],
+      "2026-09-06",
+      "2026-09-13",
+    );
+    expect(p).toMatch(/CHECK THE YEAR/);
+    expect(p).toMatch(/archive of a past season/i);
   });
 });

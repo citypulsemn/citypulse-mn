@@ -54,6 +54,17 @@ For each event, gather:
 
 Rules:
 - Only include events you can verify from a real source. Always include source_url.
+- CHECK THE YEAR ON EVERY PAGE YOU READ. Roundup articles live at evergreen URLs
+  ("best-fall-concerts", "halloween-events") and get re-used season after season,
+  so a page that looks current can be describing LAST year. If a page does not
+  state the year of the event, or states a year other than the one you were
+  asked about, DO NOT include the event. This is the most damaging mistake made
+  here: an entire fall concert season was copied from a previous year's article
+  and published with this year's dates — real shows, real venues, wrong year,
+  every one of them false.
+- A ROUNDUP ARTICLE IS NOT A SCHEDULE. Prefer the venue's own calendar. If all
+  you have is an article, the event is only usable when the article names the
+  event, the venue AND the full date including the year.
 - IF YOU CANNOT NAME WHAT IS HAPPENING, OMIT THE EVENT. Never build a title out of
   the venue and the date. "Show (Aug 26)", "Turf Club Show (Sep 3)" and
   "Fitzgerald Theater Concert Event" are not events — they tell a reader nothing,
@@ -108,6 +119,11 @@ For each event, gather:
 
 Rules:
 - Only include events you can verify on a real source. Always include source_url.
+- CHECK THE YEAR. A venue calendar page can be an archive of a past season, and
+  roundup articles live at evergreen URLs that get re-used year after year. If
+  the page does not state the event's year, or states a different one, skip it.
+  A whole fall season was once copied from a previous year's article and
+  published with current dates — right acts, right rooms, wrong year.
 - Prioritize completeness per venue over commentary. Do not invent shows.
 - IF A CALENDAR SHOWS A DATE IS BUSY BUT DOES NOT NAME THE ACT, SKIP THAT DATE.
   Do not manufacture a title from the venue and the date — "Turf Club Show
