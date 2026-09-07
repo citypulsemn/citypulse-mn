@@ -10,6 +10,7 @@ import {
   type ReportCheckInput,
   type ReportCheckResult,
 } from "../report-check";
+import { logUsage } from "../api-usage";
 
 /**
  * A category research subagent. Runs Claude (Sonnet) with the web_search tool
@@ -24,6 +25,12 @@ const anthropic = new Anthropic({
   timeout: 600_000, // 10 minutes
   maxRetries: 3,
 });
+
+/**
+ * The model every agent call uses. One constant, not four literals: the Sep 2026
+ * cost audit had to grep eight files to answer "what are we running on".
+ */
+const MODEL = "claude-sonnet-4-6";
 
 /** Raw event as returned by the agent, before geocoding/normalization. */
 export interface AgentEvent {
@@ -53,7 +60,7 @@ export async function researchCategory(
   // call can have its connection cut mid-response ("Premature close"). Streaming
   // reads the response incrementally and is Anthropic's recommended pattern here.
   const stream = anthropic.messages.stream({
-    model: "claude-sonnet-4-6",
+    model: MODEL,
     max_tokens: 8000,
     // Web search is a server tool; the SDK's tool union is version-specific,
     // so we type the array loosely.
@@ -66,6 +73,7 @@ export async function researchCategory(
   });
 
   const res = await stream.finalMessage();
+  logUsage(`research:${category}`, MODEL, res.usage);
 
   const text = res.content
     .filter((b): b is Anthropic.TextBlock => b.type === "text")
@@ -127,7 +135,7 @@ export async function researchVenueShard(
   if (venues.length === 0) return [];
 
   const stream = anthropic.messages.stream({
-    model: "claude-sonnet-4-6",
+    model: MODEL,
     max_tokens: 8000,
     tools: [
       { type: "web_search_20250305", name: "web_search", max_uses: maxSearchUses },
@@ -141,6 +149,7 @@ export async function researchVenueShard(
   });
 
   const res = await stream.finalMessage();
+  logUsage(`venue-sweep:${category}`, MODEL, res.usage);
   const text = res.content
     .filter((b): b is Anthropic.TextBlock => b.type === "text")
     .map((b) => b.text)
@@ -160,7 +169,7 @@ export async function verifyEventsBatch(
   if (events.length === 0) return [];
 
   const stream = anthropic.messages.stream({
-    model: "claude-sonnet-4-6",
+    model: MODEL,
     max_tokens: 4000,
     tools: [
       { type: "web_search_20250305", name: "web_search", max_uses: maxSearchUses },
@@ -169,6 +178,7 @@ export async function verifyEventsBatch(
   });
 
   const res = await stream.finalMessage();
+  logUsage(`verify:${events.length}ev`, MODEL, res.usage);
   const text = res.content
     .filter((b): b is Anthropic.TextBlock => b.type === "text")
     .map((b) => b.text)
@@ -189,7 +199,7 @@ export async function checkReportedListings(
   if (items.length === 0) return [];
 
   const stream = anthropic.messages.stream({
-    model: "claude-sonnet-4-6",
+    model: MODEL,
     max_tokens: 4000,
     tools: [
       { type: "web_search_20250305", name: "web_search", max_uses: maxSearchUses },
@@ -198,6 +208,7 @@ export async function checkReportedListings(
   });
 
   const res = await stream.finalMessage();
+  logUsage(`report-check:${items.length}`, MODEL, res.usage);
   const text = res.content
     .filter((b): b is Anthropic.TextBlock => b.type === "text")
     .map((b) => b.text)
