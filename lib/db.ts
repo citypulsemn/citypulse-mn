@@ -16,7 +16,12 @@ declare global {
 
 export const sql = url
   ? (globalThis.__citypulseSql ??= postgres(url, {
-      max: 5,
+      // One connection per instance, not five. A serverless invocation serves
+      // one request at a time and nothing in this codebase runs two queries
+      // concurrently, so a pool of 5 bought nothing and multiplied our
+      // footprint against Supabase's pooler by 5x. That multiplier is what
+      // turned a burst of /api/saved requests into EMAXCONN on 9 Sep 2026.
+      max: 1,
       idle_timeout: 20,
       prepare: false, // required for pooled (pgbouncer) connections
     }))

@@ -22,6 +22,34 @@ describe("SaveButton — compact variant + live broadcast", () => {
     expect(src).toContain("const confirmed = await toggleSaveAction");
     expect(src).toContain("new CustomEvent(SAVE_EVENT");
   });
+
+  it("NEVER fetches /api/saved itself — it reads the shared store", () => {
+    // 9 Sep 2026 incident: one fetch per button meant a 30-card listing page
+    // fired 30 concurrent force-dynamic lambdas, each taking a Postgres
+    // connection, and 17% of /api/saved returned 500s (EMAXCONN). A fetch
+    // reappearing in this component is that outage coming back.
+    expect(src).not.toContain('fetch("/api/saved")');
+    expect(src).toContain("useSaved()");
+    expect(src).toContain("applySave(eventId, confirmed)");
+  });
+});
+
+describe("useSaved — one fetch per page, not one per button", () => {
+  const src = read("components/useSaved.ts");
+  it("loads once and shares the result", () => {
+    expect(src).toContain('fetch("/api/saved")');
+    expect(src).toContain("if (loading || typeof window === \"undefined\") return;");
+    expect(src).toContain("if (snapshot === null) load();");
+  });
+  it("applies a toggle in place rather than re-fetching", () => {
+    expect(src).toContain("export function applySave");
+    // The mutator must not trigger another round trip.
+    const mutator = src.slice(src.indexOf("export function applySave"));
+    expect(mutator.slice(0, mutator.indexOf("}"))).not.toContain("fetch(");
+  });
+  it("renders nothing visitor-specific on the server", () => {
+    expect(src).toContain("const getServerSnapshot = () => null");
+  });
 });
 
 describe("EventDayCard — save while browsing", () => {
@@ -41,8 +69,12 @@ describe("EventDayCard — save while browsing", () => {
 
 describe("SavedLink — the live, honest-empty count", () => {
   const src = read("components/SavedLink.tsx");
-  it("re-reads on every save broadcast so the count stays live", () => {
-    expect(src).toContain("SAVE_EVENT, load");
+  it("stays live off the shared store, without a fetch of its own", () => {
+    // Was: its own fetch("/api/saved") plus a re-fetch on every SAVE_EVENT.
+    // That was a second copy of the same request on every page and one more
+    // per toggle. applySave() keeps the store current, so reading it is live.
+    expect(src).toContain("useSaved()?.size");
+    expect(src).not.toContain('fetch("/api/saved")');
   });
   it("renders NOTHING at zero (no dangling badge)", () => {
     expect(src).toContain("if (!count) return null");

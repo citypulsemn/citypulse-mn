@@ -3,6 +3,7 @@
 import { useEffect, useState, useTransition } from "react";
 import { toggleSaveAction } from "@/lib/saved-actions";
 import { track } from "@/lib/track";
+import { useSaved, applySave } from "./useSaved";
 
 /** Broadcast a save/unsave so the header count (and the first-save nudge) can
  *  react anywhere on the page — UX3. Detail carries the confirmed state. */
@@ -23,22 +24,15 @@ export function SaveButton({
 
   // If the parent knows the state (e.g. the /saved page), trust it. Otherwise
   // hydrate client-side so cached pages (home, event) needn't read the cookie.
+  // Reads the SHARED store — one /api/saved fetch per page, not one per button.
+  const hydrated = useSaved();
   useEffect(() => {
     if (savedProp !== undefined) {
       setSaved(savedProp);
       return;
     }
-    let alive = true;
-    fetch("/api/saved")
-      .then((r) => r.json())
-      .then((d) => {
-        if (alive && Array.isArray(d?.ids)) setSaved(d.ids.includes(eventId));
-      })
-      .catch(() => {});
-    return () => {
-      alive = false;
-    };
-  }, [savedProp, eventId]);
+    if (hydrated) setSaved(hydrated.has(eventId));
+  }, [savedProp, hydrated, eventId]);
 
   function toggle() {
     const optimistic = !saved;
@@ -48,6 +42,7 @@ export function SaveButton({
       try {
         const confirmed = await toggleSaveAction(eventId);
         setSaved(confirmed);
+        applySave(eventId, confirmed); // update the shared set in place, no refetch
         // Broadcast AFTER the write lands so listeners re-read authoritative state.
         window.dispatchEvent(new CustomEvent(SAVE_EVENT, { detail: { id: eventId, saved: confirmed } }));
       } catch {

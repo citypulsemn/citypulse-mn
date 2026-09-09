@@ -1,34 +1,20 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { SAVE_EVENT } from "./SaveButton";
+import { useSaved } from "./useSaved";
 
 /**
- * "♥ N" header link to /saved (UX3). Hydrates from /api/saved and re-reads on
- * every save broadcast, so the count stays live as you build your list while
- * browsing. Renders NOTHING at zero — honest emptiness, no dangling badge.
+ * "♥ N" header link to /saved (UX3). Reads the shared saved-set, so the count
+ * stays live as you build your list while browsing. Renders NOTHING at zero —
+ * honest emptiness, no dangling badge.
+ *
+ * It used to fetch /api/saved itself and re-fetch on every save broadcast: a
+ * second copy of the same request on every page, plus one per toggle. The
+ * store already has the answer.
  */
 export function SavedLink() {
-  const [count, setCount] = useState<number | null>(null);
+  const count = useSaved()?.size ?? 0;
 
-  useEffect(() => {
-    let alive = true;
-    const load = () =>
-      fetch("/api/saved")
-        .then((r) => r.json())
-        .then((d) => {
-          if (alive && Array.isArray(d?.ids)) setCount(d.ids.length);
-        })
-        .catch(() => {});
-    load();
-    window.addEventListener(SAVE_EVENT, load);
-    return () => {
-      alive = false;
-      window.removeEventListener(SAVE_EVENT, load);
-    };
-  }, []);
-
-  if (!count) return null; // null (not hydrated) or 0 → show nothing
+  if (!count) return null; // not hydrated, or 0 → show nothing
 
   return (
     <a className="saved-link" href="/saved" aria-label={`${count} saved event${count === 1 ? "" : "s"}`}>
