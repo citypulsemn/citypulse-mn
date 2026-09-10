@@ -90,6 +90,46 @@ export function statusForNewEvent(sourceUrl: string): "published" | "draft" {
   return isAggregatorSource(sourceUrl) ? "draft" : "published";
 }
 
+/**
+ * Directories, social platforms and resellers. Distinct from AGGREGATOR_HOSTS:
+ * a venue's own Facebook page really can be the organiser speaking, and a
+ * Ticketmaster page really is an official sale. But none of them is a PUBLISHED
+ * SCHEDULE, so a date read off one is worth having and is not worth calling
+ * verified.
+ *
+ * Added 10 Sep 2026, after a restore pass stamped `verified_at` on three rows
+ * whose evidence was a Yelp listing, a Facebook page and a Ticketmaster artist
+ * page. The prompt asked for the organiser; nothing enforced it.
+ */
+export const NON_SCHEDULE_HOSTS: readonly string[] = [
+  "bandsintown.com",
+  "eventbrite.com",
+  "facebook.com",
+  "instagram.com",
+  "reddit.com",
+  "seatgeek.com",
+  "songkick.com",
+  "stubhub.com",
+  "tiktok.com",
+  "ticketmaster.com",
+  "tripadvisor.com",
+  "x.com",
+  "yelp.com",
+];
+
+const NON_SCHEDULE = new Set(NON_SCHEDULE_HOSTS);
+
+/** True when the URL is a directory, social page or reseller rather than a
+ *  schedule the organiser publishes. Good enough to cite; not good enough to
+ *  mark a listing verified. */
+export function isNonScheduleSource(url: string): boolean {
+  const host = hostOf(url);
+  if (!host) return false;
+  if (NON_SCHEDULE.has(host)) return true;
+  for (const h of NON_SCHEDULE) if (host.endsWith(`.${h}`)) return true;
+  return false;
+}
+
 /** Why an event was held back, for the pipeline log and the ops digest. */
 export function heldBackReason(sourceUrl: string): string | null {
   if (!isAggregatorSource(sourceUrl)) return null;

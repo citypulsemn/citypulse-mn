@@ -134,3 +134,41 @@ describe("actionForRestore — the policy", () => {
     if (a.kind === "republish") expect(a.sourceUrl).toBeTruthy();
   });
 });
+
+describe("the verified stamp needs a published schedule, not just a citation", () => {
+  const at = (sourceUrl: string): RestoreResult => ({
+    id: "a", outcome: "corrected", start: "2026-10-10T10:00", timeConfirmed: true, sourceUrl,
+  });
+  const NOW2 = new Date("2026-09-10T12:00:00Z");
+
+  it("stamps verified from an organiser's own site", () => {
+    for (const u of ["https://www.mncba.org/", "https://chanhassendt.com/annie/", "https://carpenternaturecenter.org/events/"]) {
+      const a = actionForRestore(at(u), { now: NOW2 });
+      expect(a.kind === "republish" && a.stampVerified, u).toBe(true);
+    }
+  });
+
+  it("republishes but does NOT stamp from a directory, social page or reseller", () => {
+    // These three really did get a verified stamp on 10 Sep 2026. The date is
+    // still worth taking; the claim that a human-grade source confirmed it is not.
+    for (const u of [
+      "https://www.yelp.com/biz/can-can-wonderland-saint-paul-2",
+      "https://www.facebook.com/MNvalleyNWR/",
+      "https://www.ticketmaster.com/sanguisugabogg-tickets/artist/2805462",
+    ]) {
+      const a = actionForRestore(at(u), { now: NOW2 });
+      expect(a.kind, u).toBe("republish");
+      expect(a.kind === "republish" && a.stampVerified, u).toBe(false);
+    }
+  });
+
+  it("does not stamp from an aggregator either", () => {
+    const a = actionForRestore(at("https://www.familyfuntwincities.com/x/"), { now: NOW2 });
+    expect(a.kind === "republish" && a.stampVerified).toBe(false);
+  });
+
+  it("an unconfirmed time is still unstamped even from a perfect source", () => {
+    const a = actionForRestore({ ...at("https://www.mncba.org/"), timeConfirmed: false }, { now: NOW2 });
+    expect(a.kind === "republish" && a.stampVerified).toBe(false);
+  });
+});

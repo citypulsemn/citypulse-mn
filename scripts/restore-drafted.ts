@@ -51,7 +51,7 @@ async function main() {
   const batches: RestoreItem[][] = [];
   for (let i = 0; i < items.length; i += PER_BATCH) batches.push(items.slice(i, i + PER_BATCH));
 
-  const tally = { republish: 0, archive: 0, leave: 0 };
+  const tally = { republish: 0, archive: 0, leave: 0, duplicate: 0 };
   const startedAt = Date.now();
 
   for (const [i, batch] of batches.entries()) {
@@ -84,17 +84,34 @@ async function main() {
         );
         tally.republish++;
         if (APPLY) {
-          await sql`
-            update events set status='published',
-              start_at=(${act.start}::text::timestamp at time zone 'America/Chicago'),
-              event_key=${computeEventKey(row.title, row.venue, act.start)},
-              source_url=${act.sourceUrl},
-              verified_at=${act.stampVerified ? sql`now()` : null},
-              updated_at=now()
-            where id=${act.id}::uuid`;
-          await sql`insert into admin_audit (action, event_id, patch) values ('restore:corrected-date', ${act.id}::uuid, ${sql.json(
-            { was: row.was, now: act.start, source: act.sourceUrl, timeConfirmed: act.stampVerified, note: r.note ?? null },
-          )})`;
+          try {
+            await sql`
+              update events set status='published',
+                start_at=(${act.start}::text::timestamp at time zone 'America/Chicago'),
+                event_key=${computeEventKey(row.title, row.venue, act.start)},
+                source_url=${act.sourceUrl},
+                verified_at=${act.stampVerified ? sql`now()` : null},
+                updated_at=now()
+              where id=${act.id}::uuid`;
+            await sql`insert into admin_audit (action, event_id, patch) values ('restore:corrected-date', ${act.id}::uuid, ${sql.json(
+              { was: row.was, now: act.start, source: act.sourceUrl, timeConfirmed: act.stampVerified, note: r.note ?? null },
+            )})`;
+          } catch (err) {
+            // 23505 = the recomputed event_key already exists, i.e. the corrected
+            // event IS a row we already carry. That is not an error, it is the
+            // answer: this draft is a duplicate of something already right, and
+            // the constraint is the only thing that knows it. Archive it instead
+            // of crashing the run — which is what the first pass did, at batch 8
+            // of 14, after 63 decisions.
+            if ((err as { code?: string }).code !== "23505") throw err;
+            await sql`update events set status='archived', updated_at=now() where id=${act.id}::uuid`;
+            await sql`insert into admin_audit (action, event_id, patch) values ('archive:duplicate-of-corrected', ${act.id}::uuid, ${sql.json(
+              { why: `corrected to ${act.start}, which is a row we already publish`, source: act.sourceUrl },
+            )})`;
+            tally.republish--;
+            tally.duplicate++;
+            console.log(`      → already have it at ${act.start}; archived as duplicate`);
+          }
         }
       } else if (act.kind === "archive") {
         console.log(`  ✗ ARCHIVE   ${label}\n      ${act.note.slice(0, 150)}\n      ${act.sourceUrl}`);
@@ -113,7 +130,8 @@ async function main() {
   }
 
   console.log(
-    `\n[restore] republish ${tally.republish} · archive ${tally.archive} · leave drafted ${tally.leave}` +
+    `\n[restore] republish ${tally.republish} · archive ${tally.archive}` +
+      ` · duplicate of a row we already have ${tally.duplicate} · leave drafted ${tally.leave}` +
       `${APPLY ? "" : "\n[restore] DRY RUN — nothing was written. Re-run with --apply to act on this."}`,
   );
   await sql.end({ timeout: 5 });

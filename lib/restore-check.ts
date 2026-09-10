@@ -21,6 +21,8 @@
  * with an unconfirmed time is applied without stamping `verified_at`.
  */
 
+import { isAggregatorSource, isNonScheduleSource } from "./source-trust";
+
 export interface RestoreItem {
   id: string;
   title: string;
@@ -193,7 +195,15 @@ export function actionForRestore(r: RestoreResult, opts: RestorePolicyOpts): Res
       // Only a time the organiser actually printed earns the stamp. A date-only
       // correction goes back with the time it had and stays unverified, so the
       // next pass looks again — that is the Waiting for Godot lesson.
-      stampVerified: r.timeConfirmed === true,
+      //
+      // And the stamp also requires a source that IS a published schedule. A
+      // Yelp page, a venue Facebook post or a Ticketmaster listing is fine to
+      // cite and fine to take a date from — it is not a schedule, so it cannot
+      // make a row "verified". Three rows got that stamp before this existed.
+      stampVerified:
+        r.timeConfirmed === true &&
+        !isNonScheduleSource(r.sourceUrl) &&
+        !isAggregatorSource(r.sourceUrl),
     };
   }
   return { kind: "leave", id: r.id, note: r.note ?? "unclear" };
