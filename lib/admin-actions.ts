@@ -4,7 +4,7 @@ import { revalidatePath, revalidateTag } from "next/cache";
 import { sql } from "./db";
 import { assertAdmin, logAudit, parseEventPatch } from "./admin";
 import { markReportReviewed } from "./event-reports";
-import { normalizeTier } from "./event-key";
+import { normalizeTier, computeEventKey } from "./event-key";
 import { EVENTS_TAG } from "./events";
 
 function requireDb() {
@@ -102,8 +102,16 @@ export async function updateEvent(formData: FormData) {
   if (!parsed.ok) throw new Error(parsed.error);
   const p = parsed.patch;
 
+  // Identity is sha256(title | venue | start DATE), so editing any of those
+  // three invalidates the stored key. It was not being recomputed: the row kept
+  // its old key, and the next pipeline run that re-found the event computed the
+  // NEW key, matched nothing, and INSERTED A DUPLICATE instead of updating in
+  // place. Every date correction quietly scheduled its own duplicate.
+  const nextKey = computeEventKey(p.title, p.venue, p.start);
+
   await db`
     update events set
+      event_key   = ${nextKey},
       title       = ${p.title},
       venue       = ${p.venue},
       city        = ${p.city},

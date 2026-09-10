@@ -34,6 +34,7 @@ import { hostOf } from "./verify-attribution";
  * means "verify before publishing", never "ignore".
  */
 export const AGGREGATOR_HOSTS: readonly string[] = [
+  "365twincities.com",
   "axios.com",
   "bringmethenews.com",
   "cbsnews.com",
@@ -43,19 +44,25 @@ export const AGGREGATOR_HOSTS: readonly string[] = [
   "exploreminnesota.com",
   "familyfuntwincities.com",
   "festivalguidesandreviews.com",
+  "festivalsinamerica.com",
   "fox9.com",
   "hoodline.com",
   "kare11.com",
   "macaronikid.com",
   "minnesotamonthly.com",
+  "minnesotaparent.com",
   "mspmag.com",
   "patch.com",
   "racketmn.com",
   "secretmpls.com",
   "startribune.com",
+  "tcgateway.com",
+  "teamkathyborys.com",
   "thrillist.com",
   "timeout.com",
+  "twincitiesfamily.com",
   "westopolis.org",
+  "wjon.com",
   "yahoo.com",
 ];
 
