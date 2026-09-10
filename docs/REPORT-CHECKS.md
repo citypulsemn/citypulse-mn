@@ -128,7 +128,9 @@ npm run check-reports -- --dry-run    # check and print; writes nothing, sends n
 npm run check-reports -- --limit=3    # smaller batch
 ```
 
-Scheduled by `.github/workflows/check-reports.yml` every 2 hours.
+Scheduled by `.github/workflows/check-reports.yml` at :07 and :37 past every
+hour. It used to say every 2 hours; GitHub was dropping most of those runs and
+the real gap between checks reached 7h51m. See HOTFIX-cadence-extrapolation.md.
 
 ## Pieces
 

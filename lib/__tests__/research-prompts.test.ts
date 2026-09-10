@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { buildResearchPrompt } from "../agents/prompts";
+import { buildResearchPrompt, buildVenueSweepPrompt } from "../agents/prompts";
 
 /**
  * Guards for the pipeline's category research prompts. These are the lever that
@@ -40,5 +40,34 @@ describe("demand-validated coverage hints (GSC Aug 2026)", () => {
     expect(p).toContain("Hmong");
     expect(p).toContain("St Maron"); // the Lebanese festival that ranked in GSC
     expect(p).toContain("Juneteenth");
+  });
+});
+
+/**
+ * Cadence extrapolation (10 Sep 2026). A reader phoned the City of Woodbury:
+ * the September Starlight Cinema screening we had published did not exist. The
+ * source was a SUMMER movie roundup whose Woodbury dates ended 6 Aug, and the
+ * agent had turned "one movie each month this summer" into a 12 Sep listing —
+ * writing the cadence into the description in place of the date it never had.
+ * Both research prompts must carry the rule; a silent edit that drops it
+ * re-opens the same hole.
+ */
+describe("a cadence is not a schedule", () => {
+  it("the category research prompt forbids projecting a series past its named dates", () => {
+    const p = buildResearchPrompt("family", "2026-09-01", "2026-09-30");
+    expect(p).toContain("A CADENCE IS NOT A SCHEDULE");
+    expect(p).toContain("past the last date it names");
+    expect(p).toContain("Woodbury");
+  });
+
+  it("the venue sweep prompt carries it too", () => {
+    const p = buildVenueSweepPrompt(
+      "music",
+      [{ name: "Turf Club", city: "Saint Paul" }],
+      "2026-09-01",
+      "2026-09-30",
+    );
+    expect(p).toContain("A CADENCE IS NOT A SCHEDULE");
+    expect(p).toContain("only the dates the calendar itself names");
   });
 });

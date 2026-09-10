@@ -9,12 +9,21 @@ name: Check Listing Reports
 # THAT EVENING. A weekly digest would have reached Taren four days after the
 # doors opened. Reports are about things that are happening now.
 #
-# Every 2 hours. The job no-ops in seconds when nothing is pending (it only
-# spends an agent call when there is an unchecked report), so the frequency
-# costs essentially nothing on a quiet week.
+# Twice an hour, offset from the hour. The job no-ops in ~20s when nothing is
+# pending (it only spends an agent call when there is an unchecked report), so
+# the frequency costs essentially nothing on a quiet week.
+#
+# WHY NOT EVERY 2 HOURS, which is what this said until 10 Sep 2026: GitHub drops
+# scheduled runs under scheduler load, and it was dropping most of these. The
+# cron asked for 12 runs a day; the run history showed 4–5, with real gaps of
+# 6h35m and 7h51m. A reader report about a show TONIGHT could sit eight hours —
+# the exact failure this workflow was built to prevent. Asking more often does
+# not stop the dropping, it just makes the surviving runs land closer together;
+# worst case falls from ~8h to ~2h. Minutes :07/:37 rather than :00/:30 because
+# the top and half of the hour are the most contended slots.
 on:
   schedule:
-    - cron: "17 */2 * * *"
+    - cron: "7,37 * * * *"
   workflow_dispatch:
     inputs:
       dry_run:

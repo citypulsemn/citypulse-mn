@@ -65,6 +65,16 @@ Rules:
 - A ROUNDUP ARTICLE IS NOT A SCHEDULE. Prefer the venue's own calendar. If all
   you have is an article, the event is only usable when the article names the
   event, the venue AND the full date including the year.
+- A CADENCE IS NOT A SCHEDULE EITHER. "First Fridays", "every second Saturday",
+  "one movie each month this summer" tells you a PATTERN, not that any given
+  date is booked. Only list an occurrence whose own date the source actually
+  states, and never project a series past the last date it names or past the
+  season it covers. On 10 Sep 2026 a reader phoned the City of Woodbury to tell
+  us a September outdoor-movie screening we had published did not exist: the
+  source was a SUMMER movie roundup whose Woodbury dates stopped on 6 Aug, and
+  the listing's own description said the series "is presented monthly" — in
+  place of a date it never had. If you are writing the cadence into the
+  description because you have no specific date, that is the tell. Omit it.
 - IF YOU CANNOT NAME WHAT IS HAPPENING, OMIT THE EVENT. Never build a title out of
   the venue and the date. "Show (Aug 26)", "Turf Club Show (Sep 3)" and
   "Fitzgerald Theater Concert Event" are not events — they tell a reader nothing,
@@ -131,6 +141,10 @@ Rules:
   events. This is the single most common way this sweep has gone wrong: seeing
   that a room is booked and writing that down as if it were a listing. A missing
   night is honest; a night with a nameless show on it is not.
+- A CADENCE IS NOT A SCHEDULE. A page saying a series runs "every second
+  Saturday" or "monthly all summer" is not a booking for any particular one.
+  List only the dates the calendar itself names; never extend a series past its
+  last named date or past the season it covers.
 - Do NOT geocode or assign a price tier — a later step handles that.
 
 Output ONLY a JSON array of event objects inside a single \`\`\`json code block, no other text. If you found nothing, output \`\`\`json\n[]\n\`\`\`.`;
