@@ -96,15 +96,39 @@ more often does not stop the dropping; it makes the survivors land closer
 together. Worst case falls from ~8h to ~2h. Minutes :07/:37 because the top and
 half of the hour are the most contended slots.
 
+## Follow-up, same day: the dispatch trigger
+
+Tightening the cron narrowed the worst case to ~2h but could not close it — the
+dropping is GitHub's, not ours. So filing a report now **dispatches the workflow
+directly** (`lib/check-dispatch.ts`, called from `submitReportAction`). The
+verdict email lands in minutes.
+
+The cron stays, and it is still the guarantee. The dispatch is an accelerator
+and is allowed to fail: expired token, GitHub outage, unset variable. Every
+failure is a log line and the next scheduled run collects the backlog. Same
+best-effort contract as the operator notification directly above it — the report
+row is committed before either is called.
+
+`workflow_dispatch`, not `repository_dispatch`: the latter needs a token with
+Contents: write, i.e. one that can push to `main`. This needs Actions: write
+alone. Smoke-tested against the real endpoint — `HTTP 204`, and the run started
+four seconds later, versus the 108 minutes the last scheduled run had been
+waiting.
+
 ## Deploy
 
 ```bash
 git push origin main
 ```
 
-That is the whole deploy. No schema change, no new secret, no env change. Vercel
-redeploys the app (the prompt change only matters to the pipeline, which runs
-from GitHub Actions), and GitHub picks up the new cron from `main`.
+Vercel redeploys the app and GitHub picks up the new cron from `main`. No schema
+change.
+
+**One new environment variable, and it is optional.** `GH_DISPATCH_TOKEN` in
+Vercel turns the dispatch on; leave it unset and you get the cron, a log line
+saying so, and nothing broken. Setup steps — including why the token needs
+*Actions: Read and write* and nothing else — are in `docs/REPORT-CHECKS.md`
+under "Setting up the dispatch token".
 
 The DB changes are **already applied to production** — they were made directly
 against Supabase during the investigation, not by this deploy.
@@ -119,19 +143,39 @@ against Supabase during the investigation, not by this deploy.
    something over-reached.
 3. **The cron took.** After the push, `gh run list --workflow=check-reports.yml`
    should show runs landing near :07/:37 and roughly twice as many per day.
+4. **The dispatch works** (only after `GH_DISPATCH_TOKEN` is set). File a test
+   report on any listing, then `gh run list --workflow=check-reports.yml` — a
+   `workflow_dispatch` run should appear within seconds. If it does not, the
+   Vercel log says why: `[dispatch] GH_DISPATCH_TOKEN unset` or
+   `[dispatch] workflow dispatch failed: 401`.
 4. `npm test` — 2015 passing, including the two new cadence guards.
 
 ### Caveat: the cache was not purged by hand
 
 `npm run revalidate` failed from this machine — **`REVALIDATE_SECRET` is not in
-`.env.local`** (it is set in Vercel and in GitHub Actions, just not locally). The
-pages self-heal on their ISR windows instead: 30 min for day/list pages, 60 min
-for the event page, 5 min for `/api/events`.
+`.env.local`** (it is set in Vercel and in GitHub Actions, just not locally).
 
-Worth fixing, because this is exactly the case the script exists for: adding
-`REVALIDATE_SECRET` to `.env.local` makes every future manual DB fix take effect
-in seconds instead of an hour. Copy the value from Vercel → Settings →
-Environment Variables.
+**Self-healing takes up to two hours, not one.** There are two caches stacked,
+and the outer one expiring is not enough:
+
+| Layer | TTL | What it holds |
+|---|---|---|
+| ISR page cache | 30 min lists, 60 min event pages | the rendered HTML |
+| `unstable_cache` in `lib/events.ts` | 60 min (`EVENTS_TTL_SECONDS`) | the DB rows |
+
+An ISR regeneration that fires while the data cache is still warm re-renders the
+stale listing and resets the page clock. Observed here: 9 minutes of polling
+after the DB write with no change on any surface, which is correct behaviour and
+not a bug.
+
+`revalidateTag(EVENTS_TAG)` clears both at once, and `/api/revalidate` is the
+only door into it from outside the app — which is what `REVALIDATE_SECRET`
+opens. Adding it to `.env.local` (copy from Vercel → Settings → Environment
+Variables) turns a two-hour wait into seconds for every future manual DB fix.
+
+Note that this only affects changes made by SCRIPTS or by hand. The admin UI
+calls `revalidateTag` in-process, so hiding a listing from `/admin` has always
+been immediate.
 
 ## Rollback
 

@@ -5,6 +5,7 @@ import { validateReport, addReport, type ReportInput } from "./event-reports";
 import { rateAllow, ipBucket, firstForwardedIp, RATE_LIMITS } from "./rate-limit";
 import { REPORT_KIND_LABELS, type ReportKind, type ReportState } from "./report-types";
 import { sendOperatorNotification } from "./notify-send";
+import { dispatchReportCheck } from "./check-dispatch";
 import { getEvent } from "./events";
 
 // A "use server" module must export ONLY async server actions.
@@ -76,6 +77,16 @@ export async function submitReportAction(
     adminPath: "/admin/reports",
   });
   if (!notified) console.warn("[report] saved but operator notification did not send");
+
+  // Kick the automated check NOW rather than waiting for the next scheduled run.
+  // Same contract as the notification above: already-committed row, best-effort
+  // call, failure is a log line. The cron in check-reports.yml is the guarantee
+  // and this only shortens the wait — see lib/check-dispatch.ts for why that
+  // distinction matters (GitHub drops scheduled runs, and we found out the hard
+  // way that "every 2 hours" meant "every eight" on a bad day).
+  if (!(await dispatchReportCheck())) {
+    console.warn("[report] saved but the check was not dispatched — the cron will pick it up");
+  }
 
   return {
     status: "success",

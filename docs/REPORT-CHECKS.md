@@ -128,9 +128,44 @@ npm run check-reports -- --dry-run    # check and print; writes nothing, sends n
 npm run check-reports -- --limit=3    # smaller batch
 ```
 
-Scheduled by `.github/workflows/check-reports.yml` at :07 and :37 past every
-hour. It used to say every 2 hours; GitHub was dropping most of those runs and
-the real gap between checks reached 7h51m. See HOTFIX-cadence-extrapolation.md.
+### When it runs
+
+**On submission, immediately.** Filing a report dispatches the workflow
+(`lib/check-dispatch.ts`), so the verdict email lands in minutes.
+
+**And on a cron**, at :07 and :37 past every hour, which is the guarantee. The
+dispatch is only an accelerator and is allowed to fail — an expired token, a
+GitHub outage, an unset variable. Nothing is lost when it does; the next
+scheduled run collects whatever piled up.
+
+The cron used to say every 2 hours. GitHub drops scheduled runs under load, and
+the run history showed 4–5 a day rather than 12, with real gaps of 6h35m and
+7h51m — every run green, the missing ones simply never happening. Denser cron
+narrowed that; the dispatch is what actually closes it. See
+HOTFIX-cadence-extrapolation.md.
+
+### Setting up the dispatch token
+
+Unset is a working state — you get the cron, and the log says so. To turn the
+dispatch on:
+
+1. GitHub → Settings → Developer settings → **Fine-grained personal access
+   tokens** → Generate new token.
+2. Repository access: **Only select repositories** → `citypulsemn/citypulse-mn`.
+3. Permissions → Repository permissions → **Actions: Read and write**. That one,
+   and nothing else.
+4. Copy the token into Vercel → Settings → Environment Variables as
+   **`GH_DISPATCH_TOKEN`** (all environments), then redeploy.
+
+Actions: Read and write is the whole reason this uses `workflow_dispatch` rather
+than the more usual `repository_dispatch` — the latter needs Contents: write,
+which is a token that can push to `main`. This one cannot change the repository
+even if it leaks.
+
+**Set a calendar reminder for the expiry date.** A dead token does not break
+anything, it just quietly stops accelerating, and the symptom is subtle: reports
+start taking half an hour again. `[dispatch] workflow dispatch failed: 401` in
+the Vercel logs is what it looks like.
 
 ## Pieces
 
@@ -138,6 +173,7 @@ the real gap between checks reached 7h51m. See HOTFIX-cadence-extrapolation.md.
 - `lib/report-token.ts` — HMAC over report id + action (pure, tested)
 - `lib/report-verdict-email.ts` — the email with the buttons
 - `lib/report-revalidate.ts` — cache busting after an emailed decision
+- `lib/check-dispatch.ts` — the immediate workflow kick (pure builder, tested)
 - `app/report-action/route.ts` — GET confirms, POST applies
 - `scripts/check-reports.ts` + `.github/workflows/check-reports.yml`
 - `lib/event-reports.ts` — `getUncheckedReports`, `saveReportCheck`,
