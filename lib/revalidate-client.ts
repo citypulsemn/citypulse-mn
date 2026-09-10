@@ -55,7 +55,29 @@ export async function revalidateSite(
       },
       body: JSON.stringify({ reason, eventIds }),
       signal: controller.signal,
+      // A REDIRECT MUST NOT BE FOLLOWED HERE. On 10 Sep 2026 this call answered
+      // "401 missing Authorization header" with the secret set correctly at both
+      // ends: SITE_URL was the apex, the site 308s to www, and fetch strips the
+      // Authorization header across a cross-origin redirect. Following it looked
+      // like a wrong key and was really a wrong hostname.
+      //
+      // We do not re-attach the header and retry, even though we could: a
+      // redirect is exactly how a bearer token gets exfiltrated if the host is
+      // ever misconfigured or taken over. Point the caller at the canonical URL
+      // instead — the message below says which one.
+      redirect: "manual",
     });
+    if (res.status >= 300 && res.status < 400) {
+      const to = res.headers.get("location") ?? "(no Location header)";
+      return {
+        ok: false,
+        status: res.status,
+        reason:
+          `redirected to ${to} — the Authorization header is dropped across a redirect, ` +
+          `so this never arrives authenticated. Point SITE_URL (or REVALIDATE_URL) at the ` +
+          `canonical host so no redirect happens.`,
+      };
+    }
     if (!res.ok) {
       const text = await res.text().catch(() => "");
       return { ok: false, status: res.status, reason: text.slice(0, 200) || res.statusText };

@@ -136,6 +136,23 @@ Proven end-to-end on 26 Aug 2026 against a production build: `x-nextjs-cache`
 went **HIT → HIT → (revalidate) → MISS → HIT**, and a refused call left the page
 on HIT.
 
+## The hostname has to be the canonical one
+
+`REVALIDATE_URL` (or `SITE_URL`, its fallback) must point at the host the site
+actually serves, with no redirect in front of it.
+
+**Why it matters more than it looks.** `citypulsemn.com` 308s to
+`www.citypulsemn.com`, and `fetch` — like every spec-compliant client — **strips
+the Authorization header across a cross-origin redirect**. A call to the apex
+therefore arrives unauthenticated and the endpoint answers
+`401 missing Authorization header`. That reads exactly like a wrong key, which
+is what cost an hour on 10 Sep 2026 with the secret set correctly at both ends.
+
+The client now refuses to follow a redirect at all and names the Location in the
+failure. It deliberately does NOT re-attach the header and retry: a redirect is
+precisely how a bearer token would be exfiltrated from a misconfigured or taken
+-over host. Fix the hostname, do not chase it.
+
 ## Status: the channel is not live (confirmed 10 Sep 2026)
 
 **The secret was never set, in any of the three places.** Everything above works;
