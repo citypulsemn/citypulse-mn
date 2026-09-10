@@ -70,23 +70,32 @@ export async function submitReportAction(
     /* fall through to the generic title */
   }
   const kindLabel = REPORT_KIND_LABELS[result.value.kind as ReportKind] ?? "Listing report";
+
+  // Kick the automated check NOW rather than waiting for the next scheduled run.
+  // Best-effort, exactly like the notification below: the row is already
+  // committed, and the cron in check-reports.yml is what actually guarantees the
+  // check — see lib/check-dispatch.ts.
+  //
+  // Deliberately BEFORE the email so its outcome can ride along. On 10 Sep 2026
+  // this failed silently three times running — no token, then a token the live
+  // deployment could not see (Vercel binds env vars at build time), then a
+  // redirect eating the header — and every trace was a Vercel log line nobody
+  // had cause to open. The operator email is the one thing that gets read.
+  const dispatched = await dispatchReportCheck();
+  if (!dispatched) {
+    console.warn("[report] saved but the check was not dispatched — the cron will pick it up");
+  }
+
   const notified = await sendOperatorNotification({
     kind: "report",
     title: eventTitle || kindLabel,
     detail: (kindLabel + " — " + result.value.reason).slice(0, 300),
     adminPath: "/admin/reports",
+    warning: dispatched
+      ? undefined
+      : "The automated check was not started (GH_DISPATCH_TOKEN). It will run on the next scheduled pass instead — :07 and :37 past the hour.",
   });
   if (!notified) console.warn("[report] saved but operator notification did not send");
-
-  // Kick the automated check NOW rather than waiting for the next scheduled run.
-  // Same contract as the notification above: already-committed row, best-effort
-  // call, failure is a log line. The cron in check-reports.yml is the guarantee
-  // and this only shortens the wait — see lib/check-dispatch.ts for why that
-  // distinction matters (GitHub drops scheduled runs, and we found out the hard
-  // way that "every 2 hours" meant "every eight" on a bad day).
-  if (!(await dispatchReportCheck())) {
-    console.warn("[report] saved but the check was not dispatched — the cron will pick it up");
-  }
 
   return {
     status: "success",

@@ -121,3 +121,32 @@ describe("the never-break contract (rule 1) — a notification must not cost a s
     expect(env).toContain("NOTIFY_WEBHOOK_URL=");
   });
 });
+
+/**
+ * The warning line (10 Sep 2026). A failed report-check dispatch used to leave
+ * no trace but a Vercel log line, which is how three separate misconfigurations
+ * each cost an hour that day. It now rides along in the email the operator
+ * actually opens.
+ */
+describe("operator warning line", () => {
+  const warned = () =>
+    renderNotifyEmail(item({ warning: "The automated check was not started (GH_DISPATCH_TOKEN)." }), "https://citypulsemn.com");
+
+  it("appears in both the HTML and the text part", () => {
+    const { html, text } = warned();
+    expect(html).toContain("GH_DISPATCH_TOKEN");
+    expect(text).toContain("GH_DISPATCH_TOKEN");
+  });
+
+  it("is absent entirely when there is nothing wrong — no empty scaffolding", () => {
+    const { html, text } = renderNotifyEmail(item(), "https://citypulsemn.com");
+    expect(html).not.toContain("9888");
+    expect(text).not.toMatch(/^! /m);
+  });
+
+  it("is escaped like everything else that reaches an inbox", () => {
+    const { html } = renderNotifyEmail(item({ warning: '<img src=x onerror="alert(1)">' }), "x");
+    expect(html).not.toContain("<img src=x");
+    expect(html).toContain("&lt;img src=x");
+  });
+});

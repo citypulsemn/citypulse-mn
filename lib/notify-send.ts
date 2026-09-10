@@ -33,6 +33,17 @@ export interface NotifyItem {
   detail: string;
   /** Admin path to act on it, e.g. "/admin/reports". */
   adminPath: string;
+  /**
+   * An infrastructure problem the OPERATOR should know about, surfaced in the
+   * one message they reliably read. Not the reporter's words — never public
+   * input, so it is trusted copy rather than something to distrust.
+   *
+   * Added 10 Sep 2026. The report-check dispatch failed three times that day for
+   * three different reasons, and every failure was a console line in Vercel that
+   * nobody had cause to open. The lesson of that day was that loud is not the
+   * same as seen: a warning belongs where the human already is.
+   */
+  warning?: string;
 }
 
 const LABEL: Record<NotifyKind, string> = {
@@ -75,6 +86,9 @@ export function renderNotifyEmail(
       <tr><td style="padding:18px 24px 8px;">
         <a href="${esc(link)}" style="font:600 15px/1.2 Arial,Helvetica,sans-serif;color:#0e1830;background:#c9a961;text-decoration:none;display:inline-block;padding:12px 20px;border-radius:8px;">Review it &rarr;</a>
       </td></tr>
+      ${item.warning ? `<tr><td style="padding:2px 24px 0;">
+        <div style="font:600 13px/1.5 Arial,Helvetica,sans-serif;color:#e0a458;">&#9888; ${esc(item.warning)}</div>
+      </td></tr>` : ""}
       <tr><td style="padding:10px 24px 26px;">
         <div style="font:400 12px/1.6 Arial,Helvetica,sans-serif;color:#7c8398;">
           Nothing has been published or changed — this is waiting for you to decide.
@@ -89,6 +103,7 @@ export function renderNotifyEmail(
     item.title,
     item.detail,
     "",
+    ...(item.warning ? [`! ${item.warning}`, ""] : []),
     `Review it: ${link}`,
     "",
     "Nothing has been published or changed — this is waiting for you to decide.",
