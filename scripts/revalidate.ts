@@ -36,8 +36,22 @@ async function main() {
     return;
   }
   console.error(`[revalidate] ✗ FAILED${out.status ? ` (HTTP ${out.status})` : ""}: ${out.reason}`);
-  if (out.reason?.includes("REVALIDATE_SECRET")) {
-    console.error("[revalidate]   set REVALIDATE_SECRET in .env.local (and in Vercel + GitHub Actions)");
+  // Two very different failures both mention REVALIDATE_SECRET, and telling them
+  // apart is the whole value of this hint. A 503 is the SERVER saying it has no
+  // secret — pointing the operator at .env.local there sends them to the one
+  // place that cannot possibly be the cause. (Observed 10 Sep 2026: the secret
+  // had just been added to Vercel and this still printed "set it in .env.local".)
+  if (out.status === 503) {
+    console.error(
+      "[revalidate]   the SERVER has no REVALIDATE_SECRET. It is set in Vercel per-project, " +
+        "but a deployment only receives env vars at BUILD time — an already-running deployment " +
+        "never picks up a new one. Redeploy: Vercel → Deployments → ⋯ → Redeploy.",
+    );
+  } else if (out.reason?.includes("REVALIDATE_SECRET")) {
+    console.error(
+      "[revalidate]   THIS side has no REVALIDATE_SECRET — set it in .env.local " +
+        "(or as a GitHub Actions secret when running there).",
+    );
   }
   process.exitCode = 1;
 }

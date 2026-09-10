@@ -79,9 +79,9 @@ cache by following a URL.
 
 | Where | Why |
 |---|---|
-| Vercel (all environments) | the endpoint reads it; without it every call 503s |
+| Vercel (all environments) | the endpoint reads it; without it every call 503s. **Redeploy after adding it** — a deployment receives env vars at BUILD time, so an already-running one never picks up a new secret. Adding it and not redeploying looks exactly like not adding it. |
 | GitHub Actions secrets | the pipeline and verify workflows call it |
-| `.env.local` | so `npm run revalidate` works from your machine |
+| `.env.local` | so `npm run revalidate` works from your machine — **optional**; production needs only the first two |
 
 Generate one with:
 
