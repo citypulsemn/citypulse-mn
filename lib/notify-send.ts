@@ -1,4 +1,5 @@
 import { EMAIL_HEAD } from "./email-head";
+import { envOr, envValue } from "./env";
 import { esc } from "./digest";
 import { rateAllow } from "./rate-limit";
 
@@ -119,7 +120,7 @@ async function postWebhook(item: NotifyItem, siteUrl: string): Promise<void> {
  * caller can `await` it inside a form submission without risking the submission.
  */
 export async function sendOperatorNotification(item: NotifyItem): Promise<boolean> {
-  const siteUrl = process.env.SITE_URL ?? "https://citypulsemn.com";
+  const siteUrl = envOr("https://citypulsemn.com", "SITE_URL");
   try {
     if (!(await rateAllow(NOTIFY_BUCKET, NOTIFY_LIMIT, NOTIFY_WINDOW_MINUTES))) {
       // Not an error: the weekly Queue section still surfaces the item.
@@ -132,8 +133,8 @@ export async function sendOperatorNotification(item: NotifyItem): Promise<boolea
     const apiKey = process.env.RESEND_API_KEY;
     // NOTIFY_TO first so the operator inbox can differ from the ops-digest one;
     // falls back to OPS_DIGEST_TO, which already exists for the weekly mail.
-    const to = process.env.NOTIFY_TO ?? process.env.OPS_DIGEST_TO;
-    const from = process.env.DIGEST_FROM ?? "City Pulse MN <hello@citypulsemn.com>";
+    const to = envValue("NOTIFY_TO", "OPS_DIGEST_TO");
+    const from = envOr("City Pulse MN <hello@citypulsemn.com>", "DIGEST_FROM");
     if (!apiKey || !to) {
       // Honest infra log, not silence (the Jul 15 lesson) — but still not an error
       // for the user, and the digest will report the item on Monday regardless.

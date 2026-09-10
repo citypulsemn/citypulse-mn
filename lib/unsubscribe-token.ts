@@ -1,4 +1,5 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
+import { envOr } from "./env";
 
 /**
  * Stateless one-click unsubscribe tokens (roadmap 3.1). The token is an
@@ -8,7 +9,7 @@ import { createHmac, timingSafeEqual } from "node:crypto";
  */
 
 export function unsubSecret(): string {
-  return process.env.UNSUBSCRIBE_SECRET ?? "citypulse-dev-unsub-secret";
+  return envOr("citypulse-dev-unsub-secret", "UNSUBSCRIBE_SECRET");
 }
 
 export function makeUnsubToken(id: number | string, secret: string): string {

@@ -30,6 +30,7 @@ import { deltaTag, stampedeReason, PIPELINE_STAMPEDE } from "../lib/ops-digest";
 import { partitionCancellations } from "../lib/cancellations";
 import { dueWindows } from "../lib/horizon";
 import { NEW_EVENT_STATUS } from "../lib/pipeline-config";
+import { statusForNewEvent, heldBackReason } from "../lib/source-trust";
 import { sql } from "../lib/db";
 import { revalidateAndReport } from "../lib/revalidate-client";
 import type { DbEventInput } from "../lib/types";
@@ -200,10 +201,25 @@ async function main() {
           description: ev.description,
           image: ev.image ?? "",
           source_url: ev.source_url,
-          status: NEW_EVENT_STATUS, // auto-published; revert to draft in the DB to hide
+          // Auto-published UNLESS the only source is a third-party roundup —
+          // those land as draft until the verify pass confirms them against the
+          // venue itself. Two fabrications came in through roundups (see
+          // lib/source-trust.ts). Revert to draft in the DB any time to hide.
+          status:
+            NEW_EVENT_STATUS === "published"
+              ? statusForNewEvent(ev.source_url)
+              : NEW_EVENT_STATUS,
         });
       }
 
+      const held = normalized.filter((r) => r.status === "draft");
+      if (held.length > 0) {
+        console.log(
+          `[pipeline] ${win.label}/${category}: ${held.length} held as draft — ` +
+            `${heldBackReason(held[0].source_url) ?? "unverified source"}`,
+        );
+        for (const h of held) console.log(`[pipeline]   held: ${h.title}`);
+      }
       const n = await upsertEvents(normalized);
       const cancelled = await markCancelled(cancelledKeys);
       bandTotal += n;

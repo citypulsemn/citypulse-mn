@@ -103,7 +103,12 @@ describe("the never-break contract (rule 1) — a notification must not cost a s
   });
 
   it("falls back to OPS_DIGEST_TO so it works with the secret that already exists", () => {
-    expect(notify).toContain("process.env.NOTIFY_TO ?? process.env.OPS_DIGEST_TO");
+    // This test used to assert the `??` form, which is exactly the bug: under
+    // GitHub Actions an unset NOTIFY_TO arrives as "" and `??` stops there, so
+    // the fallback never fired and mail silently went nowhere. envValue()
+    // treats blank as absent.
+    expect(notify).toContain('envValue("NOTIFY_TO", "OPS_DIGEST_TO")');
+    expect(notify).not.toContain("process.env.NOTIFY_TO ??");
   });
 
   it("a missing key is logged honestly, not silently swallowed", () => {

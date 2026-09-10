@@ -115,7 +115,21 @@ async function main() {
     .map((r) => ({ result: r, row: byId.get(r.reportId) }))
     .filter((x): x is { result: ReportCheckResult; row: UncheckedReportRow } => Boolean(x.row));
   const sent = await sendReportVerdictEmail(rows);
-  console.log(sent ? "[check-reports] verdict email sent" : "[check-reports] ⚠ verdict email not sent (see above)");
+  if (sent) {
+    console.log("[check-reports] verdict email sent");
+  } else {
+    // FAIL THE JOB. On 9 Sep 2026 this printed a warning, exited 0, and showed
+    // green in Actions while a reader-reported wrong listing sat unmentioned —
+    // the verdict was correct and nobody was told for as long as it took a
+    // human to notice the listing themselves. A delivery channel that cannot
+    // deliver is an outage, not a log line. The verdicts are already saved
+    // above, so failing here loses nothing and re-running is safe.
+    console.error(
+      "[check-reports] ⚠ verdict email NOT sent — see the cause above. " +
+        `${rows.length} checked report(s) are saved but nobody has been told.`,
+    );
+    process.exitCode = 1;
+  }
 
   await sql.end({ timeout: 5 });
 }

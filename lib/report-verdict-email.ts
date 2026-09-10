@@ -1,4 +1,5 @@
 import { EMAIL_HEAD } from "./email-head";
+import { envOr, envValue } from "./env";
 import { esc } from "./digest";
 import { reportActionUrl, reportActionSecret } from "./report-token";
 import { verdictHeadline, recommendationFor, type ReportCheckResult } from "./report-check";
@@ -110,10 +111,10 @@ ${rows.map(block).join("")}
 export async function sendReportVerdictEmail(rows: VerdictEmailRow[]): Promise<boolean> {
   if (rows.length === 0) return false;
   try {
-    const siteUrl = process.env.SITE_URL ?? "https://citypulsemn.com";
-    const apiKey = process.env.RESEND_API_KEY;
-    const to = process.env.NOTIFY_TO ?? process.env.OPS_DIGEST_TO;
-    const from = process.env.DIGEST_FROM ?? "City Pulse MN <hello@citypulsemn.com>";
+    const siteUrl = envOr("https://citypulsemn.com", "SITE_URL");
+    const apiKey = envValue("RESEND_API_KEY");
+    const to = envValue("NOTIFY_TO", "OPS_DIGEST_TO");
+    const from = envOr("City Pulse MN <hello@citypulsemn.com>", "DIGEST_FROM");
     if (!apiKey || !to) {
       console.error(
         `[check-reports] missing ${!apiKey ? "RESEND_API_KEY" : "NOTIFY_TO/OPS_DIGEST_TO"} — verdicts saved but not emailed`,

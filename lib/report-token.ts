@@ -1,4 +1,5 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
+import { envOr } from "./env";
 
 /**
  * ONE-TAP REPORT DECISIONS FROM THE EMAIL (Sep 2026).
@@ -34,11 +35,7 @@ export function isReportAction(v: unknown): v is ReportAction {
  * vs `unsub:`), so no unsubscribe token can ever be replayed as a decision.
  */
 export function reportActionSecret(): string {
-  return (
-    process.env.REPORT_ACTION_SECRET ??
-    process.env.UNSUBSCRIBE_SECRET ??
-    "citypulse-dev-report-secret"
-  );
+  return envOr("citypulse-dev-report-secret", "REPORT_ACTION_SECRET", "UNSUBSCRIBE_SECRET");
 }
 
 export function makeReportToken(id: string, action: ReportAction, secret: string): string {

@@ -3,9 +3,10 @@
  * Uses a server token if provided (recommended), else falls back to the
  * public map token. Never call this from the browser.
  */
+import { envValue } from "./env";
 
 const TOKEN =
-  process.env.MAPBOX_GEOCODING_TOKEN ?? process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
+  envValue("MAPBOX_GEOCODING_TOKEN", "NEXT_PUBLIC_MAPBOX_TOKEN");
 
 // Bias results toward downtown Minneapolis.
 const PROXIMITY = "-93.2650,44.9778";
