@@ -11,6 +11,12 @@ import {
   type ReportCheckResult,
 } from "../report-check";
 import { logUsage } from "../api-usage";
+import {
+  buildRestorePrompt,
+  parseRestoreResults,
+  type RestoreItem,
+  type RestoreResult,
+} from "../restore-check";
 
 /**
  * A category research subagent. Runs Claude (Sonnet) with the web_search tool
@@ -215,4 +221,37 @@ export async function checkReportedListings(
     .join("\n");
 
   return parseReportChecks(text, new Set(items.map((i) => i.reportId)));
+}
+
+/**
+ * Find the real date for listings we had to draft (Sep 2026). A separate pass
+ * from verification because it answers a different question — not "is this
+ * right" but "what is it actually" — and because a wrong answer here WRITES to
+ * a live row. See lib/restore-check.ts for why the date and the time are
+ * reported separately.
+ */
+export async function findCorrectDates(
+  items: RestoreItem[],
+  maxSearchUses = 12,
+): Promise<RestoreResult[]> {
+  if (items.length === 0) return [];
+
+  const stream = anthropic.messages.stream({
+    model: MODEL,
+    max_tokens: 4000,
+    tools: [
+      { type: "web_search_20250305", name: "web_search", max_uses: maxSearchUses },
+    ] as unknown as Anthropic.Tool[],
+    messages: [{ role: "user", content: buildRestorePrompt(items) }],
+  });
+
+  const res = await stream.finalMessage();
+  logUsage(`restore:${items.length}`, MODEL, res.usage);
+
+  const text = res.content
+    .filter((b): b is Anthropic.TextBlock => b.type === "text")
+    .map((b) => b.text)
+    .join("\n");
+
+  return parseRestoreResults(text, new Set(items.map((i) => i.id)));
 }
