@@ -1,3 +1,4 @@
+import { SITE_URL } from "./seo/site";
 import { EMAIL_HEAD } from "./email-head";
 import { envOr, envValue } from "./env";
 import { esc } from "./digest";
@@ -111,7 +112,7 @@ ${rows.map(block).join("")}
 export async function sendReportVerdictEmail(rows: VerdictEmailRow[]): Promise<boolean> {
   if (rows.length === 0) return false;
   try {
-    const siteUrl = envOr("https://citypulsemn.com", "SITE_URL");
+    const siteUrl = envOr(SITE_URL, "SITE_URL");
     const apiKey = envValue("RESEND_API_KEY");
     const to = envValue("NOTIFY_TO", "OPS_DIGEST_TO");
     const from = envOr("City Pulse MN <hello@citypulsemn.com>", "DIGEST_FROM");

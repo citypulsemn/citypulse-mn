@@ -1,3 +1,4 @@
+import { SITE_URL } from "./seo/site";
 import { EMAIL_HEAD } from "./email-head";
 import { envOr, envValue } from "./env";
 import { esc } from "./digest";
@@ -120,7 +121,7 @@ async function postWebhook(item: NotifyItem, siteUrl: string): Promise<void> {
  * caller can `await` it inside a form submission without risking the submission.
  */
 export async function sendOperatorNotification(item: NotifyItem): Promise<boolean> {
-  const siteUrl = envOr("https://citypulsemn.com", "SITE_URL");
+  const siteUrl = envOr(SITE_URL, "SITE_URL");
   try {
     if (!(await rateAllow(NOTIFY_BUCKET, NOTIFY_LIMIT, NOTIFY_WINDOW_MINUTES))) {
       // Not an error: the weekly Queue section still surfaces the item.
