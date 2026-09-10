@@ -241,3 +241,51 @@ describe("the action route never mutates on GET", () => {
     expect(route).toMatch(/<form method="post"/);
   });
 });
+
+/**
+ * The Flower Hour false positive, 10 Sep 2026 — found by accident while testing
+ * the dispatch trigger, which makes it the most expensive kind of bug: nobody
+ * was looking for it.
+ *
+ * Our listing cited the Minneapolis Parks calendar page FOR THAT EXACT DATE,
+ * which reads "September 10 @ 4:00 pm - 5:00 pm". The check never opened it. It
+ * found neighborhood-association pages republishing the SUMMER program guide
+ * ("Thursdays, May 7-Aug 27"), reasoned that September is after August, and
+ * returned "supported" — recommending we hide a real event that started in 75
+ * minutes.
+ *
+ * That is the same reasoning that was CORRECT about the Woodbury movie night the
+ * same morning. Only the organizer's own calendar distinguishes them, so the
+ * prompt has to say to read it.
+ */
+describe("the prompt distinguishes our source from a third party's summary", () => {
+  const p = buildReportCheckPrompt([
+    {
+      reportId: "r1",
+      eventId: "e1",
+      title: "Flower Hour",
+      venue: "Eloise Butler Wildflower Garden",
+      city: "Minneapolis",
+      start: "2026-09-10 16:00",
+      sourceUrl: "https://www.minneapolisparks.org/event-calendar/flower-hour-2/2026-09-10/",
+      ticketUrl: "",
+      kind: "other",
+      reason: "not happening",
+      evidenceUrl: "",
+    },
+  ]);
+
+  it("says an organizer's date-specific page IS the authority, not a weaker tier", () => {
+    expect(p).toContain("DATE-SPECIFIC page");
+    expect(p).toContain("OPEN IT");
+  });
+
+  it("names the season-summary trap explicitly", () => {
+    expect(p).toContain("A SERIES CAN HAVE MORE THAN ONE SEASON");
+    expect(p).toContain("Absence from a season summary is absence of information");
+  });
+
+  it("still says a roundup is not a schedule — the Marley rule must survive", () => {
+    expect(p).toContain("A ROUNDUP ARTICLE IS NOT A SCHEDULE");
+  });
+});

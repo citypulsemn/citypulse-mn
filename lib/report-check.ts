@@ -100,6 +100,22 @@ export function verdictHeadline(v: CheckVerdict): string {
  *
  * 2. NAME WHAT IS ACTUALLY ON. If the room has a different act that night, say
  *    which — that single fact is what let a human settle this in one read.
+ *
+ * 3. OUR OWN SOURCE CAN BE THE AUTHORITY, and rule 1 must not blind the check to
+ *    that. Added 10 Sep 2026 after a false positive found by accident during a
+ *    dispatch test: our "Flower Hour" listing at Eloise Butler cited the
+ *    Minneapolis Parks calendar page FOR THAT EXACT DATE, which says
+ *    "September 10 @ 4:00 pm - 5:00 pm". The check never opened it. It found two
+ *    neighborhood-association pages republishing the SUMMER program guide
+ *    ("Thursdays, May 7-Aug 27, 5-6 PM"), reasoned that September is after
+ *    August, and returned "supported" — recommending we take down a real,
+ *    correct event that started in 75 minutes. Parks simply runs fall dates too
+ *    (Sep 10 & 24, 4-5 pm), which the cited page says in as many words.
+ *
+ *    Note how close this is to the Woodbury movie-night case the same morning,
+ *    where "the summer series ended in August" was exactly right. The reasoning
+ *    is identical; only the organizer's own calendar tells them apart. That is
+ *    why it has to be read, not inferred around.
  */
 export function buildReportCheckPrompt(items: ReportCheckInput[]): string {
   const list = items
@@ -120,7 +136,20 @@ ${list}
 HOW TO CHECK, in this order:
 1. Look at the VENUE'S OWN CALENDAR for that date — the venue's website, or its official ticketing page. What does the venue itself say is happening in that room that night? This is the authority and it outranks everything else.
 2. Check whether the artist or event is on tour / scheduled at all near that date.
-3. Only then consider the source we cite. A roundup article is NOT a schedule, and if it does not actually name this event, say so — that alone is important.
+3. LOOK AT THE SOURCE WE CITE BEFORE YOU CONCLUDE ANYTHING. Two very different
+   things arrive in that field and they carry opposite weight:
+   - A ROUNDUP ARTICLE IS NOT A SCHEDULE. If it does not actually name this
+     event, say so — that alone is important.
+   - But if the URL we cite IS the organizer's own calendar — especially a
+     DATE-SPECIFIC page like ".../event-calendar/flower-hour/2026-09-10/" —
+     then it already IS the step-1 authority. OPEN IT. It outranks every third
+     party, including neighborhood newsletters, program guides and
+     season-summary pages that republish the organizer's content.
+4. A SERIES CAN HAVE MORE THAN ONE SEASON. "Runs Thursdays May–August" does not
+   mean nothing happens in September; organizers routinely add fall dates on a
+   different day or at a different time. A summary page that stops at August is
+   not evidence that a September date is fake — the organizer's calendar for
+   THAT DATE is. Absence from a season summary is absence of information.
 
 For EACH report, decide exactly one verdict about THE READER'S CLAIM:
 - "supported"    — the evidence backs the reader. Our listing looks wrong.
