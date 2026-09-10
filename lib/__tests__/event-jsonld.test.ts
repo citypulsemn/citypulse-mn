@@ -80,9 +80,36 @@ describe("eventJsonLd", () => {
     expect((d.offers as any).price).toBe("18");
   });
 
-  it("unknown price omits offers (no invalid empty price)", () => {
+  it("unknown price still emits an Offer — with a url, and no invented price", () => {
+    // This test used to assert offers was UNDEFINED here, which is the bug it
+    // was protecting: "See listing" is the pipeline's fallback and covered 682
+    // of 1,188 upcoming events (57%), so most event pages shipped the three
+    // required Event fields and almost nothing else. Google's spec makes every
+    // sub-property of `offers` recommended rather than required, so an Offer
+    // carrying only a ticket url is valid — and it is what feeds the Events
+    // rich result those pages were missing.
     const d = eventJsonLd(ev({ price: "See listing", priceTier: "$$" }), { baseUrl: BASE });
-    expect(d.offers).toBeUndefined();
+    const offers = d.offers as Record<string, unknown>;
+    expect(offers).toBeDefined();
+    expect(offers["@type"]).toBe("Offer");
+    expect(offers.url).toBeTruthy();
+    // The point of the original test survives: never a guessed or empty price.
+    expect(offers).not.toHaveProperty("price");
+    expect(offers).not.toHaveProperty("priceCurrency");
+  });
+
+  it("falls back to the event page when there is no ticket url", () => {
+    const d = eventJsonLd(ev({ price: "See listing", priceTier: "$$", ticketUrl: "" }), { baseUrl: BASE });
+    expect((d.offers as Record<string, unknown>).url).toBe(`${BASE}/event/${ev({}).id}`);
+  });
+
+  it("every event gets an Offer, whatever the price says", () => {
+    // The rich result is all-or-nothing per page: one missing Offer is one page
+    // that stays in the blue links.
+    for (const price of ["See listing", "Free", "$18-$120", "Donation", "", "Varies", "$0"]) {
+      const d = eventJsonLd(ev({ price, priceTier: price === "Free" ? "Free" : "$$" }), { baseUrl: BASE });
+      expect((d.offers as Record<string, unknown>)?.["@type"], `price=${JSON.stringify(price)}`).toBe("Offer");
+    }
   });
 
   it("cancelled maps to EventCancelled", () => {
