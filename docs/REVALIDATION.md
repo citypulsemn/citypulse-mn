@@ -136,6 +136,34 @@ Proven end-to-end on 26 Aug 2026 against a production build: `x-nextjs-cache`
 went **HIT → HIT → (revalidate) → MISS → HIT**, and a refused call left the page
 on HIT.
 
+## Status: the channel is not live (confirmed 10 Sep 2026)
+
+**The secret was never set, in any of the three places.** Everything above works;
+none of it has ever run in production.
+
+Evidence, all from 10 Sep 2026:
+
+- `gh secret list` — no `REVALIDATE_SECRET` in the repository's Actions secrets.
+  The three workflows that map it (`weekly-research`, `verify-events`,
+  `weekly-digest`) therefore set it to `""`, which counts as unset.
+- Production probe: `POST /api/revalidate` → `503 {"error":"REVALIDATE_SECRET is
+  not configured"}`. So Vercel does not have it either.
+- The Monday pipeline's own log, run 34116361816:
+  `[pipeline] ⚠ revalidation did NOT happen: REVALIDATE_SECRET is not set`.
+  The verify pass says the same. Both jobs went green, correctly — rule 1.
+
+So every cache bust this project believes it performs has been a no-op since the
+endpoint shipped. A verify-pass cancellation — the one thing that pass exists to
+push out fast — has been waiting on the TTLs like everything else.
+
+**The fix is one secret in three places** (see "The secret" above), then
+`npm run revalidate -- --reason="smoke test"` should print `✓ caches cleared`.
+The Purge Caches workflow is the same smoke test from a phone.
+
+Worth noting how this stayed invisible for two months: the only signal was a
+warning line inside a weekly job's log that nobody has a reason to open. Loud is
+not the same as seen.
+
 ## Still to do
 
 **The TTLs have not been raised yet.** This endpoint is the prerequisite, not the

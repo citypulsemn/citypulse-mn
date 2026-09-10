@@ -1,0 +1,82 @@
+name: Purge Caches
+
+# Bust the site's caches by hand, from anywhere — including a phone.
+#
+# WHY THIS EXISTS. Two caches are stacked: the ISR page cache (30 min on lists,
+# 60 min on event pages) sits over the `unstable_cache` in lib/events.ts (60 min,
+# the Supabase egress knob). The outer one expiring is NOT enough — a page that
+# regenerates while the data cache is still warm re-renders the stale rows and
+# resets its own clock. So a change made outside the app can take up to TWO
+# HOURS to reach readers, and on 10 Sep 2026 a listing a reader had correctly
+# reported as fabricated was still being served nine minutes after it was hidden.
+#
+# Nine of the scripts already call the endpoint when they finish (run-pipeline,
+# verify-events, import-sports, import-venues, dedupe-flagged, hide-placeholders,
+# resolve-conflicts, collapse-multiday, resweep-verified). What has no caller at
+# all is a change made BY HAND — a SQL fix in Supabase, a status flipped from a
+# one-off script — which is exactly how the Woodbury listing was hidden on
+# 10 Sep 2026. `npm run revalidate` covers that case and always has, but it needs
+# REVALIDATE_SECRET on the machine where the change was made, and that is easy
+# not to have. This is the button that does not care which machine you are on.
+#
+# (`hold-unverified-source` and `reclassify` mutate events and do NOT call the
+# endpoint. Small real gap, separate from this workflow.)
+#
+# The admin UI is NOT affected by any of this and never was — it calls
+# revalidateTag in-process, so hiding a listing from /admin is immediate.
+#
+# THIS JOB FAILS RED UNTIL `REVALIDATE_SECRET` EXISTS, and as of 10 Sep 2026 it
+# does not — not in Actions, not in Vercel. Probing production returns
+# `503 REVALIDATE_SECRET is not configured`, and the Monday pipeline and the
+# verify pass have both been logging "⚠ revalidation did NOT happen" on every run
+# while showing green (rule 1: a cache must not fail the job). The whole
+# on-demand channel has never been switched on. One secret, same value in three
+# places — see docs/REVALIDATION.md, "The secret".
+on:
+  workflow_dispatch:
+    inputs:
+      reason:
+        description: "Why (shows up in the server log, e.g. 'hid the Woodbury movie listing')"
+        type: string
+        default: "manual purge"
+      events:
+        description: "Optional event UUIDs to bust by name, space-separated. The whole tree is busted regardless."
+        type: string
+        default: ""
+
+concurrency:
+  group: purge-cache
+  cancel-in-progress: false
+
+jobs:
+  purge:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci --prefer-offline --no-audit --no-fund
+
+      # `npm run revalidate` rather than a curl in YAML on purpose: the auth
+      # header name and the body shape live in lib/revalidate-auth.ts, and a
+      # second hand-rolled copy of them here would drift the first time either
+      # changes. The script also already exits non-zero when the bust did not
+      # happen, which is what makes this job's red/green mean anything.
+      - name: Purge
+        env:
+          REVALIDATE_SECRET: ${{ secrets.REVALIDATE_SECRET }}
+          SITE_URL: ${{ secrets.SITE_URL }}
+          # Inputs go through the environment, never interpolated into the run
+          # script — `${{ inputs.reason }}` inline is a shell-injection hole even
+          # when only one person can press the button.
+          REASON: ${{ inputs.reason }}
+          EVENTS: ${{ inputs.events }}
+        run: |
+          args=()
+          for id in $EVENTS; do args+=("--event=$id"); done
+          npm run revalidate -- --reason="$REASON" "${args[@]}"
