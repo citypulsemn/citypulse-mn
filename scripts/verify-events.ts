@@ -16,6 +16,7 @@ import {
   actionFor,
   withinBudget,
   DEFAULT_CAP,
+  RUN_BUDGET_MS,
   VERIFY_HORIZON_DAYS,
 } from "../lib/verify";
 import { verifyEventsBatch } from "../lib/agents/research-agent";
@@ -32,6 +33,12 @@ async function main() {
   // this one value.
   const daysArg = process.argv.find((a) => a.startsWith("--days="));
   const days = daysArg ? Math.max(1, Number(daysArg.slice(7)) || VERIFY_HORIZON_DAYS) : VERIFY_HORIZON_DAYS;
+  // The default budget is sized for the weekly Actions job (30-minute timeout).
+  // A one-off backfill runs locally with no such ceiling, and clearing a
+  // backlog in one pass beats babysitting five sequential runs. Progress is
+  // flushed per batch either way, so a longer run risks nothing extra.
+  const budgetArg = process.argv.find((a) => a.startsWith("--budget-mins="));
+  const budgetMs = budgetArg ? Math.max(1, Number(budgetArg.slice(14)) || 20) * 60_000 : RUN_BUDGET_MS;
   if (!sql) throw new Error("DATABASE_URL is required");
   if (!process.env.ANTHROPIC_API_KEY) throw new Error("ANTHROPIC_API_KEY is required");
 
@@ -80,7 +87,7 @@ async function main() {
   for (const [i, batch] of batches.entries()) {
     // Checked before the call, never during: a batch in flight has been paid
     // for and always finishes.
-    if (!withinBudget(startedAt, Date.now())) {
+    if (!withinBudget(startedAt, Date.now(), budgetMs)) {
       console.warn(
         `[verify] ⚠ time budget reached after ${done}/${batches.length} batches — stopping cleanly`,
       );
