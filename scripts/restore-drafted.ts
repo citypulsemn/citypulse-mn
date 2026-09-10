@@ -4,9 +4,10 @@
  *   npx tsx scripts/restore-drafted.ts --dry-run        check, write nothing
  *   npx tsx scripts/restore-drafted.ts --limit=24       cap the spend
  *   npx tsx scripts/restore-drafted.ts --apply          apply the actions
+ *   … --from=hide:source-hold                         work a different draft reason
  *
- * Input is every event drafted by the `wrong_event` sweep that nobody has
- * resolved. Output is one of three actions per row, decided by
+ * Input is every event drafted for the reason given by --from (default the
+ * `wrong_event` sweep) that nobody has resolved. Output is one of three actions per row, decided by
  * lib/restore-check.ts, never by this script:
  *
  *   republish  — the organiser publishes it; the corrected date goes in.
@@ -29,6 +30,11 @@ const arg = (n: string) => process.argv.find((a) => a.startsWith(`--${n}=`))?.sp
 const APPLY = process.argv.includes("--apply");
 const LIMIT = Math.max(1, Number(arg("limit") ?? 200));
 const PER_BATCH = Math.max(1, Number(arg("batch") ?? 8));
+// Which draft reason to work. The wrong_event sweep was the first customer, but
+// the same question — "what does the organiser say" — applies to anything we
+// pulled, and hardcoding one audit action meant the 18 rows held back from a
+// poisoned source were invisible to this script.
+const FROM = arg("from") ?? "hide:wrong-event";
 
 async function main() {
   const sql = requireSql();
@@ -41,7 +47,7 @@ async function main() {
            to_char(e.start_at at time zone 'America/Chicago','YYYY-MM-DD"T"HH24:MI') as was,
            coalesce(a.patch->>'evidence','') as evidence
     from admin_audit a join events e on e.id = a.event_id
-    where a.action = 'hide:wrong-event' and e.status = 'draft' and e.start_at > now()
+    where a.action = ${FROM} and e.status = 'draft' and e.start_at > now()
     order by e.id, a.at desc`;
 
   const items: RestoreItem[] = rows.slice(0, LIMIT);
