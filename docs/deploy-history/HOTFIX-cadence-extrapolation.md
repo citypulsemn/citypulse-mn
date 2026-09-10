@@ -136,8 +136,14 @@ against Supabase during the investigation, not by this deploy.
 ## Verify
 
 1. **The listing is gone.** `https://www.citypulsemn.com/event/7ffd0cd0-4d69-44f2-9185-09b67e609308`
-   should 404, and Sat 12 Sep should no longer name Starlight Cinema.
-   *Expect a delay of up to an hour* — see the caveat below.
+   should render "Event not found", and Sat 12 Sep should no longer name
+   Starlight Cinema. **Verified 10 Sep 2026, 13:38 CT** — day pages and
+   `/api/events` clean, event page `Age: 0`.
+
+   Note it answers **HTTP 200**, not 404. That is not this change: every missing
+   event page does, including a UUID that never existed. They carry
+   `<meta name="robots" content="noindex">`, so nothing gets indexed, but a soft
+   200 for a genuinely absent page is worth its own look sometime.
 2. **The sibling survived.** The same day page should still show **White Bear
    Township Movie in the Park** at Polar Lakes Park. If that vanished too,
    something over-reached.
@@ -150,7 +156,27 @@ against Supabase during the investigation, not by this deploy.
    `[dispatch] workflow dispatch failed: 401`.
 4. `npm test` — 2015 passing, including the two new cadence guards.
 
-### Caveat: the cache was not purged by hand
+### Resolved: the purge now works (and never had)
+
+The cache WAS eventually purged, at 13:38 CT — but only after three separate
+faults were cleared, each of which looked like the one before it:
+
+1. `REVALIDATE_SECRET` was set in none of the three places. Production answered
+   `503 not configured`; the pipeline and verify pass had been logging
+   `⚠ revalidation did NOT happen` on every run for two months while going green.
+2. Once set in Vercel, the running deployment still 503'd — Vercel hands env vars
+   to a deployment at BUILD time, so an already-running one never sees a new
+   secret. A redeploy fixed it.
+3. Then it returned `401 missing Authorization header` with the secret correct at
+   both ends. `SITE_URL` was the apex, the site 308s to www, and `fetch` strips
+   the Authorization header across a cross-origin redirect. `SITE_URL` now names
+   the canonical host, and `lib/revalidate-client.ts` refuses to follow a
+   redirect rather than failing as if the key were wrong.
+
+`[revalidate] ✓ caches cleared` — the first successful on-demand revalidation
+this project has performed. See docs/REVALIDATION.md.
+
+### Original caveat, kept for the record: the cache was not purged by hand
 
 `npm run revalidate` failed from this machine — **`REVALIDATE_SECRET` is not in
 `.env.local`** (it is set in Vercel and in GitHub Actions, just not locally).

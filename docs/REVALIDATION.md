@@ -153,10 +153,14 @@ failure. It deliberately does NOT re-attach the header and retry: a redirect is
 precisely how a bearer token would be exfiltrated from a misconfigured or taken
 -over host. Fix the hostname, do not chase it.
 
-## Status: the channel is not live (confirmed 10 Sep 2026)
+## Status: LIVE since 10 Sep 2026, 13:38 CT
 
-**The secret was never set, in any of the three places.** Everything above works;
-none of it has ever run in production.
+First successful bust: `[revalidate] ✓ caches cleared`, via the Purge Caches
+workflow. Everything below is the history of why it took two months and three
+faults, kept because each one impersonated the one before it.
+
+**The secret had never been set, in any of the three places.** Everything above
+worked; none of it had ever run in production.
 
 Evidence, all from 10 Sep 2026:
 
@@ -173,7 +177,12 @@ So every cache bust this project believes it performs has been a no-op since the
 endpoint shipped. A verify-pass cancellation — the one thing that pass exists to
 push out fast — has been waiting on the TTLs like everything else.
 
-**The fix is one secret in three places** (see "The secret" above), then
+Two more faults sat behind it, each looking like the last: Vercel only hands env
+vars to a deployment at BUILD time (so the running deployment still 503'd until a
+redeploy), and then `SITE_URL` pointed at the apex, whose 308 to www strips the
+Authorization header — a wrong hostname wearing the costume of a wrong key.
+
+**The fix was one secret in three places** (see "The secret" above), then
 `npm run revalidate -- --reason="smoke test"` should print `✓ caches cleared`.
 The Purge Caches workflow is the same smoke test from a phone.
 
