@@ -1,8 +1,10 @@
 import { describe, it, expect } from "vitest";
+import { distanceMeters } from "../geo-distance";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import {
   PLACES,
+  nearbyOfKind,
   KIND_META,
   placesByKind,
   placesByNeighborhood,
@@ -1208,5 +1210,66 @@ describe("filter by detail (winning-detail filters — P4.3 follow-on)", () => {
     const tubers = filterPlaces(skiHills, { ...NO_PLACE_FILTERS, details: ["tubing"] }, JULY);
     expect(tubers.length).toBeGreaterThan(0);
     expect(tubers.every((p) => p.details?.tubing === true)).toBe(true);
+  });
+});
+
+describe("nearbyOfKind — sideways links out of a detail page", () => {
+  it("never includes the place itself", () => {
+    for (const p of PLACES.slice(0, 40)) {
+      expect(nearbyOfKind(p).some((q) => q.slug === p.slug), p.slug).toBe(false);
+    }
+  });
+
+  it("only ever returns the same kind", () => {
+    for (const p of PLACES.slice(0, 40)) {
+      for (const q of nearbyOfKind(p)) expect(q.kind, `${p.slug} -> ${q.slug}`).toBe(p.kind);
+    }
+  });
+
+  it("puts same-city peers first — that is the link text that earns the query", () => {
+    // "[city] + [kind]" is the one Places pattern with evidence behind it.
+    const withPeers = PLACES.find(
+      (p) => PLACES.filter((q) => q.kind === p.kind && q.city === p.city && q.slug !== p.slug).length >= 2,
+    )!;
+    const out = nearbyOfKind(withPeers, 6);
+    const firstOtherCity = out.findIndex((p) => p.city !== withPeers.city);
+    const lastSameCity = out.map((p) => p.city === withPeers.city).lastIndexOf(true);
+    if (firstOtherCity !== -1) expect(lastSameCity).toBeLessThan(firstOtherCity);
+  });
+
+  it("still fills the block when a place is the only one of its kind in its city", () => {
+    // 319 of 567 places (56%) are alone in their city — the pages with the
+    // least content. An empty block there would defeat the point.
+    const alone = PLACES.find(
+      (p) =>
+        PLACES.filter((q) => q.kind === p.kind && q.city === p.city && q.slug !== p.slug).length === 0 &&
+        PLACES.filter((q) => q.kind === p.kind).length > 3,
+    )!;
+    expect(alone).toBeDefined();
+    expect(nearbyOfKind(alone).length).toBeGreaterThan(0);
+  });
+
+  it("orders the out-of-city tail by real distance", () => {
+    const p = PLACES.find((x) => PLACES.filter((q) => q.kind === x.kind).length > 8)!;
+    const out = nearbyOfKind(p, 6).filter((q) => q.city !== p.city);
+    const d = out.map((q) => distanceMeters(p.lat, p.lng, q.lat, q.lng));
+    expect(d).toEqual([...d].sort((a, b) => a - b));
+  });
+
+  it("respects the limit and survives a degenerate one", () => {
+    const p = PLACES.find((x) => PLACES.filter((q) => q.kind === x.kind).length > 8)!;
+    expect(nearbyOfKind(p, 3)).toHaveLength(3);
+    expect(nearbyOfKind(p, 0)).toEqual([]);
+    expect(nearbyOfKind(p, -1)).toEqual([]);
+  });
+
+  it("returns nothing for a kind with only one place, rather than throwing", () => {
+    const kinds = new Map<string, number>();
+    for (const p of PLACES) kinds.set(p.kind, (kinds.get(p.kind) ?? 0) + 1);
+    const lonelyKind = [...kinds.entries()].find(([, n]) => n === 1)?.[0];
+    if (lonelyKind) {
+      const only = PLACES.find((p) => p.kind === lonelyKind)!;
+      expect(nearbyOfKind(only)).toEqual([]);
+    }
   });
 });

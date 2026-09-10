@@ -6201,6 +6201,36 @@ export function placeCities(places: Place[]): string[] {
   return [...new Set(places.map((p) => p.city))].sort((a, b) => a.localeCompare(b));
 }
 
+/**
+ * Other places of the same kind worth linking from a detail page: the ones in
+ * the same city first, then the nearest elsewhere.
+ *
+ * WHY BOTH. A detail page carries about 25 words of its own content, and the
+ * only links out of it went to other KINDS ("more Twin Cities guides"). So the
+ * 587 detail pages formed 18 shallow stars with no edges between the leaves —
+ * nothing for a reader who wants a different splash pad, and nothing for a
+ * crawler to follow sideways. On 10 Sep 2026 Google had declined to index about
+ * a third of them, and Places earned 0.9% of the site's search impressions.
+ *
+ * WHY NOT SAME-CITY ONLY. 319 of 567 places (56%) are the only one of their
+ * kind in their city. A same-city-only block would be empty on exactly the
+ * pages with the least content — so the nearest ones elsewhere fill it out.
+ *
+ * The city-first ordering is deliberate: "[city] + [kind]" is the one Places
+ * search pattern with evidence behind it ("chanhassen splash pad" ranks 5th at
+ * 12.5% CTR), and this puts that wording in the link text.
+ */
+export function nearbyOfKind(place: Place, limit = 6): Place[] {
+  const byDistance = (a: Place, b: Place) =>
+    distanceMeters(place.lat, place.lng, a.lat, a.lng) -
+    distanceMeters(place.lat, place.lng, b.lat, b.lng);
+
+  const others = PLACES.filter((p) => p.kind === place.kind && p.slug !== place.slug);
+  const inCity = others.filter((p) => p.city === place.city).sort(byDistance);
+  const elsewhere = others.filter((p) => p.city !== place.city).sort(byDistance);
+  return [...inCity, ...elsewhere].slice(0, Math.max(0, limit));
+}
+
 // ── "Near me" distance ranking (P4.3 follow-up) ──────────────────────────────
 
 export interface LatLng {

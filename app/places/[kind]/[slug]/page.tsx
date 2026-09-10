@@ -9,6 +9,7 @@ import {
   placeForKindSlug,
   placesByKind,
   relatedKinds,
+  nearbyOfKind,
   kindsWithPlaces,
   PLACE_DETAIL_LABELS,
   type Place,
@@ -17,6 +18,7 @@ import {
   type PlaceKind,
 } from "@/lib/places";
 import { neighborhoodByKey } from "@/lib/neighborhoods";
+import { matchCitySlug } from "@/lib/cities";
 import { placeDetailJsonLd } from "@/lib/seo/places-jsonld";
 import { jsonLdSafe } from "@/lib/seo/event-jsonld";
 import { staticMapUrl } from "@/lib/event-view";
@@ -105,6 +107,9 @@ export default async function PlaceDetailPage({
   const hood = place.neighborhood ? neighborhoodByKey(place.neighborhood) : null;
   const badges = detailBadges(place.details);
   const related = relatedKinds(k);
+  const nearby = nearbyOfKind(place, 6);
+  const nearbyInCity = nearby.filter((p) => p.city === place.city).length;
+  const citySlug = matchCitySlug(place.city);
 
   const mapUrl = staticMapUrl(place.lat, place.lng, process.env.NEXT_PUBLIC_MAPBOX_TOKEN);
   const directions =
@@ -189,6 +194,36 @@ export default async function PlaceDetailPage({
           sub="The week’s best events and outings — concerts, festivals, and places like this — every Thursday."
         />
 
+        {/* Sideways links. Until now the only way out of a detail page was to
+            another KIND, so 587 of these were leaves with no edges between them
+            — no use to a reader who wants a different one, and nothing for a
+            crawler to follow. City-first, because "[city] + [kind]" is the one
+            Places search pattern with evidence behind it. */}
+        {nearby.length > 0 && (
+          <nav
+            className="related-guides"
+            aria-label={`More ${meta.plural.toLowerCase()} nearby`}
+          >
+            <h2 className="related-guides-title">
+              {nearbyInCity > 0
+                ? `More ${meta.plural.toLowerCase()} in ${place.city}`
+                : `Nearest ${meta.plural.toLowerCase()}`}
+            </h2>
+            <div className="related-guides-links">
+              {nearby.map((p) => (
+                <a
+                  key={p.slug}
+                  href={`/places/${p.kind}/${p.slug}`}
+                  className="related-guide-link"
+                >
+                  {p.name}
+                  {p.city !== place.city ? ` · ${p.city}` : ""}
+                </a>
+              ))}
+            </div>
+          </nav>
+        )}
+
         {related.length > 0 && (
           <nav className="related-guides" aria-label="More place guides">
             <h2 className="related-guides-title">More Twin Cities guides</h2>
@@ -196,6 +231,11 @@ export default async function PlaceDetailPage({
               <a href={`/places/${k}`} className="related-guide-link">
                 All {meta.plural}
               </a>
+              {citySlug && (
+                <a href={`/cities/${citySlug}`} className="related-guide-link">
+                  What&rsquo;s on in {place.city}
+                </a>
+              )}
               {related.map((rk) => (
                 <a key={rk} href={`/places/${rk}`} className="related-guide-link">
                   {KIND_META[rk].plural}
