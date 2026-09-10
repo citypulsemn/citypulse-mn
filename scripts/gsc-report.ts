@@ -74,7 +74,21 @@ async function main() {
   // discovery shop-windows (/this-week[end]) indexed? Answers whether Places'
   // zero impressions is "not indexed" (a fixable blocker) vs "indexed but not
   // ranking yet" (a maturity wait — don't keep building kinds on faith).
-  const INDEX_PATHS = ["/places", "/places/splash-pad", "/places/rink", "/places/ski-hill", "/this-week", "/this-weekend"];
+  // Kind pages AND detail pages. Only kind pages were ever inspected, which
+  // hid the thing that mattered: 587 of the 589 Places URLs in the sitemap are
+  // DETAIL pages, and they earn 180 impressions a month between them (0.9% of
+  // the site) — 0.3 impressions per page. Whether that is "not indexed" or
+  // "indexed and invisible" is the whole question, and nothing was asking it.
+  const INDEX_PATHS = [
+    "/places", "/places/splash-pad", "/places/rink", "/places/ski-hill",
+    "/places/orchard/aamodts-apple-farm",
+    "/places/disc-golf/acorn-park-disc-golf",
+    "/places/indoor-playground/adventure-peak-edinborough",
+    "/places/museum/american-swedish-institute",
+    "/places/park/afton-state-park",
+    "/places/dog-park/alimagnet-dog-park",
+    "/this-week", "/this-weekend",
+  ];
   const idx = await inspectUrls(INDEX_PATHS, new Date());
   if (idx.length > 0) {
     console.log("\n## INDEXATION CHECK (URL Inspection API)");
