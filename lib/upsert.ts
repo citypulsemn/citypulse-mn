@@ -192,8 +192,24 @@ export async function dedupeNearDuplicates(): Promise<number> {
        and (a.start_at at time zone 'America/Chicago')::date
            = (b.start_at at time zone 'America/Chicago')::date
        and similarity(a.title, b.title) > 0.6
+       -- Sep 2026: matching venue NAMES settle identity on their own, and
+       -- distance only arbitrates when the names genuinely differ. This used to
+       -- be the distance test alone, which made agent-supplied coordinates the
+       -- arbiter of identity — and they are not good enough for that. Four
+       -- same-day pairs with an IDENTICAL venue name sat live with coordinates
+       -- 3.6km, 6.9km, 21km and 122km apart; every one survived because the
+       -- 250m gate believed the coordinates over the venue.
+       -- Mirrors isNearDuplicate() in lib/geo-distance.ts — change both together.
+       -- word_similarity, not similarity: venue names differ by CONTAINMENT far
+       -- more often than by typo ("Lake Nokomis" inside "Lake Nokomis Community
+       -- Center", "First Avenue" inside "First Avenue & 7th St Entry"). Plain
+       -- trigram similarity punishes the length difference and scores those
+       -- 0.45 and 0.52; word_similarity scores both 1.00. It is asymmetric, so
+       -- take the better direction. "Target Field" vs "Xcel Energy Center"
+       -- still scores 0.00 — this loosens containment, not identity.
        and (
-         6371000 * acos(greatest(-1, least(1,
+         greatest(word_similarity(a.venue, b.venue), word_similarity(b.venue, a.venue)) > 0.6
+         or 6371000 * acos(greatest(-1, least(1,
            cos(radians(a.lat)) * cos(radians(b.lat)) * cos(radians(b.lng) - radians(a.lng))
            + sin(radians(a.lat)) * sin(radians(b.lat))
          ))) < 250
