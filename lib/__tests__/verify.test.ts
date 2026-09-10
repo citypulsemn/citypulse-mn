@@ -78,8 +78,19 @@ describe("selectForVerification", () => {
       ev({ id: "draft", start: "2026-07-16T20:00", status: "draft" }),
       ev({ id: "noSource", start: "2026-07-16T21:00", sourceUrl: "", ticketUrl: "" }),
     ];
-    const picked = selectForVerification(list, NOW);
+    // Window pinned to 7: this test is about WHAT gets excluded (past, draft,
+    // sourceless, outside the window) and the soonest-first order. The default
+    // horizon is now 92 days, which would legitimately include "nextMonth".
+    const picked = selectForVerification(list, NOW, { days: 7 });
     expect(picked.map((e) => e.id)).toEqual(["tonight", "sun"]);
+  });
+
+  it("the default horizon reaches as far as the pipeline researches", () => {
+    // The pipeline researches 92 days out (lib/horizon.ts) while this pass
+    // looked 7. Everything in between was published and never checkable — 88%
+    // of unverified events on 9 Sep 2026.
+    const nextMonth = ev({ id: "nextMonth", start: "2026-08-20T20:00" });
+    expect(selectForVerification([nextMonth], NOW).map((e) => e.id)).toEqual(["nextMonth"]);
   });
 
   it("caps the batch and keeps the soonest (tonight beats Sunday)", () => {
@@ -210,7 +221,10 @@ describe("selectForVerification — CI runner boundary (R1.6, rule 10)", () => {
   it("events just past day 7 no longer sneak in through the shifted far edge", () => {
     const runnerNow = new Date("2026-07-16T16:00:00Z"); // wall 11:00, so far edge is 7/23 11:00 wall
     const sneaky = ev({ id: "late", start: "2026-07-23T14:00" }); // old fake-UTC edge admitted this
-    expect(selectForVerification([sneaky], runnerNow)).toEqual([]);
+    // `days` is pinned because this test is about WHERE the far edge falls
+    // (wall clock, not naive UTC), not about the horizon's default — which is
+    // now 92 days, matching what the pipeline researches.
+    expect(selectForVerification([sneaky], runnerNow, { days: 7 })).toEqual([]);
   });
 });
 
@@ -346,5 +360,60 @@ describe("the research prompts guard against a stale year", () => {
     );
     expect(p).toMatch(/CHECK THE YEAR/);
     expect(p).toMatch(/archive of a past season/i);
+  });
+});
+
+describe("selectForVerification — riskiest source first (Sep 2026)", () => {
+  const base = {
+    venue: "V", city: "Minneapolis", ticketUrl: "", status: "published" as const,
+  };
+  const at = (id: string, start: string, sourceUrl: string, verifiedAt: string | null) => ({
+    ...base, id, title: id, start, sourceUrl, verifiedAt,
+  });
+  // "now" is fixed; all three start comfortably inside the horizon.
+  const NOW = new Date("2026-09-10T12:00:00Z");
+
+  it("puts a never-verified ROUNDUP-sourced event ahead of a sooner never-verified one", () => {
+    // The Westwood Hills listing was unverified and roundup-sourced, and sat
+    // behind hundreds of other unverified rows. It is the shape that has twice
+    // turned out to be fabricated, so it goes first.
+    const picked = selectForVerification(
+      [
+        at("venue-page", "2026-09-11T19:00", "https://first-avenue.com/show/x", null),
+        at("roundup", "2026-09-30T19:00", "https://bringmethenews.com/x/best-halloween", null),
+      ],
+      NOW,
+    );
+    expect(picked.map((p) => p.id)).toEqual(["roundup", "venue-page"]);
+  });
+
+  it("still puts any never-verified event ahead of a confirmed one", () => {
+    const picked = selectForVerification(
+      [
+        at("confirmed", "2026-09-11T19:00", "https://bringmethenews.com/x", "2026-09-01"),
+        at("never", "2026-09-25T19:00", "https://first-avenue.com/show/x", null),
+      ],
+      NOW,
+    );
+    expect(picked.map((p) => p.id)).toEqual(["never", "confirmed"]);
+  });
+
+  it("breaks ties by soonest within the same risk band", () => {
+    const picked = selectForVerification(
+      [
+        at("later", "2026-09-30T19:00", "https://mspmag.com/a", null),
+        at("sooner", "2026-09-12T19:00", "https://mspmag.com/b", null),
+      ],
+      NOW,
+    );
+    expect(picked.map((p) => p.id)).toEqual(["sooner", "later"]);
+  });
+
+  it("reaches past 7 days now — the backlog was invisible before", () => {
+    // 88% of unverified events started more than 7 days out. Under the old
+    // hardcoded 7-day window this returned nothing at all.
+    const far = at("far", "2026-10-25T19:00", "https://mspmag.com/a", null);
+    expect(selectForVerification([far], NOW).map((p) => p.id)).toEqual(["far"]);
+    expect(selectForVerification([far], NOW, { days: 7 })).toEqual([]);
   });
 });

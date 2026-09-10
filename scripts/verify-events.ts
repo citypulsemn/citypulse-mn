@@ -16,6 +16,7 @@ import {
   actionFor,
   withinBudget,
   DEFAULT_CAP,
+  VERIFY_HORIZON_DAYS,
 } from "../lib/verify";
 import { verifyEventsBatch } from "../lib/agents/research-agent";
 import { markVerified, cancelVerified, flagVerification } from "../lib/upsert";
@@ -25,6 +26,12 @@ async function main() {
   const dryRun = process.argv.includes("--dry-run");
   const capArg = process.argv.find((a) => a.startsWith("--cap="));
   const cap = capArg ? Math.max(1, Number(capArg.slice(6)) || DEFAULT_CAP) : DEFAULT_CAP;
+  // How far ahead to look. The horizon used to be hardcoded at 7 days in TWO
+  // places — here and in selectForVerification — so 88% of unverified events
+  // were invisible to this pass until the week they happened. Both now follow
+  // this one value.
+  const daysArg = process.argv.find((a) => a.startsWith("--days="));
+  const days = daysArg ? Math.max(1, Number(daysArg.slice(7)) || VERIFY_HORIZON_DAYS) : VERIFY_HORIZON_DAYS;
   if (!sql) throw new Error("DATABASE_URL is required");
   if (!process.env.ANTHROPIC_API_KEY) throw new Error("ANTHROPIC_API_KEY is required");
 
@@ -37,17 +44,17 @@ async function main() {
            verified_at::text as "verifiedAt"
     from events
     where status = 'published' and start_at >= now()
-      and start_at <= now() + interval '7 days'
+      and start_at <= now() + (${days} * interval '1 day')
   `;
 
-  const candidates = selectForVerification(rows, new Date(), { cap });
+  const candidates = selectForVerification(rows, new Date(), { cap, days });
   const freshLooks = candidates.filter((c) => !rows.find((r) => r.id === c.id)?.verifiedAt).length;
   const unverifiedInWindow = rows.filter(
     (r) => !r.verifiedAt && (r.sourceUrl || r.ticketUrl).trim().length > 0,
   ).length;
 
   console.log(
-    `[verify] window ${rows.length} · checking ${candidates.length} (cap ${cap})${dryRun ? " (DRY RUN)" : ""}`,
+    `[verify] window ${rows.length} over ${days}d · checking ${candidates.length} (cap ${cap})${dryRun ? " (DRY RUN)" : ""}`,
   );
   console.log(
     `[verify] ${freshLooks} never verified before, ${candidates.length - freshLooks} re-checks`,

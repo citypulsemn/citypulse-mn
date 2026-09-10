@@ -1,4 +1,5 @@
 import type { EventRecord } from "./types";
+import { isAggregatorSource } from "./source-trust";
 import { chiWallClock } from "./clock";
 
 /**
@@ -129,6 +130,10 @@ export const DEFAULT_CAP = 200;
  */
 export const RUN_BUDGET_MS = 20 * 60 * 1000;
 
+/** How far ahead verification looks. Matches the pipeline research horizon in
+ *  lib/horizon.ts — anything we publish, we should be able to check. */
+export const VERIFY_HORIZON_DAYS = 92;
+
 /**
  * Should the loop start another batch? Checked BEFORE each batch, never during:
  * a batch already in flight has been paid for and always finishes.
@@ -151,7 +156,8 @@ export type VerificationCandidate = Pick<
  * source to check against. Events with no source or ticket URL are skipped —
  * there's nothing to check them against.
  *
- * ORDER: never-verified first, then soonest first inside each group.
+ * ORDER: never-verified-from-a-roundup first, then never-verified, then
+ * soonest first inside each group.
  *
  * It used to be soonest-first only, and that quietly wasted the budget. The
  * league and venue importers stamp `verified_at` on the rows they cover, so the
@@ -167,7 +173,13 @@ export function selectForVerification(
   now: Date,
   opts: { days?: number; cap?: number } = {},
 ): VerifiableEvent[] {
-  const days = opts.days ?? 7;
+  // Match the research horizon. It was 7, while the pipeline researches 92 days
+  // out (lib/horizon.ts) — so 88% of unverified events were structurally
+  // invisible to this pass until the week they happened, by which point the cap
+  // and the time budget were already spent on that week. Widening costs nothing:
+  // `cap` bounds the work, not the window; this only changes WHICH events the
+  // same budget looks at.
+  const days = opts.days ?? VERIFY_HORIZON_DAYS;
   const cap = opts.cap ?? DEFAULT_CAP;
   // R1.6 (rule 10): walls to walls. The old naive-parse window, run on the
   // Thursday 16:00 UTC Actions runner, dropped tonight's events from
@@ -179,17 +191,28 @@ export function selectForVerification(
 
   const neverVerified = (e: VerificationCandidate) => !e.verifiedAt;
 
+  /**
+   * 0 = never verified AND sourced from a third-party roundup — the exact shape
+   * that produced the Damian Marley and Westwood Hills fabrications, so it gets
+   * looked at first. 1 = never verified. 2 = already confirmed once.
+   */
+  const risk = (e: VerificationCandidate): number => {
+    if (!neverVerified(e)) return 2;
+    return isAggregatorSource(e.sourceUrl || e.ticketUrl || "") ? 0 : 1;
+  };
+
   return events
     .filter((e) => e.status === "published")
     .filter((e) => (e.sourceUrl || e.ticketUrl).trim().length > 0)
     .filter((e) => e.start >= fromWall && e.start <= toWall)
     .sort((a, b) => {
-      // Never-verified first; soonest first within each group. Tonight's
-      // unconfirmed show outranks tonight's confirmed one, and both outrank
-      // Sunday's.
-      const an = neverVerified(a) ? 0 : 1;
-      const bn = neverVerified(b) ? 0 : 1;
-      if (an !== bn) return an - bn;
+      // Riskiest first; soonest first within each group. Tonight's unconfirmed
+      // show outranks tonight's confirmed one, and both outrank Sunday's — and
+      // an unconfirmed listing whose only source is a seasonal roundup outranks
+      // every other unconfirmed one.
+      const ar = risk(a);
+      const br = risk(b);
+      if (ar !== br) return ar - br;
       return a.start.localeCompare(b.start);
     })
     .slice(0, cap)
