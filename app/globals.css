@@ -1317,3 +1317,19 @@ a.daycard { text-decoration: none; }
 .visited-kind-list a { color: var(--cream); text-decoration: none; }
 .visited-kind-list a:hover { color: var(--gold); }
 .visited-kind-city { color: var(--cream-dim); font-size: 12.5px; }
+
+/* ── Legal pages (privacy, terms) ──────────────────────────────────────────
+   Long-form prose, which nothing else on the site is. Measure capped at 68ch
+   so it stays readable on a wide screen, and headings get real space — these
+   are pages someone reads to find one answer, so the scan matters more than
+   the density. */
+.legal-body { max-width: 68ch; margin: 28px 0 40px; color: var(--cream-dim); font-size: 15px; line-height: 1.65; }
+.legal-body h2 { color: var(--cream); font-size: 19px; margin: 34px 0 10px; letter-spacing: 0.01em; }
+.legal-body h3 { color: var(--cream); font-size: 15.5px; margin: 22px 0 6px; font-weight: 600; }
+.legal-body p { margin: 0 0 12px; }
+.legal-body ul { margin: 0 0 14px; padding-left: 20px; }
+.legal-body li { margin: 0 0 7px; }
+.legal-body strong { color: var(--cream); font-weight: 600; }
+.legal-body a { color: var(--gold); text-underline-offset: 2px; }
+.legal-body code { font-size: 13px; background: rgba(255,255,255,0.06); padding: 1px 5px; border-radius: 4px; }
+@media (max-width: 640px) { .legal-body { font-size: 14.5px; } .legal-body h2 { font-size: 17.5px; margin-top: 28px; } }
