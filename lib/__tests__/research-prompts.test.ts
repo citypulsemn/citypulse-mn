@@ -71,3 +71,25 @@ describe("a cadence is not a schedule", () => {
     expect(p).toContain("only the dates the calendar itself names");
   });
 });
+
+describe("buildResearchPrompt — the venue rule (Sep 2026)", () => {
+  const p = buildResearchPrompt("festival", "2026-09-01", "2026-09-30");
+
+  it("forbids hedging an unknown venue, the way it already forbids a hollow title", () => {
+    // One index page (festivalguidesandreviews.com/minnesota-festivals/) gave a
+    // name, a city and dates but no venue, and the agent filled the gap with a
+    // parenthetical instead of skipping. 43 of the site's 53 placeholder venues
+    // came from that single URL.
+    expect(p).toContain("IF YOU CANNOT SAY WHERE IT IS, OMIT THE EVENT");
+    expect(p).toMatch(/A city is not a venue/i);
+  });
+
+  it("names the actual strings it produced, so the rule is concrete", () => {
+    expect(p).toContain("TBD – Saint Paul");
+    expect(p).toContain("Various Locations, City of Eagan");
+  });
+
+  it("still forbids the hollow TITLE — the rule it mirrors", () => {
+    expect(p).toContain("IF YOU CANNOT NAME WHAT IS HAPPENING, OMIT THE EVENT");
+  });
+});

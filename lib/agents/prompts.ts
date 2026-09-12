@@ -80,6 +80,15 @@ Rules:
   "Fitzgerald Theater Concert Event" are not events — they tell a reader nothing,
   and a missing listing is far better than a hollow one. Knowing a venue is busy
   is not knowing what is on there.
+- IF YOU CANNOT SAY WHERE IT IS, OMIT THE EVENT. The same rule, for the venue.
+  A festival list that gives a name, a city and a date but no venue is not enough
+  to list from. Never hedge it into the venue field: "St. Louis Park (specific
+  venue TBD)", "TBD – Saint Paul", "Minneapolis (venue TBD per organizers)" and
+  "Various Locations, City of Eagan" are all things this pipeline has published,
+  and every one of them shipped a map pin and a Directions button aimed at a
+  coordinate the listing itself said it did not know. That is worse than the
+  blank it was hiding. A city is not a venue. If the source will not tell you
+  the place, leave the event out and let a later pass find it.
 - Spread coverage across the metro: actively look for suburban events, not only the two downtowns.
 - If you confirm an event was cancelled, still include it with "cancelled": true so we can remove it.
 - Do NOT geocode or assign a price tier — a later step handles that.

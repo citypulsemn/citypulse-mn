@@ -20,6 +20,7 @@ import {
   VERIFY_HORIZON_DAYS,
 } from "../lib/verify";
 import { verifyEventsBatch } from "../lib/agents/research-agent";
+import { venueIsUnknown, unknownVenueReason } from "../lib/venue-quality";
 import { markVerified, cancelVerified, flagVerification } from "../lib/upsert";
 import type { EventStatus } from "../lib/types";
 
@@ -113,7 +114,19 @@ async function main() {
         console.log(`[verify]   ✗ CANCELLED "${title}" — ${action.evidence.slice(0, 90)}`);
         batchCancels.push({ id: action.id, evidence: action.evidence });
       } else if (action.kind === "confirm") {
-        batchConfirms.push(action.id);
+        // "Confirmed" has to mean we know WHERE it is. On 12 Sep 2026 five live
+        // listings carried verified_at with a venue of "TBD – Saint Paul" or
+        // "Saint Paul (location TBD)" — the pass had checked that the event was
+        // real and stamped it, while the row still could not tell a reader
+        // where to go. A stamp on that is a promise we have not kept.
+        const ev = batch.find((e) => e.id === action.id);
+        if (venueIsUnknown(ev?.venue, ev?.city)) {
+          const why = unknownVenueReason(ev?.venue, ev?.city) ?? "venue unknown";
+          console.log(`[verify]   ⚑ NO-VENUE "${title}" — confirmed, but ${why}`);
+          batchFlags.push({ id: action.id, verdict: "no_venue", note: why });
+        } else {
+          batchConfirms.push(action.id);
+        }
       } else {
         console.log(`[verify]   ⚑ ${action.verdict.toUpperCase()} "${title}" — ${action.note}`);
         batchFlags.push({ id: action.id, verdict: action.verdict, note: action.note });

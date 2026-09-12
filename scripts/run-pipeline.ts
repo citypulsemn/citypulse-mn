@@ -31,6 +31,7 @@ import { partitionCancellations } from "../lib/cancellations";
 import { dueWindows } from "../lib/horizon";
 import { NEW_EVENT_STATUS } from "../lib/pipeline-config";
 import { statusForNewEvent, heldBackReason } from "../lib/source-trust";
+import { venueIsUnknown, unknownVenueReason } from "../lib/venue-quality";
 import { sql } from "../lib/db";
 import { revalidateAndReport } from "../lib/revalidate-client";
 import type { DbEventInput } from "../lib/types";
@@ -205,9 +206,15 @@ async function main() {
           // those land as draft until the verify pass confirms them against the
           // venue itself. Two fabrications came in through roundups (see
           // lib/source-trust.ts). Revert to draft in the DB any time to hide.
+          // Two gates, both of which only ever HOLD BACK. A roundup source is
+          // one; a venue that admits it does not know where the event is is the
+          // other — those ship a map pin and a Directions button pointing at a
+          // coordinate the listing itself calls unknown.
           status:
             NEW_EVENT_STATUS === "published"
-              ? statusForNewEvent(ev.source_url)
+              ? venueIsUnknown(ev.venue, ev.city)
+                ? "draft"
+                : statusForNewEvent(ev.source_url)
               : NEW_EVENT_STATUS,
         });
       }
@@ -218,7 +225,11 @@ async function main() {
           `[pipeline] ${win.label}/${category}: ${held.length} held as draft — ` +
             `${heldBackReason(held[0].source_url) ?? "unverified source"}`,
         );
-        for (const h of held) console.log(`[pipeline]   held: ${h.title}`);
+        for (const h of held)
+          console.log(
+            `[pipeline]   held: ${h.title}` +
+              `${unknownVenueReason(h.venue, h.city) ? ` — ${unknownVenueReason(h.venue, h.city)}` : ""}`,
+          );
       }
       const n = await upsertEvents(normalized);
       const cancelled = await markCancelled(cancelledKeys);
