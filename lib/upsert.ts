@@ -1,6 +1,7 @@
 import { requireSql } from "./db";
 import type { DbEventInput } from "./types";
 import { planCollapse } from "./multiday";
+import { displayPrice } from "./price-quality";
 
 /** Count populated optional fields — a rough "richness" score for a row. */
 function richness(e: DbEventInput): number {
@@ -76,7 +77,8 @@ export async function upsertEvents(events: DbEventInput[]): Promise<number> {
     start_at: e.start_at,
     all_day: e.all_day ?? false,
     end_at: guardEndAt(e.start_at, e.end_at),
-    price: e.price,
+    // "TBD" never enters the column; the schema default says it better.
+    price: displayPrice(e.price),
     price_tier: e.priceTier,
     ticket_url: e.ticket_url,
     description: e.description,

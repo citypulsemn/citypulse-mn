@@ -46,7 +46,9 @@ For each event, gather:
 - city (e.g. Minneapolis, St Paul, Plymouth, Bloomington, Maple Grove)
 - start (ISO 8601, local time, e.g. 2026-06-20T19:30)
 - end (ISO 8601, local time; best estimate if not listed)
-- price (display string, e.g. "$45", "$18-$120", "Free")
+- price (display string, e.g. "$45", "$18-$120", "Free"). If the price is not
+  published, write exactly "See listing" — never "TBD", "TBA" or "Unknown". A
+  shrug in this field reads to a visitor as "we did not look".
 - ticket_url (link to tickets or the official listing)
 - description (1-2 factual sentences)
 - source_url (where you found it)
@@ -129,7 +131,9 @@ For each event, gather:
 - city
 - start (ISO 8601, local time, e.g. 2026-06-20T19:30)
 - end (ISO 8601, local time; best estimate if not listed)
-- price (display string, e.g. "$45", "$18-$120", "Free")
+- price (display string, e.g. "$45", "$18-$120", "Free"). If the price is not
+  published, write exactly "See listing" — never "TBD", "TBA" or "Unknown". A
+  shrug in this field reads to a visitor as "we did not look".
 - ticket_url
 - description (1-2 factual sentences)
 - source_url (the venue calendar page you read)

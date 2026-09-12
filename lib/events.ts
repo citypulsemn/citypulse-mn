@@ -4,6 +4,7 @@ import { sampleEvents } from "./sample-events";
 import { isPublicStatus, dayKeyOf } from "./event-view";
 import { cleanEventTitle, displayCity } from "./title-hygiene";
 import { eventNeighborhood } from "./neighborhoods";
+import { displayPrice } from "./price-quality";
 import type { EventRecord, EventStatus, CategoryKey, PriceTier } from "./types";
 
 /**
@@ -84,7 +85,9 @@ function rowToEvent(r: Row): EventRecord {
     lng: Number(r.lng),
     start: r.start,
     end: r.end ?? r.start,
-    price: r.price,
+    // A stored "TBD" heals on read as well as on write, so the 101 live rows
+    // that already carry one stop saying it without waiting for a migration.
+    price: displayPrice(r.price),
     priceTier: r.price_tier,
     ticketUrl: r.ticket_url,
     description: r.description,
