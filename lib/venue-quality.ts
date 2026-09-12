@@ -23,9 +23,20 @@
  * Vagueness is not the defect; the admission of ignorance is.
  */
 
-/** Strings that are an admission the venue is not known. */
+/**
+ * Strings that are an admission the venue is not known.
+ *
+ * `various …? locations` rather than the literal pair: the first version of this
+ * checked `\bvarious locations\b` and a restore pass walked straight through it
+ * with "Various NAMED locations in Eagan's Art Block area, including Caponi Art
+ * Park, Wescott Library, …". One intervening word was enough.
+ *
+ * `including` is the other half of that lesson. A venue field is a NAME. The
+ * moment it starts listing examples it has stopped naming a place and started
+ * describing a region, and no real venue has "including" in its name.
+ */
 const ADMITS_UNKNOWN =
-  /\b(tbd|tba)\b|\bto be (announced|determined|confirmed)\b|\bvarious locations\b|\blocation unknown\b/i;
+  /\b(tbd|tba)\b|\bto be (announced|determined|confirmed)\b|\bvarious\b[^,.]{0,24}\blocations?\b|\blocation unknown\b|\bincluding\b|\bmultiple (locations|venues|sites)\b/i;
 
 /**
  * True when the listing cannot say where the event is.

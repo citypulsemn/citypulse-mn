@@ -22,6 +22,7 @@
  */
 
 import { isAggregatorSource, isNonScheduleSource } from "./source-trust";
+import { venueIsUnknown } from "./venue-quality";
 
 export interface RestoreItem {
   id: string;
@@ -45,6 +46,9 @@ export interface RestoreResult {
   timeConfirmed?: boolean;
   /** The organiser page the answer came from. Required to act. */
   sourceUrl?: string;
+  /** The venue, when the organiser names one. Required to republish a row whose
+   *  own venue admits it is unknown — otherwise we would put the map pin back. */
+  venue?: string;
   note?: string;
 }
 
@@ -93,6 +97,15 @@ For EACH listing, exactly one outcome:
 - "not_happening" — the organiser's schedule covers this period and this event is not in it. A finished run from a previous season counts here: if a show ran Oct 2025 to Feb 2026, it is not happening in Oct 2026. Give "source_url" and say in "note" what the organiser's schedule actually shows.
 - "unclear"       — you could not reach the organiser, or they publish nothing that settles it. This is a perfectly good answer and it is much better than a guess.
 
+THE VENUE. Some of these were pulled not because the date was wrong but because
+the listing could not say WHERE the event is — its venue field reads "TBD",
+"(specific venue TBD)" or "Various Locations". Look at the "listing:" line: if
+the venue there admits it is unknown, this listing CANNOT come back without a
+real place, so give "venue" with the name the organiser publishes (a hall, a
+park, a church, a street with blocks named). A city name is not a venue. If the
+organiser does not name a place either, use "unclear" — do not invent one, and
+do not repeat the hedge back to us.
+
 RULES THAT MATTER MORE THAN COVERAGE:
 - A DATE YOU DID NOT READ ON THE ORGANISER'S PAGE IS A GUESS. Never infer one from a pattern ("it's usually the second weekend"), from last year, or from a similar event. If you did not read it, the outcome is "unclear".
 - MULTI-DAY EVENTS: give the FIRST day. Do not invent an end.
@@ -100,7 +113,7 @@ RULES THAT MATTER MORE THAN COVERAGE:
 - A RECURRING SERIES IS NOT ONE EVENT: if the organiser shows a run of dates, give the first one on or after today and say so in the note.
 
 Output ONLY a JSON array inside a single \`\`\`json code block:
-[{"id":"...","outcome":"corrected","start":"2026-10-10T10:00","time_confirmed":false,"source_url":"https://…","note":"organiser lists Oct 10-11; no time published"},
+[{"id":"...","outcome":"corrected","start":"2026-10-10T10:00","time_confirmed":false,"source_url":"https://…","venue":"Carpenter Nature Center","note":"organiser lists Oct 10-11; no time published"},
  {"id":"...","outcome":"not_happening","source_url":"https://…","note":"that run ended Feb 2026"},
  {"id":"...","outcome":"unclear","note":"organiser site unreachable"}]`;
 }
@@ -140,7 +153,8 @@ export function parseRestoreResults(text: string, asked: Set<string>): RestoreRe
         out.push({ id, outcome: "unclear", note: note ?? "correction missing a valid date or an organiser URL", sourceUrl });
         continue;
       }
-      out.push({ id, outcome: "corrected", start, timeConfirmed: o.time_confirmed === true, sourceUrl, note });
+      const venue = typeof o.venue === "string" && o.venue.trim() !== "" ? o.venue.trim() : undefined;
+      out.push({ id, outcome: "corrected", start, timeConfirmed: o.time_confirmed === true, sourceUrl, venue, note });
       continue;
     }
     if (outcome === "not_happening") {
@@ -159,13 +173,24 @@ export function parseRestoreResults(text: string, asked: Set<string>): RestoreRe
 
 /** What the caller should do. Kept separate from parsing so the policy is testable. */
 export type RestoreAction =
-  | { kind: "republish"; id: string; start: string; sourceUrl: string; stampVerified: boolean }
+  | {
+      kind: "republish";
+      id: string;
+      start: string;
+      sourceUrl: string;
+      stampVerified: boolean;
+      /** Set only when the organiser named a venue and we needed one. */
+      venue?: string;
+    }
   | { kind: "archive"; id: string; sourceUrl: string; note: string }
   | { kind: "leave"; id: string; note: string };
 
 export interface RestorePolicyOpts {
   /** Today, for the sanity window. */
   now: Date;
+  /** The row as it stands. Needed because a listing drafted for having no venue
+   *  must not be republished still having no venue. */
+  current?: { venue?: string | null; city?: string | null };
   /** Corrections further out than this are treated as suspect. */
   maxDaysAhead?: number;
 }
@@ -187,11 +212,30 @@ export function actionForRestore(r: RestoreResult, opts: RestorePolicyOpts): Res
     // A date in the past is not a correction, and one years out is a misread.
     if (days < 0) return { kind: "leave", id: r.id, note: `corrected date ${r.start} is in the past` };
     if (days > maxDays) return { kind: "leave", id: r.id, note: `corrected date ${r.start} is more than ${maxDays} days out` };
+    // A row drafted because it could not say WHERE must not come back still
+    // unable to say where. The restore pass corrects dates; if the reason this
+    // listing was pulled was the venue, a right date does not fix it — and
+    // republishing would put back the map pin and the Directions button aimed
+    // at a coordinate the listing calls unknown. See lib/venue-quality.ts.
+    // Only when the caller told us the row. Absent `current`, this function has
+    // no opinion on venues — treating "not told" as "no venue" would refuse
+    // every caller that only cares about dates.
+    const hadNoVenue = opts.current ? venueIsUnknown(opts.current.venue, opts.current.city) : false;
+    const gotVenue = r.venue && !venueIsUnknown(r.venue, opts.current?.city) ? r.venue : undefined;
+    if (hadNoVenue && !gotVenue) {
+      return {
+        kind: "leave",
+        id: r.id,
+        note: "still no venue — the organiser did not name a place, so this would republish a listing that cannot say where to go",
+      };
+    }
+
     return {
       kind: "republish",
       id: r.id,
       start: r.start!,
       sourceUrl: r.sourceUrl!,
+      venue: gotVenue,
       // Only a time the organiser actually printed earns the stamp. A date-only
       // correction goes back with the time it had and stays unverified, so the
       // next pass looks again — that is the Waiting for Godot lesson.

@@ -21,6 +21,11 @@ const UNKNOWN = [
   "Nicollet Avenue (specific blocks TBD)",
   "Farmington – venue TBD",
   "Various Locations, City of Eagan",
+  // Slipped past the first version of the regex — "various LOCATIONS" with one
+  // word in between. A restore pass republished a live listing with this as its
+  // venue on 12 Sep 2026.
+  "Various named locations in Eagan's Art Block area, including Caponi Art Park, Wescott Library, Emagine Theater, Eagan Art House (3981 Lexington Ave S), and area churches",
+  "Multiple locations across Northeast Minneapolis",
   "",
   "   ",
 ];
@@ -31,7 +36,9 @@ const USABLE = [
   "Uptown (Hennepin Ave & Lake St area)",
   "Little Canada City Hall Area",
   "New Brighton Community Area",
-  "Multiple Venues (Fringe Hub: Mixed Blood Theatre and others)",
+  // NB: dropped from the usable list — "Multiple Venues" is the same hedge, and
+  // a reader cannot navigate to it. The Fringe hub belongs in the venue field on
+  // its own if that is where to go.
   "Downtown Excelsior",
   "Cedar Avenue S (Seward Neighborhood)",
   // Ordinary venues, which must never trip this.

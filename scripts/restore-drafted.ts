@@ -80,13 +80,18 @@ async function main() {
 
     for (const r of results) {
       const row = batch.find((b) => b.id === r.id)!;
-      const act = actionForRestore(r, { now: new Date() });
+      const act = actionForRestore(r, {
+        now: new Date(),
+        current: { venue: row.venue, city: row.city },
+      });
       const label = row.title.slice(0, 44);
 
       if (act.kind === "republish") {
         console.log(
           `  ✓ REPUBLISH ${row.was} → ${act.start}  ${label}` +
-            `${act.stampVerified ? "  [time confirmed]" : "  [date only, left unverified]"}\n      ${act.sourceUrl}`,
+            `${act.stampVerified ? "  [time confirmed]" : "  [date only, left unverified]"}` +
+            `${act.venue ? `\n      venue → "${act.venue}"` : ""}` +
+            `\n      ${act.sourceUrl}`,
         );
         tally.republish++;
         if (APPLY) {
@@ -94,13 +99,15 @@ async function main() {
             await sql`
               update events set status='published',
                 start_at=(${act.start}::text::timestamp at time zone 'America/Chicago'),
-                event_key=${computeEventKey(row.title, row.venue, act.start)},
+                venue=${act.venue ?? row.venue},
+                event_key=${computeEventKey(row.title, act.venue ?? row.venue, act.start)},
                 source_url=${act.sourceUrl},
                 verified_at=${act.stampVerified ? sql`now()` : null},
                 updated_at=now()
               where id=${act.id}::uuid`;
             await sql`insert into admin_audit (action, event_id, patch) values ('restore:corrected-date', ${act.id}::uuid, ${sql.json(
-              { was: row.was, now: act.start, source: act.sourceUrl, timeConfirmed: act.stampVerified, note: r.note ?? null },
+              { was: row.was, now: act.start, source: act.sourceUrl, timeConfirmed: act.stampVerified,
+                venueWas: act.venue ? row.venue : null, venueNow: act.venue ?? null, note: r.note ?? null },
             )})`;
           } catch (err) {
             // 23505 = the recomputed event_key already exists, i.e. the corrected

@@ -172,3 +172,45 @@ describe("the verified stamp needs a published schedule, not just a citation", (
     expect(a.kind === "republish" && a.stampVerified).toBe(false);
   });
 });
+
+describe("a listing pulled for having no venue must not come back without one", () => {
+  const NOW3 = new Date("2026-09-12T12:00:00Z");
+  const noVenue = { venue: "TBD – Saint Paul", city: "Saint Paul" };
+  const base: RestoreResult = {
+    id: "a", outcome: "corrected", start: "2026-10-17T11:00", timeConfirmed: true,
+    sourceUrl: "https://www.aicaf.org/powwow",
+  };
+
+  it("leaves it drafted when the organiser named no place either", () => {
+    const a = actionForRestore(base, { now: NOW3, current: noVenue });
+    expect(a.kind).toBe("leave");
+    expect(a.kind === "leave" && a.note).toMatch(/still no venue/i);
+  });
+
+  it("republishes with the venue when the organiser named one", () => {
+    const a = actionForRestore({ ...base, venue: "Base Camp, Fort Snelling" }, { now: NOW3, current: noVenue });
+    expect(a).toMatchObject({ kind: "republish", venue: "Base Camp, Fort Snelling" });
+  });
+
+  it("refuses a venue that is just the hedge handed back", () => {
+    // The failure mode worth guarding: the agent echoing our own placeholder.
+    for (const v of ["TBD", "Saint Paul (location TBD)", "Various Locations", "Saint Paul"]) {
+      const a = actionForRestore({ ...base, venue: v }, { now: NOW3, current: noVenue });
+      expect(a.kind, v).toBe("leave");
+    }
+  });
+
+  it("does not require a venue from a row that already had a good one", () => {
+    // Most drafted rows were pulled for a wrong DATE, not a missing venue.
+    // Demanding a venue from those would strand them.
+    const a = actionForRestore(base, { now: NOW3, current: { venue: "Target Field", city: "Minneapolis" } });
+    expect(a.kind).toBe("republish");
+    expect(a.kind === "republish" && a.venue).toBeUndefined();
+  });
+
+  it("has no opinion on venues when the caller did not pass the row", () => {
+    // "Not told" must not mean "no venue" — that would refuse every caller who
+    // only cares about dates, which is most of them.
+    expect(actionForRestore(base, { now: NOW3 }).kind).toBe("republish");
+  });
+});
