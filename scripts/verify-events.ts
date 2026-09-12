@@ -38,6 +38,11 @@ async function main() {
   // A one-off backfill runs locally with no such ceiling, and clearing a
   // backlog in one pass beats babysitting five sequential runs. Progress is
   // flushed per batch either way, so a longer run risks nothing extra.
+  // Target one source. Chasing a suspect index page is a recurring job — this
+  // is the third time — and without it the only way to reach those rows is to
+  // raise the cap until the risk ordering happens to include them.
+  const sourceArg = process.argv.find((a) => a.startsWith("--source="));
+  const source = sourceArg ? sourceArg.slice(9) : null;
   const budgetArg = process.argv.find((a) => a.startsWith("--budget-mins="));
   const budgetMs = budgetArg ? Math.max(1, Number(budgetArg.slice(14)) || 20) * 60_000 : RUN_BUDGET_MS;
   if (!sql) throw new Error("DATABASE_URL is required");
@@ -53,6 +58,7 @@ async function main() {
     from events
     where status = 'published' and start_at >= now()
       and start_at <= now() + (${days} * interval '1 day')
+      and (${source}::text is null or source_url like '%' || ${source} || '%')
   `;
 
   const candidates = selectForVerification(rows, new Date(), { cap, days });
@@ -62,7 +68,7 @@ async function main() {
   ).length;
 
   console.log(
-    `[verify] window ${rows.length} over ${days}d · checking ${candidates.length} (cap ${cap})${dryRun ? " (DRY RUN)" : ""}`,
+    `[verify] window ${rows.length} over ${days}d${source ? ` from "${source}"` : ""} · checking ${candidates.length} (cap ${cap})${dryRun ? " (DRY RUN)" : ""}`,
   );
   console.log(
     `[verify] ${freshLooks} never verified before, ${candidates.length - freshLooks} re-checks`,
