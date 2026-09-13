@@ -451,3 +451,39 @@ alter table event_reports add column if not exists decided_via text
   check (decided_via in ('admin','email'));
 create index if not exists idx_event_reports_unchecked
   on event_reports (created_at) where status = 'pending' and checked_at is null;
+
+-- ---------------------------------------------------------------------------
+-- An event cannot end before it starts.
+--
+-- WHY. lib/upsert.ts has had `guardEndAt` since the ingest path was written: if
+-- end_at precedes start_at, drop the end rather than publish a span that runs
+-- backwards. But it only guards the INGEST path. Three other writers move
+-- start_at and never touch end_at —
+--
+--   scripts/restore-drafted.ts   corrects a wrong date on a drafted row
+--   scripts/import-sports.ts     retimes a game the league rescheduled
+--   lib/admin-actions.ts         an admin edit
+--
+-- — so every date correction left the old end behind. On 12 Sep 2026, 11 rows
+-- carried an inverted span, 10 of them live: FallCon started 10 Oct and ended
+-- 27 Sep, A Christmas Carol ended three days before its first preview. All 11
+-- were last written by the 10-12 Sep correction passes.
+--
+-- The fix belongs here rather than in each caller, because "every writer must
+-- remember" is the bug. A trigger means no writer has to. It NULLS the end
+-- instead of raising: a correction pass that trips this should still land the
+-- date it verified, and an event with no published end is honest — an event
+-- that ends before it begins is not.
+create or replace function guard_event_span() returns trigger as $$
+begin
+  if new.end_at is not null and new.end_at < new.start_at then
+    new.end_at = null;
+  end if;
+  return new;
+end;
+$$ language plpgsql set search_path = '';
+
+drop trigger if exists trg_events_guard_span on events;
+create trigger trg_events_guard_span
+  before insert or update on events
+  for each row execute function guard_event_span();
