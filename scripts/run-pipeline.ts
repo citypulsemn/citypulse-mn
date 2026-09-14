@@ -13,6 +13,7 @@
  * (MAPBOX_GEOCODING_TOKEN or NEXT_PUBLIC_MAPBOX_TOKEN).
  */
 import { CATEGORY_KEYS } from "../lib/categories";
+import { runUsageTotals } from "../lib/api-usage";
 import { researchCategory, researchVenueShard } from "../lib/agents/research-agent";
 import type { AgentEvent } from "../lib/agents/research-agent";
 import { classifyEvent } from "../lib/classify";
@@ -323,6 +324,14 @@ async function main() {
   }
 
   if (sql && runId != null) {
+    // What this run actually cost, accumulated by logUsage across every agent
+    // call. Written once, here, rather than on the hot path.
+    const spend = runUsageTotals();
+    console.log(
+      `[usage] run total: ${spend.usd.toFixed(2)} over ${spend.calls} calls` +
+        ` (${spend.searches} web searches` +
+        `${spend.unpriced > 0 ? `, ${spend.unpriced} calls at an unknown rate` : ""})`,
+    );
     await sql`
       update pipeline_runs set
         finished_at = now(), ok = true,
@@ -330,7 +339,10 @@ async function main() {
         archived = ${archived}, collapsed = ${collapsed},
         collapsed_runs = ${runs.collapsed},
         unnamed_dropped = ${unnamedDropped},
-        bands = ${sql.json(perBand)}
+        bands = ${sql.json(perBand)},
+        cost_usd = ${spend.usd.toFixed(4)},
+        cost_searches = ${spend.searches},
+        cost_unpriced_calls = ${spend.unpriced}
       where id = ${runId}
     `;
   }
@@ -340,7 +352,10 @@ async function main() {
         update pipeline_runs set
           finished_at = now(), ok = false,
           upserted = ${totalUpserted},
-          error = ${String(err).slice(0, 500)}
+          error = ${String(err).slice(0, 500)},
+          cost_usd = ${runUsageTotals().usd.toFixed(4)},
+          cost_searches = ${runUsageTotals().searches},
+          cost_unpriced_calls = ${runUsageTotals().unpriced}
         where id = ${runId}
       `.catch(() => {});
     }

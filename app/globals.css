@@ -1333,3 +1333,47 @@ a.daycard { text-decoration: none; }
 .legal-body a { color: var(--gold); text-underline-offset: 2px; }
 .legal-body code { font-size: 13px; background: rgba(255,255,255,0.06); padding: 1px 5px; border-radius: 4px; }
 @media (max-width: 640px) { .legal-body { font-size: 14.5px; } .legal-body h2 { font-size: 17.5px; margin-top: 28px; } }
+
+/* ── /admin/ops — the single operational screen ───────────────────────────── */
+/* Mobile-first because that is where it gets read: one column of tiles, big
+   enough to judge at a glance without zooming, and colour is never the only
+   signal — every tile also spells its status in words. */
+.ops-banner { display: flex; flex-direction: column; gap: 2px; padding: 13px 14px; border-radius: 12px; border: 1px solid var(--line); margin-bottom: 18px; }
+.ops-banner strong { font-family: var(--font-oswald); font-weight: 600; font-size: 17px; letter-spacing: 0.03em; }
+.ops-banner span { color: var(--cream-dim); font-size: 12.5px; }
+.ops-banner.ops-ok { border-color: rgba(122,168,116,0.45); background: rgba(122,168,116,0.08); }
+.ops-banner.ops-warn { border-color: rgba(224,122,95,0.5); background: rgba(224,122,95,0.09); }
+
+.ops-h { font-family: var(--font-oswald); font-weight: 500; font-size: 13px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--cream-dim); margin: 22px 0 8px; }
+
+.ops-tiles { display: grid; grid-template-columns: 1fr; gap: 10px; }
+@media (min-width: 560px) { .ops-tiles { grid-template-columns: 1fr 1fr; } }
+
+.ops-tile { display: block; text-decoration: none; color: var(--cream); background: linear-gradient(180deg, var(--navy-700), var(--navy-800)); border: 1px solid var(--line); border-left-width: 3px; border-radius: 12px; padding: 12px 13px; }
+.ops-tile:hover { border-color: var(--gold); }
+.ops-tile-top { display: flex; align-items: center; gap: 7px; }
+.ops-tile-name { font-family: var(--font-oswald); font-weight: 500; font-size: 14.5px; flex: 1; }
+.ops-tile-status { font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--cream-dim); }
+.ops-tile-headline { font-size: 16px; margin-top: 7px; }
+.ops-tile-detail { color: var(--cream-dim); font-size: 12.5px; margin-top: 3px; line-height: 1.45; }
+.ops-dot { width: 9px; height: 9px; border-radius: 50%; flex: none; background: var(--cream-dim); }
+
+.ops-tile.ops-ok { border-left-color: #7aa874; }
+.ops-tile.ops-ok .ops-dot { background: #7aa874; }
+.ops-tile.ops-warn { border-left-color: var(--gold); }
+.ops-tile.ops-warn .ops-dot { background: var(--gold); }
+.ops-tile.ops-down { border-left-color: #e07a5f; }
+.ops-tile.ops-down .ops-dot { background: #e07a5f; }
+.ops-tile.ops-down .ops-tile-status { color: #f0a488; }
+/* Grey, and deliberately not green: the probe could not run. */
+.ops-tile.ops-unknown { border-left-color: #7d8aa0; opacity: 0.92; }
+.ops-tile.ops-unknown .ops-dot { background: #7d8aa0; }
+
+.ops-section { background: rgba(0,0,0,0.18); border: 1px solid var(--line); border-radius: 12px; padding: 12px 13px; margin-bottom: 10px; }
+.ops-section-alert { border-color: rgba(224,122,95,0.45); background: rgba(224,122,95,0.06); }
+.ops-section h3 { font-family: var(--font-oswald); font-weight: 500; font-size: 15px; letter-spacing: 0.03em; display: flex; align-items: center; gap: 9px; margin-bottom: 7px; }
+.ops-flag { font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: #f0a488; border: 1px solid rgba(224,122,95,0.5); border-radius: 999px; padding: 3px 8px; }
+.ops-section ul { list-style: none; display: flex; flex-direction: column; gap: 5px; }
+.ops-section li { font-size: 13.5px; line-height: 1.5; color: var(--cream-dim); overflow-wrap: anywhere; }
+.ops-foot { margin-top: 20px; }
+.ops-foot code { font-size: 12px; background: rgba(255,255,255,0.05); padding: 1px 5px; border-radius: 4px; }

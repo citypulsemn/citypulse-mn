@@ -487,3 +487,19 @@ drop trigger if exists trg_events_guard_span on events;
 create trigger trg_events_guard_span
   before insert or update on events
   for each row execute function guard_event_span();
+
+-- What the weekly research run cost.
+--
+-- lib/api-usage.ts has priced every model call since Sep 2026, but only to
+-- stdout — so the only way to answer "what did last week cost" was to grep a
+-- GitHub Actions log before it expired. These three columns are that number,
+-- accumulated in-process and written once at the end of the run (never on the
+-- hot path; logUsage must not be able to kill a research run).
+--
+-- `cost_unpriced_calls` is the honest half: calls whose model had no rate in
+-- the table. A cost of $2.10 with 40 unpriced calls means something very
+-- different from $2.10 with none, and a dashboard that hid that would be
+-- reporting a floor as if it were a total.
+alter table pipeline_runs add column if not exists cost_usd numeric(10,4);
+alter table pipeline_runs add column if not exists cost_searches integer;
+alter table pipeline_runs add column if not exists cost_unpriced_calls integer;

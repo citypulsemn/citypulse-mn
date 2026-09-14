@@ -1,0 +1,302 @@
+/**
+ * Gather every instrument the ops digest reads.
+ *
+ * WHY THIS IS IN lib/ AND NOT IN THE SENDER. It was the sender's private
+ * `gather()` for its whole life, which meant the only way to see any of it was
+ * to wait for Monday's email. `/admin/ops` renders the same inputs through the
+ * same `buildSections`, so the page and the email can never drift — there is
+ * one gatherer and one formatter, and the page is just the email you can reach
+ * on a phone at 9pm on a Saturday.
+ *
+ * THE RESILIENCE CONTRACT travels with it: every source is independently
+ * caught and a failure becomes an "unavailable" section, never a dead email or
+ * a 500. `errors` carries the reasons. Nothing in here may throw.
+ */
+import { sql } from "./db";
+import { composeOpsDigest, parseStoredTotals, PIPELINE_STAMPEDE, type OpsInputs, type PipelineRow } from "./ops-digest";
+import { assessCoverage, formatCoverageAlerts } from "./coverage";
+import { getEngagementStrict, type Engagement } from "./stats";
+import { getTrendingEvents } from "./trending";
+import { getDigestSends, getDaysSinceLastDigest } from "./digest-send";
+import { getFeedAdoption } from "./feed-stats";
+import { getSearchImpressions } from "./search-console";
+import { getPendingSubmissionCount } from "./submissions";
+import { getPendingReportCount, getOldestPendingReportDays, getPendingReportsWithChecks } from "./event-reports";
+import { formatCheckLine, type CheckVerdict } from "./report-check";
+import { reportActionUrl, reportActionSecret } from "./report-token";
+import { findContradictions, findPlaceholderTitles, formatFinding, type CalendarRow } from "./contradictions";
+
+export async function gatherOpsInputs(): Promise<OpsInputs> {
+  const errors: Record<string, string> = {};
+  const wrap = async <T>(key: string, fallback: T, fn: () => Promise<T>): Promise<T> => {
+    try {
+      return await fn();
+    } catch (err) {
+      errors[key] = err instanceof Error ? err.message : String(err);
+      return fallback;
+    }
+  };
+
+  // F2.6 — recent runs: [0] is current; the diff baseline is the most recent
+  // SUCCESSFUL run before it (a failed run recorded zeros — diffing against
+  // those would fake a huge swing).
+  const pipelineRows = await wrap<PipelineRow[]>("pipeline", [], async () => {
+    if (!sql) throw new Error("no database connection");
+    const rows = await sql<PipelineRow[]>`
+      select to_char(started_at at time zone 'America/Chicago', 'YYYY-MM-DD HH24:MI') as started_at,
+             to_char(finished_at at time zone 'America/Chicago', 'YYYY-MM-DD HH24:MI') as finished_at,
+             ok, upserted, cancelled, archived, collapsed, collapsed_runs, unnamed_dropped, error
+      from pipeline_runs order by started_at desc limit 6`;
+    return [...rows];
+  });
+  const pipeline = pipelineRows[0] ?? null;
+  const priorSuccessful = pipelineRows.slice(1).filter((r) => r.ok);
+  const prevPipeline = priorSuccessful[0] ?? null;
+  // Stampede baseline = the median of the last N successful runs (rolling).
+  const recentPipeline = priorSuccessful.slice(0, PIPELINE_STAMPEDE.baselineWindow);
+
+  const coverage = await wrap("coverage", { healthy: true, alerts: ["section gathered nothing"] }, async () => {
+    if (!sql) throw new Error("no database connection");
+    const events = await sql<{ category: string; start: string }[]>`
+      select category, to_char(start_at at time zone 'America/Chicago', 'YYYY-MM-DD"T"HH24:MI') as start
+      from events where status = 'published' and start_at >= now()`;
+    const report = assessCoverage(events as never, new Date());
+    return { healthy: report.healthy, alerts: formatCoverageAlerts(report) };
+  });
+
+  const verify = await wrap("verify", { verified7: 0, neverVerifiedUpcoming: 0 }, async () => {
+    if (!sql) throw new Error("no database connection");
+    const [row] = await sql<{ verified7: number; never_upcoming: number }[]>`
+      select
+        count(*) filter (where verified_at >= now() - interval '7 days')::int as verified7,
+        count(*) filter (where verified_at is null and start_at >= now() and status = 'published')::int as never_upcoming
+      from events`;
+    return { verified7: row?.verified7 ?? 0, neverVerifiedUpcoming: row?.never_upcoming ?? 0 };
+  });
+
+  // R2.3 — the STRICT read, threaded through wrap like every other section.
+  // getEngagement's swallow returns zeros on failure; a cockpit that reports
+  // failure-zeros as fact ("views 0, -100% WoW") also poisons next week's
+  // baseline with them. Failure here now renders "unavailable" instead.
+  const emptyEngagement: Engagement = {
+    totals: { view: 0, ticket_click: 0, save: 0, calendar: 0 },
+    daily: [],
+    top: [],
+  };
+  const engagement = await wrap("engagement", emptyEngagement, () => getEngagementStrict(7));
+
+  // R2.3 — aux reads get their OWN keys. These used to share "engagement" /
+  // "subscribers" / "index" with the main sections, so a failed read of LAST
+  // week's numbers rendered THIS week's perfectly good section "unavailable".
+  // Aux failures degrade instead: null → "first report" / an omitted line.
+  const prevTotals = await wrap<OpsInputs["prevTotals"]>("engagement_prev", null, async () => {
+    if (!sql) throw new Error("no database connection");
+    const rows = await sql<{ totals: unknown }[]>`
+      select totals from ops_digest_runs order by sent_at desc limit 1`;
+    return (parseStoredTotals(rows[0]?.totals) as OpsInputs["prevTotals"]) ?? null;
+  });
+
+  const trending = await wrap("trending", { count: 0, top: [] as string[] }, async () => {
+    const ranked = await getTrendingEvents();
+    return { count: ranked.length, top: ranked.slice(0, 3).map((r) => r.event.title) };
+  });
+
+  const feeds = await wrap("feeds", { clicks7: 0, top: [] as { label: string; count: number }[] }, () =>
+    getFeedAdoption(7),
+  );
+
+  // What's waiting on a person. Read together so one failure degrades the whole
+  // section honestly rather than reporting "0 reports" when the query threw.
+  const queue = await wrap(
+    "queue",
+    {
+      submissions: 0,
+      reports: 0,
+      oldestReportDays: null as number | null,
+      musicReview: 0,
+      verifyFlags: 0,
+      verifyFlagExamples: [] as string[],
+    },
+    async () => {
+      if (!sql) throw new Error("no database connection");
+      // OPEN, not flagged-ever. The audit log is append-only, so the count has
+      // to come from the listing's current state: still published, and still
+      // not confirmed by any source. Once a later pass hides or verifies it,
+      // the item closes itself.
+      const [m] = await sql<{ n: number }[]>`
+        select count(distinct a.event_id)::int as n
+        from admin_audit a join events e on e.id = a.event_id
+        where a.action = 'import_music_review'
+          and e.status = 'published'
+          and e.verified_at is null
+          and e.start_at >= now()`;
+      // Listings the freshness pass flagged that are STILL LIVE and still
+      // unverified. Same self-clearing shape as the music-review count above:
+      // the flag is an append-only audit row, so "open" has to be computed from
+      // the listing's current state. `wrong_event` first — the venue's own
+      // calendar contradicting us is the strongest negative the pass produces.
+      const flagged = await sql<{ verdict: string; title: string; venue: string; day: string }[]>`
+        select distinct on (e.id)
+               coalesce(a.patch->>'verdict', 'flag') as verdict,
+               e.title, e.venue,
+               to_char(e.start_at at time zone 'America/Chicago', 'Mon DD') as day
+        from admin_audit a
+        join events e on e.id = a.event_id
+        where a.action = 'verify_flag'
+          and e.status = 'published'
+          and e.verified_at is null
+          and e.start_at >= now()
+        order by e.id, a.at desc`;
+      const rank = (v: string) => (v === "wrong_event" ? 0 : v === "cancelled" ? 1 : 2);
+      const sorted = flagged.slice().sort((x, y) => rank(x.verdict) - rank(y.verdict));
+
+      return {
+        submissions: await getPendingSubmissionCount(),
+        reports: await getPendingReportCount(),
+        oldestReportDays: await getOldestPendingReportDays(),
+        musicReview: m?.n ?? 0,
+        verifyFlags: sorted.length,
+        verifyFlagExamples: sorted
+          .slice(0, 4)
+          .map((f) => `${f.verdict}: "${f.title.slice(0, 44)}" @ ${f.venue.slice(0, 28)} · ${f.day}`),
+      };
+    },
+  );
+
+  // The open reports themselves, with whatever the automated check found. This
+  // is the backstop copy — `npm run check-reports` mails the same verdicts and
+  // the same buttons as soon as a check completes, which is the timely channel.
+  // Wrapped like everything else: a failure here degrades to no section rather
+  // than to a reassuring empty one.
+  const reports = await wrap("reports", [] as OpsInputs["reports"], async () => {
+    const secret = reportActionSecret();
+    const site = (process.env.SITE_URL ?? "https://citypulsemn.com").replace(/\/+$/, "");
+    const rows = await getPendingReportsWithChecks();
+    return rows.map((r) => ({
+      title: r.event_title,
+      venue: r.event_venue,
+      start: r.event_start,
+      kind: r.kind,
+      reason: r.reason,
+      verdict: r.check_verdict ?? "unchecked",
+      verdictLine: r.check_verdict
+        ? formatCheckLine({
+            verdict: r.check_verdict as CheckVerdict,
+            note: r.check_note,
+            evidence: r.check_evidence,
+          })
+        : "Not checked yet — run `npm run check-reports`.",
+      actions: [
+        { label: "Take it down", href: reportActionUrl(site, r.id, "delete", secret), danger: true },
+        { label: "Keep it", href: reportActionUrl(site, r.id, "keep", secret) },
+      ],
+    }));
+  });
+
+  // The self-check. No outside source, so it can run for every category —
+  // including the five that have no feed to verify against. Wrapped like every
+  // other section: if the read throws, the section says "unavailable" rather
+  // than reporting a reassuring zero.
+  const contradictions = await wrap(
+    "contradictions",
+    {
+      conflicts: 0, duplicates: 0, placeholderVenues: 0, placeholderTitles: 0,
+      examples: [] as string[], titleExamples: [] as string[],
+    },
+    async () => {
+      if (!sql) throw new Error("no database connection");
+      const rows = await sql<CalendarRow[]>`
+        select id::text as id, venue, title, category,
+               (verified_at is not null) as verified,
+               to_char(start_at at time zone 'America/Chicago', 'YYYY-MM-DD"T"HH24:MI') as start
+        from events where status = 'published' and start_at >= now()`;
+      const report = findContradictions([...rows]);
+      const titles = findPlaceholderTitles([...rows]);
+      return {
+        conflicts: report.conflicts.length,
+        duplicates: report.duplicates.length,
+        placeholderVenues: report.placeholderVenues.length,
+        placeholderTitles: titles.length,
+        examples: report.conflicts.slice(0, 5).map(formatFinding),
+        titleExamples: titles.slice(0, 4).map((t) => `${t.day} · ${t.venue}: "${t.title}"`),
+      };
+    },
+  );
+
+  const subscribers = await wrap("subscribers", { total: 0, delta7: 0, bySource7: [] as { source: string; count: number }[] }, async () => {
+    if (!sql) throw new Error("no database connection");
+    const [row] = await sql<{ total: number; delta7: number }[]>`
+      select
+        count(*) filter (where status = 'subscribed')::int as total,
+        count(*) filter (where status = 'subscribed' and created_at >= now() - interval '7 days')::int as delta7
+      from subscribers`;
+    const bySource7 = await sql<{ source: string; count: number }[]>`
+      select source, count(*)::int as count
+      from subscribers
+      where status = 'subscribed' and created_at >= now() - interval '7 days'
+      group by source order by count desc`;
+    return { total: row?.total ?? 0, delta7: row?.delta7 ?? 0, bySource7: [...bySource7] };
+  });
+
+  const lastDigestNote = await wrap<string | null>("digest_note", null, async () => {
+    const sends = await getDigestSends(1);
+    return sends[0]?.note ?? null;
+  });
+
+  // Its OWN error key (the R2.3 aux convention): if this read fails we must not
+  // render the Subscribers section unavailable — but we also must not silently
+  // report 'fine'. A failure here prints an explicit 'could not check' line.
+  const lastDigestDaysAgo = await wrap<number | null>("digest_age", null, () =>
+    getDaysSinceLastDigest(),
+  );
+
+  const sitemapUrls = await wrap<number | null>("index", null, async () => {
+    const base = process.env.SITE_URL;
+    if (!base) return null;
+    const res = await fetch(`${base.replace(/\/$/, "")}/sitemap.xml`);
+    if (!res.ok) throw new Error(`sitemap fetch ${res.status}`);
+    const xml = await res.text();
+    return (xml.match(/<loc>/g) ?? []).length;
+  });
+
+  const prevSitemapUrls = await wrap<number | null>("index_prev", null, async () => {
+    if (!sql) throw new Error("no database connection");
+    const rows = await sql<{ totals: unknown }[]>`
+      select totals from ops_digest_runs order by sent_at desc limit 1`;
+    return parseStoredTotals(rows[0]?.totals)?.sitemap_urls ?? null;
+  });
+
+  // F2.4 — GSC impressions. getSearchImpressions returns null (→ manual line)
+  // when the service account isn't configured, so this is safe pre-wire.
+  const search = await wrap("search", null, () => getSearchImpressions(7));
+  const prevSearchImpressions = await wrap<number | null>("search_prev", null, async () => {
+    if (!sql) throw new Error("no database connection");
+    const rows = await sql<{ totals: unknown }[]>`
+      select totals from ops_digest_runs order by sent_at desc limit 1`;
+    return parseStoredTotals(rows[0]?.totals)?.search_impressions ?? null;
+  });
+
+  return {
+    pipeline,
+    prevPipeline,
+    recentPipeline,
+    coverageHealthy: coverage.healthy,
+    coverageAlerts: coverage.alerts,
+    verify,
+    engagement,
+    prevTotals,
+    trending,
+    subscribers,
+    lastDigestNote,
+    lastDigestDaysAgo,
+    feeds,
+    queue,
+    reports,
+    contradictions,
+    sitemapUrls,
+    prevSitemapUrls,
+    search,
+    prevSearchImpressions,
+    errors,
+  };
+}

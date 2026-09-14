@@ -116,7 +116,54 @@ export function logUsage(
 ): void {
   try {
     console.log(formatUsageLine(label, model, usage, opts));
+    recordUsage(model, usage, opts);
   } catch {
     // An instrument that can break the run is worse than no instrument.
   }
+}
+
+/**
+ * Spend so far in THIS process.
+ *
+ * WHY IN MEMORY AND NOT A TABLE. `logUsage` is called on the hot path of every
+ * agent call and is contractually forbidden to throw (rule 1 — an instrument
+ * must not kill the thing it measures). A database write there is a new way for
+ * a research run to die, for a number nobody reads in real time. So the run
+ * accumulates here and `scripts/run-pipeline.ts` writes ONE row at the end,
+ * next to the counts it already records.
+ *
+ * `unpriced` is the honest half: a call whose model has no rate contributes
+ * nothing to `usd` and increments this instead, so a total can never quietly
+ * mean "cheap" when it really means "we don't know the price of that model".
+ */
+const runTotals = { usd: 0, searches: 0, calls: 0, unpriced: 0 };
+
+/** Add one call to this process's running total. Never throws. */
+export function recordUsage(model: string, usage: UsageLike | null | undefined, opts: { batch?: boolean } = {}): void {
+  try {
+    const c = estimateCost(model, usage, opts);
+    runTotals.calls += 1;
+    runTotals.searches += c.searches;
+    if (c.totalUsd === null) {
+      runTotals.unpriced += 1;
+      runTotals.usd += c.searchUsd; // the search fee is known even when the model is not
+    } else {
+      runTotals.usd += c.totalUsd;
+    }
+  } catch {
+    // Same contract as logUsage.
+  }
+}
+
+/** What this process has spent so far. */
+export function runUsageTotals(): { usd: number; searches: number; calls: number; unpriced: number } {
+  return { ...runTotals };
+}
+
+/** Test seam only. */
+export function resetRunUsage(): void {
+  runTotals.usd = 0;
+  runTotals.searches = 0;
+  runTotals.calls = 0;
+  runTotals.unpriced = 0;
 }

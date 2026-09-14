@@ -393,11 +393,15 @@ describe("R2.3 — aux failures degrade; they don't kill their section", () => {
   });
 });
 
-describe("R2.3 — gather-side tripwires (script source)", () => {
+// The gather moved out of the sender and into lib/ops-inputs.ts on 13 Sep 2026
+// so /admin/ops could render the same inputs through the same formatter. These
+// tripwires read source text, so they follow it — the assertions below are
+// unchanged, they just point at where the gather actually lives now.
+describe("R2.3 — gather-side tripwires (gatherer source)", () => {
   const src = ((): string => {
     const { readFileSync } = require("node:fs") as typeof import("node:fs");
     const { join } = require("node:path") as typeof import("node:path");
-    return readFileSync(join(__dirname, "..", "..", "scripts", "send-ops-digest.ts"), "utf8");
+    return readFileSync(join(__dirname, "..", "ops-inputs.ts"), "utf8");
   })();
 
   it("engagement goes through wrap with the STRICT read (failure-zeros can't pose as data)", () => {
@@ -411,9 +415,37 @@ describe("R2.3 — gather-side tripwires (script source)", () => {
     expect(src).toContain('"index_prev"');
   });
 
+  // This one guards the SENDER, not the gatherer: the baseline write is the
+  // last thing main() does, and it stayed behind when the gather moved.
   it("a failed engagement run never writes the WoW baseline", () => {
-    expect(src.indexOf("inputs.errors.engagement")).toBeGreaterThan(-1);
-    expect(src.indexOf("inputs.errors.engagement")).toBeLessThan(src.indexOf("insert into ops_digest_runs"));
+    const { readFileSync } = require("node:fs") as typeof import("node:fs");
+    const { join } = require("node:path") as typeof import("node:path");
+    const sender = readFileSync(join(__dirname, "..", "..", "scripts", "send-ops-digest.ts"), "utf8");
+    expect(sender.indexOf("inputs.errors.engagement")).toBeGreaterThan(-1);
+    expect(sender.indexOf("inputs.errors.engagement")).toBeLessThan(
+      sender.indexOf("insert into ops_digest_runs"),
+    );
+  });
+});
+
+describe("the gatherer and the page cannot drift apart", () => {
+  const { readFileSync } = require("node:fs") as typeof import("node:fs");
+  const { join } = require("node:path") as typeof import("node:path");
+  const read = (...p: string[]) => readFileSync(join(__dirname, "..", "..", ...p), "utf8");
+
+  it("both the email and the admin page call the SAME gatherer and formatter", () => {
+    // The point of moving gather() into lib/ was that /admin/ops and the Monday
+    // email are the same report. If either grows its own gather, this fails.
+    const page = read("app", "admin", "ops", "page.tsx");
+    const sender = read("scripts", "send-ops-digest.ts");
+    for (const [name, srcText] of [["page", page], ["sender", sender]] as const) {
+      expect(srcText, name).toContain("gatherOpsInputs");
+    }
+    expect(page).toContain("buildSections");
+    expect(sender).toContain("composeOpsDigest");
+    // …and neither may re-implement the gather locally.
+    expect(page).not.toContain("select ");
+    expect(sender).not.toContain("async function gather(");
   });
 });
 
