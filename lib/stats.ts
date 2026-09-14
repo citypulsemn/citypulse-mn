@@ -1,4 +1,5 @@
 import { sql } from "./db";
+import { normalizeReferrer } from "./referrers";
 
 /**
  * FIRST-PARTY ANALYTICS (roadmap 5.1).
@@ -264,5 +265,29 @@ export async function getTicketClicksByVendor(days: number): Promise<VendorClick
   } catch (err) {
     console.error("[stats] getTicketClicksByVendor failed (returning empty):", err);
     return [];
+  }
+}
+
+/**
+ * Count one arrival by its referring host. Same contract as `recordStat`:
+ * fire-and-forget, never throws, analytics must never break the page.
+ *
+ * `normalizeReferrer` is the trust boundary — it returns null for anything that
+ * is not plausibly a hostname, and strips any path or query that reaches us
+ * despite the client sending only a host. Null is dropped rather than stored as
+ * "unknown", because a junk value counted is a junk value on the dashboard.
+ */
+export async function recordReferrer(raw: unknown): Promise<void> {
+  if (!sql) return;
+  const host = normalizeReferrer(raw);
+  if (host === null) return;
+  try {
+    await sql`
+      insert into referrer_stats (day, host, count)
+      values ((now() at time zone 'America/Chicago')::date, ${host}, 1)
+      on conflict (day, host) do update set count = referrer_stats.count + 1
+    `;
+  } catch {
+    // swallow — see the contract above
   }
 }

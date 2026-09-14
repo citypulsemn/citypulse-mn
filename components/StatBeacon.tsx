@@ -26,7 +26,23 @@ export function StatBeacon({ eventId, action }: { eventId: string; action: Beaco
 
 /** Shared fire-and-forget sender — also used by click handlers. */
 export function sendStat(eventId: string, action: BeaconAction): void {
-  postBeacon(JSON.stringify({ id: eventId, action }));
+  // A VIEW carries where the reader arrived from. Only the HOSTNAME leaves the
+  // page: document.referrer can carry a query string holding someone search
+  // terms or a session id, and that must never reach our logs, our
+  // infrastructure or our database. The server validates it again anyway.
+  const ref = action === "view" ? referrerHost() : undefined;
+  postBeacon(JSON.stringify(ref === undefined ? { id: eventId, action } : { id: eventId, action, ref }));
+}
+
+/** document.referrer reduced to a bare hostname, or "" when there is none. */
+function referrerHost(): string {
+  try {
+    const r = document.referrer;
+    if (!r) return "";
+    return new URL(r).hostname;
+  } catch {
+    return "";
+  }
 }
 
 /** F2.5 — a feed-adoption click ("Subscribe to this calendar"), tagged with

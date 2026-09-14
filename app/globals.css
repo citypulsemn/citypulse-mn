@@ -1379,3 +1379,28 @@ a.daycard { text-decoration: none; }
 .ops-section li { font-size: 13.5px; line-height: 1.5; color: var(--cream-dim); overflow-wrap: anywhere; }
 .ops-foot { margin-top: 20px; }
 .ops-foot code { font-size: 12px; background: rgba(255,255,255,0.05); padding: 1px 5px; border-radius: 4px; }
+
+/* ── /admin/growth ────────────────────────────────────────────────────────── */
+.admin-h4 { font-family: var(--font-oswald); font-weight: 500; font-size: 13px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--cream-dim); margin: 14px 0 6px; }
+/* A third line on the existing .admin-stat card, for the context that makes a
+   number mean something ("29 ever joined", "0 unsubscribed"). */
+.admin-stat-s { color: var(--cream-dim); font-size: 11px; margin-top: 4px; line-height: 1.35; }
+
+/* Signups by week. A bar chart drawn in CSS: no library, no client JS, and it
+   still reads on a phone because the bars shrink rather than scroll. */
+.g-bars { display: flex; align-items: flex-end; gap: 4px; height: 140px; padding: 6px 2px 0; border-bottom: 1px solid var(--line); margin-bottom: 4px; }
+.g-bar { flex: 1; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; height: 100%; min-width: 0; }
+.g-bar-n { font-size: 11px; color: var(--cream-dim); line-height: 1; margin-bottom: 3px; }
+.g-bar-fill { width: 100%; max-width: 26px; background: linear-gradient(180deg, var(--gold), var(--gold-dim)); border-radius: 3px 3px 0 0; min-height: 2px; }
+.g-bar-l { font-size: 9.5px; color: var(--cream-dim); margin-top: 5px; white-space: nowrap; transform: rotate(-45deg); transform-origin: top center; }
+.g-bars + .admin-intro { margin-top: 22px; }
+
+/* The funnel. Each step states its own rate, or states why it has none — the
+   em-dash case is the point of the whole page, so it is styled to be read. */
+.g-funnel { display: flex; flex-direction: column; gap: 8px; }
+.g-step { background: rgba(0,0,0,0.18); border: 1px solid var(--line); border-left: 3px solid var(--gold); border-radius: 10px; padding: 10px 12px; }
+.g-step-top { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; }
+.g-step-l { font-family: var(--font-oswald); font-weight: 500; font-size: 14.5px; }
+.g-step-n { font-size: 18px; font-variant-numeric: tabular-nums; }
+.g-step-rate { color: var(--cream-dim); font-size: 12.5px; margin-top: 3px; line-height: 1.45; }
+.g-step-why { color: var(--cream-dim); font-style: italic; }

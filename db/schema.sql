@@ -503,3 +503,24 @@ create trigger trg_events_guard_span
 alter table pipeline_runs add column if not exists cost_usd numeric(10,4);
 alter table pipeline_runs add column if not exists cost_searches integer;
 alter table pipeline_runs add column if not exists cost_unpriced_calls integer;
+
+-- Where readers arrive from — attribution without identity.
+--
+-- Same privacy shape as event_stats, deliberately: one counter per (day, host)
+-- and no user identifier anywhere, so the table can answer "how many came from
+-- Google" and cannot answer "who". The BROWSER reduces document.referrer to a
+-- bare hostname before sending it, so a referring URL's query string — which is
+-- where someone's search terms or a session id would live — never leaves the
+-- page, never reaches our logs and never reaches this table.
+--
+-- This is what made it possible to add acquisition data in Sep 2026 without
+-- touching the promise docs/ANALYTICS.md and the privacy policy make to
+-- readers. Unique visitors are NOT here for the same reason: counting uniques
+-- needs an identifier, and that is a different promise.
+create table if not exists referrer_stats (
+  day   date not null,
+  host  text not null,
+  count integer not null default 0,
+  primary key (day, host)
+);
+create index if not exists idx_referrer_stats_day on referrer_stats (day desc);

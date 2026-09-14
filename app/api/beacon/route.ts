@@ -1,4 +1,4 @@
-import { parseBeacon, recordStat } from "@/lib/stats";
+import { parseBeacon, recordStat, recordReferrer } from "@/lib/stats";
 import { parseFeedBeacon, recordFeedClick } from "@/lib/feed-stats";
 import { rateAllow, ipBucket, firstForwardedIp, RATE_LIMITS } from "@/lib/rate-limit";
 
@@ -27,8 +27,17 @@ export async function POST(req: Request) {
       const ip = firstForwardedIp(req.headers.get("x-forwarded-for"));
       const perIp = RATE_LIMITS.beaconPerIp;
       if (await rateAllow(ipBucket("beacon", ip), perIp.limit, perIp.windowMinutes)) {
-        if (beacon) await recordStat(beacon.id, beacon.action);
-        else if (feed) await recordFeedClick(feed.slug, feed.source);
+        if (beacon) {
+          await recordStat(beacon.id, beacon.action);
+          // Referrers ride along with the VIEW beacon only — that is the
+          // arrival. A ticket click or a calendar add happens after the reader
+          // is already here, so counting their referrer would count the same
+          // arrival several times and flatter whichever source sent the most
+          // engaged people. `recordReferrer` validates and drops junk itself.
+          if (beacon.action === "view") {
+            await recordReferrer((raw as { ref?: unknown } | null)?.ref);
+          }
+        } else if (feed) await recordFeedClick(feed.slug, feed.source);
       }
     }
   } catch {
