@@ -4,6 +4,7 @@ import {
   pageEntries,
   checkTitleOnPage,
   pageCoversDate,
+  isTransientNetworkError,
   htmlToText,
 } from "../source-presence";
 
@@ -349,5 +350,48 @@ describe("only an index can convict", () => {
       day: "2026-10-10",
     });
     expect(r.kind).toBe("unchecked");
+  });
+});
+
+describe("isTransientNetworkError — what the crash guard may swallow", () => {
+  it("recognises the exact error that killed the first full sweep", () => {
+    // Reproduced from the crash at page 580 of 677 on 14 Sep 2026.
+    const real = Object.assign(new Error("other side closed"), {
+      name: "SocketError",
+      code: "UND_ERR_SOCKET",
+    });
+    expect(isTransientNetworkError(real)).toBe(true);
+  });
+
+  it("recognises the rest of the family", () => {
+    for (const [code, message] of [
+      ["ECONNRESET", "read ECONNRESET"],
+      ["ETIMEDOUT", "connect ETIMEDOUT"],
+      ["ENOTFOUND", "getaddrinfo ENOTFOUND example.org"],
+      ["EAI_AGAIN", "getaddrinfo EAI_AGAIN"],
+      ["EPIPE", "write EPIPE"],
+      ["", "terminated"],
+      ["", "socket hang up"],
+    ] as [string, string][]) {
+      expect(isTransientNetworkError(Object.assign(new Error(message), { code })), message).toBe(true);
+    }
+  });
+
+  it("does NOT swallow a real bug — that is the whole risk of this guard", () => {
+    for (const err of [
+      new TypeError("checkTitleOnPage is not a function"),
+      new RangeError("Maximum call stack size exceeded"),
+      Object.assign(new Error("duplicate key value violates unique constraint"), { code: "23505" }),
+      new Error("Cannot read properties of undefined (reading 'slice')"),
+      new SyntaxError("Unexpected token < in JSON at position 0"),
+    ]) {
+      expect(isTransientNetworkError(err), String(err)).toBe(false);
+    }
+  });
+
+  it("is false for nothing at all rather than throwing", () => {
+    for (const v of [null, undefined, "boom", 42]) {
+      expect(isTransientNetworkError(v), String(v)).toBe(false);
+    }
   });
 });

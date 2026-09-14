@@ -285,6 +285,29 @@ export function checkTitleOnPage(
   return { kind: "absent", score, best: bestEntry.slice(0, 160) };
 }
 
+/**
+ * Is this a transient network failure rather than a bug in our code?
+ *
+ * Lives here rather than in the sweep script so it can be tested, because it
+ * guards an `uncaughtException` handler and an over-broad predicate there would
+ * silently swallow real defects.
+ *
+ * The first full sweep died at page 580 of 677: a pooled HTTP/2 connection
+ * dropped AFTER its fetch had already settled, so the error surfaced on a
+ * stream nobody was listening to and Node raised it as uncaught. There was no
+ * promise left for the per-fetch try/catch to reject. Rule 1 says the
+ * instrument must not be killable by the thing it measures — but only for
+ * network noise. Anything else must still crash.
+ */
+export function isTransientNetworkError(err: unknown): boolean {
+  const e = err as { code?: string; name?: string; message?: string } | null;
+  if (!e || typeof e !== "object") return false;
+  const s = `${e.code ?? ""} ${e.name ?? ""} ${e.message ?? ""}`;
+  return /UND_ERR|SocketError|ECONNRESET|ECONNREFUSED|EPIPE|ECONNABORTED|ETIMEDOUT|ENOTFOUND|EAI_AGAIN|other side closed|\bterminated\b|socket hang up/i.test(
+    s,
+  );
+}
+
 /** Markup in, visible text out. No dependency, and good enough for an index page. */
 export function htmlToText(html: string): string {
   return String(html ?? "")

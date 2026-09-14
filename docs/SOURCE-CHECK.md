@@ -97,5 +97,13 @@ current state, not from flag count.
   read only the nav menu, and gate 1 refuses.
 - **Sites that block us return 403** and stay `unchecked`. The fetch identifies
   itself honestly; a site that would rather we did not read it gets that wish.
+  Roughly 60 of 677 pages refuse us, `guthrietheater.org` and
+  `bringmethenews.com` among them.
+- **A dropped connection no longer kills the run.** The first full sweep died at
+  page 580 of 677: a pooled HTTP/2 socket emitted `'error'` *after* its fetch had
+  already settled, so no promise was left to reject and Node raised an uncaught
+  exception. There is now a top-level guard that swallows socket-shaped failures
+  and counts them in the summary. Anything else still crashes loudly — a real
+  bug hiding behind that handler would be worse than the crash it replaces.
 - It proves a title is *on a page*, not that the event is real. A page can be
   wrong. This is a cheap first filter, not a verdict.

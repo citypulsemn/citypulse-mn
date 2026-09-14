@@ -24,7 +24,12 @@
  * corroborated on the listing's own cited source has not earned the stamp.
  */
 import { requireSql } from "../lib/db";
-import { checkTitleOnPage, htmlToText, type SourceCheck } from "../lib/source-presence";
+import {
+  checkTitleOnPage,
+  htmlToText,
+  isTransientNetworkError,
+  type SourceCheck,
+} from "../lib/source-presence";
 
 const arg = (n: string) => process.argv.find((a) => a.startsWith(`--${n}=`))?.split("=")[1];
 const APPLY = process.argv.includes("--apply");
@@ -32,6 +37,30 @@ const LIMIT = Math.max(1, Number(arg("limit") ?? 400));
 const HOST = arg("host");
 const TIMEOUT_MS = 12_000;
 const PAUSE_MS = 700; // be a polite guest on someone else's site
+
+/**
+ * One rude host must not kill the sweep.
+ *
+ * The first full run died at page 580 of 677 with "Unhandled 'error' event —
+ * SocketError: other side closed". A pooled HTTP/2 connection dropped AFTER its
+ * fetch had already settled, so the error surfaced on a stream nobody was
+ * listening to and Node turned it into an uncaught exception. The per-fetch
+ * try/catch cannot see that: there is no promise left to reject.
+ *
+ * Rule 1 — an instrument must not be killable by the thing it measures. Only
+ * socket-shaped failures are swallowed and counted; anything else still crashes
+ * loudly, because a real bug hiding behind this handler would be worse than the
+ * crash it replaces.
+ */
+let socketErrors = 0;
+process.on("uncaughtException", (err) => {
+  if (!isTransientNetworkError(err)) throw err;
+  socketErrors++;
+});
+process.on("unhandledRejection", (err) => {
+  if (!isTransientNetworkError(err)) throw err;
+  socketErrors++;
+});
 
 type Row = {
   id: string; title: string; venue: string; source_url: string; verified: boolean;
@@ -141,7 +170,8 @@ async function main() {
 
   console.log(
     `\n[sources] ${tally.pages} pages fetched (${tally.failed} unreadable) · ` +
-      `present ${tally.present} · NOT ON SOURCE ${tally.absent} · unchecked ${tally.unchecked}`,
+      `present ${tally.present} · NOT ON SOURCE ${tally.absent} · unchecked ${tally.unchecked}` +
+      (socketErrors > 0 ? ` · ${socketErrors} connection${socketErrors === 1 ? "" : "s"} dropped after the fact (survived)` : ""),
   );
   if (misses.length > 0) {
     console.log(
