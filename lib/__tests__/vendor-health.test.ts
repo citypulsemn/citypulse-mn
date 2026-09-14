@@ -9,6 +9,7 @@ import {
   formatDuration,
   unknownTile,
   summarise,
+  withDeadline,
   type VendorTile,
 } from "../vendor-health";
 
@@ -221,5 +222,27 @@ describe("formatters", () => {
       expect(formatBytes(v), String(v)).toBe("—");
       expect(formatDuration(v), String(v)).toBe("—");
     }
+  });
+});
+
+describe("withDeadline — nothing may spin forever", () => {
+  it("returns the real answer when it arrives in time", async () => {
+    await expect(withDeadline(Promise.resolve("real"), 50, "fallback")).resolves.toBe("real");
+  });
+
+  it("returns the fallback when the work overruns", async () => {
+    const slow = new Promise<string>((r) => setTimeout(() => r("too late"), 200));
+    await expect(withDeadline(slow, 20, "fallback")).resolves.toBe("fallback");
+  });
+
+  it("still rejects if the work itself fails — the caller decides what that means", async () => {
+    await expect(withDeadline(Promise.reject(new Error("boom")), 50, "fallback")).rejects.toThrow("boom");
+  });
+
+  it("clears its timer so a fast call cannot hold the process open", async () => {
+    // A leaked timer keeps a serverless function alive past its response.
+    const before = process.listenerCount("beforeExit");
+    await withDeadline(Promise.resolve(1), 5000, 0);
+    expect(process.listenerCount("beforeExit")).toBe(before);
   });
 });

@@ -189,3 +189,31 @@ export function summarise(tiles: VendorTile[]): string {
     .join(", ");
   return `⚠️ ${bad.length} of ${tiles.length} need a look — ${named}`;
 }
+
+/**
+ * Put a ceiling on anything that might not come back.
+ *
+ * WHY, and it is embarrassing: the first version of /admin/ops gave every
+ * vendor probe a 6-second timeout and gave the PAGE none. `gatherOpsInputs`
+ * fires roughly twenty queries in sequence and had no ceiling either, so on
+ * 14 Sep 2026 the page simply span forever in production — the exact rule-1
+ * failure this module's own header lectures about, committed one file away
+ * from the lecture.
+ *
+ * Resolves with `fallback` rather than rejecting, because at every call site
+ * "it did not answer in time" is the same answer as "it could not answer", and
+ * that answer is `unknown` — never a spinner, and never a green tile.
+ */
+export async function withDeadline<T>(work: Promise<T>, ms: number, fallback: T): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      work,
+      new Promise<T>((resolve) => {
+        timer = setTimeout(() => resolve(fallback), ms);
+      }),
+    ]);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}

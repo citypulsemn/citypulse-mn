@@ -97,9 +97,27 @@ neutral rather than inventing a cliff:
   measurement of **our** pipeline calls. It reads `$0.00` until the next weekly
   run writes the first priced row.
 
+## The spinner bug (14 Sep 2026)
+
+The first version awaited both gathers before rendering anything. In production
+it span forever: ~20 sequential queries plus five HTTP calls behind one `await`
+is a page with no floor on how slow it can get, and a spinner is the least
+useful thing an ops screen can show — the moment you need it is the moment
+something is already wrong. Each probe had a 6s ceiling; the page had none.
+
+Fixed three ways, all in `app/admin/ops/page.tsx`:
+
+- **Streaming.** Each half is its own `<Suspense>` boundary, so the shell paints
+  immediately (measured TTFB 0.09s warm) and each section fills in when ready.
+- **Deadlines.** `withDeadline` (lib/vendor-health.ts) caps the vendor half at 8s
+  and the calendar half at 15s. Overrunning renders "no answer within Ns" —
+  the same rule as the tiles: could-not-tell is an answer, not a wait.
+- **`export const maxDuration = 30`** so the platform kills it rather than
+  letting it run.
+
 ## Verify checklist
 
-- [ ] `/admin/ops` loads behind the admin password and shows the banner
+- [ ] `/admin/ops` paints the header immediately, then fills in — never a bare spinner
 - [ ] Supabase tile is green with a real disk figure
 - [ ] Any service without a token shows **grey `UNKNOWN`**, not green
 - [ ] Alerting sections sort above healthy ones

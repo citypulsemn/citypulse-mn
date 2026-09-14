@@ -1,7 +1,14 @@
+import { Suspense } from "react";
 import { gatherOpsInputs } from "@/lib/ops-inputs";
 import { buildSections } from "@/lib/ops-digest";
 import { gatherVendorTiles } from "@/lib/vendors";
-import { summarise, worstStatus, needsAttention, type VendorTile } from "@/lib/vendor-health";
+import {
+  summarise,
+  needsAttention,
+  withDeadline,
+  unknownTile,
+  type VendorTile,
+} from "@/lib/vendor-health";
 
 /**
  * The one screen that answers "is anything wrong right now?"
@@ -9,17 +16,31 @@ import { summarise, worstStatus, needsAttention, type VendorTile } from "@/lib/v
  * It is the Monday ops email, on demand, on a phone — the SAME `gatherOpsInputs`
  * and the SAME `buildSections` the sender uses, so the page and the email can
  * never disagree. Above them sit the vendor probes, which cover the half of the
- * system our own database cannot see and where every recent incident actually
- * lived.
+ * system our own database cannot see.
  *
- * DESIGN NOTE — why alerts are not collapsed away. Sections in trouble render
- * first and open; healthy ones render below. Nothing is hidden behind a tab or
- * a click, because the failure mode this page exists to prevent is a problem
- * nobody looked at, and one more click is one more chance not to look.
+ * WHY THIS STREAMS. The first version awaited both gathers before rendering
+ * anything, and on 14 Sep 2026 it span forever in production. Twenty sequential
+ * queries and five HTTP calls behind one `await` is a page with no floor on how
+ * slow it can get, and a spinner is the least useful thing an ops screen can
+ * show — the one moment you need it is the moment something is already wrong.
+ *
+ * So each half is its own Suspense boundary with its own deadline. The shell
+ * paints immediately, each section fills in when it can, and a section that
+ * overruns says so instead of holding the page hostage. Same rule as the tiles:
+ * "could not tell" is an answer, not a wait.
  */
 export const dynamic = "force-dynamic"; // ops is always live, never cached
 
+/** A hard stop well inside any platform limit, so the page cannot hang. */
+export const maxDuration = 30;
+const VENDOR_DEADLINE_MS = 8_000;
+const CALENDAR_DEADLINE_MS = 15_000;
+
 export const metadata = { title: "Ops · City Pulse Admin" };
+
+function Skeleton({ label }: { label: string }) {
+  return <div className="ops-skeleton">checking {label}…</div>;
+}
 
 function VendorCard({ t }: { t: VendorTile }) {
   return (
@@ -35,79 +56,78 @@ function VendorCard({ t }: { t: VendorTile }) {
   );
 }
 
-export default async function AdminOpsPage() {
+/** The five outside services. Never throws; never waits past its deadline. */
+async function VendorSection() {
   const now = new Date();
+  let tiles: VendorTile[];
+  try {
+    tiles =
+      (await withDeadline(gatherVendorTiles(now), VENDOR_DEADLINE_MS, null)) ??
+      [
+        unknownTile(
+          "Outside services",
+          `no answer within ${VENDOR_DEADLINE_MS / 1000}s — the probes are slow or a vendor is hanging`,
+          "#",
+        ),
+      ];
+  } catch (err) {
+    tiles = [unknownTile("Outside services", err instanceof Error ? err.message : String(err), "#")];
+  }
 
-  // Independently settled: the vendor probes must not be able to take the
-  // in-house sections down with them, or vice versa.
-  const [inputsResult, tilesResult] = await Promise.allSettled([
-    gatherOpsInputs(),
-    gatherVendorTiles(now),
-  ]);
+  return (
+    <>
+      <p className="admin-intro">{summarise(tiles)}</p>
+      <div className="ops-tiles">
+        {tiles
+          .slice()
+          .sort((a, b) => Number(needsAttention(b.status)) - Number(needsAttention(a.status)))
+          .map((t) => (
+            <VendorCard key={t.service} t={t} />
+          ))}
+      </div>
+      <p className="admin-intro">
+        A grey tile means the check could not run — usually a missing token. It is never a pass.
+      </p>
+    </>
+  );
+}
 
-  const tiles = tilesResult.status === "fulfilled" ? tilesResult.value : [];
-  const sections =
-    inputsResult.status === "fulfilled"
-      ? buildSections(inputsResult.value)
+/** Everything the Monday email reads, through the Monday email's own formatter. */
+async function CalendarSection() {
+  let sections: { title: string; lines: string[]; alert?: boolean }[];
+  try {
+    const inputs = await withDeadline(gatherOpsInputs(), CALENDAR_DEADLINE_MS, null);
+    sections = inputs
+      ? buildSections(inputs)
       : [
           {
             title: "Everything",
             lines: [
-              `the gather failed outright: ${
-                inputsResult.reason instanceof Error
-                  ? inputsResult.reason.message
-                  : String(inputsResult.reason)
-              }`,
+              `no answer within ${CALENDAR_DEADLINE_MS / 1000}s — the database is slow or unreachable`,
             ],
             alert: true,
           },
         ];
+  } catch (err) {
+    sections = [
+      {
+        title: "Everything",
+        lines: [`the gather failed: ${err instanceof Error ? err.message : String(err)}`],
+        alert: true,
+      },
+    ];
+  }
 
   const alerts = sections.filter((s) => s.alert);
   const healthy = sections.filter((s) => !s.alert);
-  const vendorWorst = worstStatus(tiles);
-  const attention = alerts.length + tiles.filter((t) => needsAttention(t.status)).length;
 
   return (
     <>
-      <div className={`ops-banner ${attention === 0 ? "ops-ok" : "ops-warn"}`}>
-        <strong>
-          {attention === 0 ? "✅ All green" : `⚠️ ${attention} thing${attention === 1 ? "" : "s"} to look at`}
-        </strong>
-        <span>
-          {now.toLocaleString("en-US", {
-            timeZone: "America/Chicago",
-            dateStyle: "medium",
-            timeStyle: "short",
-          })}{" "}
-          · live, not cached
-        </span>
-      </div>
-
-      <h2 className="ops-h">Outside services</h2>
-      <p className="admin-intro">{summarise(tiles)}</p>
-      {tiles.length === 0 ? (
-        <div className="admin-empty">
-          The vendor probes did not run at all. That is itself the alert — see lib/vendors.ts.
-        </div>
-      ) : (
-        <div className="ops-tiles">
-          {tiles
-            .slice()
-            .sort((a, b) => Number(needsAttention(b.status)) - Number(needsAttention(a.status)))
-            .map((t) => (
-              <VendorCard key={t.service} t={t} />
-            ))}
-        </div>
-      )}
-      {vendorWorst === "unknown" && (
-        <p className="admin-intro">
-          A grey tile means the check could not run — usually a missing token. It is never a pass.
-        </p>
-      )}
-
-      <h2 className="ops-h">The calendar itself</h2>
-      {alerts.length === 0 && <p className="admin-intro">No section is flagging anything.</p>}
+      <p className="admin-intro">
+        {alerts.length === 0
+          ? "✅ no section is flagging anything"
+          : `⚠️ ${alerts.length} section${alerts.length === 1 ? "" : "s"} flagging`}
+      </p>
       {[...alerts, ...healthy].map((s) => (
         <section key={s.title} className={`ops-section ${s.alert ? "ops-section-alert" : ""}`}>
           <h3>
@@ -121,6 +141,35 @@ export default async function AdminOpsPage() {
           </ul>
         </section>
       ))}
+    </>
+  );
+}
+
+export default function AdminOpsPage() {
+  const now = new Date();
+  return (
+    <>
+      <div className="ops-banner">
+        <strong>Operations</strong>
+        <span>
+          {now.toLocaleString("en-US", {
+            timeZone: "America/Chicago",
+            dateStyle: "medium",
+            timeStyle: "short",
+          })}{" "}
+          · live, not cached · reload to re-check
+        </span>
+      </div>
+
+      <h2 className="ops-h">Outside services</h2>
+      <Suspense fallback={<Skeleton label="GitHub, Vercel, Supabase, Resend, Anthropic" />}>
+        <VendorSection />
+      </Suspense>
+
+      <h2 className="ops-h">The calendar itself</h2>
+      <Suspense fallback={<Skeleton label="the pipeline, coverage, verification and the queue" />}>
+        <CalendarSection />
+      </Suspense>
 
       <p className="admin-intro ops-foot">
         Same gather and same formatter as the Monday email (<code>npm run ops-digest</code>). If this
