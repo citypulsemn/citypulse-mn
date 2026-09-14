@@ -102,6 +102,18 @@ export const CONCURRENT_VENUES: Record<string, string> = {
   "guthrie theater": "Wurtele, McGuire and Dowling run concurrently",
   "childrens theatre company": "two stages",
   "ordway center for the performing arts": "Music Theater plus Concert Hall",
+  // Regional parks and nature centres: hundreds of acres, so a drop-in table
+  // and a guided session at 10 AM are not competing for one room. Added 14 Sep
+  // 2026 after the Three Rivers listings were repointed from the park
+  // district HEAD OFFICE to the parks they actually happen in — which is what
+  // made these visible as same-venue pairs in the first place.
+  "mississippi gateway regional park": "regional park — drop-in and guided programmes run together",
+  "elm creek park reserve": "park reserve — several programme areas",
+  "hyland lake park reserve": "park reserve — several programme areas",
+  "carver park reserve": "park reserve — several programme areas",
+  "crow-hassan park reserve": "park reserve — several programme areas",
+  "murphy-hanrehan park reserve": "park reserve — several programme areas",
+  "cleary lake regional park": "regional park — several programme areas",
   // Rooms that book an early show and a late one on the same night.
   // Matching is EXACT, so a venue string that names a specific room needs its
   // own entry. That is deliberate: "Guthrie Theater" is a three-stage complex,
