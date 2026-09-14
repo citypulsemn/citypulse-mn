@@ -14,6 +14,8 @@
     "test:watch": "vitest",
     "pipeline": "tsx --env-file-if-exists=.env.local scripts/run-pipeline.ts",
     "reels": "tsx --env-file-if-exists=.env.local scripts/reels/run.ts",
+    "reels:publish": "tsx --env-file-if-exists=.env.local scripts/reels/publish.ts",
+    "reels:auth": "tsx --env-file-if-exists=.env.local scripts/reels/ig-auth.ts",
     "digest": "tsx --env-file-if-exists=.env.local scripts/send-digest.ts",
     "reclassify": "tsx --env-file-if-exists=.env.local scripts/reclassify.ts",
     "collapse": "tsx --env-file-if-exists=.env.local scripts/collapse-multiday.ts",
@@ -30,7 +32,8 @@
     "hide-placeholders": "tsx --env-file-if-exists=.env.local scripts/hide-placeholders.ts",
     "resolve-conflicts": "tsx --env-file-if-exists=.env.local scripts/resolve-conflicts.ts",
     "import-venues": "tsx --env-file-if-exists=.env.local scripts/import-venues.ts",
-    "revalidate": "tsx --env-file-if-exists=.env.local scripts/revalidate.ts"
+    "revalidate": "tsx --env-file-if-exists=.env.local scripts/revalidate.ts",
+    "check-sources": "tsx --env-file-if-exists=.env.local scripts/check-sources.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.117.1",

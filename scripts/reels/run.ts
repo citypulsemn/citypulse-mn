@@ -17,11 +17,12 @@
  * caption.txt per variant, manifest.md per day). Rotation memory lives in
  * <out>/history.json and is only saved on real runs.
  */
-import { copyFile, mkdir, readdir, writeFile } from "node:fs/promises";
+import { copyFile, mkdir, readdir, readFile, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { hasDatabase } from "../../lib/db";
 import { pickAudioFile } from "../../lib/reels/audio";
+import { dayDirName, reelsOutRoot } from "../../lib/reels/paths";
 import { makeScreenImages, seasonScreenNote } from "../../lib/reels/authenticity";
 import { assembleReel } from "../../lib/reels/assemble";
 import { renderCardToFile } from "../../lib/reels/card";
@@ -65,7 +66,7 @@ const argOf = (name: string): string | null => {
 };
 
 const docsDir = path.join(os.homedir(), "Documents", "CityPulseMN");
-const OUT_ROOT = argOf("out") ?? process.env.REELS_OUT_DIR ?? path.join(docsDir, "Reels", "auto");
+const OUT_ROOT = argOf("out") ?? reelsOutRoot();
 const AUDIO_ROOT = process.env.REELS_AUDIO_DIR ?? path.join(docsDir, "Audio");
 const FIXTURE_DIR =
   argOf("fixtures") ??
@@ -77,6 +78,7 @@ interface ReelOutcome {
   status: "built" | "skipped";
   reason?: string;
   videoFile?: string;
+  captionFile?: string;
   durationSec?: number;
   events: string[];
   excluded: { title: string; reason: string }[];
@@ -160,7 +162,7 @@ async function main() {
   if (!smoke && !process.env.ANTHROPIC_API_KEY) throw new Error("ANTHROPIC_API_KEY is required (or use --smoke)");
   if (!smoke && !process.env.PEXELS_API_KEY) throw new Error("PEXELS_API_KEY is required (or use --smoke)");
 
-  const dayDir = path.join(OUT_ROOT, `${window.start}_${day}`);
+  const dayDir = path.join(OUT_ROOT, dayDirName(window.start, day));
   await mkdir(dayDir, { recursive: true });
   const historyPath = path.join(OUT_ROOT, "history.json");
   const history = loadHistory(historyPath);
@@ -260,9 +262,11 @@ async function main() {
       });
       if (audio.file) markAudioUsed(history, path.basename(audio.file), todayIso);
 
-      await writeFile(path.join(dayDir, `${variant}.caption.txt`), content.caption + "\n");
+      const captionFile = path.join(dayDir, `${variant}.caption.txt`);
+      await writeFile(captionFile, content.caption + "\n");
       outcome.status = "built";
       outcome.videoFile = outFile;
+      outcome.captionFile = captionFile;
       outcome.durationSec = durationSec;
       console.log(`[reels] ${variant}: built ${path.basename(outFile)} (${durationSec.toFixed(2)}s)`);
     } catch (err) {
@@ -304,6 +308,50 @@ async function main() {
     ]),
   ].join("\n");
   await writeFile(path.join(dayDir, "manifest.md"), manifest + "\n");
+
+  // Machine-readable twin of the manifest — the publish gate (phase 2)
+  // consumes this, never the markdown. Shape: DayManifest in lib/reels/publish/types.ts.
+  const toManifestOutcome = (o: ReelOutcome) => ({
+    variant: o.variant,
+    status: o.status,
+    ...(o.reason ? { reason: o.reason } : {}),
+    ...(o.videoFile ? { videoFile: o.videoFile } : {}),
+    ...(o.captionFile ? { captionFile: o.captionFile } : {}),
+    ...(o.durationSec !== undefined ? { durationSec: o.durationSec } : {}),
+    warnings: o.warnings,
+    waivedClips: o.clips.filter((c) => c.authenticity === "waived").length,
+  });
+  const manifestJsonPath = path.join(dayDir, "manifest.json");
+  let existing: { smoke?: boolean; outcomes?: { variant: string }[] } | null = null;
+  try {
+    existing = JSON.parse(await readFile(manifestJsonPath, "utf8"));
+  } catch {
+    existing = null;
+  }
+  if (smoke && existing && existing.smoke === false) {
+    // Never let a smoke rerun clobber a real day's publish gate — park it.
+    await writeFile(
+      path.join(dayDir, "manifest.smoke.json"),
+      JSON.stringify({ day, window, generatedAt: now.toISOString(), smoke, outcomes: outcomes.map(toManifestOutcome) }, null, 2) + "\n",
+    );
+    console.warn("[reels] smoke run left the existing real manifest.json untouched (wrote manifest.smoke.json)");
+  } else {
+    // A partial (--variant) rerun merges into the existing manifest so
+    // rebuilding one reel never erases its siblings' publishability.
+    const merged = new Map<string, ReturnType<typeof toManifestOutcome>>();
+    if (!smoke && existing && existing.smoke === false && Array.isArray(existing.outcomes)) {
+      for (const o of existing.outcomes) merged.set(o.variant, o as ReturnType<typeof toManifestOutcome>);
+    }
+    for (const o of outcomes) merged.set(o.variant, toManifestOutcome(o));
+    await writeFile(
+      manifestJsonPath,
+      JSON.stringify(
+        { day, window, generatedAt: now.toISOString(), smoke, outcomes: [...merged.values()] },
+        null,
+        2,
+      ) + "\n",
+    );
+  }
 
   const built = outcomes.filter((o) => o.status === "built").length;
   console.log(`[reels] done — ${built}/${variants.length} reels built · ${dayDir}`);

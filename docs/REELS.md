@@ -154,16 +154,13 @@ untouched. To remove entirely: delete `lib/reels/`, `scripts/reels/`,
 (and Friday) if scheduled. Generated output under `Documents\CityPulseMN\Reels\auto\`
 is yours to keep or delete.
 
-## Phase 2 (not built): auto-posting
+## Phase 2: auto-posting
 
-The generator was designed so posting can be bolted on: each day-folder has
-the mp4 + caption ready. Instagram's Content Publishing API needs your
-account switched to Professional, linked to a Facebook Page, and a Meta app
-with an access token (~30 min one-time). Two constraints to decide with open
-eyes: API-posted reels can only use audio baked into the file (no trending
-sounds), and the video must be fetchable from a public URL (we'd upload to
-Supabase storage briefly — mind the egress budget). Ask Claude for this when
-you want it.
+Architecture designed — see **docs/REELS-PUBLISH.md** (Instagram Platform
+API with Instagram Login, no Facebook Page needed; temporary public hosting
+for the video fetch; clean-auto/flagged-hold gate; 7:30 publish task an hour
+after generation as the human override window). Audio is a non-issue now
+that every reel carries its own licensed track.
 
 ## Known limits (honest)
 
