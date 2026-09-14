@@ -16,6 +16,30 @@ deliberately not committed — `package.json` currently carries the uncommitted
 reels entries, and staging it would drag those in. Add the alias when reels
 lands.)*
 
+## When it runs
+
+**Last step of `.github/workflows/weekly-research.yml`**, with `--apply`, after
+the pipeline and after the sports and venue reconciliations — because it judges
+what all of them produced.
+
+It runs *inside* that workflow rather than in its own, so its flags are in the
+database **before the ops digest fires**. The digest triggers on
+`workflow_run: completed` for weekly-research and reads the flag queue; a sweep
+running after it would report a week late.
+
+It is deliberately **not** wrapped in `continue-on-error`. Transient socket
+failures are already swallowed and counted internally, so a non-zero exit means
+a real fault — and when that happens the workflow conclusion goes to `failure`,
+which turns the **GitHub Actions tile on `/admin/ops` red**. That tile is the
+loudness mechanism; hiding the failure would make this another instrument
+raising its hand into a void.
+
+Cost: about 12 minutes and no model spend. The weekly job has run 19–44 minutes
+over the last five weeks against a 90-minute timeout, so there is room.
+
+Needs one secret, `DATABASE_URL` — the only environment variable the whole call
+chain reads.
+
 ## What it was built for
 
 On 14 Sep 2026 **"Prairie Bathing Under a Harvest Moon"** was live, stamped

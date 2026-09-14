@@ -59,3 +59,27 @@ jobs:
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           REVALIDATE_SECRET: ${{ secrets.REVALIDATE_SECRET }}
+
+      # LAST, because it judges everything the steps above produced: does each
+      # live listing actually appear on the page it cites? One fetch per distinct
+      # source URL — 1,031 listings collapse to ~677 pages — and no model in the
+      # loop, same as the two steps above.
+      #
+      # It runs here rather than in its own workflow so its flags are in the
+      # database BEFORE the ops digest fires. That digest triggers on
+      # `workflow_run: completed` for this workflow and reads the flag queue; a
+      # sweep running after it would report a week late.
+      #
+      # `--apply` flags and un-verifies; it never archives and never edits (see
+      # docs/SOURCE-CHECK.md). Transient socket failures are swallowed and
+      # counted, so this only exits non-zero on a real fault — and when it does,
+      # the GitHub Actions tile on /admin/ops goes red, which is the point of
+      # not wrapping it in continue-on-error.
+      #
+      # Not `npm run check-sources`: that alias exists locally but package.json
+      # currently carries uncommitted reels entries, so committing it would drag
+      # those along. Swap this line once reels lands.
+      - name: Check every listing against the page it cites
+        run: npx tsx scripts/check-sources.ts --apply
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
