@@ -217,3 +217,37 @@ export async function withDeadline<T>(work: Promise<T>, ms: number, fallback: T)
     if (timer) clearTimeout(timer);
   }
 }
+
+/**
+ * Did the weekly email actually go out?
+ *
+ * WHY IT IS A TILE. This has been reported in the Monday ops email all along,
+ * as a line of prose several sections down. On 6 Aug 2026 a Thursday send was
+ * missed — the only failed Actions run in the digest's history — and nobody
+ * noticed, because the list was four people and the miss was a sentence in a
+ * paragraph. A miss deserves the same red square a dead vendor gets.
+ *
+ * TWO DIFFERENT FAILURES, and the second is the quiet one:
+ *   1. The last attempt FAILED — loud, and the note says why.
+ *   2. No attempt happened at all — silent, and the only evidence is the age
+ *      of the last success.
+ *
+ * `staleDays` is the email's own DIGEST_STALE_DAYS, passed in rather than
+ * duplicated: the digest goes out Thursday and the ops report runs Monday, so
+ * a healthy week reads 4 days and a single skipped send reads 11. If the tile
+ * and the email ever disagreed about what "missed" means, one of them would be
+ * lying to the same person on the same morning.
+ */
+export function judgeDigest(
+  lastSuccessDaysAgo: number | null,
+  lastAttemptFailed: boolean,
+  staleDays: number,
+): VendorStatus {
+  if (lastAttemptFailed) return "down";
+  if (lastSuccessDaysAgo === null) return "unknown"; // never sent, or unreadable
+  if (!Number.isFinite(lastSuccessDaysAgo) || lastSuccessDaysAgo < 0) return "unknown";
+  if (lastSuccessDaysAgo >= staleDays) return "down"; // a Thursday was missed
+  // Two-thirds of the way to stale is the shoulder: a send is due about now.
+  if (lastSuccessDaysAgo >= Math.floor(staleDays * 0.75)) return "warn";
+  return "ok";
+}

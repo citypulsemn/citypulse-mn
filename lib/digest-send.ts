@@ -262,3 +262,59 @@ export async function hasSentDigestToday(): Promise<boolean> {
     return true;
   }
 }
+
+/**
+ * The two facts the ops tile needs: how stale the last SUCCESSFUL send is, and
+ * whether the most recent ATTEMPT failed. They are different questions — a
+ * failure this morning sits behind a success from yesterday, and only the first
+ * of those means mail did not go out.
+ *
+ * Local no-key runs are not recorded at all (see the branch in
+ * `sendWeeklyDigest`), so a failed row here means a real one: CI ran and could
+ * not send.
+ */
+/**
+ * The exact tag put on the four pre-fix rows that a laptop wrote (16 Sep 2026).
+ * A constant rather than a loose string because two places must agree about it:
+ * the annotation on those rows, and the filter below that ignores them. Rows
+ * written after the fix carry no tag — a local run leaves no row at all.
+ */
+export const LOCAL_RUN_MARKER = "local run, not the scheduled job";
+
+export async function getDigestHealth(): Promise<{
+  lastSuccessDaysAgo: number | null;
+  lastAttemptFailed: boolean;
+  lastSuccessAt: string | null;
+  lastRecipients: number | null;
+  lastNote: string | null;
+}> {
+  const empty = {
+    lastSuccessDaysAgo: null,
+    lastAttemptFailed: false,
+    lastSuccessAt: null,
+    lastRecipients: null,
+    lastNote: null,
+  };
+  if (!sql) return empty;
+  const [ok] = await sql<{ days: number | null; at: string | null; recipients: number | null }[]>`
+    select floor(extract(epoch from (now() - sent_at)) / 86400)::int as days,
+           to_char(sent_at at time zone 'America/Chicago', 'Mon DD') as at,
+           recipients
+    from digest_sends where ok = true and recipients > 0
+    order by sent_at desc limit 1`;
+  // "Did the scheduled send fail?" — so rows that were never a scheduled send
+  // are excluded. Without this the tile went straight back to red on the four
+  // laptop runs that prompted the fix in the first place: a new instrument
+  // re-importing the false alarm the old one had just been cleared of.
+  const [latest] = await sql<{ ok: boolean; note: string | null }[]>`
+    select ok, note from digest_sends
+    where note is null or note not like ${"%" + LOCAL_RUN_MARKER + "%"}
+    order by sent_at desc limit 1`;
+  return {
+    lastSuccessDaysAgo: ok?.days ?? null,
+    lastAttemptFailed: latest ? latest.ok === false : false,
+    lastSuccessAt: ok?.at ?? null,
+    lastRecipients: ok?.recipients ?? null,
+    lastNote: latest?.note ?? null,
+  };
+}

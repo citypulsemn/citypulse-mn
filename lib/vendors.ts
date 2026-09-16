@@ -24,10 +24,13 @@
  */
 import { envValue } from "./env";
 import { sql } from "./db";
+import { getDigestHealth } from "./digest-send";
+import { DIGEST_STALE_DAYS } from "./ops-digest";
 import {
   judgeCron,
   judgeUsage,
   judgeDelivery,
+  judgeDigest,
   unknownTile,
   formatBytes,
   formatDuration,
@@ -296,9 +299,52 @@ export async function gatherVendorTiles(now: Date = new Date()): Promise<VendorT
     ["Supabase", supabaseTile()],
     ["Resend", resendTile()],
     ["Anthropic", anthropicTile()],
+    ["Weekly email", digestTile()],
   ];
   const settled = await Promise.allSettled(probes.map(([, p]) => p));
   return settled.map((s, i) =>
     s.status === "fulfilled" ? s.value : unknownTile(probes[i][0], reason(s.reason), "#"),
   );
+}
+
+/* ----------------------------------------------------------- weekly digest */
+
+/**
+ * Did the weekly subscriber email actually go out?
+ *
+ * Not an outside service, but it fails like one: it depends on GitHub's
+ * scheduler firing and on Resend accepting the batch, and when either lets go
+ * the evidence is an absence. It has been a line of prose in the Monday email
+ * all along; on 6 Aug 2026 a Thursday send was missed and nobody noticed.
+ *
+ * Uses the email's own DIGEST_STALE_DAYS so the tile and the Monday report can
+ * never disagree about what "missed" means.
+ */
+export async function digestTile(): Promise<VendorTile> {
+  const link = "/admin/digest";
+  if (!sql) return unknownTile("Weekly email", "no database connection", link);
+  try {
+    const h = await getDigestHealth();
+    const status = judgeDigest(h.lastSuccessDaysAgo, h.lastAttemptFailed, DIGEST_STALE_DAYS);
+    if (h.lastSuccessDaysAgo === null && !h.lastAttemptFailed) {
+      return unknownTile("Weekly email", "no successful send on record yet", link);
+    }
+    const ago =
+      h.lastSuccessDaysAgo === null
+        ? "never sent"
+        : h.lastSuccessDaysAgo === 0
+          ? "sent today"
+          : `${h.lastSuccessDaysAgo}d ago`;
+    return {
+      service: "Weekly email",
+      status,
+      headline: h.lastAttemptFailed ? "last attempt FAILED" : ago,
+      detail: h.lastAttemptFailed
+        ? `${h.lastNote ?? "no reason recorded"} · last good send ${ago}`
+        : `${h.lastSuccessAt ?? "—"} to ${h.lastRecipients ?? 0} subscribers · due weekly on Thursday`,
+      link,
+    };
+  } catch (err) {
+    return unknownTile("Weekly email", reason(err), link);
+  }
 }

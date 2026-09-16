@@ -3,6 +3,7 @@ import {
   judgeUsage,
   judgeCron,
   judgeDelivery,
+  judgeDigest,
   worstStatus,
   needsAttention,
   formatBytes,
@@ -249,5 +250,45 @@ describe("withDeadline — nothing may spin forever", () => {
     const t0 = Date.now();
     await withDeadline(Promise.resolve(1), 10_000, 0);
     expect(Date.now() - t0).toBeLessThan(1_000);
+  });
+});
+
+describe("judgeDigest — the weekly email is the retention asset", () => {
+  const STALE = 8; // the email's own DIGEST_STALE_DAYS
+
+  it("is green through a normal week", () => {
+    // Thursday send, Monday report: a healthy week reads 4 days.
+    for (const d of [0, 1, 4, 5]) expect(judgeDigest(d, false, STALE), `${d}d`).toBe("ok");
+  });
+
+  it("goes amber on the shoulder, when a send is about due", () => {
+    expect(judgeDigest(6, false, STALE)).toBe("warn");
+    expect(judgeDigest(7, false, STALE)).toBe("warn");
+  });
+
+  it("goes red once a Thursday has actually been missed", () => {
+    // The real 6 Aug 2026 miss read 11 days by the following Monday.
+    for (const d of [8, 11, 30]) expect(judgeDigest(d, false, STALE), `${d}d`).toBe("down");
+  });
+
+  it("goes red when the last attempt FAILED, however recent", () => {
+    // A failure this morning beats a success yesterday: mail did not go out.
+    expect(judgeDigest(0, true, STALE)).toBe("down");
+    expect(judgeDigest(1, true, STALE)).toBe("down");
+  });
+
+  it("is unknown when nothing has ever been sent — not green", () => {
+    // A brand-new install has never missed a send and has never made one. That
+    // is a blind spot, not a clean bill of health.
+    expect(judgeDigest(null, false, STALE)).toBe("unknown");
+  });
+
+  it("is unknown on a broken reading rather than guessing", () => {
+    for (const d of [NaN, -1, Infinity]) expect(judgeDigest(d, false, STALE), String(d)).toBe("unknown");
+  });
+
+  it("uses the threshold it is given, so it cannot drift from the email", () => {
+    expect(judgeDigest(8, false, 14)).toBe("ok");
+    expect(judgeDigest(14, false, 14)).toBe("down");
   });
 });

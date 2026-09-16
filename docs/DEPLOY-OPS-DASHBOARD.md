@@ -7,8 +7,8 @@ demand, plus the half of the system our own database cannot see.
 
 **`/admin/ops`** — a new admin tab, first in the row. Two halves:
 
-1. **Outside services** — five tiles: GitHub Actions, Vercel, Supabase, Resend,
-   Anthropic. Colour plus a word, never colour alone.
+1. **Outside services** — six tiles: GitHub Actions, Vercel, Supabase, Resend,
+   Anthropic, and Weekly email. Colour plus a word, never colour alone.
 2. **The calendar itself** — every section the Monday ops email already reports
    (pipeline, coverage, verification, engagement, queue, self-check, …),
    alerting sections first and open.
@@ -93,6 +93,12 @@ neutral rather than inventing a cliff:
   the whole story.
 - **Vercel Active CPU** is not exposed as a usage gauge; `/v1/billing/charges`
   gives cost. The tile tracks cost.
+- **Weekly email** is not an outside service, but it fails like one — it needs
+  GitHub's scheduler to fire and Resend to accept the batch, and when either
+  lets go the evidence is an absence. It uses the Monday email's own
+  `DIGEST_STALE_DAYS`, passed in rather than duplicated, so the tile and the
+  report can never disagree about what "missed" means. Added 16 Sep 2026 after
+  a 6 Aug miss went unnoticed as a sentence in a paragraph.
 - **Anthropic** has no usage API for a non-admin key, so that tile is **our**
   measurement of **our** pipeline calls. It reads `$0.00` until the next weekly
   run writes the first priced row.
