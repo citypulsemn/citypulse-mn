@@ -193,3 +193,59 @@ describe("the digest verifies before it sends", () => {
     expect(crons).toEqual(["0 12 * * 1"]);
   });
 });
+
+/**
+ * 16 Sep 2026 — the admin's "Recent sends" panel showed three `failed · NOTHING
+ * SENT` rows in six days while every real Thursday send was succeeding. None of
+ * them was the scheduled job: GitHub Actions had not run since the Thursday.
+ * They were `npm run digest` typed on a laptop with no key in .env.local.
+ *
+ * So a laptop typo was answering the question `digest_sends` exists to answer —
+ * "did the weekly email go out?" — with a false alarm. The row is now only
+ * written in CI. THE FAILURE ITSELF IS UNCHANGED, and that is what these guard.
+ */
+describe("a missing key still fails everywhere — only the record differs", () => {
+  const savedCi = { gh: process.env.GITHUB_ACTIONS, ci: process.env.CI };
+  const setCi = (on: boolean) => {
+    if (on) process.env.GITHUB_ACTIONS = "true";
+    else {
+      delete process.env.GITHUB_ACTIONS;
+      delete process.env.CI;
+    }
+  };
+  afterEach(() => {
+    if (savedCi.gh === undefined) delete process.env.GITHUB_ACTIONS;
+    else process.env.GITHUB_ACTIONS = savedCi.gh;
+    if (savedCi.ci === undefined) delete process.env.CI;
+    else process.env.CI = savedCi.ci;
+  });
+
+  it("fails in CI — the workflow must still go red", async () => {
+    setCi(true);
+    const r = await sendWeeklyDigest({ dryRun: false });
+    expect(r.ok).toBe(false);
+    expect(r.note).toContain("no RESEND_API_KEY");
+  });
+
+  it("fails on a laptop too — quieter history, identical verdict", async () => {
+    setCi(false);
+    const r = await sendWeeklyDigest({ dryRun: false });
+    expect(r.ok).toBe(false);
+    expect(r.sent).toBe(0);
+    expect(r.dryRun).toBe(false);
+    expect(r.note).toContain("no RESEND_API_KEY");
+  });
+
+  it("the branch is gated on isCi, and the exit path is untouched", () => {
+    // Source tripwires, in the style this file already uses: the recording
+    // decision and the red-workflow guarantee are separate things, and a future
+    // edit must not quietly merge them.
+    const lib = readFileSync(join(__dirname, "..", "digest-send.ts"), "utf8");
+    const noKey = lib.slice(lib.indexOf("no RESEND_API_KEY — NOTHING SENT"));
+    expect(noKey).toContain("isCi()");
+    expect(noKey.slice(0, noKey.indexOf("const now"))).toContain("ok: false");
+
+    const script = readFileSync(join(__dirname, "..", "..", "scripts", "send-digest.ts"), "utf8");
+    expect(script).toContain("process.exit(result.ok ? 0 : 1)");
+  });
+});

@@ -49,3 +49,24 @@ export function envRequired(...names: string[]): string {
   }
   return v;
 }
+
+/**
+ * Are we running inside CI rather than on someone's laptop?
+ *
+ * WHY THIS EXISTS. `npm run digest` without a key is two different events. In
+ * GitHub Actions it means the deployment lost its secret and subscribers are
+ * about to be silently skipped — an incident. On a laptop it means someone
+ * typed a command in a shell that was never going to send anything — a typo.
+ *
+ * Both must still FAIL LOUDLY (R2.2: a missing key turns the workflow red).
+ * Only the recorded history differs, because `digest_sends` is read as the
+ * answer to "did the weekly email go out", and a laptop typo answering that
+ * question put three false alarms on the admin panel in six days.
+ *
+ * `GITHUB_ACTIONS` is the specific one; `CI` is the convention every other
+ * runner sets. Read through `envValue` because an unset Actions secret arrives
+ * as "", and "" must not read as "yes, we are in CI".
+ */
+export function isCi(): boolean {
+  return envValue("GITHUB_ACTIONS", "CI") !== undefined;
+}

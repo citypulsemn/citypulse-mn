@@ -1,7 +1,7 @@
 import { describe, it, expect, afterEach } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { envValue, envOr, envRequired } from "../env";
+import { envValue, envOr, envRequired, isCi } from "../env";
 
 const ROOT = join(__dirname, "..", "..");
 const touched: string[] = [];
@@ -90,5 +90,43 @@ describe("no `?? process.env` fallbacks survive", () => {
         /process\.env\.[A-Z_0-9]+\s*\?\?\s*process\.env\./,
       );
     }
+  });
+});
+
+describe("isCi", () => {
+  const saved = { gh: process.env.GITHUB_ACTIONS, ci: process.env.CI };
+  const set = (k: "GITHUB_ACTIONS" | "CI", v: string | undefined) => {
+    if (v === undefined) delete process.env[k];
+    else process.env[k] = v;
+  };
+  afterEach(() => {
+    set("GITHUB_ACTIONS", saved.gh);
+    set("CI", saved.ci);
+  });
+
+  it("is true inside GitHub Actions", () => {
+    set("GITHUB_ACTIONS", "true");
+    set("CI", undefined);
+    expect(isCi()).toBe(true);
+  });
+
+  it("is true for the generic CI convention other runners use", () => {
+    set("GITHUB_ACTIONS", undefined);
+    set("CI", "1");
+    expect(isCi()).toBe(true);
+  });
+
+  it("is false on a laptop", () => {
+    set("GITHUB_ACTIONS", undefined);
+    set("CI", undefined);
+    expect(isCi()).toBe(false);
+  });
+
+  it("treats a BLANK value as not-CI, which is the whole reason it uses envValue", () => {
+    // An unset Actions secret arrives as "". If "" read as "we are in CI" this
+    // predicate would invert itself in exactly the environment it exists for.
+    set("GITHUB_ACTIONS", "");
+    set("CI", "   ");
+    expect(isCi()).toBe(false);
   });
 });

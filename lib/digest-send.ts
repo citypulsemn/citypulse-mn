@@ -8,6 +8,7 @@ import { getMostSavedCounts } from "./stats";
 import { placeOfTheWeek } from "./places";
 import { unsubscribeUrl, unsubSecret } from "./unsubscribe-token";
 import { SITE_URL } from "./seo/site";
+import { isCi } from "./env";
 import type { EventRecord } from "./types";
 
 /**
@@ -51,8 +52,22 @@ export async function sendWeeklyDigest(opts: { dryRun?: boolean } = {}): Promise
   // already exits 1 on this exact condition; now both senders agree.
   if (!dryRun && !apiKey) {
     const note = "no RESEND_API_KEY — NOTHING SENT";
-    console.error(`[digest] ${note}`);
-    return record({ attempted: 0, sent: 0, dryRun: false, ok: false, note });
+    // STILL FAILS, ALWAYS. ok:false → exit 1 → red workflow, unchanged.
+    //
+    // What changed (16 Sep 2026) is only whether it leaves a ROW. In CI a
+    // missing key means the deployment lost its secret and subscribers are
+    // about to be silently skipped — that belongs in the history. On a laptop
+    // it means someone typed `npm run digest` in a shell that was never going
+    // to send anything, and recording it answers the question "did the weekly
+    // email go out?" with a false alarm. Three of those landed on the admin
+    // panel in six days while every real Thursday send was succeeding.
+    //
+    // Same principle `record` already applies to dry runs: the row must mean
+    // "this happened".
+    const local = !isCi();
+    console.error(`[digest] ${note}${local ? " (local run — not recorded)" : ""}`);
+    const result = { attempted: 0, sent: 0, dryRun: false, ok: false, note };
+    return local ? result : record(result);
   }
 
   const now = new Date();
