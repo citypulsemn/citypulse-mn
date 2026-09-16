@@ -125,7 +125,25 @@ export function makeSupabaseHost(
     );
   }
   const supabaseUrl = env.SUPABASE_URL as string;
-  const auth = { Authorization: `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY as string}` };
+  // Refuse anything but the https project URL — a postgres:// connection
+  // string here once reached fetch() and echoed its embedded password into
+  // the error output. Never repeat the value back; name the fix instead.
+  if (!/^https:\/\//.test(supabaseUrl)) {
+    throw new Error(
+      "SUPABASE_URL must be the project's https URL (https://<ref>.supabase.co), " +
+        "not a connection string — fix it in .env.local (value not shown).",
+    );
+  }
+  const key = env.SUPABASE_SERVICE_ROLE_KEY as string;
+  // Both headers: new-style sb_secret_ keys are not JWTs, and storage only
+  // honors them via `apikey` ("Invalid Compact JWS" with Bearer alone);
+  // legacy JWT keys work either way. Sending both covers both key styles.
+  const auth = { Authorization: `Bearer ${key}`, apikey: key };
+
+  // Storage wraps some not-found answers in an HTTP 400 whose BODY carries
+  // the 404 (code NoSuchBucket/NoSuchKey) — observed live; match on both.
+  const isNotFound = (status: number, body: string): boolean =>
+    status === 404 || /NoSuch(Bucket|Key)|"statusCode"\s*:\s*"?404/.test(body);
 
   return {
     async ensureBucket() {
@@ -134,8 +152,9 @@ export function makeSupabaseHost(
         headers: { ...auth },
       });
       if (info.ok) return;
-      if (info.status !== 404) {
-        throw new Error(`Supabase bucket check failed (${info.status}): ${await snippet(info)}`);
+      const infoBody = await snippet(info);
+      if (!isNotFound(info.status, infoBody)) {
+        throw new Error(`Supabase bucket check failed (${info.status}): ${infoBody}`);
       }
       const created = await deps.fetch(createBucketUrl(supabaseUrl), {
         method: "POST",
@@ -167,8 +186,10 @@ export function makeSupabaseHost(
         method: "DELETE",
         headers: { ...auth },
       });
-      if (res.ok || res.status === 404) return;
-      throw new Error(`Removing ${objectName} failed (${res.status}): ${await snippet(res)}`);
+      if (res.ok) return;
+      const body = await snippet(res);
+      if (isNotFound(res.status, body)) return; // already gone — the desired end state
+      throw new Error(`Removing ${objectName} failed (${res.status}): ${body}`);
     },
   };
 }

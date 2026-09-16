@@ -278,3 +278,21 @@ describe("full hosting cycle", () => {
     }
   });
 });
+
+describe("makeSupabaseHost URL validation", () => {
+  it("refuses a connection-string SUPABASE_URL without echoing the value", () => {
+    const env = {
+      SUPABASE_URL: "postgresql://user:hunter2@db.example.com:6543/postgres",
+      SUPABASE_SERVICE_ROLE_KEY: "sb_secret_x",
+    };
+    let message = "";
+    try {
+      makeSupabaseHost(env);
+    } catch (err) {
+      message = err instanceof Error ? err.message : String(err);
+    }
+    expect(message).toContain("https URL");
+    expect(message).not.toContain("hunter2");
+    expect(message).not.toContain("postgresql");
+  });
+});
