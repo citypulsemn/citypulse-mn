@@ -22,6 +22,27 @@ html, body { min-height: 100%; }
 html {
   /* Base coat everywhere (incl. overscroll) — the glow layer sits on top. */
   background: var(--navy-900);
+
+  /* TELL THE BROWSER THIS SITE IS DARK.
+     Reported 17 Sep 2026: the city filter's dropdown was cream text on white —
+     effectively invisible. Nothing was wrong with our CSS. A native <select>
+     popup is drawn by the BROWSER, not by the page: it took our `color: cream`
+     for the options and paired it with its own default LIGHT background,
+     because we had never said which scheme we use. One declaration fixes every
+     native surface at once — select popups, date pickers, scrollbars, spinners,
+     the lot — and it is the platform's own answer rather than a per-control
+     patch. The site is navy everywhere and has no light mode, so `dark` is
+     simply true. */
+  color-scheme: dark;
+}
+
+/* Belt and braces for the popup specifically. Chrome on Windows has historically
+   drawn select popups with native widgets that ignore color-scheme; where it is
+   honoured these values match what it would pick anyway, and where it is not,
+   the options stay readable instead of going cream-on-white again. */
+option {
+  background-color: var(--navy-800);
+  color: var(--cream);
 }
 
 body {
