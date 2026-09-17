@@ -669,14 +669,19 @@ a.daycard { text-decoration: none; }
 
 .admin-tabs {
   display: flex; gap: 4px; border-bottom: 1px solid var(--line); margin-bottom: 16px;
-  /* Scrollable tabs WITHOUT the OS scrollbar chrome (live report Jul 16: the
-     9th tab overflowed desktop widths and the browser painted its default
-     white-tracked scrollbar). Swipe/trackpad/wheel scrolling still works. */
+  /* Jul 16 2026: the 9th tab overflowed desktop widths and the browser painted
+     its default WHITE-TRACKED scrollbar, so the bar was hidden outright. That
+     was a colour problem solved by deletion, and `color-scheme: dark` on html
+     now solves the colour problem properly — the native bar is painted dark.
+
+     So it comes back, deliberately. There are TWELVE tabs now, three more than
+     the row that caused the original report, so overflow is not an edge case
+     any more: it is the normal state on most widths. A hidden scrollbar in that
+     situation is not tidiness, it is a row that gives no sign the tabs continue
+     past the edge. `thin` keeps it out of the way while saying so. */
   overflow-x: auto; overflow-y: hidden;
-  scrollbar-width: none;           /* Firefox */
-  -ms-overflow-style: none;        /* legacy Edge */
+  scrollbar-width: thin;
 }
-.admin-tabs::-webkit-scrollbar { display: none; }  /* Chrome/Safari */
 .admin-tabs a { flex: none; padding: 10px 14px; color: var(--cream-dim); text-decoration: none; font-family: var(--font-oswald); font-weight: 500; letter-spacing: 0.04em; font-size: 14px; border-bottom: 2px solid transparent; margin-bottom: -1px; white-space: nowrap; }
 .admin-tabs a:hover { color: var(--cream); }
 .admin-tabs a.active { color: var(--gold); border-bottom-color: var(--gold); }
