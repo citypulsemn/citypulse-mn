@@ -9,7 +9,7 @@ session at itself.
 This is the most important line here. Since mid-September the system reports its own
 state better than any document can, and all of it is one page:
 
-> **`/admin/ops`** — six vendor tiles plus every section of the Monday ops email,
+> **`/admin/ops`** — five vendor tiles plus every section of the Monday ops email,
 > live. Grey means a check could not run and is never a pass.
 > **`/admin/growth`** — subscribers, acquisition, funnel, returning readers.
 
@@ -56,16 +56,30 @@ Nothing here is blocked; everything has an owner or a date.
    no physical postal address, which CAN-SPAM requires. Every send now records
    `NO POSTAL ADDRESS IN FOOTER` in its note, visible on `/admin/digest`. **Taren:
    one env var in Vercel and GitHub Actions secrets.**
-3. **Two ops tiles stay grey by choice.** Resend needs a *Full access* key to read
-   `/domains` — more privilege than a dashboard should hold, and the Weekly email tile
-   now answers the same question from our own data. Vercel's spend is better handled by
-   Vercel's own budget alert than by an API token here. **Decide: remove the Resend
-   tile, or accept the key.**
-4. **Search Console on `/admin/growth`** works in Actions; unverified in Vercel. One
-   look at the page settles it.
+3. **Resend tile: removed** (17 Sep). Reading `/domains` needs a *Full access* key,
+   and the Weekly email tile answers the same question from our own `digest_sends`
+   rows with no key at all. Five tiles now. Vercel's spend stays grey on purpose —
+   **Vercel's own budget alert is the right instrument**, not an API token here:
+   Vercel → the project → Settings → Billing → Spend Management → set an amount and
+   an email. **Taren: not set yet.**
+4. **Search Console on `/admin/growth` is dark in production.** It works in Actions
+   because `GSC_SERVICE_ACCOUNT_JSON` is a GitHub secret; Vercel does not have it.
+   The page already says so rather than showing a clean zero. **Taren: paste the
+   service-account JSON file's whole contents into Vercel → Settings → Environment
+   Variables → `GSC_SERVICE_ACCOUNT_JSON` (Production), then redeploy.**
 5. **Backlogs**: 47 drafted upcoming (13 wrong-event, 12 with no audit trail at all,
-   9 source-hold), 125 open verify flags, ~167 unverified upcoming, 17 listings with a
-   00:00 placeholder start, 22 with no ticket link.
+   9 source-hold), 125 open verify flags, ~167 unverified upcoming.
+   Two of these closed on 17 Sep:
+   - *00:00 placeholder starts*: 17 → 5, and the 5 are **correct**. No operator
+     publishes a time for them (two Gophers games are TBA on gophersports.com, the
+     Guthrie prints no time for The Purpose Pursuit anywhere including its own
+     ticketing, Lowry Bookworms' session is closed, and the Christmas Market is a
+     five-weekend run with no 2026 hours announced). The remaining count is honest
+     emptiness, not a backlog.
+   - *No ticket link*: 22 → 0. All 22 were sports, and the cause was the importer,
+     not the rows — the feeds carry no per-game ticket URL, so it claimed none.
+     `SportsSource.tickets` now holds each club's own tickets page (all eight
+     checked for 200), the importer uses it, and the live rows were backfilled.
 6. **Offered, undecided**: scrollbar affordance on reader-facing pill strips; the
    price vocabulary that says the same thing four ways across ~500 live fields.
 

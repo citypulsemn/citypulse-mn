@@ -107,8 +107,9 @@ function toEventInput(source: SportsSource, game: FeedGame): DbEventInput | null
     end_at: null,
     price: "See listing",
     priceTier: "$$",
-    // No per-game ticket URL in these feeds, so none is claimed.
-    ticket_url: "",
+    // The feeds carry no per-game ticket URL. The club's own tickets page is
+    // the honest substitute: attested, not guessed (see SportsSource.tickets).
+    ticket_url: source.tickets,
     description: `${game.opponent} ${game.home ? "at" : "vs."} ${source.team} — ${v.name}, ${v.city}.`,
     image: "",
     source_url: source.urls(game.day, game.day)[0],

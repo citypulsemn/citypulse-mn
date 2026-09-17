@@ -50,6 +50,14 @@ export interface SportsSource {
   parse: (json: unknown) => FeedGame[];
   /** Human-readable attribution stored on each imported row. */
   sourceLabel: string;
+  /**
+   * The club's own tickets page. These feeds carry no per-game ticket URL, and
+   * guessing one would be an invented fact — but "where this team sells seats"
+   * is attested and stable, and beats leaving a reader with no way to buy.
+   * Every URL here was checked to return 200. A per-game deep link would be an
+   * improvement; a fabricated one would not.
+   */
+  tickets: string;
 }
 
 const TARGET_FIELD: SportsVenue = {
@@ -132,6 +140,7 @@ const nameContains = (needle: string) => (name: string) =>
 export const SPORTS_SOURCES: SportsSource[] = [
   {
     key: "twins",
+    tickets: "https://www.mlb.com/twins/tickets",
     team: "Minnesota Twins",
     venue: TARGET_FIELD,
     titleMatch: "%twins%",
@@ -143,6 +152,7 @@ export const SPORTS_SOURCES: SportsSource[] = [
   },
   {
     key: "saints",
+    tickets: "https://www.milb.com/st-paul/tickets",
     team: "St. Paul Saints",
     venue: CHS_FIELD,
     titleMatch: "%saints%",
@@ -155,6 +165,7 @@ export const SPORTS_SOURCES: SportsSource[] = [
   },
   {
     key: "wild",
+    tickets: "https://www.nhl.com/wild/tickets/",
     team: "Minnesota Wild",
     venue: GRAND_CASINO_ARENA,
     // NOT '%wild%' — that also catches the Wild Rice Festival.
@@ -167,6 +178,7 @@ export const SPORTS_SOURCES: SportsSource[] = [
   },
   {
     key: "vikings",
+    tickets: "https://www.vikings.com/tickets/",
     team: "Minnesota Vikings",
     venue: US_BANK_STADIUM,
     titleMatch: "%vikings%",
@@ -179,6 +191,7 @@ export const SPORTS_SOURCES: SportsSource[] = [
   },
   {
     key: "timberwolves",
+    tickets: "https://www.nba.com/timberwolves/tickets",
     team: "Minnesota Timberwolves",
     venue: TARGET_CENTER,
     titleMatch: "%timberwolves%",
@@ -192,6 +205,7 @@ export const SPORTS_SOURCES: SportsSource[] = [
   },
   {
     key: "lynx",
+    tickets: "https://lynx.wnba.com/tickets",
     team: "Minnesota Lynx",
     venue: TARGET_CENTER,
     titleMatch: "%lynx%",
@@ -204,6 +218,7 @@ export const SPORTS_SOURCES: SportsSource[] = [
   },
   {
     key: "gophers-football",
+    tickets: "https://gophersports.com/tickets",
     team: "Minnesota Golden Gophers Football",
     venue: HUNTINGTON_BANK_STADIUM,
     titleMatch: "%gopher%football%",
@@ -216,6 +231,7 @@ export const SPORTS_SOURCES: SportsSource[] = [
   },
   {
     key: "mnufc",
+    tickets: "https://www.mnufc.com/tickets/",
     team: "Minnesota United FC",
     venue: ALLIANZ_FIELD,
     titleMatch: "%united%",
