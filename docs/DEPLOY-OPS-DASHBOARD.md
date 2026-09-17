@@ -7,8 +7,15 @@ demand, plus the half of the system our own database cannot see.
 
 **`/admin/ops`** — a new admin tab, first in the row. Two halves:
 
-1. **Outside services** — six tiles: GitHub Actions, Vercel, Supabase, Resend,
+1. **Outside services** — five tiles: GitHub Actions, Vercel, Supabase,
    Anthropic, and Weekly email. Colour plus a word, never colour alone.
+
+   There was a sixth, for Resend. It came out on 17 Sep 2026: reading
+   `/domains` needs a **Full access** key, which is more privilege than a
+   read-only dashboard should hold, and the Weekly email tile already answers
+   the question that mattered ("did the email go out?") from our own
+   `digest_sends` rows, with no key at all. A tile that can only be lit by
+   over-privileging the thing it watches is not worth the tile.
 2. **The calendar itself** — every section the Monday ops email already reports
    (pipeline, coverage, verification, engagement, queue, self-check, …),
    alerting sections first and open.
@@ -60,9 +67,9 @@ sending for days because an unset Actions secret is `""` and not `undefined`.
    alter table pipeline_runs add column if not exists cost_searches integer;
    alter table pipeline_runs add column if not exists cost_unpriced_calls integer;
    ```
-3. **Open `/admin/ops`.** It works immediately — Supabase is green and the other
-   four read `unknown` until you add tokens. That is correct behaviour, not a
-   bug.
+3. **Open `/admin/ops`.** It works immediately — Supabase and Weekly email are
+   lit from our own database, and the other three read `unknown` until you add
+   tokens. That is correct behaviour, not a bug.
 
 ## Turning the grey tiles green
 
@@ -73,7 +80,6 @@ want the same tiles inside Actions.
 | Variable | Where to get it | Turns on |
 |---|---|---|
 | `GITHUB_TOKEN` | github.com → Settings → Developer settings → Personal access tokens → fine-grained, repo `citypulse-mn`, **Actions: read** | did the weekly pipeline actually fire, and pass |
-| `RESEND_API_KEY` | already a secret — just add it to Vercel too | sending-domain verification |
 | `VERCEL_API_TOKEN` | vercel.com → Settings → Tokens | month-to-date spend |
 | `VERCEL_TEAM_ID` | only if the project sits under a team | scopes the billing query |
 

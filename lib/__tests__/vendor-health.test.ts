@@ -2,7 +2,6 @@ import { describe, it, expect } from "vitest";
 import {
   judgeUsage,
   judgeCron,
-  judgeDelivery,
   judgeDigest,
   worstStatus,
   needsAttention,
@@ -97,34 +96,6 @@ describe("judgeCron — did the scheduled job actually fire, and pass", () => {
     expect(judgeCron(new Date(NOW.getTime() + 5 * 3_600_000).toISOString(), true, WEEK, NOW)).toBe(
       "unknown",
     );
-  });
-});
-
-describe("judgeDelivery — the weekly email is the retention asset", () => {
-  it("is green on a clean send and escalates with the bounce rate", () => {
-    expect(judgeDelivery(100, 0)).toBe("ok");
-    expect(judgeDelivery(100, 1)).toBe("ok"); // 1%
-    expect(judgeDelivery(100, 2)).toBe("warn"); // 2%
-    expect(judgeDelivery(100, 5)).toBe("down"); // 5%
-    expect(judgeDelivery(100, 90)).toBe("down");
-  });
-
-  it("treats nothing-sent as unknown, never as healthy", () => {
-    // Zero sent with zero bounced is a 0% bounce rate arithmetically, and that
-    // is exactly the reasoning that would have called a dead sender healthy.
-    expect(judgeDelivery(0, 0)).toBe("unknown");
-  });
-
-  it("refuses impossible or missing readings", () => {
-    for (const [s, b] of [
-      [null, 0],
-      [10, null],
-      [-1, 0],
-      [10, -1],
-      [NaN, 0],
-    ] as [number | null, number | null][]) {
-      expect(judgeDelivery(s, b), `${s}/${b}`).toBe("unknown");
-    }
   });
 });
 

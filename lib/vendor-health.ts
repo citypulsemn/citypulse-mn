@@ -112,30 +112,6 @@ export function judgeCron(
   return "ok";
 }
 
-/**
- * Email deliverability. Bounces matter more than volume: a bounce rate climbing
- * past a couple of percent is how a sending domain's reputation dies, and the
- * weekly digest is the retention asset.
- */
-export function judgeDelivery(
-  sent: number | null | undefined,
-  bounced: number | null | undefined,
-  opts: { warnRate?: number; downRate?: number } = {},
-): VendorStatus {
-  const warnRate = opts.warnRate ?? 0.02;
-  const downRate = opts.downRate ?? 0.05;
-  if (!Number.isFinite(sent as number) || !Number.isFinite(bounced as number)) return "unknown";
-  const s = sent as number;
-  const b = bounced as number;
-  if (s < 0 || b < 0) return "unknown";
-  // Nothing sent is not "healthy delivery" — there is no evidence either way.
-  if (s === 0) return "unknown";
-  const rate = b / s;
-  if (rate >= downRate) return "down";
-  if (rate >= warnRate) return "warn";
-  return "ok";
-}
-
 /** Bytes → a human string. Used by the Supabase tile and its tests. */
 export function formatBytes(n: number | null | undefined): string {
   if (!Number.isFinite(n as number) || (n as number) < 0) return "—";

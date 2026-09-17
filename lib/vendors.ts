@@ -20,7 +20,7 @@
  *     deployment, which is what is genuinely observable.
  *   - Supabase has no clean egress endpoint. Database size, though, comes free
  *     from the connection we already hold, so that tile needs no token at all.
- *   - GitHub and Resend both answer plainly.
+ *   - GitHub answers plainly.
  */
 import { envValue } from "./env";
 import { sql } from "./db";
@@ -29,7 +29,6 @@ import { DIGEST_STALE_DAYS } from "./ops-digest";
 import {
   judgeCron,
   judgeUsage,
-  judgeDelivery,
   judgeDigest,
   unknownTile,
   formatBytes,
@@ -104,42 +103,17 @@ export async function githubTile(now: Date): Promise<VendorTile> {
 }
 
 /* ------------------------------------------------------------------ Resend */
-
-/**
- * Email, checked where it actually breaks.
+/*
+ * REMOVED 17 Sep 2026. The probe read Resend's /domains endpoint to check the
+ * sending domain was still verified — and that endpoint needs a FULL ACCESS key,
+ * which can also create and delete domains and mint other API keys. That is more
+ * power than a read-only dashboard should hold to colour one square.
  *
- * Resend publishes no aggregate bounce-rate endpoint, so the useful probe is
- * the sending DOMAIN's verification state. If that lapses, every email — the
- * weekly digest, the report alerts, the one-tap decision links — stops arriving
- * and nothing in our own database notices.
+ * The question it was really asking — "can our email still get out?" — is
+ * answered by the Weekly email tile, from our own digest_sends rows, with no
+ * key at all and no privilege to leak. A tile that can only ever be grey is not
+ * a reminder, it is noise that teaches you grey means nothing.
  */
-export async function resendTile(): Promise<VendorTile> {
-  const link = "https://resend.com/domains";
-  const key = envValue("RESEND_API_KEY");
-  if (!key) return unknownTile("Resend", "RESEND_API_KEY is not set", link);
-
-  try {
-    const body = await getJson("https://api.resend.com/domains", { Authorization: `Bearer ${key}` });
-    const domains = arr(rec(body).data).map(rec);
-    if (domains.length === 0) {
-      return unknownTile("Resend", "the account has no sending domain", link);
-    }
-    const bad = domains.filter((d) => d.status !== "verified");
-    const names = domains.map((d) => String(d.name ?? "?")).join(", ");
-    return {
-      service: "Resend",
-      status: bad.length === 0 ? "ok" : "down",
-      headline: bad.length === 0 ? "domain verified" : `${bad.length} domain(s) not verified`,
-      detail:
-        bad.length === 0
-          ? `${names} — mail can leave`
-          : bad.map((d) => `${d.name}: ${d.status}`).join(" · "),
-      link,
-    };
-  } catch (err) {
-    return unknownTile("Resend", reason(err), link);
-  }
-}
 
 /* ---------------------------------------------------------------- Supabase */
 
@@ -297,7 +271,6 @@ export async function gatherVendorTiles(now: Date = new Date()): Promise<VendorT
     ["GitHub Actions", githubTile(now)],
     ["Vercel", vercelTile(now)],
     ["Supabase", supabaseTile()],
-    ["Resend", resendTile()],
     ["Anthropic", anthropicTile()],
     ["Weekly email", digestTile()],
   ];
