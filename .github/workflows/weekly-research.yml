@@ -75,11 +75,7 @@ jobs:
       # counted, so this only exits non-zero on a real fault — and when it does,
       # the GitHub Actions tile on /admin/ops goes red, which is the point of
       # not wrapping it in continue-on-error.
-      #
-      # Not `npm run check-sources`: that alias exists locally but package.json
-      # currently carries uncommitted reels entries, so committing it would drag
-      # those along. Swap this line once reels lands.
       - name: Check every listing against the page it cites
-        run: npx tsx scripts/check-sources.ts --apply
+        run: npm run check-sources -- --apply
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}

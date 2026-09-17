@@ -29,6 +29,10 @@ export interface DigestOptions {
   weekLabel: string;
   unsubscribeUrl: string;
   siteUrl: string;
+  /** CAN-SPAM: the sender's valid physical postal address, from
+   *  DIGEST_POSTAL_ADDRESS. Absent ⇒ the footer keeps its old region line and
+   *  the sender records that the email went out without one. */
+  postalAddress?: string | null;
   /** ROADMAP 5.3 — the subscriber's own saved events happening this week.
    *  When present and non-empty, a "You saved these" section leads the email.
    *  Absent/empty ⇒ the digest is exactly the standard one. */
@@ -355,7 +359,7 @@ export function mostSavedText(events: EventRecord[], siteUrl: string): string {
 }
 
 export function renderDigestEmail(opts: DigestOptions): DigestData {
-  const { events, weekLabel, unsubscribeUrl, siteUrl } = opts;
+  const { events, weekLabel, unsubscribeUrl, siteUrl, postalAddress } = opts;
   // R2.1 — default to the module sponsor; a caller may pass null to force none.
   const sponsor = opts.sponsor === undefined ? DIGEST_SPONSOR : opts.sponsor;
   const saved = opts.savedThisWeek ?? [];
@@ -432,7 +436,7 @@ export function renderDigestEmail(opts: DigestOptions): DigestData {
         <tr><td style="padding:18px 24px 26px;border-top:1px solid rgba(201,169,97,0.2);">
           <div style="font:400 12px/1.6 Arial,Helvetica,sans-serif;color:#7c8398;">
             You're getting this because you subscribed at citypulsemn.com.<br>
-            <a href="${unsubscribeUrl}" style="color:#9aa1b4;text-decoration:underline;">Unsubscribe</a> · City Pulse MN · Twin Cities, Minnesota
+            <a href="${unsubscribeUrl}" style="color:#9aa1b4;text-decoration:underline;">Unsubscribe</a> · ${esc(senderFooterLine(postalAddress))}
           </div>
         </td></tr>
       </table>
@@ -481,8 +485,34 @@ export function renderDigestEmail(opts: DigestOptions): DigestData {
     `Enjoying this? Forward it to a friend — or send them ${siteUrl}/this-week to get their own.`,
     "",
     `Unsubscribe: ${unsubscribeUrl}`,
-    "City Pulse MN · Twin Cities, Minnesota",
+    senderFooterLine(postalAddress),
   ];
 
   return { subject, html, text: textLines.join("\n") };
+}
+
+/**
+ * The sender identity line in the email footer.
+ *
+ * WHY IT TAKES AN ADDRESS. CAN-SPAM §7704(a)(5) requires every commercial email
+ * to carry "the valid physical postal address of the sender". Until 17 Sep 2026
+ * this footer read "City Pulse MN · Twin Cities, Minnesota" — a region, which is
+ * not an address. The list was 31 people and growing, and the rule does not
+ * scale with it.
+ *
+ * The address is NOT hard-coded here: it is a real-world fact about Taren that
+ * this file cannot know, and inventing a plausible one would be the same class
+ * of mistake as inventing a plausible event. It arrives from
+ * DIGEST_POSTAL_ADDRESS. When that is unset the footer degrades to what it
+ * always said rather than printing a placeholder, and the SENDER flags it — see
+ * the note it writes into digest_sends.
+ */
+export function senderFooterLine(postalAddress?: string | null): string {
+  const addr = String(postalAddress ?? "").trim();
+  return addr === "" ? "City Pulse MN · Twin Cities, Minnesota" : `City Pulse MN · ${addr}`;
+}
+
+/** True when the footer would go out without a physical address. */
+export function missingPostalAddress(postalAddress?: string | null): boolean {
+  return String(postalAddress ?? "").trim() === "";
 }

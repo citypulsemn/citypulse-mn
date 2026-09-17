@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { sendWeeklyDigest } from "../digest-send";
+import { senderFooterLine, missingPostalAddress } from "../digest";
 import { RUN_BUDGET_MS } from "../verify";
 
 /**
@@ -247,5 +248,30 @@ describe("a missing key still fails everywhere — only the record differs", () 
 
     const script = readFileSync(join(__dirname, "..", "..", "scripts", "send-digest.ts"), "utf8");
     expect(script).toContain("process.exit(result.ok ? 0 : 1)");
+  });
+});
+
+describe("CAN-SPAM — the footer must carry a physical address", () => {
+  it("renders the address when one is configured, in HTML and in plain text", () => {
+    const addr = "1234 Nicollet Ave, Minneapolis, MN 55403";
+    expect(senderFooterLine(addr)).toBe(`City Pulse MN · ${addr}`);
+    expect(missingPostalAddress(addr)).toBe(false);
+  });
+
+  it("degrades to the old region line rather than printing a placeholder", () => {
+    // A fake-looking address in a legal footer is worse than none: it is the
+    // same class of mistake as inventing a plausible event.
+    for (const v of ["", "   ", null, undefined]) {
+      expect(senderFooterLine(v), JSON.stringify(v)).toBe("City Pulse MN · Twin Cities, Minnesota");
+      expect(missingPostalAddress(v), JSON.stringify(v)).toBe(true);
+    }
+  });
+
+  it("escapes an address containing markup", () => {
+    const line = senderFooterLine('Suite <b>5</b> & Co');
+    expect(line).toContain("<b>"); // the raw helper does not escape…
+    // …the template does, which is why it wraps the call in esc().
+    const lib = readFileSync(join(__dirname, "..", "digest.ts"), "utf8");
+    expect(lib).toContain("esc(senderFooterLine(postalAddress))");
   });
 });

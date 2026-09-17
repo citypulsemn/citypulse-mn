@@ -33,7 +33,8 @@
     "resolve-conflicts": "tsx --env-file-if-exists=.env.local scripts/resolve-conflicts.ts",
     "import-venues": "tsx --env-file-if-exists=.env.local scripts/import-venues.ts",
     "revalidate": "tsx --env-file-if-exists=.env.local scripts/revalidate.ts",
-    "check-sources": "tsx --env-file-if-exists=.env.local scripts/check-sources.ts"
+    "check-sources": "tsx --env-file-if-exists=.env.local scripts/check-sources.ts",
+    "delete-personal-data": "tsx --env-file-if-exists=.env.local scripts/delete-personal-data.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.117.1",

@@ -1,14 +1,14 @@
 import { getEventsUncached } from "./events";
 import { getSubscribedRecipients } from "./subscribe";
 import { sql } from "./db";
-import { splitDigestEvents, renderDigestEmail, digestWeekLabel, selectMostSaved } from "./digest";
+import { splitDigestEvents, renderDigestEmail, digestWeekLabel, selectMostSaved, missingPostalAddress } from "./digest";
 import { selectSavedUpcoming, categoryAffinity, personalizePicks } from "./digest-personal";
 import { getSavedEvents } from "./saved";
 import { getMostSavedCounts } from "./stats";
 import { placeOfTheWeek } from "./places";
 import { unsubscribeUrl, unsubSecret } from "./unsubscribe-token";
 import { SITE_URL } from "./seo/site";
-import { isCi } from "./env";
+import { isCi, envValue } from "./env";
 import type { EventRecord } from "./types";
 
 /**
@@ -43,6 +43,10 @@ export async function sendWeeklyDigest(opts: { dryRun?: boolean } = {}): Promise
   const apiKey = process.env.RESEND_API_KEY;
   const from = process.env.DIGEST_FROM ?? "City Pulse MN <hello@citypulsemn.com>";
   const siteUrl = process.env.SITE_URL ?? SITE_URL;
+  // CAN-SPAM §7704(a)(5): every commercial email needs the sender's valid
+  // physical postal address. Not hard-coded — it is a real-world fact this repo
+  // cannot know, and a plausible invented one would be worse than none.
+  const postalAddress = envValue("DIGEST_POSTAL_ADDRESS");
   const secret = unsubSecret();
 
   // R2.2 — a REAL run without a key can never succeed, so fail first and
@@ -134,6 +138,7 @@ export async function sendWeeklyDigest(opts: { dryRun?: boolean } = {}): Promise
       weekLabel,
       unsubscribeUrl: unsub,
       siteUrl,
+      postalAddress,
       savedThisWeek,
       placeOfWeek,
       mostSaved,
@@ -159,7 +164,9 @@ export async function sendWeeklyDigest(opts: { dryRun?: boolean } = {}): Promise
 
   let sent = 0;
   let ok = true;
-  let note: string | undefined = `${personalized} personalized`;
+  const compliance = missingPostalAddress(postalAddress) ? " · NO POSTAL ADDRESS IN FOOTER (CAN-SPAM)" : "";
+  if (compliance) console.warn("[digest] DIGEST_POSTAL_ADDRESS is not set — the footer carries no physical address");
+  let note: string | undefined = `${personalized} personalized${compliance}`;
   for (let i = 0; i < messages.length; i += CHUNK) {
     const chunk = messages.slice(i, i + CHUNK);
     const res = await fetch(RESEND_BATCH_ENDPOINT, {
