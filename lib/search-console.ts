@@ -110,7 +110,7 @@ export async function getSearchAnalyticsByDimension(
     const nowSec = Math.floor(now.getTime() / 1000);
     const token = await getAccessToken(sa, nowSec);
     const { startDate, endDate } = gscDateWindow(now, days);
-    const res = await fetch(
+    const res = await gscFetch(
       `https://searchconsole.googleapis.com/webmasters/v3/sites/${encodeURIComponent(property)}/searchAnalytics/query`,
       {
         method: "POST",
@@ -169,7 +169,7 @@ export async function inspectUrls(paths: string[], now: Date = new Date()): Prom
   for (const path of paths) {
     const url = resolveInspectionUrl(path, base);
     try {
-      const res = await fetch("https://searchconsole.googleapis.com/v1/urlInspection/index:inspect", {
+      const res = await gscFetch("https://searchconsole.googleapis.com/v1/urlInspection/index:inspect", {
         method: "POST",
         headers: { authorization: `Bearer ${token}`, "content-type": "application/json" },
         body: JSON.stringify({ inspectionUrl: url, siteUrl: property }),
@@ -219,6 +219,27 @@ interface ServiceAccount {
 
 /** Exchange a service-account assertion for a short-lived access token. LIVE —
  *  exercised only when a key is configured; verified at F2.4 wire-up. */
+/**
+ * Every Google call in this file goes through here, for one reason: on 21 Sep
+ * 2026 /admin/growth started answering 504. Nothing was broken — the page had
+ * simply never made these calls before, because GSC_SERVICE_ACCOUNT_JSON was
+ * unset in Vercel and both readers returned early at the no-key guard. The day
+ * the key was added, four unbounded fetches to Google appeared inside the one
+ * await that gates the whole render.
+ *
+ * That is rule 1 with a new face: the instrument must not be able to kill the
+ * panel it reports on. A reader waiting for Search Console is a reader who
+ * cannot see subscribers either. Six seconds, then the caller's own catch turns
+ * it into the honest "did not answer" the page already knows how to print.
+ *
+ * It bounds the ops email too, which calls the same readers from Actions.
+ */
+const GSC_TIMEOUT_MS = 6_000;
+
+function gscFetch(url: string, init: RequestInit): Promise<Response> {
+  return fetch(url, { ...init, signal: AbortSignal.timeout(GSC_TIMEOUT_MS) });
+}
+
 async function getAccessToken(sa: ServiceAccount, nowSec: number): Promise<string> {
   const header = b64url(JSON.stringify({ alg: "RS256", typ: "JWT" }));
   const claims = b64url(JSON.stringify(buildJwtClaims(sa.client_email, nowSec)));
@@ -226,7 +247,7 @@ async function getAccessToken(sa: ServiceAccount, nowSec: number): Promise<strin
   signer.update(`${header}.${claims}`);
   const jwt = `${header}.${claims}.${b64url(signer.sign(sa.private_key))}`;
 
-  const res = await fetch("https://oauth2.googleapis.com/token", {
+  const res = await gscFetch("https://oauth2.googleapis.com/token", {
     method: "POST",
     headers: { "content-type": "application/x-www-form-urlencoded" },
     body: new URLSearchParams({
@@ -261,7 +282,7 @@ export async function getSearchImpressions(days = 7, now: Date = new Date()): Pr
 
     const token = await getAccessToken(sa, nowSec);
     const { startDate, endDate } = gscDateWindow(now, days);
-    const res = await fetch(
+    const res = await gscFetch(
       `https://searchconsole.googleapis.com/webmasters/v3/sites/${encodeURIComponent(property)}/searchAnalytics/query`,
       {
         method: "POST",

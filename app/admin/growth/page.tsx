@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import {
   getSubscriberRows,
   getSaveRows,
@@ -10,6 +11,7 @@ import {
   returningReaders,
   pct,
   delta,
+  answeredWithin,
 } from "@/lib/growth";
 import { byChannel, referrerLabel } from "@/lib/referrers";
 import { getSearchImpressions, getSearchAnalyticsByDimension } from "@/lib/search-console";
@@ -33,6 +35,22 @@ export const maxDuration = 30;
 
 export const metadata = { title: "Growth · City Pulse Admin" };
 
+/**
+ * No single source may hold the page. On 21 Sep 2026 this page began answering
+ * 504: adding GSC_SERVICE_ACCOUNT_JSON in Vercel turned two early-returning
+ * stubs into four live, unbounded round-trips to Google, and `allSettled`
+ * waits for the slowest. The calls themselves are bounded now, in
+ * lib/search-console.ts, which is the real fix and also covers the Monday ops
+ * email. This is the generic one: whatever goes slow next — a hung pool, a new
+ * vendor — becomes a section that says it could not be read, on a page that
+ * still renders, instead of a gateway timeout on all of it.
+ *
+ * Twelve seconds sits under maxDuration with room for the rest of the render.
+ */
+const SOURCE_DEADLINE_MS = 12_000;
+const within = <T,>(work: Promise<T>, label: string) =>
+  answeredWithin(work, SOURCE_DEADLINE_MS, label);
+
 function Stat({ label, value, sub }: { label: string; value: string; sub?: string }) {
   return (
     <div className="admin-stat">
@@ -43,7 +61,7 @@ function Stat({ label, value, sub }: { label: string; value: string; sub?: strin
   );
 }
 
-export default async function AdminGrowthPage() {
+async function GrowthBody() {
   const now = new Date();
 
   /**
@@ -57,13 +75,13 @@ export default async function AdminGrowthPage() {
    * letting nothing look like a fact.
    */
   const settled = await Promise.allSettled([
-    getSubscriberRows(),
-    getSaveRows(90),
-    getReferrerRows(30),
-    getFunnelCounts(30),
-    getSubscribersBySource(),
-    getSearchImpressions(28, now),
-    getSearchAnalyticsByDimension("query", 28, now),
+    within(getSubscriberRows(), "Subscribers"),
+    within(getSaveRows(90), "Saves"),
+    within(getReferrerRows(30), "Referrers"),
+    within(getFunnelCounts(30), "Funnel"),
+    within(getSubscribersBySource(), "Sources"),
+    within(getSearchImpressions(28, now), "Search Console"),
+    within(getSearchAnalyticsByDimension("query", 28, now), "Search Console queries"),
   ]);
   const failed = (i: number): string | null =>
     settled[i].status === "rejected"
@@ -287,5 +305,23 @@ export default async function AdminGrowthPage() {
         </p>
       </div>
     </>
+  );
+}
+
+/**
+ * The shell answers immediately and the numbers stream in behind it.
+ *
+ * Deadlines alone were not enough. `maxDuration` is a ceiling on the function,
+ * not a promise about time-to-first-byte, so a page that awaits everything
+ * before emitting a byte can still be killed at the gateway — which is exactly
+ * what a 504 is. /admin/ops learned this in September and dropped to 0.09s warm
+ * by streaming; this is the same trick, one boundary instead of two, because
+ * this page's sections all read quickly or not at all.
+ */
+export default function AdminGrowthPage() {
+  return (
+    <Suspense fallback={<div className="ops-skeleton">counting subscribers, saves and search…</div>}>
+      <GrowthBody />
+    </Suspense>
   );
 }

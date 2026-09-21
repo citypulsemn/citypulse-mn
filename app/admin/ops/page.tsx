@@ -162,7 +162,7 @@ export default function AdminOpsPage() {
       </div>
 
       <h2 className="ops-h">Outside services</h2>
-      <Suspense fallback={<Skeleton label="GitHub, Vercel, Supabase, Resend, Anthropic" />}>
+      <Suspense fallback={<Skeleton label="GitHub, Vercel, Supabase, Anthropic and the weekly email" />}>
         <VendorSection />
       </Suspense>
 

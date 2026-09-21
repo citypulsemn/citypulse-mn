@@ -274,3 +274,25 @@ export async function getFunnelCounts(days = 30): Promise<FunnelInput> {
     newSubscribers: s?.n ?? 0,
   };
 }
+
+/**
+ * A ceiling on one source, so no single slow one can hold a whole page.
+ *
+ * It REJECTS on expiry rather than resolving to a fallback, and that is the
+ * whole point. /admin/growth turns a rejection into "this section could not be
+ * read"; a fallback value would turn a timeout into a clean zero, which is the
+ * exact failure this page was rebuilt to stop telling (`date - integer` once
+ * rendered a broken funnel as four tidy zeroes). Slow and empty must not look
+ * alike.
+ *
+ * vendor-health's `withDeadline` is the sibling of this and resolves to a
+ * fallback instead — correct there, because its fallback is an explicit
+ * `unknown` tile rather than a plausible number.
+ */
+export function answeredWithin<T>(work: Promise<T>, ms: number, label: string): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const ceiling = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new Error(`${label} did not answer within ${ms}ms`)), ms);
+  });
+  return Promise.race([work, ceiling]).finally(() => clearTimeout(timer));
+}

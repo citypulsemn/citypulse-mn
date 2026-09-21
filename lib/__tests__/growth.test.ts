@@ -8,6 +8,7 @@ import {
   returningReaders,
   pct,
   delta,
+  answeredWithin,
 } from "../growth";
 
 const NOW = new Date("2026-09-14T12:00:00Z"); // a Monday
@@ -207,5 +208,30 @@ describe("presentation", () => {
     expect(delta(14, 11)).toBe("+3");
     expect(delta(11, 14)).toBe("−3");
     expect(delta(5, 5)).toBe("±0");
+  });
+});
+
+describe("answeredWithin", () => {
+  it("passes a value through when the work finishes in time", async () => {
+    await expect(answeredWithin(Promise.resolve(7), 1_000, "x")).resolves.toBe(7);
+  });
+
+  it("rejects — never resolves to a fallback — when the work is too slow", async () => {
+    const slow = new Promise((r) => setTimeout(() => r("late"), 5_000));
+    await expect(answeredWithin(slow, 20, "subscribers")).rejects.toThrow(
+      /subscribers did not answer within 20ms/,
+    );
+  });
+
+  it("keeps the original rejection rather than masking it as a timeout", async () => {
+    const broken = Promise.reject(new Error("column does not exist"));
+    await expect(answeredWithin(broken, 1_000, "funnel")).rejects.toThrow(/column does not exist/);
+  });
+
+  it("clears its timer so a fast answer leaves nothing pending", async () => {
+    const t0 = Date.now();
+    await answeredWithin(Promise.resolve(1), 30_000, "x");
+    // A leaked 30s timer would keep a serverless invocation alive past its work.
+    expect(Date.now() - t0).toBeLessThan(500);
   });
 });
