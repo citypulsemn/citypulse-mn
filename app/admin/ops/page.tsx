@@ -57,6 +57,18 @@ function VendorCard({ t }: { t: VendorTile }) {
 }
 
 /** The five outside services. Never throws; never waits past its deadline. */
+/**
+ * A NOTE ON THESE TWO FALLBACK MESSAGES.
+ *
+ * They used to name a cause: "the probes are slow or a vendor is hanging" and
+ * "the database is slow or unreachable". On 21 Sep 2026 the second one was
+ * read off the screen as a diagnosis, and it was wrong — the database was
+ * answering in under a second and using 9 of its 60 connections at the time.
+ *
+ * A timeout knows one fact: the ceiling was reached. It does not know why, and
+ * a panel built to refuse "could not tell" dressed as data should not be the
+ * one place that guesses. They report the fact and point at the log now.
+ */
 async function VendorSection() {
   const now = new Date();
   let tiles: VendorTile[];
@@ -66,7 +78,7 @@ async function VendorSection() {
       [
         unknownTile(
           "Outside services",
-          `no answer within ${VENDOR_DEADLINE_MS / 1000}s — the probes are slow or a vendor is hanging`,
+          `no answer within ${VENDOR_DEADLINE_MS / 1000}s — every probe missed its own ceiling too, which points at the runtime rather than at any one vendor`,
           "#",
         ),
       ];
@@ -103,7 +115,7 @@ async function CalendarSection() {
           {
             title: "Everything",
             lines: [
-              `no answer within ${CALENDAR_DEADLINE_MS / 1000}s — the database is slow or unreachable`,
+              `no answer within ${CALENDAR_DEADLINE_MS / 1000}s — the Vercel function log says what it was waiting on`,
             ],
             alert: true,
           },

@@ -26,7 +26,7 @@ import { envValue } from "./env";
 import { sql } from "./db";
 import { getDigestHealth } from "./digest-send";
 import { DIGEST_STALE_DAYS } from "./ops-digest";
-import {
+import { withDeadline,
   judgeCron,
   judgeUsage,
   judgeDigest,
@@ -266,6 +266,22 @@ export async function anthropicTile(): Promise<VendorTile> {
  * a missing row — a service that silently vanishes from the page would be the
  * exact blind spot this is built to close.
  */
+/**
+ * Each probe gets its own ceiling, and that is the point.
+ *
+ * The HTTP probes were already bounded by TIMEOUT_MS. The three that read the
+ * database — Supabase, Anthropic, Weekly email — were not bounded by anything,
+ * so a hung query had no ceiling short of the section's. On 21 Sep 2026 that
+ * showed up as the whole panel collapsing into one grey "Outside services"
+ * tile: five answers destroyed by one slow one, and four of them had been
+ * ready in milliseconds.
+ *
+ * A per-probe deadline means a hang costs exactly one tile, and that tile says
+ * which service hung. Losing the name of the slow thing is losing the only
+ * fact worth having.
+ */
+const PROBE_DEADLINE_MS = 6_000;
+
 export async function gatherVendorTiles(now: Date = new Date()): Promise<VendorTile[]> {
   const probes: [string, Promise<VendorTile>][] = [
     ["GitHub Actions", githubTile(now)],
@@ -274,7 +290,15 @@ export async function gatherVendorTiles(now: Date = new Date()): Promise<VendorT
     ["Anthropic", anthropicTile()],
     ["Weekly email", digestTile()],
   ];
-  const settled = await Promise.allSettled(probes.map(([, p]) => p));
+  const settled = await Promise.allSettled(
+    probes.map(([name, probe]) =>
+      withDeadline(
+        probe,
+        PROBE_DEADLINE_MS,
+        unknownTile(name, `no answer within ${PROBE_DEADLINE_MS / 1000}s`, "#"),
+      ),
+    ),
+  );
   return settled.map((s, i) =>
     s.status === "fulfilled" ? s.value : unknownTile(probes[i][0], reason(s.reason), "#"),
   );
