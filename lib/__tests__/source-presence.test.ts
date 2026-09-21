@@ -6,6 +6,8 @@ import {
   pageCoversDate,
   isTransientNetworkError,
   htmlToText,
+  stalestFirst,
+  pageLastChecked,
 } from "../source-presence";
 
 /**
@@ -393,5 +395,69 @@ describe("isTransientNetworkError — what the crash guard may swallow", () => {
     for (const v of [null, undefined, "boom", 42]) {
       expect(isTransientNetworkError(v), String(v)).toBe(false);
     }
+  });
+});
+
+describe("stalestFirst", () => {
+  it("puts never-checked pages ahead of every checked one", () => {
+    expect(
+      stalestFirst([
+        { url: "b.com", lastChecked: "2026-09-01T00:00:00Z" },
+        { url: "a.com", lastChecked: null },
+      ]),
+    ).toEqual(["a.com", "b.com"]);
+  });
+
+  it("orders checked pages oldest first", () => {
+    expect(
+      stalestFirst([
+        { url: "new.com", lastChecked: "2026-09-20T00:00:00Z" },
+        { url: "old.com", lastChecked: "2026-09-01T00:00:00Z" },
+        { url: "mid.com", lastChecked: "2026-09-10T00:00:00Z" },
+      ]),
+    ).toEqual(["old.com", "mid.com", "new.com"]);
+  });
+
+  it("is deterministic when stamps tie, and does not mutate its input", () => {
+    const pages = [
+      { url: "z.com", lastChecked: null },
+      { url: "a.com", lastChecked: null },
+    ];
+    expect(stalestFirst(pages)).toEqual(["a.com", "z.com"]);
+    expect(pages[0].url).toBe("z.com");
+  });
+
+  it("covers every page within ceil(n/limit) runs rather than repeating one slice", () => {
+    // The actual defect: an alphabetical order re-checks the same head forever.
+    const LIMIT = 2;
+    let pages = ["a", "b", "c", "d", "e"].map((url) => ({ url, lastChecked: null as string | null }));
+    const seen = new Set<string>();
+    for (let run = 1; run <= 3; run++) {
+      const picked = stalestFirst(pages).slice(0, LIMIT);
+      picked.forEach((u) => seen.add(u));
+      const stamp = `2026-09-0${run}T00:00:00Z`;
+      pages = pages.map((p) => (picked.includes(p.url) ? { ...p, lastChecked: stamp } : p));
+    }
+    expect([...seen].sort()).toEqual(["a", "b", "c", "d", "e"]);
+  });
+});
+
+describe("pageLastChecked", () => {
+  it("returns the oldest stamp on the page", () => {
+    expect(
+      pageLastChecked([
+        { source_checked_at: "2026-09-10T00:00:00Z" },
+        { source_checked_at: "2026-09-02T00:00:00Z" },
+      ]),
+    ).toBe("2026-09-02T00:00:00Z");
+  });
+
+  it("treats a page with any unstamped listing as never checked", () => {
+    expect(
+      pageLastChecked([
+        { source_checked_at: "2026-09-10T00:00:00Z" },
+        { source_checked_at: null },
+      ]),
+    ).toBeNull();
   });
 });

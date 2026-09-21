@@ -28,6 +28,8 @@ import {
   checkTitleOnPage,
   htmlToText,
   isTransientNetworkError,
+  stalestFirst,
+  pageLastChecked,
   type SourceCheck,
 } from "../lib/source-presence";
 
@@ -66,6 +68,8 @@ type Row = {
   id: string; title: string; venue: string; source_url: string; verified: boolean;
   /** "MM-DD" for the log. */ day: string;
   /** "YYYY-MM-DD" — gates every negative; see lib/source-presence.ts. */ iso: string;
+  /** When this listing's page was last actually read. Null = never. */
+  source_checked_at: string | null;
 };
 
 async function fetchText(url: string): Promise<{ text: string } | { error: string }> {
@@ -101,7 +105,8 @@ async function main() {
     select e.id::text as id, e.title, e.venue, e.source_url,
            (e.verified_at is not null) as verified,
            to_char(e.start_at at time zone 'America/Chicago','MM-DD') as day,
-           to_char(e.start_at at time zone 'America/Chicago','YYYY-MM-DD') as iso
+           to_char(e.start_at at time zone 'America/Chicago','YYYY-MM-DD') as iso,
+           e.source_checked_at::text as source_checked_at
     from events e
     where e.status = 'published' and e.start_at > now()
       and e.source_url ~* '^https?://'
@@ -115,10 +120,21 @@ async function main() {
     list.push(r);
     byUrl.set(r.source_url, list);
   }
-  const urls = [...byUrl.keys()].slice(0, LIMIT);
+  // Stalest first. Ordering by URL meant the same alphabetical head was checked
+  // every week and the tail never was — see db/schema.sql on source_checked_at.
+  const pages = [...byUrl.entries()].map(([url, group]) => ({
+    url,
+    lastChecked: pageLastChecked(group),
+  }));
+  const urls = stalestFirst(pages).slice(0, LIMIT);
+
+  const never = pages.filter((p) => p.lastChecked === null).length;
+  const runsToCover = Math.ceil(byUrl.size / LIMIT);
   console.log(
     `[sources] ${rows.length} live listings across ${byUrl.size} distinct pages; ` +
-      `fetching ${urls.length}${APPLY ? "" : "   (DRY RUN — nothing is written)"}\n`,
+      `fetching ${urls.length} stalest (${never} never checked) · ` +
+      `full sweep every ${runsToCover} run${runsToCover === 1 ? "" : "s"}` +
+      `${APPLY ? "" : "   (DRY RUN — nothing is written)"}\n`,
   );
 
   const tally = { present: 0, absent: 0, unchecked: 0, pages: 0, failed: 0 };
@@ -146,6 +162,21 @@ async function main() {
             `      closest line on that page (${check.score}): "${check.best.slice(0, 96)}"`,
         );
       }
+    }
+    if (APPLY) {
+      // Stamped per page rather than in one batch at the end: a sweep that dies
+      // at page 400 should keep the 399 it earned, or the next run repeats them.
+      //
+      // Only pages we actually READ are stamped. An unreadable one keeps its
+      // null and comes up again next run, which is what you want from a dead
+      // source: 41 of 593 were unreadable on 21 Sep and each is a real signal.
+      //
+      // ponytail: if unreadable pages ever approach --limit they would crowd
+      // out every readable one and the sweep would stall without saying so.
+      // Fine at 41/593; if that ratio climbs, stamp failures with a backdated
+      // time so they retry ahead of fresh pages but behind nothing else.
+      await sql`update events set source_checked_at = now()
+                where id = any(${group.map((r) => r.id)}::uuid[])`;
     }
     if ((i + 1) % 25 === 0) console.log(`  … ${i + 1}/${urls.length} pages`);
     await new Promise((r) => setTimeout(r, PAUSE_MS));

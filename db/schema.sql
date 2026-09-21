@@ -524,3 +524,21 @@ create table if not exists referrer_stats (
   primary key (day, host)
 );
 create index if not exists idx_referrer_stats_day on referrer_stats (day desc);
+
+-- When the source check last actually read the page this listing cites.
+--
+-- The sweep costs one fetch per distinct source URL and is capped (--limit,
+-- default 400). Until 21 Sep 2026 it took that cap off a list ordered by
+-- `source_url`, which is alphabetical and identical every week: the same 400
+-- pages were checked every run and the remaining ~193 were not checked late,
+-- they were never checked at all. A fabricated listing was safe from the
+-- fabrication check purely by citing a host that sorts after the cut.
+--
+-- With a timestamp the cap becomes a rolling window instead of a permanent
+-- blind spot: never-checked pages sort first, then oldest-checked, so the whole
+-- calendar is covered every ceil(pages / limit) runs. Nullable and unstamped on
+-- purpose — every existing row reads "never checked", which is true.
+alter table events add column if not exists source_checked_at timestamptz;
+create index if not exists idx_events_source_checked
+  on events (source_checked_at nulls first)
+  where status = 'published';

@@ -325,3 +325,41 @@ export function htmlToText(html: string): string {
     .replace(/\n{2,}/g, "\n")
     .trim();
 }
+
+/**
+ * Which pages the sweep should spend its budget on, stalest first.
+ *
+ * The sweep can only afford so many fetches per run, so the ORDER it picks them
+ * in decides what gets checked at all. Ordering by URL — which is what it did
+ * until 21 Sep 2026 — means the same pages win every week and the tail is never
+ * checked, which is worse than a small budget: it is a permanent hole with a
+ * predictable shape. Anything citing a late-alphabet host was exempt from the
+ * fabrication check by accident of spelling.
+ *
+ * Never-checked pages go first, then oldest-checked, then URL for a stable
+ * order. A page counts as never-checked if ANY listing on it is unstamped —
+ * a newly added listing on an old page deserves a look, and the cheap
+ * conservative choice is to re-read the page.
+ */
+export function stalestFirst(pages: { url: string; lastChecked: string | null }[]): string[] {
+  return pages
+    .slice()
+    .sort((a, b) => {
+      if (a.lastChecked === null && b.lastChecked === null) return a.url < b.url ? -1 : 1;
+      if (a.lastChecked === null) return -1;
+      if (b.lastChecked === null) return 1;
+      if (a.lastChecked !== b.lastChecked) return a.lastChecked < b.lastChecked ? -1 : 1;
+      return a.url < b.url ? -1 : 1;
+    })
+    .map((p) => p.url);
+}
+
+/** The oldest stamp across a page's listings; null if any is unstamped. */
+export function pageLastChecked(rows: { source_checked_at: string | null }[]): string | null {
+  let oldest: string | null = null;
+  for (const r of rows) {
+    if (!r.source_checked_at) return null;
+    if (oldest === null || r.source_checked_at < oldest) oldest = r.source_checked_at;
+  }
+  return oldest;
+}

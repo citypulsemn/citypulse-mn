@@ -112,6 +112,37 @@ appear in the existing ops-digest queue and on `/admin/ops` with no new plumbing
 They are self-clearing the same way the others are: computed from the listing's
 current state, not from flag count.
 
+## The budget rotates — it used to have a hole
+
+One fetch per distinct source URL, capped by `--limit` (default 400). On 21 Sep
+2026 the calendar had **593 distinct pages**, so the cap binds.
+
+Until that date the cap was taken off a list ordered by `source_url`. That is
+alphabetical and identical every week: the same 400 pages were checked every
+run, and the other ~193 were not checked late — they were **never checked at
+all**. A fabricated listing was exempt from the fabrication check purely by
+citing a host that sorts after the cut.
+
+Pages are now ordered **stalest first** (`stalestFirst` in
+`lib/source-presence.ts`), on a nullable `events.source_checked_at` stamped
+after each page is read. Never-checked pages go first, then oldest-checked. The
+whole calendar is covered every `ceil(pages / limit)` runs — two, at today's
+numbers — and the run log says so:
+
+```
+[sources] 902 live listings across 593 distinct pages; fetching 400 stalest
+          (593 never checked) · full sweep every 2 runs
+```
+
+A page counts as never-checked if **any** listing on it is unstamped, so a new
+listing on an old page earns the page a fresh read.
+
+**Only pages we actually read are stamped.** An unreadable one keeps its null
+and comes up again next run, which is what you want from a dead source. The
+ceiling: if unreadable pages ever approached `--limit` they would crowd out
+every readable page and the sweep would stall silently. Comfortable at 41 of
+593; if that ratio climbs, stamp failures with a backdated time instead.
+
 ## Known limits, stated plainly
 
 - **Small organiser calendars are not checked.** The 50-entry bar excludes a
