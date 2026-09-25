@@ -20,11 +20,15 @@ import { getTrendingEvents } from "./trending";
 import { getDigestSends, getDaysSinceLastDigest } from "./digest-send";
 import { getFeedAdoption } from "./feed-stats";
 import { getSearchImpressions } from "./search-console";
+import { withDeadline } from "./vendor-health";
 import { getPendingSubmissionCount } from "./submissions";
 import { getPendingReportCount, getOldestPendingReportDays, getPendingReportsWithChecks } from "./event-reports";
 import { formatCheckLine, type CheckVerdict } from "./report-check";
 import { reportActionUrl, reportActionSecret } from "./report-token";
 import { findContradictions, findPlaceholderTitles, formatFinding, type CalendarRow } from "./contradictions";
+
+/** How long the Monday numbers will wait on Google before shrugging. */
+const GSC_BUDGET_MS = 5_000;
 
 export async function gatherOpsInputs(): Promise<OpsInputs> {
   const errors: Record<string, string> = {};
@@ -268,7 +272,21 @@ export async function gatherOpsInputs(): Promise<OpsInputs> {
 
   // F2.4 — GSC impressions. getSearchImpressions returns null (→ manual line)
   // when the service account isn't configured, so this is safe pre-wire.
-  const search = await wrap("search", null, () => getSearchImpressions(7));
+  //
+  // IT GETS A BUDGET, NOT THE SECTION'S. Google is the only outside service in
+  // a gather that is otherwise entirely about our own calendar, and every step
+  // here is awaited in series. getSearchImpressions makes two round-trips — an
+  // OAuth token, then the query — which lib/search-console.ts caps at 6s each.
+  // Twelve seconds plus ~3s of database work overran the 15s deadline on
+  // /admin/ops, so one slow vendor blanked the whole panel: pipeline, coverage,
+  // verification and the queue, none of which had anything to do with Google.
+  //
+  // Five seconds, then null, which is already the defined "not reported" state
+  // for this field and prints as the manual line the digest has always had.
+  // Rule 1: the instrument must not be killable by something it merely reports.
+  const search = await wrap("search", null, () =>
+    withDeadline(getSearchImpressions(7), GSC_BUDGET_MS, null),
+  );
   const prevSearchImpressions = await wrap<number | null>("search_prev", null, async () => {
     if (!sql) throw new Error("no database connection");
     const rows = await sql<{ totals: unknown }[]>`
