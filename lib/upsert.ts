@@ -2,6 +2,8 @@ import { requireSql } from "./db";
 import type { DbEventInput } from "./types";
 import { planCollapse } from "./multiday";
 import { displayPrice } from "./price-quality";
+import { findIncomingDuplicates, type CalendarRow } from "./contradictions";
+import { chiWallClock } from "./clock";
 
 /** Count populated optional fields — a rough "richness" score for a row. */
 function richness(e: DbEventInput): number {
@@ -60,10 +62,75 @@ export function guardEndAt(startAt: string, endAt: string | null | undefined): s
  * status. New events auto-publish; if you later move one to 'draft' to hide it,
  * that decision sticks — a re-found event keeps your status, never reverting.
  */
+/**
+ * Refuse rows that are already on the calendar under a different name.
+ *
+ * dedupeByKey only catches an exact `title|venue|day` repeat, and
+ * dedupeNearDuplicates runs AFTER the insert on a trigram score that misses
+ * the shape this site actually produces: the same show arriving from a second
+ * feed with a longer billing. Between 7 and 28 Sep 2026 that put three copies
+ * of one Journey concert live across three consecutive Mondays, and four
+ * spellings of one Arboretum sale — each new Monday adding one more, each
+ * previous hand-cleanup undone.
+ *
+ * The gate is the self-check's own duplicate rule, imported rather than
+ * restated: a second definition of "same event" is what let these diverge.
+ *
+ * A row whose event_key already exists is NOT a duplicate — it is that event
+ * being updated, which is the normal path and must stay open.
+ */
+async function withoutLiveDuplicates(
+  sql: ReturnType<typeof requireSql>,
+  incoming: DbEventInput[],
+): Promise<DbEventInput[]> {
+  const asRow = (e: DbEventInput): CalendarRow => ({
+    id: e.event_key,
+    venue: e.venue,
+    title: e.title,
+    category: e.category,
+    verified: false,
+    start: chiWallClock(new Date(e.start_at)),
+  });
+  const candidates = incoming.map(asRow);
+  const days = [...new Set(candidates.map((c) => c.start.slice(0, 10)))];
+  if (days.length === 0) return incoming;
+
+  const live = await sql<(CalendarRow & { event_key: string })[]>`
+    select event_key as id, event_key, venue, title, category,
+           verified_at is not null as verified,
+           to_char(start_at at time zone 'America/Chicago', 'YYYY-MM-DD"T"HH24:MI') as start
+    from events
+    where status in ('published', 'draft')
+      and (start_at at time zone 'America/Chicago')::date = any(${days}::date[])`;
+
+  // Keyed by event_key on both sides, so an incoming row meets itself and is
+  // excluded from its own comparison rather than blocking its own update.
+  const incomingKeys = new Set(candidates.map((c) => c.id));
+  const others = live.filter((r) => !incomingKeys.has(r.event_key));
+  const blocked = findIncomingDuplicates(others, candidates);
+  if (blocked.size === 0) return incoming;
+
+  for (const [key, kept] of blocked) {
+    const e = incoming.find((x) => x.event_key === key)!;
+    console.log(`[upsert] skipped "${e.title}" @ ${e.venue} — already listed as "${kept.title}"`);
+    await sql`
+      insert into admin_audit (action, patch)
+      values ('dedupe:blocked', ${sql.json({
+        title: e.title, venue: e.venue, start: e.start_at, source: e.source_url,
+        already_listed_as: kept.title,
+        why: "same room, same slot, and the titles read as one event (lib/contradictions.ts)",
+      })})`;
+  }
+  return incoming.filter((e) => !blocked.has(e.event_key));
+}
+
 export async function upsertEvents(events: DbEventInput[]): Promise<number> {
-  const deduped = dedupeByKey(events);
-  if (deduped.length === 0) return 0;
+  const byKey = dedupeByKey(events);
+  if (byKey.length === 0) return 0;
   const sql = requireSql();
+
+  const deduped = await withoutLiveDuplicates(sql, byKey);
+  if (deduped.length === 0) return 0;
 
   const rows = deduped.map((e) => ({
     event_key: e.event_key,

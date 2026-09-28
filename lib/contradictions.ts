@@ -487,3 +487,57 @@ export function formatFinding(f: Finding): string {
 function trim(s: string, n = 44): string {
   return s.length > n ? `${s.slice(0, n - 1)}…` : s;
 }
+
+/**
+ * Which incoming rows are already on the calendar under another name.
+ *
+ * The self-check found these every week and the upsert kept re-creating them,
+ * because the two used different definitions of "duplicate": the upsert's SQL
+ * gate is `similarity(title_a, title_b) > 0.6`, a trigram score that collapses
+ * when one title is much longer than the other. "JOURNEY" against "Journey:
+ * The Final Frontier Tour" scores nowhere near 0.6, so three copies of one
+ * concert went live across three consecutive Mondays. `looksLikeSameEvent`
+ * reads both as one event, and always did — it was simply downstream of the
+ * damage.
+ *
+ * So this reuses `findContradictions` outright rather than restating the rule.
+ * A second implementation of "same event" is exactly how the two drifted apart
+ * in the first place. Room folding, the four-hour window, the series guard and
+ * the concurrent-venue exemptions all come along for free, and anything that
+ * improves the panel improves the gate on the same commit.
+ *
+ * Returns incoming id -> the live row it duplicates. An incoming row that
+ * duplicates ANOTHER incoming row maps to that one instead, so a single batch
+ * carrying both spellings cannot seed the pair it is about to be blamed for.
+ */
+export function findIncomingDuplicates(
+  live: CalendarRow[],
+  incoming: CalendarRow[],
+): Map<string, FindingSide> {
+  if (incoming.length === 0) return new Map();
+  const isIncoming = new Set(incoming.map((r) => r.id));
+  const dups = findContradictions([...live, ...incoming]).duplicates;
+  const out = new Map<string, FindingSide>();
+
+  // Pass 1: incoming rows that duplicate something already on the calendar.
+  // These run first so the recorded keeper is always a row that survives — a
+  // trail that says "blocked X because Y" is worthless when Y was blocked too.
+  for (const f of dups) {
+    const aNew = isIncoming.has(f.a.id);
+    const bNew = isIncoming.has(f.b.id);
+    if (aNew === bNew) continue; // both live (the panel's problem) or both new (pass 2)
+    const [blocked, kept] = aNew ? [f.a, f.b] : [f.b, f.a];
+    if (!out.has(blocked.id)) out.set(blocked.id, kept);
+  }
+
+  // Pass 2: one batch carrying both spellings of the same event. Groups are
+  // sorted by start, so `a` is the earlier and it keeps the slot — unless it
+  // is itself blocked, in which case neither is a keeper and pass 1 has
+  // already dealt with whichever of them a live row matched.
+  for (const f of dups) {
+    if (!isIncoming.has(f.a.id) || !isIncoming.has(f.b.id)) continue;
+    if (out.has(f.a.id) || out.has(f.b.id)) continue;
+    out.set(f.b.id, f.a);
+  }
+  return out;
+}

@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import {
   findContradictions,
+  findIncomingDuplicates,
   looksLikeSameEvent,
   formatFinding,
   CLASH_WINDOW_MINUTES,
@@ -413,5 +414,66 @@ describe("the upstream guard — the pipeline must not store what it cannot name
   it("the column is additive and idempotent", () => {
     const schema = read("db", "schema.sql");
     expect(schema).toContain("alter table pipeline_runs add column if not exists unnamed_dropped int;");
+  });
+});
+
+describe("findIncomingDuplicates — the gate the upsert lacked", () => {
+  const row = (id: string, title: string, start: string, venue = "Xcel Energy Center (St Paul)") =>
+    ({ id, title, venue, category: "music", verified: false, start });
+
+  it("blocks the exact pairs that went live three Mondays running", () => {
+    // Real rows. The SQL gate scored these under 0.6 and let all three through.
+    const live = [row("live", "JOURNEY: Final Frontier Tour (An Evening With)", "2026-10-04T19:30")];
+    const incoming = [
+      row("new-a", "JOURNEY", "2026-10-04T19:30"),
+      row("new-b", "Journey: The Final Frontier Tour", "2026-10-04T19:00"),
+    ];
+    const blocked = findIncomingDuplicates(live, incoming);
+    expect(blocked.get("new-a")?.id).toBe("live");
+    expect(blocked.get("new-b")?.id).toBe("live");
+  });
+
+  it("catches the em-dash/en-dash pair the deduper could not see", () => {
+    const v = "Can Can Wonderland (St Paul)";
+    const live = [row("live", "Can Can Wonderland Annual Halloween Party – Tee Time Drag Show & Costume Contest", "2026-10-25T15:00", v)];
+    const incoming = [row("new", "Can Can Wonderland Annual Halloween Party — Tee Time Drag Show & Costume Contest", "2026-10-25T15:00", v)];
+    expect(findIncomingDuplicates(live, incoming).has("new")).toBe(true);
+  });
+
+  it("blocks a within-batch pair, keeping the earlier of the two", () => {
+    const blocked = findIncomingDuplicates([], [
+      row("early", "They Might Be Giants", "2026-10-03T20:00", "Fitzgerald Theater"),
+      row("late", "An Evening With They Might Be Giants", "2026-10-03T20:30", "Fitzgerald Theater"),
+    ]);
+    expect([...blocked.keys()]).toEqual(["late"]);
+    expect(blocked.get("late")?.id).toBe("early");
+  });
+
+  it("lets a genuinely different show into the same room", () => {
+    // The Parkway really did have two things that night; only one was real, but
+    // the gate must not be what decides that — a human should see the clash.
+    const v = "Parkway Theater";
+    const live = [row("live", "Martin Zellar and The Hardways", "2026-10-17T19:30", v)];
+    const incoming = [row("new", "Wallace & Gromit: The Curse of the Were-Rabbit", "2026-10-17T13:00", v)];
+    expect(findIncomingDuplicates(live, incoming).size).toBe(0);
+  });
+
+  it("does not fold a series into itself", () => {
+    const v = "Lake Harriet Bandshell";
+    const live = [row("live", "Free Music in the Parks – The Roundabouts", "2026-07-04T19:00", v)];
+    const incoming = [row("new", "Free Music in the Parks – Hurricane Blaze", "2026-07-04T19:00", v)];
+    expect(findIncomingDuplicates(live, incoming).size).toBe(0);
+  });
+
+  it("ignores two rows that are both already live", () => {
+    const live = [
+      row("a", "JOURNEY", "2026-10-04T19:30"),
+      row("b", "Journey: The Final Frontier Tour", "2026-10-04T19:30"),
+    ];
+    expect(findIncomingDuplicates(live, []).size).toBe(0);
+  });
+
+  it("is empty when nothing is incoming", () => {
+    expect(findIncomingDuplicates([row("a", "X", "2026-10-04T19:30")], []).size).toBe(0);
   });
 });

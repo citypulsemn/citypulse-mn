@@ -46,13 +46,19 @@ event_key = sha256( canonicalize(title) | canonicalize(venue) | start_DATE )  //
 
 The key uses the start **date**, not time, so a corrected start time still matches. The pipeline writes with `INSERT … ON CONFLICT (event_key) DO UPDATE`, so a re-found event **updates in place**. See `lib/event-key.ts` (unit-tested).
 
-Dedup works in **three layers**, deliberately decreasing in aggressiveness — the rule throughout is *never auto-merge anything uncertain*, because a wrong merge silently deletes a real event, while a missed duplicate is caught at review.
+Dedup works in **four layers**, deliberately decreasing in aggressiveness — the rule throughout is *never auto-merge anything uncertain*, because a wrong merge silently deletes a real event, while a missed duplicate is caught at review.
 
 **Layer 1 — batch guard (`lib/upsert.ts`).** Before the SQL write, the batch is collapsed by `event_key` in memory (`dedupeByKey`), keeping the richer row. This handles the same event returned twice in one run (e.g. a festival found by both the "food" and "festival" agents) and avoids the Postgres "ON CONFLICT … cannot affect row a second time" error.
 
 **Layer 2 — canonicalization (`lib/canonicalize.ts`).** Inputs are cleaned *before* hashing so more true-duplicates land on one key:
 - **Venue aliases** — an editable `VENUE_ALIASES` map folds known variants ("First Ave" → "first avenue", "The Armory" → "armory"). This is the highest-payoff lever; grow the map as you spot variants during review. (Punctuation-only variants like "U.S. Bank Stadium" vs "US Bank Stadium" already collapse via normalization and need no entry.)
 - **Conservative title cleanup** — strips trailing parentheticals (`(21+)`, `[SOLD OUT]`), drops a single leading "the", and normalizes versus separators (`versus` / `vs.` / `v.` → `vs`). It deliberately does **not** expand abbreviations or team names — those go to Layer 3.
+
+**Layer 2.5 — the same-event gate (`withoutLiveDuplicates` in `lib/upsert.ts`, 28 Sep 2026).** Layers 1 and 2 only catch rows that hash to the same key, and layer 3 runs *after* the write on a `pg_trgm` score that collapses when one title is much longer than the other. Between 7 and 28 Sep that combination put **three copies of one Journey concert** live across three consecutive Mondays — `JOURNEY`, `Journey: The Final Frontier Tour` and `JOURNEY: Final Frontier Tour (An Evening With)` — plus four spellings of one Arboretum sale, one added per week, each hand-cleanup undone by the next run.
+
+So before the insert, every incoming row is tested against what is already on the calendar that day using **the self-check's own duplicate rule** (`findIncomingDuplicates` → `looksLikeSameEvent`, `lib/contradictions.ts`). The rule is imported, not restated: two definitions of "same event" is precisely how the panel and the writer drifted apart. Room folding, the four-hour window, the series guard ("Free Music in the Parks – X" vs "– Y" are different bands) and the concurrent-venue exemptions all come along, and anything that sharpens the panel sharpens the gate on the same commit.
+
+A blocked row is **not written** and is recorded in `admin_audit` as `dedupe:blocked` with the title it lost to, so the gate is auditable rather than silent. A row whose `event_key` already exists is never blocked — that is the same event being updated, which is the normal weekly path.
 
 **Layer 3 — automatic near-duplicate collapse (`dedupeNearDuplicates` in `lib/upsert.ts`).** String keys can't tell "Como Park" from "Como Regional Park," or "Fest" from "Fest 2026." So after each run the pipeline collapses events that are the same by **physical location**: same day, within ~250m (Haversine on lat/lng), and similar title (`pg_trgm`). The earliest-seen row is kept; the duplicates are **archived** (recoverable, not deleted), and because status is sticky they stay collapsed. Coordinates don't lie about location, so this catches what normalization misses — without re-keying any data. To clean existing rows immediately, run `db/dedupe-near-duplicates.sql`; to review by eye, `db/review-duplicates.sql`.
 
