@@ -10,6 +10,7 @@ import {
   unknownTile,
   summarise,
   withDeadline,
+  judgeCostCoverage,
   type VendorTile,
 } from "../vendor-health";
 
@@ -261,5 +262,35 @@ describe("judgeDigest — the weekly email is the retention asset", () => {
   it("uses the threshold it is given, so it cannot drift from the email", () => {
     expect(judgeDigest(8, false, 14)).toBe("ok");
     expect(judgeDigest(14, false, 14)).toBe("down");
+  });
+});
+
+describe("judgeCostCoverage — a floor must not render as a total", () => {
+  it("is ok only when every run in the window is priced", () => {
+    expect(judgeCostCoverage(4, 4)).toBe("ok");
+  });
+
+  it("warns when some runs are unpriced — the September shape", () => {
+    // 4 pipeline runs, 2 of them older than the cost-recording code.
+    expect(judgeCostCoverage(4, 2)).toBe("warn");
+  });
+
+  it("is unknown when nothing is priced, rather than reporting $0", () => {
+    expect(judgeCostCoverage(4, 0)).toBe("unknown");
+    expect(judgeCostCoverage(0, 0)).toBe("unknown");
+  });
+
+  it("refuses nonsense rather than guessing", () => {
+    expect(judgeCostCoverage(NaN, 1)).toBe("unknown");
+    expect(judgeCostCoverage(-1, -1)).toBe("unknown");
+  });
+
+  it("never reports ok for a partial measurement, whatever the budget says", () => {
+    // The tile takes the worse of coverage and budget, so a comfortable budget
+    // cannot talk a blind measurement into green.
+    const coverage = judgeCostCoverage(4, 2);
+    const budget = judgeUsage(22.78, 500);
+    expect(budget).toBe("ok");
+    expect(worstStatus([{ status: coverage }, { status: budget }])).toBe("warn");
   });
 });

@@ -29,6 +29,8 @@ import { DIGEST_STALE_DAYS } from "./ops-digest";
 import { withDeadline,
   judgeCron,
   judgeUsage,
+  judgeCostCoverage,
+  worstStatus,
   judgeDigest,
   unknownTile,
   formatBytes,
@@ -230,27 +232,53 @@ export async function anthropicTile(): Promise<VendorTile> {
   const link = "https://console.anthropic.com/settings/usage";
   if (!sql) return unknownTile("Anthropic", "no database connection", link);
   try {
-    const rows = await sql<{ cost: string; searches: number; unpriced: number; n: number }[]>`
+    // Every run in the window, not just the priced ones. The old query filtered
+    // `cost_usd is not null` in the WHERE, so it could not tell "four runs, two
+    // of them unpriced" from "two runs, both priced" — and reported the second.
+    const rows = await sql<{ cost: string; searches: number; unpriced: number; priced: number; runs: number }[]>`
       select coalesce(sum(cost_usd), 0)::text as cost,
              coalesce(sum(cost_searches), 0)::int as searches,
              coalesce(sum(cost_unpriced_calls), 0)::int as unpriced,
-             count(cost_usd)::int as n
+             count(cost_usd)::int as priced,
+             count(*)::int as runs
       from pipeline_runs
-      where started_at >= date_trunc('month', now()) and cost_usd is not null`;
+      where started_at >= date_trunc('month', now())`;
     const r = rows[0];
-    if (!r || r.n === 0) {
-      return unknownTile("Anthropic", "no priced runs yet this month", link);
+    if (!r || r.priced === 0) {
+      return unknownTile(
+        "Anthropic",
+        r && r.runs > 0
+          ? `${r.runs} pipeline run(s) this month, none of them priced`
+          : "no pipeline run yet this month",
+        link,
+      );
     }
     const usd = Number(r.cost);
     const budget = Number(envValue("ANTHROPIC_BUDGET_USD") ?? NaN);
+    const coverage = judgeCostCoverage(r.runs, r.priced);
+    const blind = r.runs - r.priced;
+
+    // A budget can never talk a partial measurement into green: the tile takes
+    // the worse of "are we measuring everything" and "how close to the budget".
+    const status = Number.isFinite(budget)
+      ? worstStatus([{ status: coverage }, { status: judgeUsage(usd, budget) }])
+      : coverage;
+
     return {
       service: "Anthropic",
-      status: Number.isFinite(budget) ? judgeUsage(usd, budget) : "ok",
-      headline: `$${usd.toFixed(2)} month to date`,
+      status,
+      // NOT "month to date". This is what the research pipeline recorded, which
+      // is a floor under one job's spend — not the account's bill. Sep 2026:
+      // the tile said $22.78 while the console said $181.87, and was green.
+      headline: `$${usd.toFixed(2)} recorded`,
       detail:
-        `${r.n} run(s) · ${r.searches} web searches` +
-        (r.unpriced > 0 ? ` · ${r.unpriced} calls at an unknown rate, so this is a floor` : "") +
-        (Number.isFinite(budget) ? ` · budget $${budget.toFixed(2)}` : ""),
+        `the weekly research pipeline only — ${r.priced} of ${r.runs} run(s) priced` +
+        (blind > 0 ? `, so ${blind} run(s) are missing from this` : "") +
+        ` · ${r.searches} web searches` +
+        (r.unpriced > 0 ? ` · ${r.unpriced} calls at an unknown rate` : "") +
+        ` · the verify pass also spends and is counted nowhere` +
+        (Number.isFinite(budget) ? ` · budget $${budget.toFixed(2)}` : "") +
+        ` · the console has the real figure`,
       link,
     };
   } catch (err) {

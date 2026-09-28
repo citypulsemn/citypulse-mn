@@ -227,3 +227,25 @@ export function judgeDigest(
   if (lastSuccessDaysAgo >= Math.floor(staleDays * 0.75)) return "warn";
   return "ok";
 }
+
+/**
+ * What a PARTIAL cost measurement is allowed to claim.
+ *
+ * On 28 Sep 2026 the Anthropic tile read "$22.78 month to date" in green while
+ * the console read $181.87. Nothing was broken: the tile sums `pipeline_runs`,
+ * two of September's four runs predated the cost-recording code, and the
+ * weekly verify pass — which spends for twenty to thirty minutes at a time —
+ * records nothing anywhere. A floor was rendering as a total, and green said
+ * the floor was fine.
+ *
+ * A measurement that knows it is missing rows must not read `ok`. That is the
+ * same rule the rest of this file enforces about missing tokens; the only
+ * difference here is that the blindness is partial, which makes it easier to
+ * miss and worse when it lands.
+ */
+export function judgeCostCoverage(runs: number, priced: number): VendorStatus {
+  if (!Number.isFinite(runs) || !Number.isFinite(priced) || priced < 0 || runs < 0) return "unknown";
+  if (priced === 0) return "unknown"; // nothing priced: no floor at all, not a zero bill
+  if (priced < runs) return "warn"; // a floor, and we know by how many rows it is short
+  return "ok";
+}

@@ -109,6 +109,22 @@ neutral rather than inventing a cliff:
   measurement of **our** pipeline calls. It reads `$0.00` until the next weekly
   run writes the first priced row.
 
+  **This paragraph was true and the tile was not.** On 28 Sep 2026 it showed
+  "$22.78 month to date" in green while the console showed **$181.87** for the
+  same month. Three undercounts stacked: two of September's four pipeline runs
+  predated the cost-recording code and were unpriced; the tile's query filtered
+  `cost_usd is not null` in the WHERE, so it could not tell "four runs, two
+  unpriced" from "two runs, both priced"; and the weekly verify pass, which
+  spends for twenty to thirty minutes a run, records its cost nowhere at all.
+  A floor was rendering as a total, and green said the floor was fine.
+
+  It now reads `$X recorded`, names the pipeline as its only scope, says how
+  many runs are missing from the figure, and **cannot be green while it knows
+  it is blind** — `judgeCostCoverage` returns `warn` whenever a run in the
+  window is unpriced, and the tile takes the worse of that and the budget
+  judgement, so a comfortable budget cannot talk a partial measurement into
+  green. Only the console knows the bill; the tile links to it and says so.
+
 ## The spinner bug (14 Sep 2026)
 
 The first version awaited both gathers before rendering anything. In production
