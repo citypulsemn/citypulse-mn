@@ -72,3 +72,29 @@ describe("computeEventKey with canonicalization", () => {
     expect(normalizeKeyPart("Café  Déjà-Vu!")).toBe("cafe dejavu");
   });
 });
+
+describe("Grand Casino Arena — one building, several names", () => {
+  it("folds every spelling of the arena to one key basis", () => {
+    const want = "grand casino arena";
+    for (const spelling of [
+      "Xcel Energy Center",
+      "Xcel Energy Center (St Paul)",
+      "Xcel Energy Center (Saint Paul)",
+      "XCEL",
+      "Xcel Energy Ctr",
+      "Grand Casino Arena",
+      "Grand Casino Arena (St Paul)",
+    ]) {
+      expect(canonicalizeVenue(spelling), spelling).toBe(want);
+    }
+  });
+
+  it("gives the same event_key whichever name the feed used", () => {
+    expect(computeEventKey("JOURNEY", "Xcel Energy Center (St Paul)", "2026-10-04"))
+      .toBe(computeEventKey("JOURNEY", "Grand Casino Arena", "2026-10-04"));
+  });
+
+  it("does not swallow Excelsior, which merely contains the letters", () => {
+    expect(canonicalizeVenue("Downtown Excelsior / Water Street")).not.toBe("grand casino arena");
+  });
+});

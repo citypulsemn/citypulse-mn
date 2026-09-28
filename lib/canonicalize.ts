@@ -65,8 +65,18 @@ export const VENUE_ALIASES: Record<string, string> = {
   "fine line music cafe": "fine line",
   "7th st entry": "7th street entry",
   "the cabooze": "cabooze",
-  "xcel": "xcel energy center",
-  "xcel energy ctr": "xcel energy center",
+  // Renamed in 2025. The building is one room whichever name a feed uses, and
+  // until 28 Sep 2026 the two spellings keyed separately — so a show listed
+  // under each never met, and neither the self-check nor the dedupe gate could
+  // see the pair. The lookup is not recursive, so every spelling folds straight
+  // to the current name rather than hopping through the old one.
+  "xcel": "grand casino arena",
+  "xcel energy ctr": "grand casino arena",
+  "xcel energy center": "grand casino arena",
+  "xcel energy center st paul": "grand casino arena",
+  "xcel energy center saint paul": "grand casino arena",
+  "grand casino arena st paul": "grand casino arena",
+  "grand casino arena saint paul": "grand casino arena",
   "the palace theatre": "palace theatre",
   "the palace theater": "palace theatre",
   "palace theater": "palace theatre",
