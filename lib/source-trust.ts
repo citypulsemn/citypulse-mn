@@ -135,3 +135,34 @@ export function heldBackReason(sourceUrl: string): string | null {
   if (!isAggregatorSource(sourceUrl)) return null;
   return `sourced only from ${hostOf(sourceUrl)}, a third-party roundup — held as draft until verified against the venue's own calendar`;
 }
+
+/**
+ * Third-party resellers dressed up as the venue.
+ *
+ * These are not Ticketmaster or AXS, which really are the box office for many
+ * rooms. They are domains built to look like a venue's own site —
+ * `first-avenue.minneapolis-tickets.com`, `dakota-jazz-club.minneapolistickets.org`,
+ * `myth-live.ticketsminneapolis.org` — that resell at a markup. On 29 Sep 2026
+ * seven live listings sent readers to one of these, all seven stamped
+ * verified, three of them for First Avenue shows while 196 sibling rows
+ * carried first-avenue.com.
+ *
+ * Matched by SUFFIX because the venue name is the subdomain and there is one
+ * per room. A reader clicking "tickets" on a listing we publish should not
+ * land somewhere charging them extra to reach the same seat.
+ */
+const RESALE_SUFFIXES: readonly string[] = [
+  "minneapolis-tickets.com",
+  "minneapolistickets.org",
+  "ticketsminneapolis.org",
+  "eventticketscenter.com",
+  "minneapolistickets.com",
+  "ticketsminneapolis.com",
+];
+
+/** True when the URL is a lookalike reseller rather than a real box office. */
+export function isResaleSource(url: string): boolean {
+  const host = hostOf(url);
+  if (!host) return false;
+  return RESALE_SUFFIXES.some((s) => host === s || host.endsWith(`.${s}`));
+}

@@ -4,6 +4,7 @@ import {
   statusForNewEvent,
   heldBackReason,
   AGGREGATOR_HOSTS,
+  isResaleSource,
 } from "../source-trust";
 
 describe("isAggregatorSource", () => {
@@ -89,5 +90,37 @@ describe("heldBackReason", () => {
 
   it("is null when nothing was held back", () => {
     expect(heldBackReason("https://mnzoo.org/special-events/")).toBeNull();
+  });
+});
+
+describe("isResaleSource — lookalikes, not box offices", () => {
+  it("catches the domains that were live on 29 Sep", () => {
+    for (const u of [
+      "https://first-avenue.minneapolis-tickets.com/",
+      "https://dakota-jazz-club.minneapolistickets.org/",
+      "https://myth-live.ticketsminneapolis.org/",
+      "https://www.eventticketscenter.com/ames-center-burnsville-minneapolis-tickets/",
+    ]) {
+      expect(isResaleSource(u), u).toBe(true);
+    }
+  });
+
+  it("leaves the real box offices alone", () => {
+    // These genuinely sell for many rooms, and their venue pages happen to
+    // contain the word "minneapolis-tickets" in the PATH — which is why this
+    // matches on host suffix and not on the URL string.
+    for (const u of [
+      "https://www.axs.com/venues/130256/uptown-theater-minneapolis-minneapolis-tickets",
+      "https://www.ticketmaster.com/target-center-minneapolis-tickets-minneapolis-mn/venue/54321",
+      "https://first-avenue.com/event/2026-10-muna/",
+      "https://www.thecedar.org/events/iamjoy",
+    ]) {
+      expect(isResaleSource(u), u).toBe(false);
+    }
+  });
+
+  it("is false for junk rather than throwing", () => {
+    expect(isResaleSource("")).toBe(false);
+    expect(isResaleSource("not a url")).toBe(false);
   });
 });

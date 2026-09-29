@@ -2,6 +2,7 @@ import { requireSql } from "./db";
 import type { DbEventInput } from "./types";
 import { planCollapse } from "./multiday";
 import { displayPrice } from "./price-quality";
+import { isResaleSource } from "./source-trust";
 import { findIncomingDuplicates, type CalendarRow } from "./contradictions";
 import { chiWallClock } from "./clock";
 
@@ -147,7 +148,10 @@ export async function upsertEvents(events: DbEventInput[]): Promise<number> {
     // "TBD" never enters the column; the schema default says it better.
     price: displayPrice(e.price),
     price_tier: e.priceTier,
-    ticket_url: e.ticket_url,
+    // A lookalike reseller is worse than no link: the reader pays a markup to
+    // reach a seat the venue sells directly. Dropping it leaves the honest
+    // empty the rest of the calendar already uses.
+    ticket_url: isResaleSource(e.ticket_url) ? "" : e.ticket_url,
     description: e.description,
     image: e.image,
     source_url: e.source_url,
