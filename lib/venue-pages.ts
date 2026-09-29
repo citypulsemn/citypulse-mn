@@ -51,6 +51,11 @@ const SLUG_OVERRIDES: Record<string, string> = {
   "Nickelodeon Universe / Mall of America": "nickelodeon-universe",
   "Hennepin County Library (system-wide events)": "hennepin-county-library",
   "Saint Paul Public Library (system-wide events)": "saint-paul-public-library",
+  // The building was renamed Grand Casino Arena in 2025 and the listings
+  // followed on 28 Sep 2026. The SLUG deliberately did not: /venues/
+  // xcel-energy-center has search history, and moving it without a redirect
+  // spends ranking on a cosmetic. Rename the slug when a redirect ships.
+  "Grand Casino Arena": "xcel-energy-center",
 };
 
 /** Extra normalized aliases per registry name (beyond the name itself). */
@@ -67,7 +72,7 @@ const EXTRA_ALIASES: Record<string, string[]> = {
   "Nickelodeon Universe / Mall of America": ["mall of america"],
   "Saint Paul Public Library (system-wide events)": ["st paul public library"],
   "Mystic Lake Amphitheater": ["mystic amphitheater"],
-  "Xcel Energy Center": ["xcel"],
+  "Grand Casino Arena": ["xcel", "xcel energy center", "xcel energy center st paul", "grand casino arena st paul"],
   "Lake Harriet Bandshell": ["lake harriet band shell"],
   "Crooners Supper Club": ["crooners"],
   "Science Museum of Minnesota": ["science museum"],
