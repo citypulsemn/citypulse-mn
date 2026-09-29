@@ -23,6 +23,7 @@
  *   - GitHub answers plainly.
  */
 import { envValue } from "./env";
+import { getMonthlySpend, totalSpend, describeSpend } from "./model-spend";
 import { sql } from "./db";
 import { getDigestHealth } from "./digest-send";
 import { DIGEST_STALE_DAYS } from "./ops-digest";
@@ -253,10 +254,19 @@ export async function anthropicTile(): Promise<VendorTile> {
         link,
       );
     }
-    const usd = Number(r.cost);
+    // The ledger is the real total now: every spending job writes a row. The
+    // pipeline_runs numbers above survive only as the coverage check — it is
+    // the one place we can tell "a run happened and recorded nothing".
+    const ledger = await getMonthlySpend();
+    const usd = ledger.length > 0 ? totalSpend(ledger) : Number(r.cost);
     const budget = Number(envValue("ANTHROPIC_BUDGET_USD") ?? NaN);
-    const coverage = judgeCostCoverage(r.runs, r.priced);
-    const blind = r.runs - r.priced;
+    // Coverage asks one question the ledger cannot answer on its own: did every
+    // pipeline run actually record? pipeline_runs is the run log, so comparing
+    // its count against the ledger's pipeline rows is the one place we can see
+    // a run that happened and wrote nothing.
+    const ledgerPipelineRuns = ledger.find((x) => x.job === "pipeline")?.runs ?? 0;
+    const coverage = judgeCostCoverage(r.runs, Math.max(ledgerPipelineRuns, r.priced));
+    const blind = Math.max(0, r.runs - Math.max(ledgerPipelineRuns, r.priced));
 
     // A budget can never talk a partial measurement into green: the tile takes
     // the worse of "are we measuring everything" and "how close to the budget".
@@ -270,15 +280,17 @@ export async function anthropicTile(): Promise<VendorTile> {
       // NOT "month to date". This is what the research pipeline recorded, which
       // is a floor under one job's spend — not the account's bill. Sep 2026:
       // the tile said $22.78 while the console said $181.87, and was green.
+      // Still "recorded", never "month to date". Every job we run is in this
+      // number; anything else on the organisation's key is not, and cannot be.
       headline: `$${usd.toFixed(2)} recorded`,
       detail:
-        `the weekly research pipeline only — ${r.priced} of ${r.runs} run(s) priced` +
-        (blind > 0 ? `, so ${blind} run(s) are missing from this` : "") +
-        ` · ${r.searches} web searches` +
+        (ledger.length > 0 ? describeSpend(ledger) : "the weekly research pipeline only") +
+        (blind > 0
+          ? ` · ${blind} pipeline run(s) recorded nothing`
+          : ` · ${r.runs} pipeline run(s), all recorded`) +
         (r.unpriced > 0 ? ` · ${r.unpriced} calls at an unknown rate` : "") +
-        ` · the verify pass also spends and is counted nowhere` +
-        (Number.isFinite(budget) ? ` · budget $${budget.toFixed(2)}` : "") +
-        ` · the console has the real figure`,
+        (Number.isFinite(budget) ? ` · budget ${budget.toFixed(2)}` : "") +
+        ` · our jobs only — the console has the bill`,
       link,
     };
   } catch (err) {

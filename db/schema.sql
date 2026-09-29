@@ -542,3 +542,30 @@ alter table events add column if not exists source_checked_at timestamptz;
 create index if not exists idx_events_source_checked
   on events (source_checked_at nulls first)
   where status = 'published';
+
+-- Every model call this project pays for, one row per job run.
+--
+-- Until 29 Sep 2026 the only cost columns in the whole schema were on
+-- pipeline_runs, so /admin/ops could see the weekly research pipeline and
+-- nothing else. The verify pass — which runs TWICE a week (Mondays via
+-- verify-events.yml, Thursdays as a step inside weekly-digest.yml) and spends
+-- twenty to thirty minutes a run — recorded nothing. Measured from its own
+-- Actions logs it cost ~$58 in September against the pipeline's ~$47, so the
+-- unwatched job was the larger one, and the tile reported $22.78 in green
+-- while the console said $181.87.
+--
+-- A ledger rather than another per-job column: the next spender should need a
+-- row, not a migration. pipeline_runs keeps its own cost columns because the
+-- pipeline reports on itself with them; this table is what the dashboard sums.
+create table if not exists model_spend (
+  id             bigint generated always as identity primary key,
+  job            text not null,
+  ran_at         timestamptz not null default now(),
+  cost_usd       numeric(10,4) not null,
+  searches       integer not null default 0,
+  calls          integer not null default 0,
+  unpriced_calls integer not null default 0,
+  ci             boolean not null default false,
+  note           text
+);
+create index if not exists idx_model_spend_ran on model_spend (ran_at desc);

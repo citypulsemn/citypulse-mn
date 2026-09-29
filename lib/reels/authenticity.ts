@@ -1,4 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
+import { logUsage } from "../api-usage";
 
 /**
  * Vision authenticity gate for b-roll candidates: Claude looks at each Pexels
@@ -85,6 +86,10 @@ export async function screenImagesWithClaude(
     max_tokens: 500,
     messages: [{ role: "user", content }],
   });
+  // These modules build their own Anthropic client rather than going through
+  // lib/agents/research-agent.ts, so until 29 Sep 2026 their spend appeared in
+  // no [usage] line and no ledger — invisible even to the logs.
+  logUsage("reels:authenticity", "claude-sonnet-4-6", res.usage);
   const text = res.content
     .filter((b): b is Anthropic.TextBlock => b.type === "text")
     .map((b) => b.text)

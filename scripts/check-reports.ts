@@ -33,6 +33,7 @@ import {
 } from "../lib/report-check";
 import { sendReportVerdictEmail } from "../lib/report-verdict-email";
 import type { ReportKind } from "../lib/report-types";
+import { recordRunSpend } from "../lib/model-spend";
 
 const dryRun = process.argv.includes("--dry-run");
 const limitArg = process.argv.find((a) => a.startsWith("--limit="));
@@ -134,7 +135,10 @@ async function main() {
   await sql.end({ timeout: 5 });
 }
 
-main().catch((err) => {
-  console.error("[check-reports] fatal:", err);
-  process.exitCode = 1;
-});
+main()
+  .catch((err) => {
+    console.error("[check-reports] fatal:", err);
+    process.exitCode = 1;
+  })
+  // Recorded whether the run finished or died: the calls were already paid for.
+  .finally(() => recordRunSpend("check-reports"));

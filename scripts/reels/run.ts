@@ -59,6 +59,7 @@ import type {
 } from "../../lib/reels/types";
 import { SHOT_TYPES, VARIANTS } from "../../lib/reels/types";
 import { validateReelContent } from "../../lib/reels/validate";
+import { recordRunSpend } from "../../lib/model-spend";
 
 const argOf = (name: string): string | null => {
   const hit = process.argv.find((a) => a.startsWith(`--${name}=`));
@@ -358,10 +359,16 @@ async function main() {
   if (built < variants.length) process.exitCode = 1;
 }
 
+// Awaited, not in a .finally(): process.exit() kills the process on the spot,
+// so a pending ledger insert would simply never land.
 main().then(
-  () => process.exit(process.exitCode ?? 0),
-  (err) => {
+  async () => {
+    await recordRunSpend("reels");
+    process.exit(process.exitCode ?? 0);
+  },
+  async (err) => {
     console.error("[reels] fatal:", err);
+    await recordRunSpend("reels", "run failed");
     process.exit(1);
   },
 );

@@ -25,6 +25,7 @@ import { computeEventKey } from "../lib/event-key";
 import { findCorrectDates } from "../lib/agents/research-agent";
 import { actionForRestore, type RestoreItem } from "../lib/restore-check";
 import { withinBudget, RUN_BUDGET_MS } from "../lib/verify";
+import { recordRunSpend } from "../lib/model-spend";
 
 const arg = (n: string) => process.argv.find((a) => a.startsWith(`--${n}=`))?.split("=")[1];
 const APPLY = process.argv.includes("--apply");
@@ -150,7 +151,10 @@ async function main() {
   await sql.end({ timeout: 5 });
 }
 
-main().catch((err) => {
-  console.error("[restore] fatal:", err);
-  process.exitCode = 1;
-});
+main()
+  .catch((err) => {
+    console.error("[restore] fatal:", err);
+    process.exitCode = 1;
+  })
+  // Recorded whether the run finished or died: the calls were already paid for.
+  .finally(() => recordRunSpend("restore-drafted"));

@@ -118,12 +118,40 @@ neutral rather than inventing a cliff:
   spends for twenty to thirty minutes a run, records its cost nowhere at all.
   A floor was rendering as a total, and green said the floor was fine.
 
-  It now reads `$X recorded`, names the pipeline as its only scope, says how
-  many runs are missing from the figure, and **cannot be green while it knows
-  it is blind** — `judgeCostCoverage` returns `warn` whenever a run in the
-  window is unpriced, and the tile takes the worse of that and the budget
-  judgement, so a comfortable budget cannot talk a partial measurement into
-  green. Only the console knows the bill; the tile links to it and says so.
+  It now reads `$X recorded`, **cannot be green while it knows it is blind**
+  (`judgeCostCoverage` returns `warn` whenever a run recorded nothing, and the
+  tile takes the worse of that and the budget judgement, so a comfortable
+  budget cannot talk a partial measurement into green), and it sums a **ledger**
+  rather than one job's table.
+
+  **`model_spend` (29 Sep 2026)** is that ledger: one row per job run, written
+  by `recordRunSpend()` in `lib/model-spend.ts`. `lib/api-usage.ts` already
+  accumulated each run's spend in memory — deliberately, because it is called
+  on the hot path of every agent call and is forbidden to throw — and this is
+  the other half: ONE write, at the end. Seven entrypoints call it (pipeline,
+  verify, check-reports, restore-drafted, resweep-verified, research-places,
+  reels), from `.finally()` so a run that **died** still records what it
+  already spent. It opens its own connection, because by then the script has
+  usually run `sql.end()` and lib/db's client is a process-global that cannot
+  be reopened. `scripts/reels/run.ts` awaits it instead, because
+  `process.exit()` would kill a pending insert.
+
+  A run with **zero model calls writes no row** — `check-reports` fires every
+  thirty minutes and returns early on an empty queue, and 139 rows of $0.00 a
+  month would bury the runs that cost something.
+
+  Two holes closed at the same time: the verify pass runs **twice** a week
+  (Mondays via `verify-events.yml`, Thursdays as a step inside
+  `weekly-digest.yml` — which is why that workflow carries
+  `ANTHROPIC_API_KEY`), and `lib/reels/*` built its own Anthropic client and
+  never called `logUsage`, so its spend appeared in no log at all.
+
+  September was backfilled from each run's own `[usage]` lines in its Actions
+  log: **$78.84 — verify $41.81, pipeline $37.03.** Sep 3 and Sep 7 predate the
+  per-call logging and are deliberately absent, because unknown is not zero.
+  The tile still says **our jobs only**: anything spending on this
+  organisation's key from outside this repo cannot be here, and the console
+  still has the bill.
 
 ## The spinner bug (14 Sep 2026)
 

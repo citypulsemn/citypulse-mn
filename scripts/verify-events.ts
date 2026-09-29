@@ -23,6 +23,7 @@ import { verifyEventsBatch } from "../lib/agents/research-agent";
 import { venueIsUnknown, unknownVenueReason } from "../lib/venue-quality";
 import { markVerified, cancelVerified, flagVerification } from "../lib/upsert";
 import type { EventStatus } from "../lib/types";
+import { recordRunSpend } from "../lib/model-spend";
 
 async function main() {
   const dryRun = process.argv.includes("--dry-run");
@@ -180,7 +181,10 @@ async function main() {
   await sql.end({ timeout: 5 });
 }
 
-main().catch((err) => {
-  console.error("[verify] fatal:", err);
-  process.exitCode = 1;
-});
+main()
+  .catch((err) => {
+    console.error("[verify] fatal:", err);
+    process.exitCode = 1;
+  })
+  // Recorded whether the run finished or died: the calls were already paid for.
+  .finally(() => recordRunSpend("verify"));

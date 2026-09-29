@@ -21,6 +21,7 @@ import { writeFileSync } from "node:fs";
 import Anthropic from "@anthropic-ai/sdk";
 import { PLACES, KIND_META, METRO_BOX, inMetroBox, type PlaceKind } from "../lib/places";
 import { buildPlacesResearchPrompt } from "../lib/agents/prompts";
+import { recordRunSpend } from "../lib/model-spend";
 
 const MAJOR_BOX_CITIES = [
   "Minneapolis", "St. Paul", "Bloomington", "Brooklyn Park", "Plymouth", "Woodbury",
@@ -203,7 +204,10 @@ async function main() {
   console.log(`[research-places] nothing was added to the registry — that is a human's call.`);
 }
 
-main().catch((err) => {
-  console.error("[research-places] fatal:", err);
-  process.exitCode = 1;
-});
+main()
+  .catch((err) => {
+    console.error("[research-places] fatal:", err);
+    process.exitCode = 1;
+  })
+  // Recorded whether the run finished or died: the calls were already paid for.
+  .finally(() => recordRunSpend("research-places"));

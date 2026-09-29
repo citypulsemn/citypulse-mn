@@ -35,6 +35,7 @@ import { verifyEventsBatch } from "../lib/agents/research-agent";
 import { actionFor, batchForVerification, withinBudget, type VerifiableEvent } from "../lib/verify";
 import { feedVenues, feedHosts, isFeedStamped } from "../lib/verify-attribution";
 import { revalidateAndReport } from "../lib/revalidate-client";
+import { recordRunSpend } from "../lib/model-spend";
 
 const apply = process.argv.includes("--apply");
 const backupArg = process.argv.find((a) => a.startsWith("--backup="));
@@ -175,7 +176,10 @@ async function main() {
   await sql.end({ timeout: 5 });
 }
 
-main().catch((err) => {
-  console.error("[resweep] fatal:", err);
-  process.exitCode = 1;
-});
+main()
+  .catch((err) => {
+    console.error("[resweep] fatal:", err);
+    process.exitCode = 1;
+  })
+  // Recorded whether the run finished or died: the calls were already paid for.
+  .finally(() => recordRunSpend("resweep-verified"));

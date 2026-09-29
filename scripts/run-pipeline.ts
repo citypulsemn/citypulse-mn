@@ -36,6 +36,7 @@ import { venueIsUnknown, unknownVenueReason } from "../lib/venue-quality";
 import { sql } from "../lib/db";
 import { revalidateAndReport } from "../lib/revalidate-client";
 import type { DbEventInput } from "../lib/types";
+import { recordRunSpend } from "../lib/model-spend";
 
 async function main() {
   if (!process.env.DATABASE_URL) throw new Error("DATABASE_URL is required");
@@ -373,7 +374,11 @@ async function main() {
   await sql?.end({ timeout: 5 });
 }
 
-main().catch((err) => {
-  console.error("[pipeline] fatal:", err);
-  process.exitCode = 1;
-});
+main()
+  .catch((err) => {
+    console.error("[pipeline] fatal:", err);
+    process.exitCode = 1;
+  })
+  // Also written to pipeline_runs above, which is how the pipeline reports on
+  // itself. This row is what the dashboard sums across every spending job.
+  .finally(() => recordRunSpend("pipeline"));

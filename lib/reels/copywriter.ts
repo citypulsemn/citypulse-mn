@@ -11,6 +11,7 @@ import type {
 import { buildCopywriterPrompt } from "./prompts";
 import { CTA_LINE, detailsLine, headerFor } from "./format";
 import { validateReelContent } from "./validate";
+import { logUsage } from "../api-usage";
 
 /**
  * The copywriter step: one Claude call turns a variant's 5 selected events
@@ -44,6 +45,8 @@ export const realCopywriterDeps: CopywriterDeps = {
       max_tokens: 4000,
       messages: [{ role: "user", content: prompt }],
     });
+    // See the note in authenticity.ts: its own client, so its own accounting.
+    logUsage("reels:copy", "claude-sonnet-4-6", res.usage);
     return res.content
       .filter((b): b is Anthropic.TextBlock => b.type === "text")
       .map((b) => b.text)
