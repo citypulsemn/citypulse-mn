@@ -477,3 +477,61 @@ describe("findIncomingDuplicates — the gate the upsert lacked", () => {
     expect(findIncomingDuplicates([row("a", "X", "2026-10-04T19:30")], []).size).toBe(0);
   });
 });
+
+describe("the eight pairs that were live while the panel said zero", () => {
+  const at = (id: string, title: string, venue: string, start: string, verified = true) =>
+    ({ id, title, venue, category: "music", verified, start });
+
+  it("calls a bare headliner and its full billing a duplicate", () => {
+    const r = findContradictions([
+      at("a", "Muna", "Palace Theatre", "2026-10-11T19:00"),
+      at("b", "MUNA – Gets So Hot Tour (with hemlocke springs)", "Palace Theatre", "2026-10-11T19:00"),
+    ]);
+    expect(r.duplicates).toHaveLength(1);
+  });
+
+  it("still refuses to fold a series, even at the same minute", () => {
+    // The guard that caught the first draft of the headliner rule.
+    const r = findContradictions([
+      at("a", "Free Music in the Parks – The Roundabouts", "Lake Harriet Bandshell", "2026-07-04T19:00"),
+      at("b", "Free Music in the Parks – Hurricane Blaze", "Lake Harriet Bandshell", "2026-07-04T19:00"),
+    ]);
+    expect(r.duplicates).toHaveLength(0);
+  });
+
+  it("reports a duplicate at a concurrent venue instead of swallowing it", () => {
+    // Walker is in CONCURRENT_VENUES; the skip used to drop duplicates too.
+    const r = findContradictions([
+      at("a", "Walker Art Center Free Thursday Night", "Walker Art Center", "2026-10-01T17:00"),
+      at("b", "Walker Free Thursday Night: Analog Connections with Present Company", "Walker Art Center", "2026-10-01T17:00"),
+    ]);
+    expect(r.duplicates).toHaveLength(1);
+  });
+
+  it("still suppresses a genuine clash at a concurrent venue", () => {
+    const r = findContradictions([
+      at("a", "Skyline Mini Golf", "Walker Art Center", "2026-10-01T10:00"),
+      at("b", "Olalekan Jeyifous: Hydricosmic Litanies", "Walker Art Center", "2026-10-01T10:00"),
+    ]);
+    expect(r.conflicts).toHaveLength(0);
+    expect(r.duplicates).toHaveLength(0);
+  });
+
+  it("keeps a same-minute pair visible even when both rows are verified", () => {
+    // Two verified rows used to cancel each other out. One room cannot start
+    // two different things at one instant.
+    const r = findContradictions([
+      at("a", "Zach Top: Cold Beer & Country Music Tour 2026", "Grand Casino Arena", "2026-10-10T20:00"),
+      at("b", "Zach Top w/ Marty Stuart & His Fabulous Superlatives", "Grand Casino Arena", "2026-10-10T20:00"),
+    ]);
+    expect(r.conflicts.length + r.duplicates.length).toBe(1);
+  });
+
+  it("still lets two verified rows an hour apart pass", () => {
+    const r = findContradictions([
+      at("a", "Opening Set", "Turf Club", "2026-10-10T19:00"),
+      at("b", "Late Night Dance Party", "Turf Club", "2026-10-10T22:00"),
+    ]);
+    expect(r.conflicts).toHaveLength(0);
+  });
+});

@@ -179,10 +179,59 @@ function tokens(title: string): Set<string> {
  * attention and a duplicate is comparatively benign. Calling a real conflict a
  * duplicate would file "two different bands in one room" under housekeeping.
  */
-export function looksLikeSameEvent(a: string, b: string, venue = ""): boolean {
+export function looksLikeSameEvent(
+  a: string,
+  b: string,
+  venue = "",
+  opts: { sameStart?: boolean } = {},
+): boolean {
   const na = norm(a);
   const nb = norm(b);
   if (na && na === nb) return true;
+
+  // THE HEADLINER RULE. Two rows in one room at the SAME MINUTE, whose titles
+  // open on the same distinctive word, are one event billed two ways. Five
+  // were live on 29 Sep and none of the tests below caught any of them:
+  // "Muna" / "MUNA - Gets So Hot Tour (with hemlocke springs)" (Palace),
+  // "Amble" / "Amble with Vincent Lima" (First Avenue), two Zach Top rows,
+  // two IAMJOY rows, two SPCO rows. The token ratios fail because a bare
+  // headliner shares one word with a full billing that carries eight.
+  //
+  // The same-minute gate is what keeps this away from a SERIES: "Free Music
+  // in the Parks - X" and "- Y" are different bands on one schedule, and a
+  // schedule does not put two of them on at the same instant.
+  //
+  // It fires only when one title is ENTIRELY the opening of the other — the
+  // bare headliner against its own full billing. A shared first word is not
+  // enough: "Free Music in the Parks - The Roundabouts" and "- Hurricane
+  // Blaze" share five, and are two bands. (The first draft of this used a
+  // shared leading word plus the same minute, and the series test written
+  // yesterday caught it immediately.)
+  //
+  // Deliberately leaves "Zach Top: Cold Beer Tour" against "Zach Top w/ Marty
+  // Stuart" alone, because neither opens the other. Those now surface as
+  // CONFLICTS instead, which is the honest answer: a human should look.
+  // The test is CONTAINMENT OF MEANING, not of characters: every distinctive
+  // word of the shorter title also appears in the longer one. "Walker Art
+  // Center Free Thursday Night" against "Walker Free Thursday Night: Analog
+  // Connections with Present Company" reduces to {free, thursday} inside
+  // {free, thursday, analog, connections, present, company} — the ratio test
+  // below scores that 0.33 and rejects it, which is how two of these stayed
+  // invisible. (A character-prefix draft of this rule also missed it, because
+  // the two titles do not start the same way.)
+  //
+  // The series case fails it cleanly: {free, music, parks, roundabouts} is not
+  // inside {free, music, parks, hurricane, blaze} — the band is the word that
+  // does not carry over.
+  if (opts.sameStart && na && nb && na !== nb) {
+    const va = tokens(venue);
+    const strip = (t: string) => new Set([...tokens(t)].filter((w) => !va.has(w)));
+    const [sa, sb] = [strip(a), strip(b)];
+    const [small, big] = sa.size <= sb.size ? [sa, sb] : [sb, sa];
+    if (small.size > 0 && [...small].every((t) => big.has(t)) && [...small].some((t) => t.length >= 4)) {
+      return true;
+    }
+  }
   // One title containing the other whole ("Dan Israel" inside "Free Music in
   // the Parks – Dan Israel") is the commonest duplicate shape on this site.
   if (na.length >= 6 && nb.length >= 6 && (na.includes(nb) || nb.includes(na))) return true;
@@ -277,11 +326,19 @@ export function findContradictions(rows: CalendarRow[]): ContradictionReport {
         const b = sorted[j];
         const apart = Math.abs(minutesOf(b.start) - minutesOf(a.start));
         if (apart > CLASH_WINDOW_MINUTES) continue;
-        if (concurrent) {
+        const kind = looksLikeSameEvent(a.title, b.title, venue, { sameStart: apart === 0 })
+          ? "duplicate"
+          : "conflict";
+
+        // A concurrent venue runs different things side by side, so a CONFLICT
+        // there is expected. A DUPLICATE is not, and until 29 Sep this skip ran
+        // before the line above and swallowed both — which is why three of the
+        // live duplicate pairs sat at the Walker and Como with the panel
+        // reporting zero. The comment below always said "only conflicts".
+        if (concurrent && kind === "conflict") {
           skippedCount.set(venue, (skippedCount.get(venue) ?? 0) + 1);
           continue;
         }
-        const kind = looksLikeSameEvent(a.title, b.title, venue) ? "duplicate" : "conflict";
 
         // Two DIFFERENT things, both confirmed against a primary source, are not
         // a contradiction — they are a room that runs concurrent programming and
@@ -293,7 +350,11 @@ export function findContradictions(rows: CalendarRow[]): ContradictionReport {
         // we bring under a primary source stops needing an entry. It suppresses
         // only conflicts — two verified rows with near-identical titles are still
         // worth reporting as a duplicate.
-        if (kind === "conflict" && a.verified && b.verified) {
+        // ...unless they start on the SAME MINUTE. One room cannot begin two
+        // different things at one instant, however well sourced each is, so
+        // the escape below stops at apart === 0. That is what keeps the Zach
+        // Top, IAMJOY and SPCO pairs visible now that they are conflicts.
+        if (apart > 0 && kind === "conflict" && a.verified && b.verified) {
           skippedCount.set(venue, (skippedCount.get(venue) ?? 0) + 1);
           continue;
         }
