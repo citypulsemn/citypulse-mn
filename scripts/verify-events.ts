@@ -21,6 +21,7 @@ import {
 } from "../lib/verify";
 import { verifyEventsBatch } from "../lib/agents/research-agent";
 import { venueIsUnknown, unknownVenueReason } from "../lib/venue-quality";
+import { isAggregatorSource } from "../lib/source-trust";
 import { markVerified, cancelVerified, flagVerification } from "../lib/upsert";
 import type { EventStatus } from "../lib/types";
 import { recordRunSpend } from "../lib/model-spend";
@@ -133,6 +134,27 @@ async function main() {
           batchFlags.push({ id: action.id, verdict: "no_venue", note: why });
         } else {
           batchConfirms.push(action.id);
+          // A roundup is not a schedule. isAggregatorSource covers the exact
+          // hosts behind this project's real fabrications — Racket's 2024
+          // Halloween guide, minnesotamonthly's fall guide, familyfuntwincities
+          // — and lib/source-trust.ts has said in a docstring since it was
+          // written that such a source is "good enough to cite; not good enough
+          // to mark a listing verified". Nothing enforced it: the only caller
+          // was restore-check, and verify.ts imported the function to SORT by.
+          //
+          // The stamp still lands, because withholding it would put the row
+          // back at the top of next week's queue and re-spend on it forever.
+          // The flag lands with it, so a confirmation resting on a roundup
+          // stays visible instead of being laundered clean by the stamp.
+          const src = (ev?.sourceUrl || ev?.ticketUrl || "").trim();
+          if (isAggregatorSource(src)) {
+            console.log(`[verify]   ⚑ ROUNDUP-ONLY "${title}" — confirmed against ${new URL(src).hostname}, not a schedule`);
+            batchFlags.push({
+              id: action.id,
+              verdict: "weak_source",
+              note: `confirmed only against ${new URL(src).hostname}, a roundup rather than the organiser's own schedule — needs a primary source`,
+            });
+          }
         }
       } else {
         console.log(`[verify]   ⚑ ${action.verdict.toUpperCase()} "${title}" — ${action.note}`);

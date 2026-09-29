@@ -148,7 +148,11 @@ export async function gatherOpsInputs(): Promise<OpsInputs> {
         join events e on e.id = a.event_id
         where a.action = 'verify_flag'
           and e.status = 'published'
-          and e.verified_at is null
+          -- A flag raised AFTER the stamp used to vanish, because "open" was
+          -- defined as unverified. That is the most dangerous flag there is:
+          -- something re-checked a confirmed listing and disagreed, and the
+          -- stamp swallowed the disagreement.
+          and (e.verified_at is null or a.at > e.verified_at)
           and e.start_at >= now()
         order by e.id, a.at desc`;
       const rank = (v: string) => (v === "wrong_event" ? 0 : v === "cancelled" ? 1 : 2);
