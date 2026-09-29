@@ -391,11 +391,9 @@ export function buildSections(inputs: OpsInputs): OpsSection[] {
       lines = unavailable(err("verify"));
       alert = true;
     } else {
-      const v = inputs.verify;
-      lines = [
-        `${v.verified7} events re-verified against sources in the last 7 days`,
-        `${v.neverVerifiedUpcoming} upcoming events have never been verified`,
-      ];
+      const v = judgeVerification(inputs.verify.verified7, inputs.verify.neverVerifiedUpcoming);
+      lines = v.lines;
+      alert = v.alert;
     }
     out.push({ title: "Verification", lines, alert });
   }
@@ -660,6 +658,35 @@ export function buildSections(inputs: OpsInputs): OpsSection[] {
   }
 
   return out;
+}
+
+/**
+ * Whether the verification story is worth waking up for.
+ *
+ * This section used to raise a flag ONLY when its own read failed. It printed
+ * two numbers and judged neither — which made a dying verify pass read as
+ * good news, twice over: verified7 falls to zero, and with nothing checking
+ * anything the flag queue stops growing, so the Queue section calms down too.
+ * The email would have read all-green through a month of silence.
+ *
+ * The pass runs TWICE a week (Mondays via verify-events.yml, Thursdays as a
+ * step inside weekly-digest.yml). Seven days with nothing re-verified is not
+ * a quiet week; it means it did not run, or ran and produced nothing.
+ */
+export function judgeVerification(
+  verified7: number,
+  neverVerifiedUpcoming: number,
+): { lines: string[]; alert: boolean } {
+  const dead = !Number.isFinite(verified7) || verified7 <= 0;
+  return {
+    alert: dead,
+    lines: [
+      dead
+        ? "NOTHING re-verified in the last 7 days — the pass runs twice weekly, so it did not run or returned nothing"
+        : `${verified7} events re-verified against sources in the last 7 days`,
+      `${neverVerifiedUpcoming} upcoming events have never been verified`,
+    ],
+  };
 }
 
 export function composeOpsDigest(

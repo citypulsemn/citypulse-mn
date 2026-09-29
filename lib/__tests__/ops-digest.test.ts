@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { composeOpsDigest, buildSections, parseStoredTotals, wowLabel, deltaTag, isStampede, stampedeReason, recentBaseline, PIPELINE_STAMPEDE, STALE_REPORT_DAYS, DIGEST_STALE_DAYS, type OpsInputs, type PipelineRow } from "../ops-digest";
+import { composeOpsDigest, judgeVerification, buildSections, parseStoredTotals, wowLabel, deltaTag, isStampede, stampedeReason, recentBaseline, PIPELINE_STAMPEDE, STALE_REPORT_DAYS, DIGEST_STALE_DAYS, type OpsInputs, type PipelineRow } from "../ops-digest";
 
 const NOW = new Date("2026-07-20T15:30:00Z"); // a Monday, 10:30am Chicago
 
@@ -799,5 +799,30 @@ describe("Queue — verify flags are visible", () => {
     const s = q({});
     expect(s.alert).toBe(false);
     expect(s.lines.join(" ")).toMatch(/nothing waiting/);
+  });
+});
+
+describe("judgeVerification — a dying pass must not read as a quiet week", () => {
+  it("raises a flag when nothing was re-verified in seven days", () => {
+    const r = judgeVerification(0, 68);
+    expect(r.alert).toBe(true);
+    expect(r.lines[0]).toMatch(/NOTHING re-verified/);
+  });
+
+  it("stays calm when the pass is working", () => {
+    const r = judgeVerification(41, 68);
+    expect(r.alert).toBe(false);
+    expect(r.lines[0]).toBe("41 events re-verified against sources in the last 7 days");
+  });
+
+  it("always reports the never-verified backlog, working or not", () => {
+    for (const n of [0, 41]) {
+      expect(judgeVerification(n, 345).lines[1]).toBe("345 upcoming events have never been verified");
+    }
+  });
+
+  it("treats a nonsense count as dead rather than as success", () => {
+    expect(judgeVerification(NaN, 10).alert).toBe(true);
+    expect(judgeVerification(-3, 10).alert).toBe(true);
   });
 });
