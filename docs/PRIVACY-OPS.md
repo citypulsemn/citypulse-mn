@@ -61,8 +61,14 @@ CAN-SPAM §7704(a)(5) requires every commercial email to carry "the valid physic
 address of the sender". Until 17 Sep 2026 the digest footer read
 *"City Pulse MN · Twin Cities, Minnesota"* — a region, which is not an address.
 
-Set **`DIGEST_POSTAL_ADDRESS`** in Vercel *and* in GitHub Actions secrets (the weekly
-send runs in Actions, so Actions is the one that actually matters):
+Set **`DIGEST_POSTAL_ADDRESS`** in GitHub Actions secrets — the weekly send runs in
+Actions, so that is the one that matters. Vercel too if you want `/admin/digest` previews
+to match.
+
+**This instruction used to be wrong and silently so.** Until 29 Sep 2026
+`weekly-digest.yml` never mapped the secret into the send step's `env:`, and Actions only
+exposes secrets you map. Setting it would have changed nothing, and the marker would have
+kept appearing with no clue why. The mapping is now on line 94 of that workflow.
 
 ```
 DIGEST_POSTAL_ADDRESS=1234 Example Ave, Suite 5, Minneapolis, MN 55403

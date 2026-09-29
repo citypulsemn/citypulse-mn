@@ -55,7 +55,10 @@ export const VENUES: Venue[] = [
   { name: "Como Lakeside Pavilion", city: "St Paul", category: "music" },
   { name: "Orchestra Hall", city: "Minneapolis", category: "music" },
   { name: "Ordway Concert Hall", city: "St Paul", category: "music" },
-  { name: "Xcel Energy Center", city: "St Paul", category: "music" },
+  // Renamed in 2025. The events were folded to this name on 28 Sep 2026 and
+  // this line was missed, which left the metro's biggest room reading empty on
+  // /venues while 23 events sat under the new name.
+  { name: "Grand Casino Arena", city: "St Paul", category: "music" },
   { name: "Target Center", city: "Minneapolis", category: "music" },
   { name: "Ames Center", city: "Burnsville", category: "music" },
   { name: "Hopkins Center for the Arts", city: "Hopkins", category: "music" },

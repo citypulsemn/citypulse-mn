@@ -86,6 +86,12 @@ jobs:
           UNSUBSCRIBE_SECRET: ${{ secrets.UNSUBSCRIBE_SECRET }}
           SITE_URL: ${{ secrets.SITE_URL }}
           DIGEST_FROM: ${{ secrets.DIGEST_FROM }}
+          # CAN-SPAM §7704(a)(5). Actions only exposes secrets you map here, so
+          # until 29 Sep 2026 setting this secret would have changed nothing —
+          # docs/PRIVACY-OPS.md and HANDOFF.md both said "set the secret" and
+          # both were wrong about it being sufficient. Unset, the footer falls
+          # back to the region line and every send records the marker.
+          DIGEST_POSTAL_ADDRESS: ${{ secrets.DIGEST_POSTAL_ADDRESS }}
         run: |
           ARGS=""
           if [ "$IS_DRY_RUN" = "true" ]; then ARGS="$ARGS --dry-run"; fi
