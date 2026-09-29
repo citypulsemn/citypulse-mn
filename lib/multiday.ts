@@ -80,8 +80,23 @@ export function runKey(ev: Pick<EventRecord, "title" | "city">): string {
  * rows may cluster (a true duplicate of one game); a next-day row is always a
  * new game.
  */
+/**
+ * Categories where consecutive days are SEPARATE TICKETED EVENTS, never a run.
+ *
+ * Sports was here first, for the reason above. Music joined it on 29 Sep 2026:
+ * the collapse was planning to fold five two-night stands — jeremy
+ * messersmith, Sylvan Esso, The Suburbs, Angine de Poitrine, Phantom of the
+ * Opera — into one span each. Every one of those pairs carried TWO DISTINCT
+ * ticket_urls, which is the proof: a Friday show and a Saturday show are two
+ * things you buy separately, and folding them leaves a reader who wants
+ * Saturday clicking through to Friday's tickets.
+ *
+ * A genuine multi-day music festival is categorised "festival" and still folds.
+ */
+const PER_NIGHT = new Set(["sports", "music"]);
+
 function maxGapFor(category: string | undefined): number {
-  return category === "sports" ? 0 : 1;
+  return PER_NIGHT.has(category ?? "") ? 0 : 1;
 }
 
 export interface RunCluster<T> {
@@ -124,7 +139,8 @@ export function groupRuns<
       const prevDay = dayNumber(current[current.length - 1].start);
       const gap = dayNumber(ev.start) - prevDay;
       // Same day (a duplicate) or the next day (a continuing run) → same cluster.
-      // Sports never continue across days: each game is its own event.
+      // Sports and music never continue across days: each game, and each
+      // night of a stand, is its own separately ticketed event.
       if (gap <= maxGapFor(ev.category)) {
         current.push(ev);
       } else {
@@ -236,14 +252,14 @@ export function planCollapse(rows: CollapseRow[]): CollapseAction[] {
       (a, b) => a.start.localeCompare(b.start) || rowEndNum(a) - rowEndNum(b),
     );
     const [titleKey, cityKey] = key.split("|");
-    const sports = sorted.some((r) => r.category === "sports");
+    const perNight = sorted.some((r) => PER_NIGHT.has(r.category ?? ""));
     let current: CollapseRow[] = [];
     let curStart = 0;
     let curEnd = 0;
 
     const flush = () => {
       if (current.length > 0)
-        clusters.push({ titleKey, cityKey, sports, rows: current, startNum: curStart, endNum: curEnd });
+        clusters.push({ titleKey, cityKey, sports: perNight, rows: current, startNum: curStart, endNum: curEnd });
     };
 
     for (const row of sorted) {
@@ -253,8 +269,8 @@ export function planCollapse(rows: CollapseRow[]): CollapseAction[] {
       // archive — every real game the pipeline inserts inside its window,
       // defeating the sports rule from the inside. (Found Jul 20: 14 legacy
       // sports rows with spans written by the pre-reclassify collapse era.)
-      const e = sports ? s : rowEndNum(row);
-      const gap = sports ? 0 : 1; // sports: same-day only, as in groupRuns
+      const e = perNight ? s : rowEndNum(row);
+      const gap = perNight ? 0 : 1; // sports/music: same-day only, as in groupRuns
       if (current.length > 0 && s <= curEnd + gap) {
         current.push(row);
         curEnd = Math.max(curEnd, e);

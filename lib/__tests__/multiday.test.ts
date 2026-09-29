@@ -447,3 +447,44 @@ describe("spanEnd from the event's own end_at (second live-site audit)", () => {
     expect(multiDayLabel(both)).toBe("Jul 15 – 20");
   });
 });
+
+describe("two-night stands are not runs", () => {
+  const night = (id: string, title: string, start: string, category: string) =>
+    ({ id, title, city: "Minneapolis", category, start, endDay: null });
+
+  it("refuses to fold a Friday and Saturday concert into one span", () => {
+    // Real: jeremy messersmith and Sylvan Esso were both about to be folded
+    // Oct 23 -> Oct 24, and each pair carried two distinct ticket_urls.
+    const actions = planCollapse([
+      night("a", "Sylvan Esso (18+)", "2026-10-23T20:00", "music"),
+      night("b", "Sylvan Esso (18+)", "2026-10-24T20:00", "music"),
+    ]);
+    expect(actions.filter((x) => x.kind === "run")).toEqual([]);
+  });
+
+  it("still folds a genuine multi-day family run", () => {
+    // Bell Museum's Beavers and Botanicals: five consecutive days, one programme.
+    const rows = ["14", "15", "16", "17", "18"].map((d, i) =>
+      night(`b${i}`, "Beavers and Botanicals", `2026-10-${d}T10:00`, "family"),
+    );
+    const runs = planCollapse(rows).filter((x) => x.kind === "run");
+    expect(runs).toHaveLength(1);
+    expect(runs[0].archiveIds).toHaveLength(4);
+  });
+
+  it("still collapses same-day duplicates of a concert", () => {
+    // Per-night must not mean per-row: two copies of ONE night are still a dup.
+    const actions = planCollapse([
+      night("a", "The Suburbs", "2026-11-13T20:00", "music"),
+      night("b", "The Suburbs", "2026-11-13T20:00", "music"),
+    ]);
+    expect(actions.some((x) => x.kind === "duplicate")).toBe(true);
+  });
+
+  it("leaves a multi-day festival alone even when it is music-adjacent", () => {
+    const rows = ["05", "06"].map((d, i) =>
+      night(`f${i}`, "Nicollet Island Winter Market", `2026-12-${d}T10:00`, "family"),
+    );
+    expect(planCollapse(rows).filter((x) => x.kind === "run")).toHaveLength(1);
+  });
+});

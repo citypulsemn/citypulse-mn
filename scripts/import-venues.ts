@@ -317,8 +317,19 @@ async function main() {
       // show would stay hidden and be "added" forever. The venue's own calendar
       // outranks a stale hide.
       const woken = await sql`
+      // 'draft' ONLY, never 'archived'. The White Sox row this guard was built
+      // for was a stale human HIDE, which is a draft. An archive is a decision
+      // some other pass made deliberately, and re-publishing it undoes that
+      // pass every week:
+      //
+      //   collapseMultiDayRuns archives a multi-day run's extra day rows, and
+      //   this step ran minutes later in the same workflow and woke them. The
+      //   pipeline reported collapsed_runs of 20/17/20/19/14 on five
+      //   consecutive Mondays and the Bell Museum's programme sat on the
+      //   calendar twice a day for weeks. It would also resurrect every
+      //   duplicate and fabrication archived by hand.
         update events set status = 'published'
-        where event_key = any(${keys}) and status in ('draft', 'archived')
+        where event_key = any(${keys}) and status = 'draft'
       `;
       if (woken.count) console.log(`   (republished ${woken.count} row(s) an earlier pass had hidden)`);
       await sql`update events set verified_at = now() where event_key = any(${keys})`;

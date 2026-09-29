@@ -308,7 +308,11 @@ export async function dedupeNearDuplicates(): Promise<number> {
  * date night, a Thursday film series) is never collapsed — those are real,
  * separate events.
  */
-export async function collapseMultiDayRuns(): Promise<{ collapsed: number; merged: number; folded: number }> {
+export async function collapseMultiDayRuns(): Promise<{
+  collapsed: number; merged: number; folded: number;
+  /** Rows the plan wanted to archive, and rows the write actually changed. */
+  plannedArchives: number; archivedRows: number;
+}> {
   const sql = requireSql();
 
   // multi_day_end matters here: without it, a previously collapsed run card is
@@ -329,6 +333,12 @@ export async function collapseMultiDayRuns(): Promise<{ collapsed: number; merge
   let collapsed = 0;
   let merged = 0;
   let folded = 0;
+  // Planned vs landed. These counters used to increment per ACTION, before the
+  // write and regardless of what it matched, so the pipeline recorded
+  // collapsed_runs = 20 for five weeks running while the rows stayed published.
+  // A number that reports intent is worse than no number.
+  let plannedArchives = 0;
+  let archivedRows = 0;
 
   for (const action of actions) {
     if (action.kind === "fold") folded++;
@@ -347,15 +357,24 @@ export async function collapseMultiDayRuns(): Promise<{ collapsed: number; merge
     }
 
     if (action.archiveIds.length > 0) {
-      await sql`
+      plannedArchives += action.archiveIds.length;
+      const res = await sql`
         update events set status = 'archived'
         where id::text = any(${action.archiveIds})
           and status in ('published', 'draft')
       `;
+      archivedRows += res.count;
     }
   }
 
-  return { collapsed, merged, folded };
+  if (archivedRows < plannedArchives) {
+    console.warn(
+      `[collapse] planned ${plannedArchives} archive(s) but only ${archivedRows} landed — ` +
+        "something re-published them, or they were already archived",
+    );
+  }
+
+  return { collapsed, merged, folded, plannedArchives, archivedRows };
 }
 
 /** Stamp events as source-verified just now (roadmap 4.5). */
