@@ -281,3 +281,24 @@ describe("countWords", () => {
     expect(countWords("  spaced   out   words  ")).toBe(3);
   });
 });
+
+describe("a name may not out-claim the price line", () => {
+  it("errors when a name says free but the details line does not end in Free", () => {
+    const c = goodContent();
+    c.card.events[1] = {
+      name: "Bats. Dusk Walk. Free.",
+      details: "Fort Snelling State Park · Fri · 5:45 PM · Check site",
+    };
+    expect(validateReelContent(c, SUMMER).errors).toContainEqual(
+      expect.stringContaining('name says "free" but its price line does not'),
+    );
+  });
+
+  it("allows free in a name when the price line agrees, and ignores hyphenated compounds", () => {
+    const c = goodContent();
+    c.card.events[1] = { name: "Free Concert at the Bandshell", details: "Lake Harriet · Sat · 7 PM · Free" };
+    c.card.events[2] = { name: "Gluten-Free Bake-Off", details: "Midtown Global Market · Sat · 10 AM · $12" };
+    const { errors } = validateReelContent(c, SUMMER);
+    expect(errors.filter((e) => e.includes("free"))).toEqual([]);
+  });
+});

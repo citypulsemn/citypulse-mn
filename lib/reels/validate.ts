@@ -62,6 +62,12 @@ export function validateReelContent(
     if (content.variant !== "weird" && countWords(ev.name) > MAX_NAME_WORDS) {
       errors.push(`event ${n}: name over ${MAX_NAME_WORDS} words (${countWords(ev.name)})`);
     }
+    // The price line is the strict one (isStrictlyFree). A name may only say
+    // "free" when its price line does — the model must not out-claim the data.
+    // Hyphenated compounds ("Gluten-Free", "free-range") are not price claims.
+    if (/(?<![-\w])free(?![-\w])/i.test(ev.name) && !/ · Free$/.test(ev.details)) {
+      errors.push(`event ${n}: name says "free" but its price line does not — remove the claim`);
+    }
     if (ev.details.includes("\n")) {
       errors.push(`event ${n}: details contains a newline`);
     }

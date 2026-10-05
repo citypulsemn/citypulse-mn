@@ -121,9 +121,17 @@ describe("detailsLine — golden lines", () => {
     expect(line).toBe("First Avenue, Minneapolis · Sat · 10 AM–4 PM · $25");
   });
 
-  it("renders a midnight start as All Day", () => {
+  it("says All Day only when the DB attests it", () => {
+    expect(
+      detailsLine(ev({ startAt: "2026-08-08T00:00:00-05:00", allDay: true }), FRIDAY),
+    ).toBe("First Avenue, Minneapolis · Sat · All Day · $25");
+  });
+
+  it("omits the time for an unattested midnight start — unknown is not All Day", () => {
+    // Web top-up rows with no known time arrive as T00:00; "All Day" there
+    // would be an invented fact (it reached a live card on 2026-10-05).
     expect(detailsLine(ev({ startAt: "2026-08-08T00:00:00-05:00" }), FRIDAY)).toBe(
-      "First Avenue, Minneapolis · Sat · All Day · $25",
+      "First Avenue, Minneapolis · Sat · $25",
     );
   });
 
@@ -153,20 +161,82 @@ describe("detailsLine — day logic", () => {
     expect(line).toContain(" · Mon · ");
   });
 
-  it("says Weekdays only when the run covers the whole Mon–Fri window", () => {
+  // end_at is agent-supplied and unverified: a one-off parade with a stray
+  // multi-day end_at once printed "Daily". The label is the start day, always.
+  it("never says Weekdays, even when end_at spans the whole Mon–Fri window", () => {
     const line = detailsLine(
       ev({ startAt: "2026-08-03T09:00:00-05:00", endAt: "2026-08-07T17:00:00-05:00" }),
       MONDAY,
     );
-    expect(line).toContain(" · Weekdays · ");
+    expect(line).toContain(" · Mon · ");
+    expect(line).not.toMatch(/Weekdays|Daily/);
   });
 
-  it("says Daily for a 3-day mid-week run", () => {
+  it("never says Daily for a multi-day end_at — start day only", () => {
     const line = detailsLine(
       ev({ startAt: "2026-08-04T09:00:00-05:00", endAt: "2026-08-06T17:00:00-05:00" }),
       MONDAY,
     );
-    expect(line).toContain(" · Daily · ");
+    expect(line).toContain(" · Tue · ");
+    expect(line).not.toMatch(/Weekdays|Daily/);
+  });
+
+  it("Sat & Sun needs a Saturday start ending exactly Sunday — not any weekend multi-day", () => {
+    // Saturday start, end_at on Monday: the span is unattested → start day.
+    expect(
+      detailsLine(
+        ev({ startAt: "2026-08-08T10:00:00-05:00", endAt: "2026-08-10T16:00:00-05:00" }),
+        FRIDAY,
+      ),
+    ).toContain(" · Sat · ");
+    // Sunday start running into Monday is not "Sat & Sun".
+    expect(
+      detailsLine(
+        ev({ startAt: "2026-08-09T10:00:00-05:00", endAt: "2026-08-10T16:00:00-05:00" }),
+        FRIDAY,
+      ),
+    ).toContain(" · Sun · ");
+  });
+});
+
+describe("detailsLine — Free is only printed when the price says so unconditionally", () => {
+  it("prints Free for plain free price text", () => {
+    for (const price of ["Free", "free admission", "Free (donations appreciated)", "$0"]) {
+      expect(detailsLine(ev({ price, priceTier: "Free" }), FRIDAY)).toMatch(/ · Free$/);
+    }
+  });
+
+  it("falls to the floor for conditionally-free prices the tier calls Free", () => {
+    for (const price of [
+      '$18; children under 36" free',
+      "$15 adults; children under 9 free",
+      "Free with museum admission",
+      "Free admission; fee for some activities",
+      "Free (drinks priced separately)",
+    ]) {
+      const line = detailsLine(ev({ price, priceTier: "Free" }), FRIDAY);
+      expect(line).not.toMatch(/ · Free$/);
+      expect(line).toMatch(/ · Check site$/);
+    }
+  });
+});
+
+describe("detailsLine — shortened venues still read as names", () => {
+  it("cuts at a natural separator and never leaves a dangling connector", () => {
+    const cases: [string, string][] = [
+      ["Lowell Park & Downtown Stillwater Riverfront Plaza", "Lowell Park"],
+      ["Hennepin Avenue (W. 26th to 36th Streets) Uptown Corridor", "Hennepin Avenue"],
+      ["Nickelodeon Universe at Mall of America Bloomington", "Nickelodeon Universe"],
+      ["Huntington Bank Rotunda, Mall of America Bloomington", "Huntington Bank Rotunda"],
+      ["Downtown Anoka - Main Street Historic District", "Downtown Anoka"],
+    ];
+    for (const [venue, expected] of cases) {
+      const line = detailsLine(
+        ev({ venue, city: "Somewhere", startAt: "2026-08-08T10:00:00-05:00", endAt: "2026-08-08T23:30:00-05:00" }),
+        FRIDAY,
+      );
+      expect(line.startsWith(`${expected} · `)).toBe(true);
+    }
   });
 });
 

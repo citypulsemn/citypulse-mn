@@ -45,6 +45,22 @@ export function priceIsUnknown(price: string | null | undefined): boolean {
 }
 
 /**
+ * True only when the price text itself says the event is free, with no
+ * conditions. The Free price TIER is a substring match (lib/event-key.ts), so
+ * "$18; children under 36\" free" and "Free with museum admission" are tier
+ * Free — printing the bare word "Free" for those is a false claim. Measured
+ * on live data (Oct 2026): 14 of 51 tier-Free rows were conditional.
+ * Accepts "Free", "Free admission", "Free entry", and the two harmless
+ * parentheticals "(general admission)" / "(donations appreciated|welcome|accepted)".
+ */
+const STRICTLY_FREE =
+  /^free(?:\s+(?:admission|entry))?(?:\s*\((?:general admission|donations?\s+(?:appreciated|welcome|accepted))\))?[.!]?$/i;
+
+export function isStrictlyFree(price: string | null | undefined): boolean {
+  return STRICTLY_FREE.test(String(price ?? "").trim());
+}
+
+/**
  * What to show a reader. Never empty — an event page with no Price row and an
  * event page that says "See listing" both keep our promise, and the second is
  * what the rest of the site already does.

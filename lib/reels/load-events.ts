@@ -22,6 +22,7 @@ interface Row {
   city: string;
   start_at: Date;
   end_at: Date | null;
+  all_day: boolean | null;
   price: string;
   price_tier: string;
   source_url: string;
@@ -31,7 +32,7 @@ interface Row {
 export async function loadWindowEvents(window: WeekWindow): Promise<CandidateEvent[]> {
   const sql = requireSql();
   const rows = await sql<Row[]>`
-    select id, title, category, venue, city, start_at, end_at,
+    select id, title, category, venue, city, start_at, end_at, all_day,
            price, price_tier, source_url, description
     from events
     where status = 'published'
@@ -47,6 +48,7 @@ export async function loadWindowEvents(window: WeekWindow): Promise<CandidateEve
     city: r.city,
     startAt: r.start_at.toISOString(),
     endAt: r.end_at ? r.end_at.toISOString() : null,
+    allDay: r.all_day === true,
     price: r.price,
     priceTier: (TIERS as readonly string[]).includes(r.price_tier)
       ? (r.price_tier as CandidateEvent["priceTier"])

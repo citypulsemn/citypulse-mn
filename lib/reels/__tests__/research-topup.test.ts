@@ -172,6 +172,19 @@ describe("topUpVariant", () => {
     ]);
   });
 
+  it("drops rows with no confirmed venue — TBD is not somewhere a reader can go", async () => {
+    const tbd = { ...goodRow, title: "Mystery Orchestra Night", venue: "TBD (Minneapolis metro)" };
+    const blank = { ...goodRow, title: "Venue-less Thing", venue: "  " };
+    const { deps } = fakeSearch(fence([goodRow, tbd, blank]));
+    const { events, warnings } = await topUpVariant("weird", friday, 3, [], deps);
+
+    expect(events.map((e) => e.title)).toEqual(["Corn Maze Opening"]);
+    expect(warnings).toEqual([
+      '"Mystery Orchestra Night" dropped — no confirmed venue ("TBD (Minneapolis metro)")',
+      '"Venue-less Thing" dropped — no confirmed venue ("")',
+    ]);
+  });
+
   it("drops case-insensitive duplicates of events already on the card", async () => {
     const dupe = { ...goodRow, title: "CORN MAZE OPENING" };
     const { deps } = fakeSearch(fence([dupe]));

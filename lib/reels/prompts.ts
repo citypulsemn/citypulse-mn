@@ -84,6 +84,8 @@ ${numbered}
 VOICE for this reel:
 ${voiceRules(variant, day)}
 
+PRICE RULE (names and caption): never put a price in a name, and never call an event free — in a name or in the caption — unless its locked details line ends in "Free". The details line is the only source of truth for price.
+
 CAPTION RULES (every reel): under 100 words. No hashtags. No emojis. No em dashes, no en dashes, no spaced hyphens (" - "); hyphens inside proper names are fine.
 
 B-ROLL: exactly ${brollCount} lines, in this order: HOOK, one line per event (label = your name for that event, in event order), CTA. Each line: exactly 3 Pexels search terms, most to least specific, each 2-5 words. HOOK and CTA are wide establishing Minneapolis shots: skyline, Stone Arch Bridge, Mississippi river, the chain of lakes, the Grain Belt sign. Every term must lead with a Minneapolis / Minnesota / named-landmark or clearly Midwestern subject — authenticity beats variety; a real Minneapolis frame beats a prettier anywhere-shot. Vary subjects and angles line to line — mix crowds, details, motion, architecture, nature; not seven wide shots of different places.

@@ -3,6 +3,7 @@ import type { CategoryKey } from "../types";
 import { CATEGORY_KEYS } from "../categories";
 import type { CandidateEvent, Variant, WeekWindow } from "./types";
 import { buildTopUpPrompt } from "./prompts";
+import { logUsage } from "../api-usage";
 import { familyGateReason, localWall, screenEvent } from "./select-events";
 
 /**
@@ -41,6 +42,16 @@ export const realTopUpDeps: TopUpDeps = {
       messages: [{ role: "user", content: prompt }],
     });
     const res = await stream.finalMessage();
+    logUsage("reels:topup", "claude-sonnet-4-6", res.usage);
+    // Every top-up row is supposed to have been checked against the live web.
+    // A reply produced with zero searches is model recall wearing a source URL
+    // — refuse it; the reel is then skipped with this reason, never padded.
+    const searches =
+      (res.usage as { server_tool_use?: { web_search_requests?: number | null } | null })
+        .server_tool_use?.web_search_requests ?? 0;
+    if (searches === 0) {
+      throw new Error("web top-up reply used no web searches — rows unverified, refused");
+    }
     return res.content
       .filter((b): b is Anthropic.TextBlock => b.type === "text")
       .map((b) => b.text)
@@ -156,6 +167,12 @@ export async function topUpVariant(
     const brand = screenEvent(e);
     if (brand) {
       warnings.push(`"${e.title}" dropped — ${brand}`);
+      continue;
+    }
+    // A row with no real venue can't be found by a reader or verified by us —
+    // "TBD (Minneapolis metro)" once reached a card.
+    if (/^\s*$|^\s*(?:tbd|tba|to be (?:announced|determined))\b/i.test(e.venue)) {
+      warnings.push(`"${e.title}" dropped — no confirmed venue ("${e.venue.trim()}")`);
       continue;
     }
     if (variant === "family") {

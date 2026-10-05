@@ -1,4 +1,5 @@
 import { chiWallClock } from "../clock";
+import { isStrictlyFree } from "../price-quality";
 import type { CandidateEvent, PostDay, Variant, WeekWindow } from "./types";
 
 /**
@@ -83,22 +84,23 @@ function dowOf(dateKey: string): string {
   return DOW_SHORT[new Date(Date.UTC(y, m - 1, d)).getUTCDay()];
 }
 
-function daySpanCount(startKey: string, endKey: string): number {
-  const [sy, sm, sd] = startKey.split("-").map(Number);
-  const [ey, em, ed] = endKey.split("-").map(Number);
-  const ms = Date.UTC(ey, em - 1, ed) - Date.UTC(sy, sm - 1, sd);
-  return Math.round(ms / 86_400_000) + 1;
-}
-
+/**
+ * The day label is the START day — the conservative floor. end_at comes from
+ * the research agent and is not covered by the verify stamp; measured on live
+ * data (Oct 2026), 12 of 40 rows with a multi-day end_at printed "Daily" and
+ * none of them ran every day (a one-off parade among them). So no "Daily",
+ * no "Weekdays", ever. The single range kept is the one the data can carry:
+ * a Saturday start that ends the very next day, on the weekend card.
+ */
 function dayPart(e: CandidateEvent, window: WeekWindow): string {
   const startKey = wallOf(e.startAt).slice(0, 10);
   const endKey = e.endAt ? wallOf(e.endAt).slice(0, 10) : null;
-  const multiday = endKey !== null && endKey > startKey;
-  if (window.postDay === "friday" && multiday) return "Sat & Sun";
-  if (multiday && daySpanCount(startKey, endKey!) >= 3) {
-    // "Weekdays" only when the run genuinely covers the whole Mon–Fri window;
-    // a mid-week 3-day run is "Daily". Never claimed for shorter spans.
-    return startKey <= window.start && endKey! >= window.end ? "Weekdays" : "Daily";
+  if (
+    window.postDay === "friday" &&
+    startKey === window.start &&
+    endKey === window.end
+  ) {
+    return "Sat & Sun";
   }
   return dowOf(startKey);
 }
@@ -111,7 +113,11 @@ function fmtClock(h: number, mi: number): string {
 
 function timePart(e: CandidateEvent): { full: string; collapsed: string } {
   const { h, mi } = localClock(e.startAt);
-  if (h === 0 && mi === 0) return { full: "All Day", collapsed: "All Day" };
+  if (h === 0 && mi === 0) {
+    // Midnight is "All Day" only when the DB attests it; otherwise it means the
+    // time is unknown, and the honest label is no time at all.
+    return e.allDay ? { full: "All Day", collapsed: "All Day" } : { full: "", collapsed: "" };
+  }
   const start = fmtClock(h, mi);
   const sameDayEnd =
     e.endAt !== null && wallOf(e.endAt).slice(0, 10) === wallOf(e.startAt).slice(0, 10);
@@ -121,10 +127,13 @@ function timePart(e: CandidateEvent): { full: string; collapsed: string } {
 }
 
 function pricePart(e: CandidateEvent): string {
-  if (e.priceTier === "Free") return "Free";
+  const bare = e.price.trim();
+  // "Free" only when the price text says so unconditionally — the Free TIER
+  // also covers "$18; kids under 36in free". Anything conditional falls to
+  // the floor below rather than a false "Free".
+  if (isStrictlyFree(bare) || /^\$0(?:\.00)?$/.test(bare)) return "Free";
   const from = /from\s+\$(\d+(?:\.\d{2})?)/i.exec(e.price);
   if (from) return `From $${from[1]}`;
-  const bare = e.price.trim();
   if (/^\$\d+(?:\.\d{2})?$/.test(bare)) return bare;
   return "Check site";
 }
@@ -132,14 +141,30 @@ function pricePart(e: CandidateEvent): string {
 const firstWords = (s: string, n: number) =>
   s.split(/\s+/).filter(Boolean).slice(0, n).join(" ");
 
+/** No dangling "&", "(", "-", "at", "of"… after a cut — "Lowell Park &" reads broken. */
+const cleanTail = (s: string) =>
+  s.replace(/[\s,&(\-–—/]+$/, "").replace(/\s+(?:at|of|the|and|in|on|to)$/i, "").trim();
+
+/**
+ * A shorter venue that still reads as a name: cut at the first natural
+ * separator (" - ", ",", "(", "/") when there is one, else the first three
+ * words, tail cleaned either way.
+ */
+function shortVenue(venue: string): string {
+  const atSep = cleanTail(venue.split(/\s+[-–—]\s+|,|\(|\//)[0] ?? "");
+  const base = atSep !== "" && atSep.length < venue.length ? atSep : venue;
+  const three = cleanTail(firstWords(base, 3));
+  return base.length <= 28 ? base : three || base;
+}
+
 /**
  * "Venue, City · Day · Time · Price" — one line, price ALWAYS present and
  * ALWAYS last (locked rule; a real reel once shipped with the price wrapped
  * onto a phantom second line). Shortening cascade when over DETAILS_TARGET:
  * (1) drop ", City" — also dropped up front when the venue already names it;
  * (2) strip ":00" minutes — the formatter never emits them, so a no-op;
- * (3) truncate the venue to its first 3 words (abbreviations like Thtr read
- *     worse than a clean cut);
+ * (3) shorten the venue to a clean name — cut at a natural separator, else
+ *     its first 3 words, never leaving a dangling "&" or "at" (shortVenue);
  * (4) collapse a time range to its start time.
  * If all that still overruns DETAILS_HARD_CAP, the venue alone is clipped.
  */
@@ -162,7 +187,7 @@ export function detailsLine(e: CandidateEvent, window: WeekWindow): string {
   line = join(venue, time.full);
   if (line.length <= DETAILS_TARGET) return line;
 
-  const venue3 = firstWords(venue, 3);
+  const venue3 = shortVenue(venue);
   line = join(venue3, time.full);
   if (line.length <= DETAILS_TARGET) return line;
 

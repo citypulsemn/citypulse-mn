@@ -61,6 +61,12 @@ export interface CandidateEvent {
   /** ISO datetime with offset. */
   startAt: string;
   endAt: string | null;
+  /**
+   * True only when the site DB attests an all-day event. Never set for web
+   * top-up rows — a midnight start there means "time unknown", and printing
+   * "All Day" for it would be an invented fact.
+   */
+  allDay?: boolean;
   price: string;
   priceTier: "Free" | "$" | "$$" | "$$$";
   sourceUrl: string;
