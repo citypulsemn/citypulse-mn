@@ -23,7 +23,18 @@ export type PublishOutcome =
 
 export async function publishSubmission(
   id: string,
-  opts: { applyCorrections: boolean; via: string },
+  opts: {
+    applyCorrections: boolean;
+    via: string;
+    /**
+     * A pin to use INSTEAD of geocoding. There is no MAPBOX_GEOCODING_TOKEN on
+     * a laptop, and geocode() returning null makes submissionToDbEvent fall
+     * back to the metro centre — a silent, plausible, wrong pin, which is a
+     * failure this project has already paid for. An operator publishing from a
+     * script passes coordinates they checked themselves.
+     */
+    geo?: { lat: number; lng: number };
+  },
 ): Promise<PublishOutcome> {
   const sub = await getSubmissionForDecision(id);
   if (!sub) return { ok: false, reason: "not-found" };
@@ -38,7 +49,7 @@ export async function publishSubmission(
   try {
     // Geocode whatever address we are actually publishing — the corrected one
     // when there is one, which is how the Animal Farm pin got fixed.
-    const geo = await geocode(fields.address || fields.venue, fields.city);
+    const geo = opts.geo ?? (await geocode(fields.address || fields.venue, fields.city));
     const event = submissionToDbEvent(
       {
         title: fields.title,
