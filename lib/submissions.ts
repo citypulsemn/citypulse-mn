@@ -315,8 +315,10 @@ export async function getUncheckedSubmissions(limit = 5): Promise<UncheckedSubmi
   if (!sql) return [];
   return sql<UncheckedSubmissionRow[]>`
     select id::text as id, title, category, venue, city, address,
-           to_char(start_local, 'YYYY-MM-DD"T"HH24:MI') as start_local,
-           to_char(end_local,   'YYYY-MM-DD"T"HH24:MI') as end_local,
+           -- start_local/end_local are TEXT, already "YYYY-MM-DDTHH:MM" as the
+           -- form submits them. to_char() here failed outright on the first
+           -- real run; there is no timestamp to format.
+           start_local, end_local,
            price, ticket_url, source_url, description,
            coalesce(submitter_email, '') as submitter_email
     from event_submissions
@@ -363,8 +365,10 @@ export async function getSubmissionForDecision(id: string): Promise<CheckedSubmi
   if (!sql) return null;
   const rows = await sql<CheckedSubmissionRow[]>`
     select id::text as id, title, category, venue, city, address,
-           to_char(start_local, 'YYYY-MM-DD"T"HH24:MI') as start_local,
-           to_char(end_local,   'YYYY-MM-DD"T"HH24:MI') as end_local,
+           -- start_local/end_local are TEXT, already "YYYY-MM-DDTHH:MM" as the
+           -- form submits them. to_char() here failed outright on the first
+           -- real run; there is no timestamp to format.
+           start_local, end_local,
            price, ticket_url, source_url, description,
            coalesce(submitter_email, '') as submitter_email,
            status, check_verdict, check_note, check_evidence, check_corrections,
