@@ -1,4 +1,9 @@
-name: Check Listing Reports
+name: Inbox — check submissions and reports
+
+# FILE NAME IS DELIBERATE. This was check-reports.yml and still is: the run
+# history under this path is how the GitHub cron-drop rate was measured (139
+# runs in Sep 2026 against the 1,488 the cron asked for), and lib/check-dispatch.ts
+# dispatches it by file name. It now runs the whole inbox — submissions too.
 
 # Checks reader reports against the venue's own calendar and emails Taren the
 # verdict with one-tap Take-it-down / Keep buttons.
@@ -49,8 +54,8 @@ jobs:
 
       - run: npm ci --prefer-offline --no-audit --no-fund
 
-      - name: Check pending listing reports
-        run: npm run check-reports ${{ github.event.inputs.dry_run == 'true' && '-- --dry-run' || '' }}
+      - name: Check the inbox (submissions + reports)
+        run: npm run inbox ${{ github.event.inputs.dry_run == 'true' && '-- --dry-run' || '' }}
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}

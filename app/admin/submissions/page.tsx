@@ -1,4 +1,5 @@
 import { getPendingSubmissions } from "@/lib/submissions";
+import { submissionVerdictHeadline, describeCorrections } from "@/lib/submission-check";
 import { approveSubmission, rejectSubmission } from "@/lib/submission-actions";
 import { CATEGORIES } from "@/lib/categories";
 import { fmtTime } from "@/lib/dates";
@@ -38,6 +39,29 @@ export default async function AdminSubmissionsPage() {
             {[s.venue, s.address, s.city].filter(Boolean).join(" · ")} · {s.price}
           </div>
           {s.description && <p className="sub-desc">{s.description}</p>}
+
+          {/* What the inbox check found. Null means it has not run yet, which
+              is NOT the same as "nothing wrong" — it says so rather than
+              showing a reassuring blank. */}
+          <div className={`sub-check sub-check-${s.check_verdict ?? "pending"}`}>
+            <strong>
+              {s.check_verdict
+                ? submissionVerdictHeadline(s.check_verdict as never)
+                : "Not checked yet — the inbox runs at :07 and :37."}
+            </strong>
+            {s.check_note && <div>{s.check_note}</div>}
+            {s.check_evidence && <div className="sub-check-ev">Evidence: {s.check_evidence}</div>}
+            {s.check_corrections && Object.keys(s.check_corrections).length > 0 && (
+              <>
+                <div className="sub-check-ev">Approving publishes these corrections:</div>
+                <ul>
+                  {describeCorrections(s, s.check_corrections).map((l) => (
+                    <li key={l}>{l}</li>
+                  ))}
+                </ul>
+              </>
+            )}
+          </div>
           <div className="sub-links">
             {s.ticket_url && (
               <a href={s.ticket_url} target="_blank" rel="noopener noreferrer">

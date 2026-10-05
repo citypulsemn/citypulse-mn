@@ -3,10 +3,8 @@
 import { headers } from "next/headers";
 import { validateReport, addReport, type ReportInput } from "./event-reports";
 import { rateAllow, ipBucket, firstForwardedIp, RATE_LIMITS } from "./rate-limit";
-import { REPORT_KIND_LABELS, type ReportKind, type ReportState } from "./report-types";
-import { sendOperatorNotification } from "./notify-send";
+import { type ReportState } from "./report-types";
 import { dispatchReportCheck } from "./check-dispatch";
-import { getEvent } from "./events";
 
 // A "use server" module must export ONLY async server actions.
 // State type + initial value live in ./report-types.
@@ -60,17 +58,6 @@ export async function submitReportAction(
   // never throws and its result is logged, not surfaced — a notification outage
   // must not turn a successful report into an error for the reporter (rule 1).
   // The weekly ops-digest Queue section is the backstop if this drops.
-  // Look up the title so the alert is triageable at a glance ("Gothic Market"
-  // beats "a listing"). Guarded: if this read fails the notification still goes,
-  // just less specific — it must never cost the reporter their submission.
-  let eventTitle = "";
-  try {
-    eventTitle = (await getEvent(result.value.event_id))?.title ?? "";
-  } catch {
-    /* fall through to the generic title */
-  }
-  const kindLabel = REPORT_KIND_LABELS[result.value.kind as ReportKind] ?? "Listing report";
-
   // Kick the automated check NOW rather than waiting for the next scheduled run.
   // Best-effort, exactly like the notification below: the row is already
   // committed, and the cron in check-reports.yml is what actually guarantees the
@@ -86,16 +73,12 @@ export async function submitReportAction(
     console.warn("[report] saved but the check was not dispatched — the cron will pick it up");
   }
 
-  const notified = await sendOperatorNotification({
-    kind: "report",
-    title: eventTitle || kindLabel,
-    detail: (kindLabel + " — " + result.value.reason).slice(0, 300),
-    adminPath: "/admin/reports",
-    warning: dispatched
-      ? undefined
-      : "The automated check was not started (GH_DISPATCH_TOKEN). It will run on the next scheduled pass instead — :07 and :37 past the hour.",
-  });
-  if (!notified) console.warn("[report] saved but operator notification did not send");
+  // NO EMAIL FROM HERE ANY MORE. Until 4 Oct 2026 this fired the instant a
+  // report arrived, before anything had been checked — so it could say that
+  // something had come in but not whether it was true, and the only action it
+  // offered was "go and look". scripts/check-inbox.ts now sends one email
+  // AFTER the check, carrying the verdict and the buttons. The dispatch above
+  // is what keeps that minutes away rather than half an hour.
 
   return {
     status: "success",

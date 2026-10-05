@@ -215,6 +215,11 @@ export interface SubmissionRow extends SubmissionEventFields {
   id: string;
   submitter_email: string;
   created_at: string;
+  /** What the inbox check found. Null until scripts/check-inbox.ts has run. */
+  check_verdict: string | null;
+  check_note: string | null;
+  check_evidence: string | null;
+  check_corrections: Record<string, string> | null;
 }
 
 export async function addSubmission(clean: CleanSubmission): Promise<AddSubmissionResult> {
@@ -244,10 +249,12 @@ export async function getPendingSubmissions(): Promise<SubmissionRow[]> {
   return await sql<SubmissionRow[]>`
     select id, title, category, venue, city, address, start_local, end_local,
            price, ticket_url, description, source_url, submitter_email,
+           check_verdict, check_note, check_evidence, check_corrections,
            to_char(created_at at time zone 'America/Chicago', 'YYYY-MM-DD HH24:MI') as created_at
     from event_submissions
     where status = 'pending'
-    order by created_at asc
+    -- Checked ones first: those are the ones decidable at a glance.
+    order by (checked_at is null), created_at asc
   `;
 }
 
@@ -264,6 +271,7 @@ export async function getSubmissionById(id: string): Promise<SubmissionRow | nul
   const rows = await sql<SubmissionRow[]>`
     select id, title, category, venue, city, address, start_local, end_local,
            price, ticket_url, description, source_url, submitter_email,
+           check_verdict, check_note, check_evidence, check_corrections,
            to_char(created_at at time zone 'America/Chicago', 'YYYY-MM-DD HH24:MI') as created_at
     from event_submissions
     where id::text = ${id} and status = 'pending'
@@ -282,4 +290,91 @@ export async function markSubmissionReviewed(
     set status = ${status}, reviewed_at = now(), review_note = ${note ?? null}
     where id::text = ${id}
   `;
+}
+
+/* ───────────────── the check a submission gets before anyone looks ───────── */
+
+export interface UncheckedSubmissionRow {
+  id: string;
+  title: string;
+  category: string;
+  venue: string;
+  city: string;
+  address: string;
+  start_local: string;
+  end_local: string | null;
+  price: string;
+  ticket_url: string;
+  source_url: string;
+  description: string;
+  submitter_email: string;
+}
+
+/** Pending submissions nobody has checked yet, oldest first. */
+export async function getUncheckedSubmissions(limit = 5): Promise<UncheckedSubmissionRow[]> {
+  if (!sql) return [];
+  return sql<UncheckedSubmissionRow[]>`
+    select id::text as id, title, category, venue, city, address,
+           to_char(start_local, 'YYYY-MM-DD"T"HH24:MI') as start_local,
+           to_char(end_local,   'YYYY-MM-DD"T"HH24:MI') as end_local,
+           price, ticket_url, source_url, description,
+           coalesce(submitter_email, '') as submitter_email
+    from event_submissions
+    where status = 'pending' and checked_at is null
+    order by created_at asc
+    limit ${limit}`;
+}
+
+/**
+ * Record what the check found. `checked_at` is stamped even for an `error`
+ * verdict, deliberately: without it the row is picked up and paid for again
+ * on every run, which is the same trap lib/report-check.ts documents.
+ */
+export async function saveSubmissionCheck(
+  id: string,
+  verdict: string,
+  note: string | null,
+  evidence: string | null,
+  corrections: Record<string, string> | null,
+): Promise<void> {
+  if (!sql) return;
+  await sql`
+    update event_submissions
+    set check_verdict = ${verdict},
+        check_note = ${note},
+        check_evidence = ${evidence},
+        check_corrections = ${corrections && Object.keys(corrections).length > 0 ? sql.json(corrections) : null},
+        checked_at = now()
+    where id::text = ${id}`;
+}
+
+/** Everything the admin screen and the inbox email need about one submission. */
+export interface CheckedSubmissionRow extends UncheckedSubmissionRow {
+  status: string;
+  check_verdict: string | null;
+  check_note: string | null;
+  check_evidence: string | null;
+  check_corrections: Record<string, string> | null;
+  checked_at: string | null;
+  decided_via: string | null;
+}
+
+export async function getSubmissionForDecision(id: string): Promise<CheckedSubmissionRow | null> {
+  if (!sql) return null;
+  const rows = await sql<CheckedSubmissionRow[]>`
+    select id::text as id, title, category, venue, city, address,
+           to_char(start_local, 'YYYY-MM-DD"T"HH24:MI') as start_local,
+           to_char(end_local,   'YYYY-MM-DD"T"HH24:MI') as end_local,
+           price, ticket_url, source_url, description,
+           coalesce(submitter_email, '') as submitter_email,
+           status, check_verdict, check_note, check_evidence, check_corrections,
+           checked_at::text as checked_at, decided_via
+    from event_submissions where id::text = ${id}`;
+  return rows[0] ?? null;
+}
+
+/** Stamp how a decision was made, so a one-tap is distinguishable from Admin. */
+export async function markDecidedVia(id: string, via: string): Promise<void> {
+  if (!sql) return;
+  await sql`update event_submissions set decided_via = ${via} where id::text = ${id}`;
 }

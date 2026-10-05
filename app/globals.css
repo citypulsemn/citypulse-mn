@@ -1430,3 +1430,23 @@ a.daycard { text-decoration: none; }
 .g-step-n { font-size: 18px; font-variant-numeric: tabular-nums; }
 .g-step-rate { color: var(--cream-dim); font-size: 12.5px; margin-top: 3px; line-height: 1.45; }
 .g-step-why { color: var(--cream-dim); font-style: italic; }
+
+/* The inbox check, on an admin submission card. Colour follows the verdict so
+   a glance is enough; the text never relies on colour alone. */
+.sub-check {
+  margin: 10px 0 0;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--navy-600);
+  background: var(--navy-800);
+  font-size: 13.5px;
+  line-height: 1.5;
+}
+.sub-check strong { display: block; color: var(--cream); font-weight: 600; }
+.sub-check ul { margin: 4px 0 0; padding-left: 18px; }
+.sub-check-ev { color: var(--muted); margin-top: 4px; word-break: break-word; }
+.sub-check-corrected { border-color: #7a6a3b; }
+.sub-check-contradicted { border-color: #8c3b3b; }
+.sub-check-unconfirmed,
+.sub-check-error,
+.sub-check-pending { border-style: dashed; }

@@ -79,8 +79,7 @@ describe("no `?? process.env` fallbacks survive", () => {
     // `A ?? B` silently resolves to "" under CI. Every one of these was a
     // delivery channel that could fail while its job reported success.
     const files = [
-      "lib/report-verdict-email.ts",
-      "lib/notify-send.ts",
+      "lib/inbox-email.ts",
       "lib/report-token.ts",
       "lib/geocode.ts",
     ];

@@ -569,3 +569,26 @@ create table if not exists model_spend (
   note           text
 );
 create index if not exists idx_model_spend_ran on model_spend (ran_at desc);
+
+-- The check a submission gets BEFORE anyone is asked to look at it.
+--
+-- event_reports has carried check_verdict/check_note/check_evidence/checked_at
+-- since Sep 2026: a report is checked within half an hour of arriving and the
+-- operator gets a verdict with one-tap decisions. Submissions got none of it —
+-- they were inserted and sat until somebody noticed the count in Monday's ops
+-- email, up to seven days later, and then the research was done by hand.
+--
+-- check_corrections is the one column reports do not need. A report asks "is
+-- this listing wrong"; a submission asks "are these details right", and the
+-- answer is usually "the event is real, and three fields are not". Holding the
+-- proposed fields lets the operator publish the corrected version with one tap
+-- instead of redoing a quarter of an hour of reading. It is a PROPOSAL: nothing
+-- in this schema or the code applies it without a human.
+alter table event_submissions add column if not exists check_verdict     text;
+alter table event_submissions add column if not exists check_note        text;
+alter table event_submissions add column if not exists check_evidence    text;
+alter table event_submissions add column if not exists check_corrections jsonb;
+alter table event_submissions add column if not exists checked_at        timestamptz;
+alter table event_submissions add column if not exists decided_via       text;
+create index if not exists idx_event_submissions_unchecked
+  on event_submissions (created_at) where status = 'pending' and checked_at is null;

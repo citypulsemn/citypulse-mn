@@ -12,6 +12,12 @@ import {
 } from "../report-check";
 import { logUsage } from "../api-usage";
 import {
+  buildSubmissionCheckPrompt,
+  parseSubmissionChecks,
+  type SubmissionCheckInput,
+  type SubmissionCheckResult,
+} from "../submission-check";
+import {
   buildRestorePrompt,
   parseRestoreResults,
   type RestoreItem,
@@ -254,4 +260,38 @@ export async function findCorrectDates(
     .join("\n");
 
   return parseRestoreResults(text, new Set(items.map((i) => i.id)));
+}
+
+/**
+ * Check reader-submitted events before anyone is asked to look at them.
+ *
+ * Same shape as checkReportedListings, with more search budget per item: a
+ * report names a listing we already hold, while a submission may be the first
+ * time this calendar has heard of the event, so finding the organiser IS most
+ * of the work. See lib/submission-check.ts for why it returns corrections
+ * rather than a bare verdict.
+ */
+export async function checkSubmissions(
+  items: SubmissionCheckInput[],
+  maxSearchUses = 14,
+): Promise<SubmissionCheckResult[]> {
+  if (items.length === 0) return [];
+
+  const stream = anthropic.messages.stream({
+    model: MODEL,
+    max_tokens: 6000,
+    tools: [
+      { type: "web_search_20250305", name: "web_search", max_uses: maxSearchUses },
+    ] as unknown as Anthropic.Tool[],
+    messages: [{ role: "user", content: buildSubmissionCheckPrompt(items) }],
+  });
+
+  const res = await stream.finalMessage();
+  logUsage(`submission-check:${items.length}`, MODEL, res.usage);
+  const text = res.content
+    .filter((b): b is Anthropic.TextBlock => b.type === "text")
+    .map((b) => b.text)
+    .join("\n");
+
+  return parseSubmissionChecks(text, new Set(items.map((i) => i.submissionId)));
 }

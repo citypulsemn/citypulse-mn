@@ -20,7 +20,7 @@
     "reclassify": "tsx --env-file-if-exists=.env.local scripts/reclassify.ts",
     "collapse": "tsx --env-file-if-exists=.env.local scripts/collapse-multiday.ts",
     "verify": "tsx --env-file-if-exists=.env.local scripts/verify-events.ts",
-    "check-reports": "tsx --env-file-if-exists=.env.local scripts/check-reports.ts",
+    "inbox": "tsx --env-file-if-exists=.env.local scripts/check-inbox.ts",
     "resweep-verified": "tsx --env-file-if-exists=.env.local scripts/resweep-verified.ts",
     "places-coverage": "tsx scripts/places-coverage.ts",
     "places-candidates": "tsx scripts/places-candidates.ts",

@@ -4,7 +4,7 @@ import { headers } from "next/headers";
 import { validateSubmission, addSubmission, type SubmissionInput } from "./submissions";
 import { rateAllow, ipBucket, firstForwardedIp, RATE_LIMITS } from "./rate-limit";
 import type { SubmitState } from "./submit-types";
-import { sendOperatorNotification } from "./notify-send";
+import { dispatchReportCheck } from "./check-dispatch";
 
 // A "use server" module must export ONLY async server actions.
 // State type + initial value live in ./submit-types.
@@ -58,17 +58,19 @@ export async function submitEventAction(
     return { status: "error", message: "Something went wrong — please try again." };
   }
 
-  // Saved. Best-effort notify — see the note in report-actions.ts: this never
-  // throws, and a failure is logged rather than shown to the submitter.
-  const notified = await sendOperatorNotification({
-    kind: "submission",
-    title: result.value.title,
-    detail: [result.value.venue, result.value.city, result.value.start_local]
-      .filter(Boolean)
-      .join(" · "),
-    adminPath: "/admin/submissions",
-  });
-  if (!notified) console.warn("[submit] saved but operator notification did not send");
+  // Saved. Kick the inbox check NOW rather than waiting for the half-hourly
+  // cron — best-effort, exactly as reports do it: the row is committed, and
+  // the cron is what actually guarantees the check (lib/check-dispatch.ts).
+  //
+  // No email from here. Until 4 Oct 2026 a submission produced an instant
+  // "something arrived" message before anything had been checked, which could
+  // not say whether the event was real. scripts/check-inbox.ts now sends one
+  // email after the check, with the verdict, the corrections it found, and
+  // one-tap publish/reject.
+  const dispatched = await dispatchReportCheck();
+  if (!dispatched) {
+    console.warn("[submit] saved but the check was not dispatched — the cron will pick it up");
+  }
 
   return {
     status: "success",

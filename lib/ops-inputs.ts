@@ -172,7 +172,7 @@ export async function gatherOpsInputs(): Promise<OpsInputs> {
   );
 
   // The open reports themselves, with whatever the automated check found. This
-  // is the backstop copy — `npm run check-reports` mails the same verdicts and
+  // is the backstop copy — `npm run inbox` mails the same verdicts and
   // the same buttons as soon as a check completes, which is the timely channel.
   // Wrapped like everything else: a failure here degrades to no section rather
   // than to a reassuring empty one.
@@ -193,7 +193,7 @@ export async function gatherOpsInputs(): Promise<OpsInputs> {
             note: r.check_note,
             evidence: r.check_evidence,
           })
-        : "Not checked yet — run `npm run check-reports`.",
+        : "Not checked yet — run `npm run inbox`.",
       actions: [
         { label: "Take it down", href: reportActionUrl(site, r.id, "delete", secret), danger: true },
         { label: "Keep it", href: reportActionUrl(site, r.id, "keep", secret) },

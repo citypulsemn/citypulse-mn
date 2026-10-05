@@ -65,3 +65,50 @@ export function reportActionUrl(
   const base = siteUrl.replace(/\/+$/, "");
   return `${base}/report-action?id=${encodeURIComponent(id)}&a=${action}&t=${makeReportToken(id, action, secret)}`;
 }
+
+/* ──────────────── the same machinery, for submission decisions ───────────── */
+
+/**
+ * Submissions get one-tap decisions too, and share this module rather than
+ * copying the HMAC into a second file — one signing implementation, one place
+ * to get it wrong. The message is namespaced `submission:`, so a report token
+ * can never be replayed as a submission decision or the reverse.
+ *
+ * `publish-corrected` is the one that matters: the check has already done the
+ * reading and proposed the fields, so the common case is one tap instead of a
+ * quarter of an hour. It still only ever fires from a POST on the confirmation
+ * page, for the same reason the report actions do.
+ */
+export const SUBMISSION_ACTIONS = ["publish-corrected", "publish-as-sent", "reject"] as const;
+export type SubmissionAction = (typeof SUBMISSION_ACTIONS)[number];
+
+export function isSubmissionAction(v: unknown): v is SubmissionAction {
+  return typeof v === "string" && (SUBMISSION_ACTIONS as readonly string[]).includes(v);
+}
+
+export function makeSubmissionToken(id: string, action: SubmissionAction, secret: string): string {
+  return createHmac("sha256", secret).update(`submission:${id}:${action}`).digest("base64url");
+}
+
+export function verifySubmissionToken(
+  id: string,
+  action: string,
+  token: string,
+  secret: string,
+): boolean {
+  if (!isSubmissionAction(action)) return false;
+  const expected = Buffer.from(makeSubmissionToken(id, action, secret));
+  const got = Buffer.from(token ?? "");
+  if (expected.length !== got.length) return false;
+  return timingSafeEqual(expected, got);
+}
+
+export function submissionActionUrl(
+  siteUrl: string,
+  id: string,
+  action: SubmissionAction,
+  secret: string,
+): string {
+  const base = siteUrl.replace(/\/+$/, "");
+  return `${base}/submission-action?id=${encodeURIComponent(id)}&a=${action}&t=${makeSubmissionToken(id, action, secret)}`;
+}
