@@ -27,40 +27,126 @@ const DRAG_RULE =
   /\bdrag[ -](?:shows?|brunch(?:es)?|bingo|stor(?:y|ies|ytime)|queens?|kings?|nights?|performances?|revues?|cabarets?|artists?|performers?|extravaganzas?)\b/i;
 
 /**
+ * Performers billed by the TV franchise, in the TITLE (a cast bio mentioning
+ * the show does not make a Broadway tour a drag event). "drag race" alone stays out of
+ * DRAG_RULE so a night at the dragstrip survives, so the franchise is matched
+ * by name — a real miss: "...starring Crystal Methyd (winner of RuPaul's Drag
+ * Race All Stars)" passed the screen in Oct 2026.
+ */
+const DRAG_FRANCHISE_RULE =
+  /\brupaul|\bdrag race(?:'s)? (?:all[ -]stars?|winners?|alum(?:na|nus|ni|s)?|stars?|queens?|royalty|legends?|live)\b/i;
+
+/**
  * Primarily-political events (locked brand rule). The terms come from the
  * owner — rally, march, protest, campaign, partisan, fundraiser for a
  * candidate — but bare word-boundary matches on "march" and "campaign" hit
  * month names and cause marketing ("Campaign for Kindness"), so those two only
- * match in explicitly political collocations. Conservative by design: a missed
- * political event costs less than a wrongly-dropped concert.
+ * match in explicitly political collocations.
+ *
+ * Tightened 5 Oct 2026 (owner's call, four weeks before the Nov 3 election):
+ * election, voting, candidate, debate and town-hall vocabulary added, and
+ * "rally" stopped blocking the pep/car/road kind ("Timberwolves Pep Rally"
+ * was a real false positive). Still collocation-first wherever a bare word
+ * has an innocent life ("debate" tournaments, Town Hall Brewery, "vote for
+ * your favorite pie").
  */
-const POLITICAL_RULES: RegExp[] = [
-  /\brall(?:y|ies)\b/i,
-  /\bprotests?\b/i,
+interface Rule {
+  re: RegExp;
+  /** When this also matches the listing, the hit is an innocent look-alike. */
+  unless?: RegExp;
+  /**
+   * Soft vocabulary, tested against the TITLE only. In a description these
+   * words are incidental — a beer festival listing "tattoo artists, and voter
+   * registration", a dance premiere called "political" (both real rows).
+   */
+  titleOnly?: boolean;
+}
+
+/** "campaign kickoff/launch" is also what tabletop games and charities say. */
+const TABLETOP_OR_CHARITY =
+  /\b(?:d&d|dungeons (?:&|and) dragons|pathfinder|tabletop|rpg|session zero|capital campaign|annual fund|red kettle|giving day|give to the max|kickstarter|membership campaign)\b/i;
+/** "Congressional Debate" and "Public Forum" are high-school debate events. */
+const DEBATE_TOURNAMENT =
+  /\b(?:lincoln[- ]douglas|public forum|debate (?:tournaments?|league|invitational|team|club))\b/i;
+/** A night at the dragstrip is not the TV franchise. */
+const MOTORSPORT = /\b(?:nhra|drag ?strip|raceway|dragway|quarter[- ]mile|funny car)\b/i;
+
+const POLITICAL_RULES: Rule[] = [
+  // political by default, but never the pep/car/road/stamp kind
+  {
+    re: /(?<!\b(?:pep|car|road|bike|bicycle|motorcycle|tractor|truck|jeep|scooter|vintage|classic|poker|spirit|team|school|homecoming|fan|stamp|akc) )\brall(?:y|ies)\b(?! (?:cars?|racing|race|cross|towels?|caps?|day|sunday|point|house|for the cure|trials?|obedience))/i,
+  },
+  { re: /(?<!\b(?:songs?|art) of )\bprotests?\b(?! (?:the hero|songs?|music|anthems?))/i },
   // "bipartisan"/"nonpartisan" have no word boundary; guard the hyphenated form
-  /(?<!non-)\bpartisan\b/i,
+  { re: /(?<!non-)\bpartisan\b/i },
   // "march" only as a political march, never the month or "marching band"
-  /\bmarch(?:es)? (?:for|against)\b/i,
-  /\b(?:protest|solidarity|women'?s|pride|resistance) march\b/i,
+  { re: /\bmarch(?:es)? (?:for|against)\b(?! babies)/i },
+  { re: /\b(?:protest|solidarity|women'?s|pride|resistance) march\b(?! madness)/i },
   // "campaign" only with electoral context
-  /\b(?:political|election|re-?election|mayoral|gubernatorial|presidential|senate|senatorial|congressional) campaigns?\b/i,
-  /\bcampaigns? (?:rally|kickoff|launch|stop|trail|office|headquarters|fundraiser|volunteers?)\b/i,
-  /\bcampaigns? for (?:a |the )?(?:candidate|mayor|governor|senator|congress|president|office|city council)\b/i,
-  /\bfundraisers? for (?:a |the |any )?(?:candidate|mayor|governor|senator|congress(?:man|woman)?|representative|president|campaign)s?\b/i,
-  /\bcandidate (?:fundraisers?|forums?|town halls?|meet.and.greets?)\b/i,
+  {
+    re: /\b(?:political|election|re-?election|mayoral|gubernatorial|presidential|senate|senatorial|congressional) campaigns?\b/i,
+  },
+  {
+    re: /\bcampaigns? (?:rally|kickoff|launch|stop|trail|office|headquarters|fundraiser|volunteers?)\b/i,
+    unless: TABLETOP_OR_CHARITY,
+  },
+  {
+    re: /\bcampaigns? for (?:a |the )?(?:candidate|mayor|governor|senator|congress|president|office|city council)\b/i,
+  },
+  {
+    re: /\bfundraisers? for (?:a |the |any )?(?:candidate|mayor|governor|senator|congress(?:man|woman)?|representative|president|campaign)s?\b/i,
+  },
+  {
+    re: /(?<!\b(?:mfa|bfa|phd|doctoral|degree|master'?s|job) )\bcandidates?'? (?:fundraisers?|forums?|town halls?|meet.and.greets?|nights?|debates?|panels?|showcases?)\b/i,
+  },
+  { re: /\bmeet the candidates?\b/i },
   // the toolkit's STRICTLY EXCLUDE list names hearings and party ties explicitly
-  /\b(?:government|city council|legislative|public) hearings?\b/i,
-  /\b(?:DFL|GOP|democratic party|republican party)\b/i,
+  { re: /\b(?:government|city council|legislative|public) hearings?\b/i },
+  {
+    re: /\b(?:DFL|GOP|democratic party|republican party|democrats|republicans|libertarian party|green party)\b/i,
+  },
+  // election season
+  { re: /\belections?\b(?! \(\d{4}\))/i, titleOnly: true },
+  // plural only: "midterm exams" is campus life
+  { re: /\bmidterms\b/i },
+  {
+    re: /\b(?:caucus(?:es)?(?! (?:race|for art))|ballot (?:measures?|questions?|initiatives?|drop|party))\b/i,
+  },
+  {
+    re: /\b(?:register(?:ing)? to vote|get out the vote|gotv|early voting|voter (?:drive|guide|education|forum|turnout))\b/i,
+  },
+  { re: /\bvoter registration\b/i, titleOnly: true },
+  {
+    re: /\b(?:political|candidate|mayoral|gubernatorial|presidential|senate|senatorial|congressional|legislative) debates?\b|\bdebate watch\b/i,
+    unless: DEBATE_TOURNAMENT,
+  },
+  {
+    re: /\btown halls? with (?:rep\b|sen\b|senator|representative|congress(?:man|woman|member)?|mayor|governor|gov\b|council ?member|commissioner|attorney general|secretary of state)/i,
+  },
+  { re: /\b(?:congressional|legislative|constituent) town halls?\b/i },
+  // "apolitical"/"nonpolitical" have no word boundary; guard the hyphenated form
+  { re: /(?<!non-)\bpolitic(?:s(?! of dancing)|al|ians?)\b/i, titleOnly: true },
 ];
 
-/** The brand screen: exclusion reason, or null when the event is fine. */
+/**
+ * The brand screen: exclusion reason, or null when the event is fine.
+ *
+ * This is the deterministic FLOOR, not a guarantee. An adversarial test (Oct
+ * 2026) showed patterns catch the listings that use category words and miss
+ * the ones that name a performer or a movement instead ("Results & Brews:
+ * Nov. 3 Returns Party"). Measured on every row the events table has held
+ * (4,586), this version's new blocks are all correct.
+ */
 export function screenEvent(e: CandidateEvent): string | null {
-  const text = `${e.title} ${e.description}`;
+  const full = `${e.title} ${e.description}`;
   for (const rule of POLITICAL_RULES) {
-    const m = rule.exec(text);
-    if (m) return `brand rule: political ("${m[0].toLowerCase()}")`;
+    const m = rule.re.exec(rule.titleOnly ? e.title : full);
+    if (m && !rule.unless?.test(full)) {
+      return `brand rule: political ("${m[0].toLowerCase()}")`;
+    }
   }
-  const drag = DRAG_RULE.exec(text);
+  const drag =
+    DRAG_RULE.exec(full) ?? (MOTORSPORT.test(full) ? null : DRAG_FRANCHISE_RULE.exec(e.title));
   if (drag) return `brand rule: drag event ("${drag[0].toLowerCase()}")`;
   return null;
 }

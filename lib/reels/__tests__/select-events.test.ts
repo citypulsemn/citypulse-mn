@@ -369,3 +369,82 @@ describe("selectFive — deterministic greedy selection", () => {
     }
   });
 });
+
+// Tightened 5 Oct 2026. Fixtures come from two adversarial reviews: real rows
+// from the events table (marked REAL) and crafted look-alikes.
+describe("screenEvent — election-season tightening", () => {
+  const AT = "2026-10-20T18:00:00-05:00";
+  const blocked = (title: string, description = "") =>
+    screenEvent(ev({ title, description, startAt: AT }));
+
+  it("blocks the two real listings the old screen let through", () => {
+    // REAL, published Oct 2026
+    expect(
+      blocked("Flip Phone XXL Halloween starring Crystal Methyd ( winner of RuPaul's Drag Race All Stars )"),
+    ).toMatch(/drag event/);
+    expect(blocked("The Rest Is Politics U.S. – The Battle for America: Midterms Tour 2026")).toMatch(
+      /political/,
+    );
+  });
+
+  it("blocks election-season vocabulary", () => {
+    for (const title of [
+      "Election Night Watch Party at Brit's Pub",
+      "Meet the Candidates: Ward 10",
+      "Candidates' Forum at Sabathani Community Center",
+      "Presidential Debate Watch Party",
+      "Town Hall with Rep. Omar",
+      "Get Out the Vote Kickoff",
+      "Voter Registration Drive at the Library",
+      "DFL Senate District 62 Convention",
+      "Rally for Reproductive Rights",
+    ]) {
+      expect(blocked(title), title).toMatch(/political/);
+    }
+  });
+
+  it("does not block ordinary events that share the vocabulary", () => {
+    const pass: [string, string?][] = [
+      // REAL rows that the first draft wrongly blocked — both via description
+      ["Surly Darkness Day", "Beer release with bands, food trucks, tattoo artists, and voter registration."],
+      ["Moriah Evans: Remains Persist", "A dance premiere where bodies are sites of political and existential conundrums."],
+      // REAL: the only 'rally' row the table has ever held
+      ["Animal Crossing Aquarium Tour", "Includes a Stamp Rally scavenger hunt through SEA LIFE."],
+      ["Timberwolves Pep Rally"],
+      ["Rally Sunday at Central Lutheran"],
+      ["Rally House Grand Opening at Rosedale"],
+      ["Rally for the Cure Golf Scramble"],
+      ["AKC Rally Trial at Twin Cities Obedience Training Club"],
+      ["D&D Campaign Kickoff: Session Zero"],
+      ["Children's Minnesota Capital Campaign Kickoff Gala"],
+      ["Red Kettle Campaign Kickoff at Mall of America"],
+      ["Women's March Madness Watch Party"],
+      ["March for Babies Twin Cities"],
+      ["Songs of Protest: Dylan, Baez and Seeger"],
+      ["Protest the Hero at the Fine Line"],
+      ["Art of Protest: Posters from 1968 at Mia"],
+      ["The Politics of Dancing: 80s New Wave Night"],
+      ["Election (1999) at the Trylon"],
+      ["Alice in Wonderland: The Caucus Race"],
+      ["Women's Caucus for Art Members' Exhibition"],
+      ["MFA Candidates' Showcase at the Regis Center"],
+      ["Midterm Stress Relief with PAWS"],
+      ["Minneapple Debate Tournament", "Lincoln-Douglas, Public Forum and Congressional Debate rounds all weekend."],
+      ["Trivia Night at Town Hall Brewery"],
+      ["Vote for Your Favorite Pie: People's Choice Bake-Off"],
+      ["Muscle Car & Drag Race Legends Night", "NHRA autographs at the raceway."],
+      // a cast bio is not a drag event: the franchise rule reads titles only
+      ["Oh, Mary! (National Tour)", "Starring a RuPaul's Drag Race star as Mary Todd Lincoln."],
+    ];
+    for (const [title, description] of pass) {
+      expect(blocked(title, description ?? ""), title).toBeNull();
+    }
+  });
+
+  it("soft words block from the title but not from a description", () => {
+    expect(blocked("Voter Registration Night")).toMatch(/political/);
+    expect(blocked("Fall Fest", "Live music, cider, and voter registration at the gate.")).toBeNull();
+    expect(blocked("Election Night at the Bar")).toMatch(/political/);
+    expect(blocked("Library Open House", "Closed Tuesday for Election Day.")).toBeNull();
+  });
+});
