@@ -105,6 +105,19 @@ address is optional and one of the September submissions had none at all.
 Requiring one would be a barrier on the only free supply of events this site
 has.
 
+## Running it from a laptop sends an email whose buttons do not work
+
+`reportActionSecret()` falls back to a dev string when neither
+`REPORT_ACTION_SECRET` nor `UNSUBSCRIBE_SECRET` is set, and this machine has
+neither. A local run therefore signs the links with the fallback while
+production verifies against the real secret, so every button reads "Link
+expired". It is the safe direction to fail in — a wrong secret cannot publish
+anything — but the email looks fine and is not.
+
+**Decide a locally-checked batch in `/admin/submissions`, or re-run from
+Actions** (workflow_dispatch on the inbox workflow), where the secret is real.
+`--dry-run` sends nothing at all and is always safe.
+
 ## Cost
 
 One web-search-backed call per batch of up to five, each side. At 2–3

@@ -1,6 +1,6 @@
 import { getPendingSubmissions } from "@/lib/submissions";
 import { submissionVerdictHeadline, describeCorrections } from "@/lib/submission-check";
-import { approveSubmission, rejectSubmission } from "@/lib/submission-actions";
+import { approveSubmission, approveSubmissionAsSent, rejectSubmission } from "@/lib/submission-actions";
 import { CATEGORIES } from "@/lib/categories";
 import { fmtTime } from "@/lib/dates";
 import { longDate } from "@/lib/event-view";
@@ -76,9 +76,21 @@ export default async function AdminSubmissionsPage() {
             <form action={approveSubmission}>
               <input type="hidden" name="id" value={s.id} />
               <button type="submit" className="sub-approve">
-                Approve &amp; publish
+                {s.check_corrections && Object.keys(s.check_corrections).length > 0
+                  ? "Publish corrected"
+                  : "Approve & publish"}
               </button>
             </form>
+            {/* Only offered when it would differ — two buttons for one outcome
+                is a choice nobody can make. */}
+            {s.check_corrections && Object.keys(s.check_corrections).length > 0 && (
+              <form action={approveSubmissionAsSent}>
+                <input type="hidden" name="id" value={s.id} />
+                <button type="submit" className="sub-assent">
+                  Publish as sent
+                </button>
+              </form>
+            )}
             <details className="sub-reject">
               <summary>Reject</summary>
               <form action={rejectSubmission} className="sub-reject-form">

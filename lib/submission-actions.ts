@@ -2,29 +2,44 @@
 
 import { revalidatePath } from "next/cache";
 import { assertAdmin, logAudit } from "./admin";
-import {
-  getSubmissionById,
-  markSubmissionReviewed,
-  submissionToDbEvent,
-} from "./submissions";
-import { upsertEvents } from "./upsert";
-import { geocode } from "./geocode";
+import { markSubmissionReviewed } from "./submissions";
+import { publishSubmission } from "./submission-publish";
 
+/**
+ * Approve from the admin screen, WITH the check's corrections applied.
+ *
+ * It delegates to the same publishSubmission() the one-tap email link uses, so
+ * "approve" means the same thing wherever it is pressed. Before 4 Oct 2026
+ * this built the event from the submitter's raw input: approving the craft
+ * market would have published "Eastview Education Building" when the school
+ * district calls it "Eastview Education Center" and the check had already said
+ * so. The card shows exactly which fields this will change.
+ */
 export async function approveSubmission(formData: FormData) {
   await assertAdmin();
   const id = String(formData.get("id"));
 
-  const sub = await getSubmissionById(id);
-  if (!sub) return; // already handled or gone
+  const result = await publishSubmission(id, { applyCorrections: true, via: "admin" });
+  if (!result.ok) return; // already decided, gone, or the write failed — card stays
 
-  // Geocode the venue/address so the event gets a map pin (fallback = metro center).
-  const geo = await geocode(sub.address || sub.venue, sub.city);
-  const event = submissionToDbEvent(sub, geo);
-  await upsertEvents([event]);
+  await logAudit("approve_submission", id, {
+    title: result.title,
+    corrections: result.corrected,
+  });
 
-  await markSubmissionReviewed(id, "approved");
-  await logAudit("approve_submission", id, { title: sub.title });
+  revalidatePath("/admin/submissions");
+  revalidatePath("/");
+}
 
+/** Approve ignoring the corrections, when the check got it wrong. */
+export async function approveSubmissionAsSent(formData: FormData) {
+  await assertAdmin();
+  const id = String(formData.get("id"));
+
+  const result = await publishSubmission(id, { applyCorrections: false, via: "admin:as-sent" });
+  if (!result.ok) return;
+
+  await logAudit("approve_submission", id, { title: result.title, corrections: [] });
   revalidatePath("/admin/submissions");
   revalidatePath("/");
 }

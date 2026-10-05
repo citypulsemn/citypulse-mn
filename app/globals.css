@@ -1450,3 +1450,13 @@ a.daycard { text-decoration: none; }
 .sub-check-unconfirmed,
 .sub-check-error,
 .sub-check-pending { border-style: dashed; }
+.sub-assent {
+  background: transparent;
+  color: var(--muted);
+  border: 1px solid var(--navy-600);
+  border-radius: 7px;
+  padding: 8px 14px;
+  font-size: 13.5px;
+  cursor: pointer;
+}
+.sub-assent:hover { color: var(--cream); border-color: var(--cream); }
