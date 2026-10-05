@@ -32,6 +32,7 @@ export const SUBMISSION_VERDICTS = [
   "corrected",
   "unconfirmed",
   "contradicted",
+  "expired",
   "error",
 ] as const;
 export type SubmissionVerdict = (typeof SUBMISSION_VERDICTS)[number];
@@ -102,6 +103,7 @@ export function recommendationForSubmission(v: SubmissionVerdict): SubmissionRec
     case "corrected":
       return "publish-corrected";
     case "contradicted":
+    case "expired":
       return "reject";
     case "unconfirmed":
     case "error":
@@ -118,6 +120,8 @@ export function submissionVerdictHeadline(v: SubmissionVerdict): string {
       return "The event is real, but some details differ from the source.";
     case "contradicted":
       return "A source we trust says this is not happening as described.";
+    case "expired":
+      return "The event was already over when this was reviewed — no check was run.";
     case "unconfirmed":
       return "Could not find this on any authoritative source — NOT the same as finding it false.";
     case "error":
@@ -163,6 +167,35 @@ export function correctedSubmission<T extends Record<string, unknown>>(
   corrections: SubmissionCorrections,
 ): T {
   return { ...original, ...corrections };
+}
+
+/**
+ * Has this already happened?
+ *
+ * Decided before any model call, because it is arithmetic on a date the
+ * submitter gave us rather than a question about the world. Drive2Compare
+ * arrived for 3 Oct and was reviewed on 4 Oct: the check spent a search budget
+ * and came back "confirmed", correctly — the event was real and the details
+ * matched. Timeliness was simply not the question it was asked.
+ *
+ * An event with no end runs to the end of its own day, which is the grace
+ * archivePastEvents already uses: a 10am submission is not stale at 2pm.
+ *
+ * Returns false on anything unparseable. A date we cannot read is not a date
+ * that has passed, and binning a real event over a bad string would be the
+ * expensive direction to be wrong in.
+ */
+export function hasExpired(
+  startLocal: string,
+  endLocal: string | null,
+  nowWall: string,
+): boolean {
+  const WALL = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/;
+  const start = (startLocal ?? "").trim();
+  if (!WALL.test(start)) return false;
+  const end = (endLocal ?? "").trim();
+  const effectiveEnd = WALL.test(end) ? end : `${start.slice(0, 10)}T23:59`;
+  return effectiveEnd < nowWall;
 }
 
 const FIELD_LIST = CORRECTABLE_FIELDS.join(", ");

@@ -7,6 +7,7 @@ import {
   correctedSubmission,
   buildSubmissionCheckPrompt,
   parseSubmissionChecks,
+  hasExpired,
   SUBMISSION_VERDICTS,
   type SubmissionCheckInput,
 } from "../submission-check";
@@ -164,5 +165,47 @@ describe("parseSubmissionChecks", () => {
   it("treats an empty corrections object as no corrections", () => {
     const r = parseSubmissionChecks(`[{"submissionId":"s1","verdict":"confirmed","corrections":{}}]`, ids);
     expect(r[0].corrections).toBeUndefined();
+  });
+});
+
+describe("hasExpired — decided before any money is spent", () => {
+  const NOW = "2026-10-04T09:00";
+
+  it("catches the real case: Drive2Compare, reviewed the day after", () => {
+    // It came back "confirmed" and that was correct — the event was real.
+    // Timeliness was never the question the check was asked.
+    expect(hasExpired("2026-10-03T10:00", "2026-10-03T14:00", NOW)).toBe(true);
+  });
+
+  it("lets a future event through", () => {
+    expect(hasExpired("2026-10-10T10:00", "2026-10-10T15:00", NOW)).toBe(false);
+    expect(hasExpired("2026-11-07T10:00", null, NOW)).toBe(false);
+  });
+
+  it("gives an event with no end the rest of its own day", () => {
+    // A 10am submission is not stale at 2pm — the same grace archivePastEvents
+    // uses. Without this, every morning event expires by lunchtime.
+    expect(hasExpired("2026-10-04T10:00", null, "2026-10-04T14:00")).toBe(false);
+    expect(hasExpired("2026-10-04T10:00", null, "2026-10-05T00:01")).toBe(true);
+  });
+
+  it("respects an end that runs past the start day", () => {
+    expect(hasExpired("2026-10-01T10:00", "2026-10-18T18:00", NOW)).toBe(false);
+  });
+
+  it("is false for anything it cannot read, rather than binning it", () => {
+    // Being wrong here loses a real event, so an unreadable date is never
+    // treated as a past one.
+    for (const bad of ["", "soon", "2026-10-03", "next Friday", null as never]) {
+      expect(hasExpired(bad, null, NOW), String(bad)).toBe(false);
+    }
+  });
+
+  it("ignores an unreadable END and falls back to the start day", () => {
+    expect(hasExpired("2026-10-03T10:00", "whenever", NOW)).toBe(true);
+  });
+
+  it("recommends rejecting an expired submission", () => {
+    expect(recommendationForSubmission("expired")).toBe("reject");
   });
 });

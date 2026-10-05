@@ -71,6 +71,23 @@ are never choosing between two buttons with the same outcome.
 - **A run with nothing pending writes no row and makes no model call.** Both
   queues are usually empty.
 
+## Already-over submissions never reach the model
+
+Whether an event has happened is arithmetic on a date the submitter gave us,
+not a question about the world, so `hasExpired` settles it before any search
+budget is spent. Drive2Compare arrived for 3 Oct and was reviewed on 4 Oct:
+the check ran, cost its share of a call, and came back `confirmed` — which
+was *correct*. The event was real and the details matched. Timeliness was
+simply never the question it was asked.
+
+An event with no end runs to the end of its own day, the same grace
+`archivePastEvents` uses, so a 10am submission is not stale by lunchtime.
+
+It is recorded as the `expired` verdict rather than auto-rejected. A mistyped
+year is the one way this is wrong, and binning a real event over it is the
+expensive direction — so it leaves the unchecked queue, is never paid for
+again, and waits for one tap.
+
 ## A verdict is one opinion, not a measurement
 
 The first two real runs, minutes apart on identical rows, disagreed on all

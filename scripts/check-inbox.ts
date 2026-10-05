@@ -38,7 +38,9 @@ import {
   type ReportCheckInput,
   type ReportCheckResult,
 } from "../lib/report-check";
+import { chiNow } from "../lib/clock";
 import {
+  hasExpired,
   recommendationForSubmission,
   submissionVerdictHeadline,
   type SubmissionCheckInput,
@@ -79,10 +81,20 @@ async function main() {
     return void (await sql.end({ timeout: 5 }));
   }
 
-  if (!process.env.ANTHROPIC_API_KEY) throw new Error("ANTHROPIC_API_KEY is required");
-
   // ── submissions ──────────────────────────────────────────────────────────
-  const subInputs: SubmissionCheckInput[] = pendingSubs.map((s) => ({
+  // Already over? That is arithmetic on a date the submitter gave us, not a
+  // question about the world, so it is settled here and costs nothing.
+  // Drive2Compare arrived for 3 Oct and was reviewed on 4 Oct: the check spent
+  // a search budget and came back "confirmed", correctly — the event was real.
+  // Timeliness was never the question it was asked.
+  const nowWall = chiNow();
+  const expired = pendingSubs.filter((s) => hasExpired(s.start_local, s.end_local, nowWall));
+  const liveSubs = pendingSubs.filter((s) => !hasExpired(s.start_local, s.end_local, nowWall));
+  for (const s of expired) {
+    console.log(`[inbox] EXPIRED       ${s.title} — ${s.start_local} is past, no check run`);
+  }
+
+  const subInputs: SubmissionCheckInput[] = liveSubs.map((s) => ({
     submissionId: s.id,
     title: s.title,
     venue: s.venue,
@@ -97,7 +109,20 @@ async function main() {
   }));
   for (const s of subInputs) console.log(`[inbox] submission · ${s.title} @ ${s.venue}`);
 
-  let subResults: SubmissionCheckResult[] = [];
+  // Only needed once something actually reaches the model. An inbox holding
+  // nothing but expired submissions must not fail for want of a key.
+  if ((subInputs.length > 0 || pendingReports.length > 0) && !process.env.ANTHROPIC_API_KEY) {
+    throw new Error("ANTHROPIC_API_KEY is required");
+  }
+
+  // Recorded as a verdict so they leave the unchecked queue and are never paid
+  // for again. NOT auto-rejected: a mistyped year is the one way this is
+  // wrong, and binning a real event over it would be the expensive direction.
+  let subResults: SubmissionCheckResult[] = expired.map((s) => ({
+    submissionId: s.id,
+    verdict: "expired" as const,
+    note: `Starts ${s.start_local}, which is past. No source check was run.`,
+  }));
   if (subInputs.length > 0) {
     try {
       subResults = await checkSubmissions(subInputs);

@@ -105,3 +105,21 @@ describe("renderInboxEmail", () => {
     expect(subject).toBe("Checked 1 inbox item");
   });
 });
+
+describe("an expired submission", () => {
+  it("suggests rejecting and says no check was run", () => {
+    const expired: SubmissionRow = {
+      row: { ...SUB_ROW, id: "s9" },
+      result: {
+        submissionId: "s9",
+        verdict: "expired",
+        note: "Starts 2026-10-03T10:00, which is past. No source check was run.",
+      },
+    };
+    const { html, subject } = render([expired], []);
+    expect(html).toMatch(/already over when this was reviewed/);
+    expect(html).toMatch(/Suggested: reject/);
+    // It is not "ready to publish", so it must not inflate the subject line.
+    expect(subject).toBe("Checked 1 inbox item");
+  });
+});
