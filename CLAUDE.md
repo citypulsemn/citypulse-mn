@@ -13,9 +13,9 @@ Read this first, every session. It is the contract for how work happens on this 
 - Next.js 15 App Router + React 19 + TypeScript, deployed on **Vercel** (auto-deploys on push to `main`)
 - **Supabase** Postgres (schema in `db/schema.sql`, idempotent and additive — never destructive)
 - Mapbox static maps · Resend email · GitHub Actions for the weekly pipeline and ops digest
-- Vitest for tests (`npm test`), 550+ and rising
+- Vitest for tests (`npm test`), 2,290+ and rising
 
-**Scripts:** `dev` · `build` · `test` · `lint` · `pipeline` (weekly research) · `digest` (subscriber email) · `ops-digest` (operator email; `-- --dry-run` is safe) · `verify` · `collapse` · `reclassify`
+**Scripts:** `dev` · `build` · `test` · `lint` · `pipeline` (weekly research) · `digest` (subscriber email) · `ops-digest` (operator email; `-- --dry-run` is safe) · `inbox` (check pending submissions and reports, then email; `-- --dry-run` is safe) · `verify` · `collapse` · `reclassify`
 
 **Secrets** live in Vercel and in GitHub Actions: `DATABASE_URL`, `RESEND_API_KEY`, `UNSUBSCRIBE_SECRET`, `REVALIDATE_SECRET`, `SITE_URL`, `DIGEST_FROM`, `OPS_DIGEST_TO`, Mapbox token. Never print or commit them.
 
@@ -73,4 +73,4 @@ When writing anything user-facing — editorial intros, email copy, page metadat
 
 ## Orientation
 
-`docs/ARCHITECTURE.md` for the system · `docs/SETUP.md` to run locally · `docs/DATABASE.md` for the schema · `docs/HANDOFF.md` for current state and what's pending · `docs/PIPELINE.md`, `docs/OPS-DIGEST.md`, `docs/INDEXING.md`, `docs/VERIFICATION.md` for the operational loops. There are 35 docs in `docs/` — one per subsystem. Check for an existing doc before writing a new one.
+`docs/ARCHITECTURE.md` for the system · `docs/SETUP.md` to run locally · `docs/DATABASE.md` for the schema · `docs/HANDOFF.md` for current state and what's pending · `docs/PIPELINE.md`, `docs/OPS-DIGEST.md`, `docs/INDEXING.md`, `docs/VERIFICATION.md` for the operational loops. There are ~58 docs in `docs/` — one per subsystem. Check for an existing doc before writing a new one.

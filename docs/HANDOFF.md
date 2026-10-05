@@ -1,120 +1,142 @@
-# Handoff — current state (17 September 2026)
+# Handoff — current state (4 October 2026)
 
-The single map a new session reads after `CLAUDE.md`. Rewritten today; the previous
-version was dated 20 July and had gone two months stale while pointing every new
-session at itself.
+The single map a new session reads after `CLAUDE.md`. Rewritten today; the
+previous version was dated 17 September and every headline number in it had
+moved.
 
 ## Read the instruments, not this file
 
-This is the most important line here. Since mid-September the system reports its own
-state better than any document can, and all of it is one page:
+Still the most important line here. Since mid-September the system reports its
+own state better than any document can, and all of it is one page:
 
-> **`/admin/ops`** — five vendor tiles plus every section of the Monday ops email,
-> live. Grey means a check could not run and is never a pass.
+> **`/admin/ops`** — five vendor tiles plus every section of the Monday ops
+> email, live. Grey means a check could not run and is never a pass.
 > **`/admin/growth`** — subscribers, acquisition, funnel, returning readers.
+> **`/admin/submissions`** — now carries each submission's check verdict,
+> evidence and proposed corrections.
 
-Open those before proposing work. If they disagree with this file, they are right.
+Open those before proposing work. If they disagree with this file, they are
+right.
 
 ## Where things stand
 
-**Audience is growing.** 31 subscribers, 0 churned, first on 10 July. By week:
-`1 2 1 0 0 1 8 1 9 5 1` — the last four weeks brought 16 against 9 in the four before.
-The August retro's "the blocker is audience, at 5 subscribers" is out of date.
+| | |
+|---|---|
+| Published upcoming | 639 |
+| Unverified | 54 |
+| Open verify flags | 53 |
+| Upcoming drafts | 45 |
+| Never source-checked | 279 of 639 |
+| No ticket link | 3 (honest empties) |
+| Self-check | 0 duplicates, 1 clash (a real one — see below) |
+| Active subscribers | **39**, and the weekly send is growing: 24 → 32 → 34 |
+| Model spend, Oct to date | $10.39 across 4 recorded runs |
+| Inbox | **0 pending** submissions, 0 pending reports |
 
-**Acquisition is search.** Referrer counting started 14 Sep: 58% search (Google 310 of
-592 arrivals), 23% direct, 17% internal, 1% social.
+## What shipped in the fortnight to 4 Oct
 
-**The calendar is clean.** 980 live upcoming events. Every data guard reads zero:
-no listing cites an aggregator index, none ends before it starts, none has a `TBD`
-price or an unusable venue, and the self-check finds no clashes or duplicates.
-
-**~17% of upcoming listings are unverified**, and there are 47 drafted and 125 open
-verify flags. That is the standing backlog, not an incident.
-
-## What shipped in the week to 17 Sep
+21 commits. The theme was not building features — it was discovering that
+several instruments were reporting success while the thing they measured was
+broken.
 
 | | |
 |---|---|
-| `/admin/ops` | vendor tiles + the ops email live, streaming, deadlined |
-| `/admin/growth` | the audience view; every rate earned or an em dash |
-| Source check | every listing tested against the page it cites, weekly in CI |
-| Referrers | attribution with no new privacy category |
-| Deletion path | `npm run delete-personal-data` — the code behind `/privacy` |
-| Guards | span trigger, price normaliser, venue quality, `color-scheme: dark` |
+| **The inbox** | submissions and reports are checked BEFORE anyone is told, then one email with one-tap decisions. Replaced two channels and deleted a third. `docs/INBOX.md` |
+| **Spend ledger** | `model_spend`, seven entrypoints. The verify pass cost more than the pipeline and was recorded nowhere |
+| **Dedupe at the write** | `upsertEvents` now refuses a row already on the calendar under another name |
+| **Source-check rotation** | a third of the calendar had been exempt from the fabrication check by accident of spelling |
+| **Venue fold** | Xcel Energy Center / Grand Casino Arena were two venues; the pin was also 1.7km off |
 
-Each has a deploy guide in `docs/`: `DEPLOY-OPS-DASHBOARD.md`, `SOURCE-CHECK.md`,
-`ANALYTICS.md`, `PRIVACY-OPS.md`.
+### Instruments that were lying, and now are not
+
+Worth reading as a set, because the pattern repeats:
+
+- The **collapse** archived ~20 rows every week and the venue importer woke
+  them the same run. `collapsed_runs` counted *plans*, not writes, so the panel
+  read clean through five failed weeks.
+- The **self-check** reported 0 duplicates while 8 sat live, because the
+  concurrent-venue skip ran before the duplicate test.
+- The **Anthropic tile** read $22.78 in green while the console read $181.87.
+- The **Verification section** could not raise a flag, so a dying verify pass
+  made the Monday email *greener*.
+- A **verify flag written after a stamp** was invisible, because "open" meant
+  "on an unverified listing".
+
+The standing lesson, now enforced in several places: *a measurement that knows
+it is partial must not render as a pass.*
 
 ## Open — the watch list
 
-Nothing here is blocked; everything has an owner or a date.
+Nothing here is blocked; everything has an owner.
 
-1. **Unproven in CI.** The source check and the pipeline cost recording both landed
-   *after* the 14 Sep run. Neither has ever executed. **First real test: Monday 21 Sep.**
-   Check `pipeline_runs.cost_usd` is non-null and the sweep logged a summary.
-2. **`DIGEST_POSTAL_ADDRESS` is not set.** Until it is, the weekly email goes out with
-   no physical postal address, which CAN-SPAM requires. Every send now records
-   `NO POSTAL ADDRESS IN FOOTER` in its note, visible on `/admin/digest`. **Taren:
-   one env var in Vercel and GitHub Actions secrets.**
-3. **Resend tile: removed** (17 Sep). Reading `/domains` needs a *Full access* key,
-   and the Weekly email tile answers the same question from our own `digest_sends`
-   rows with no key at all. Five tiles now. Vercel's spend stays grey on purpose —
-   **Vercel's own budget alert is the right instrument**, not an API token here:
-   Vercel → the project → Settings → Billing → Spend Management → set an amount and
-   an email. **Taren: not set yet.**
-4. **Search Console on `/admin/growth` is dark in production.** It works in Actions
-   because `GSC_SERVICE_ACCOUNT_JSON` is a GitHub secret; Vercel does not have it.
-   The page already says so rather than showing a clean zero. **Taren: paste the
-   service-account JSON file's whole contents into Vercel → Settings → Environment
-   Variables → `GSC_SERVICE_ACCOUNT_JSON` (Production), then redeploy.**
-5. **Backlogs**: 47 drafted upcoming (13 wrong-event, 12 with no audit trail at all,
-   9 source-hold), 125 open verify flags, ~167 unverified upcoming.
-   Two of these closed on 17 Sep:
-   - *00:00 placeholder starts*: 17 → 5, and the 5 are **correct**. No operator
-     publishes a time for them (two Gophers games are TBA on gophersports.com, the
-     Guthrie prints no time for The Purpose Pursuit anywhere including its own
-     ticketing, Lowry Bookworms' session is closed, and the Christmas Market is a
-     five-weekend run with no 2026 hours announced). The remaining count is honest
-     emptiness, not a backlog.
-   - *No ticket link*: 22 → 0. All 22 were sports, and the cause was the importer,
-     not the rows — the feeds carry no per-game ticket URL, so it claimed none.
-     `SportsSource.tickets` now holds each club's own tickets page (all eight
-     checked for 200), the importer uses it, and the live rows were backfilled.
-6. **Offered, undecided**: scrollbar affordance on reader-facing pill strips; the
-   price vocabulary that says the same thing four ways across ~500 live fields.
+1. **`DIGEST_POSTAL_ADDRESS` is still unset.** Every weekly send goes out with
+   no physical postal address, which CAN-SPAM requires, and stamps
+   `NO POSTAL ADDRESS IN FOOTER` in its own record. Sends on 17 and 24 Sep and
+   since are non-compliant. **The plumbing is fixed** — `weekly-digest.yml`
+   never mapped the secret until 29 Sep, so the instruction in every earlier
+   doc *could not have worked*. **Taren: one GitHub Actions secret.**
+2. **53 open verify flags**, of which roughly half carry a ready-to-apply date
+   or time taken from the venue's own calendar. Two hours of applying answers
+   we already have. There is no `/admin/flags` screen; they surface only in the
+   Monday email and in SQL.
+3. **45 upcoming drafts** with no route back to published, ~20 starting within
+   a fortnight.
+4. **279 listings never source-checked.** The rotation works; the budget is
+   400 pages against 521, so raise `--limit` or wait two runs.
+5. **One real clash**: Scream Town's Halloween Market and Attraction, same
+   venue and minute, genuinely concurrent. The self-check cannot tell that from
+   a double booking. Left visible on purpose.
+6. **Taren's money decisions**: the Vercel spend alert (never set) and whether
+   to hold an Anthropic Admin API key so the tile can read actual spend rather
+   than our own jobs.
+7. **~$85/month of Anthropic spend is still unexplained** — $78.84 measured in
+   our jobs for September against $181.87 on the console. The per-key breakdown
+   in the console is the only thing that can find it. From October the ledger is
+   complete going forward, so the remaining gap is the real signal.
 
 ## Environment notes (this machine)
 
-- `DATABASE_URL` lives in `.env.local`; every `npm run` script auto-loads it. **Taren
-  edits this file from a phone — verify value shapes before trusting them** (a `//`
-  once arrived as `..`).
+- `DATABASE_URL` lives in `.env.local`; every `npm run` script auto-loads it.
+  **Taren edits this file from a phone — verify value shapes before trusting
+  them** (a `//` once arrived as `..`).
 - `git push` needs `GCM_INTERACTIVE=auto` in agent sessions.
-- `.env.local` has **no** `RESEND_API_KEY` or `GSC_SERVICE_ACCOUNT_JSON`. That is why
-  the Resend tile and Search Console read "not set" locally and work in production —
-  do not chase it as a bug.
-- A `GITHUB_TOKEN` is available in this shell, so Actions state *can* be queried now.
-  `head_sha` on a workflow run is how you tell whether a run actually had your code.
-- Reading secrets out of `.env.local` is blocked by the permission layer. Work with the
-  scripts, not around them.
+- **`.env.local` has no `RESEND_API_KEY`, `MAPBOX_GEOCODING_TOKEN`,
+  `UNSUBSCRIBE_SECRET` or `GSC_SERVICE_ACCOUNT_JSON`.** Each has a real
+  consequence rather than being a nuisance:
+  - no Mapbox → `geocode()` returns null → `submissionToDbEvent` falls back to
+    the **metro centre**, a silent wrong pin. Geocode by hand and pass
+    `publishSubmission({ geo })`.
+  - no signing secret → the inbox email's one-tap buttons are signed with the
+    **dev fallback** and production rejects them as expired. Decide a
+    locally-checked batch in Admin, or re-run from Actions.
+- A `GITHUB_TOKEN` is available in this shell, so Actions state can be queried.
+  `head_sha` on a run is how you tell whether it actually had your code.
+- Reading secrets out of `.env.local` is blocked by the permission layer. Work
+  with the scripts, not around them.
 
 ## Conventions worth preserving
 
-- **Recon before writing.** Grep the real export first; guessed helper names remain the
-  top source of wasted turns.
-- **Pure core, thin shell.** `composeOpsDigest`, `checkTitleOnPage`, `buildFunnel`,
-  `judgeDigest` are the model: policy in `lib/` with golden tests, I/O at the edge.
-- **A failure must never render as data.** A broken query showed as four clean zeros on
-  the growth page; a laptop typo showed as a failed send on the digest panel. Both were
-  fixed by making "could not tell" its own state.
-- **An instrument must not be killable by the thing it measures**, and must not be
-  silent when blind. Grey is not green.
-- **Never delete events** — archive them. Personal data is the exception and the
-  opposite: a deletion request is honoured by deleting.
-- **Verify the artifact, and the read-back.** Write → read back → compare, every time.
-- **Shell escaping mangles regexes.** `\b` became a literal backspace byte twice this
-  week. Use the Edit tool or a quoted heredoc for anything with backslashes.
+- **Recon before writing.** Grep the real export first; guessed helper names
+  remain the top source of wasted turns.
+- **Measure before diagnosing.** "The database is slow" was printed by a panel
+  whose database answered in 534ms. Three separate bugs this fortnight were
+  found by running a query rather than reading the code.
+- **One definition of a rule.** The dedupe gate imports the self-check's own
+  predicate rather than restating it, because two definitions of "same event"
+  is exactly how the panel and the writer drifted apart.
+- **A failure must never render as data**, and a *partial* measurement must not
+  render as a pass. Grey is not green; a floor is not a total.
+- **Never delete events** — archive them. Personal data is the exception and
+  the opposite.
+- **Verify the artifact, and the read-back.** Write → read back → compare.
+- **Shell escaping mangles regexes.** `\b` became a literal backspace in
+  September and `\d` was silently eaten twice on 4 Oct, shipping a regex that
+  matched nothing. Use the Edit tool for anything with backslashes.
+- **Tests written against invented data pass while production fails.** A
+  duplicate-detection test used a title I shortened by hand; the real string
+  had four more words and failed. Use the production string.
 
 ## First session opener
 
-> Read `CLAUDE.md` and this file, check memory, then `git log --oneline -10` and
-> `npm test`. Then open `/admin/ops` — the tiles know more than the docs do.
+> Read `CLAUDE.md` and this file, check memory, then `git log --oneline -10`
+> and `npm test`. Then open `/admin/ops` — the tiles know more than the docs do.
