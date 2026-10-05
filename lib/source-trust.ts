@@ -38,6 +38,7 @@ export const AGGREGATOR_HOSTS: readonly string[] = [
   // Added 4 Oct 2026, found while triaging verify flags: every one of these
   // was supplying a TIME for a listing, and none of them runs the event.
   // A tourism board and a radio station are roundups however local they are.
+  "bloomingtonmn.org",
   "burnsvillemn.com",
   "discovershakopee.org",
   "krocnews.com",
@@ -59,6 +60,7 @@ export const AGGREGATOR_HOSTS: readonly string[] = [
   "kare11.com",
   "macaronikid.com",
   "minnesotamonthly.com",
+  "onestowatch.com",
   "minnesotaparent.com",
   "mspmag.com",
   "patch.com",

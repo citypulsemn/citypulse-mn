@@ -21,7 +21,7 @@ import {
 } from "../lib/verify";
 import { verifyEventsBatch } from "../lib/agents/research-agent";
 import { venueIsUnknown, unknownVenueReason } from "../lib/venue-quality";
-import { isAggregatorSource } from "../lib/source-trust";
+import { isAggregatorSource, isNonScheduleSource } from "../lib/source-trust";
 import { markVerified, cancelVerified, flagVerification } from "../lib/upsert";
 import type { EventStatus } from "../lib/types";
 import { recordRunSpend } from "../lib/model-spend";
@@ -146,13 +146,27 @@ async function main() {
           // back at the top of next week's queue and re-spend on it forever.
           // The flag lands with it, so a confirmation resting on a roundup
           // stays visible instead of being laundered clean by the stamp.
+          // Roundups AND resellers. The first version of this gate covered
+          // only AGGREGATOR_HOSTS, which left the larger half uncovered: of
+          // 140 weakly-sourced live listings on 4 Oct, 113 carried a stamp,
+          // and the commonest sources were ticketmaster (37), songkick (12)
+          // and bandsintown (8) — none of them an aggregator by that list.
+          // isNonScheduleSource has said in its own docstring since it was
+          // written that such a page is "good enough to cite; not good enough
+          // to mark a listing verified".
           const src = (ev?.sourceUrl || ev?.ticketUrl || "").trim();
-          if (isAggregatorSource(src)) {
-            console.log(`[verify]   ⚑ ROUNDUP-ONLY "${title}" — confirmed against ${new URL(src).hostname}, not a schedule`);
+          const roundup = isAggregatorSource(src);
+          const reseller = !roundup && isNonScheduleSource(src);
+          if (roundup || reseller) {
+            const host = (() => { try { return new URL(src).hostname; } catch { return src.slice(0, 40); } })();
+            const what = roundup
+              ? "a roundup rather than the organiser's own schedule"
+              : "a reseller or social page rather than the organiser's own schedule";
+            console.log(`[verify]   ⚑ WEAK-SOURCE "${title}" — confirmed against ${host}, ${what}`);
             batchFlags.push({
               id: action.id,
               verdict: "weak_source",
-              note: `confirmed only against ${new URL(src).hostname}, a roundup rather than the organiser's own schedule — needs a primary source`,
+              note: `confirmed only against ${host}, ${what} — needs a primary source`,
             });
           }
         }
