@@ -6106,8 +6106,11 @@ export function relatedKinds(kind: PlaceKind): PlaceKind[] {
  * rink), so winter kinds work without special-casing.
  */
 export function openNow(place: Place, date: Date): boolean {
+  return openInMonth(place, Number(chiDayKey(date).slice(5, 7))); // 1–12, Chicago
+}
+
+function openInMonth(place: Place, month: number): boolean {
   if (place.season.type === "year-round") return true;
-  const month = Number(chiDayKey(date).slice(5, 7)); // 1–12, Chicago
   const { openMonth, closeMonth } = place.season;
   return openMonth <= closeMonth
     ? month >= openMonth && month <= closeMonth
@@ -6297,19 +6300,32 @@ export function placesSeasonBanner(places: Place[], now: Date): string | null {
 }
 
 /**
- * PLACE OF THE WEEK (Roadmap v6 1.3 — digest depth). One registry entry for the
- * weekly email to feature, rotating each week and tied to the season: the
- * candidate pool is the places OPEN NOW (Chicago frame, `openNow`), preferring
- * the ones actively in season — a sledding hill in January, a splash pad in July
- * — and falling back to the year-round evergreens (museums, indoor playgrounds)
- * in shoulder months when nothing seasonal is open. So the pick is always
- * something a reader could actually go do this week, and it drops the Places SEO
- * asset straight into the email (the discovery→retention flywheel).
+ * PLACE OF THE WEEK (Roadmap v6 1.3 — digest depth; rotation rebuilt Oct 2026).
+ * One registry entry for the weekly email and the Instagram kit to feature. A
+ * pure function of the date — no stored history, no `Date.now()`, no
+ * `Math.random()` — so the digest and Admin → Content can never disagree.
  *
- * Deterministic from `now` — a Chicago-anchored WEEK index, no `Date.now()` or
- * `Math.random()`, so tests are stable and two sends in the same week agree. The
- * epoch-week boundary lands on Thursday (epoch day 0 was a Thursday), which is
- * exactly the digest's send day, so each weekly send advances the rotation by one.
+ * The first rotation indexed a slug-sorted pool of whatever was open, seasonal
+ * places first. A year's simulation (4 Oct 2026) showed what that really did:
+ * the 227 year-round places were never picked, November's pool was two places
+ * that alternated for four straight weeks, April was five golf courses in a
+ * row, and a splash pad was place of the week on 23 September. Four rules
+ * replace it:
+ *
+ * 1. THE WHEEL — no repeats. Every place owns one fixed slot on a 57-week wheel
+ *    (a hash of its slug, so adding a place never moves anyone else's slot) and
+ *    is only a candidate on its own turn, so it cannot come back for 57 weeks.
+ *    A place with a short season rides the 19-week wheel instead: 19 weeks is
+ *    longer than any such season's prime, so it is never featured twice in one
+ *    season and its own closed months supply the rest of the gap. (The one way
+ *    a year-round place can return sooner is spelled out at PLACE_FLOOR_WEEKS.)
+ * 2. LANES — even weeks feature a place in season (a sledding hill in January,
+ *    a splash pad in July), odd weeks a year-round one. When nothing is in
+ *    season (most of November, March, April) every week is year-round.
+ * 3. KINDS — never the same kind two weeks running, and three different kinds
+ *    in any three weeks wherever the week's candidates allow it.
+ * 4. PRIME SEASON — `inPrimeSeason`: a seasonal place is featured only in the
+ *    settled middle of its season, never its first or last weeks.
  *
  * Manual override: set PLACE_OF_WEEK_PIN to a slug to hand-pick the week's place
  * (Taren's voice wins — an off-season pin is honored). Mirrors DIGEST_SPONSOR:
@@ -6317,18 +6333,125 @@ export function placesSeasonBanner(places: Place[], now: Date): string | null {
  */
 export const PLACE_OF_WEEK_PIN: string | null = null;
 
+/**
+ * Rule 1: how long before a year-round place may be featured again, and the
+ * shorter wheel that short seasons ride. The floor is also the last resort for
+ * a week whose own candidates are all the wrong kind — the one case where a
+ * year-round place can come back sooner than the wheel. Keep both ODD, so a
+ * place's turns alternate between the two lanes, and keep the wheel a multiple
+ * of the floor.
+ */
+export const PLACE_WHEEL_WEEKS = 57;
+export const PLACE_FLOOR_WEEKS = 19;
+
+/** Rule 4: the share of a season trimmed off EACH end before a place is featured. */
+export const PLACE_SEASON_EDGE = 0.2;
+
+const DAY_MS = 86_400_000;
+const WEEK_MS = 7 * DAY_MS;
+
+/**
+ * The Chicago-anchored week index the rotation runs on. Epoch day 0 was a
+ * Thursday, so the week turns over on Thursday — the digest's send day — and
+ * each send advances the rotation by exactly one.
+ */
+export function placeWeekOf(now: Date): number {
+  const [y, m, d] = chiDayKey(now).split("-").map(Number);
+  return Math.floor(Date.UTC(y, m - 1, d) / WEEK_MS);
+}
+
+/**
+ * Rule 4. Seasons are month-level and deliberately generous — SUMMER is May
+ * through September though its label says Memorial Day–Labor Day — which is
+ * right for a "closed for the season" banner and wrong for a recommendation.
+ * So a seasonal place is featured only when the WHOLE week (Thursday through
+ * Wednesday) sits in the middle of its season, with PLACE_SEASON_EDGE of the
+ * season's length trimmed from each end: a beach from the first week of June to
+ * late August, an orchard mid-September to mid-October. Year-round places are
+ * always in.
+ */
+export function inPrimeSeason(place: Place, week: number): boolean {
+  const s = place.season;
+  if (s.type === "year-round") return true;
+  const first = week * WEEK_MS; // the week's Thursday: a calendar day at UTC midnight
+  const y = new Date(first).getUTCFullYear();
+  const m = new Date(first).getUTCMonth() + 1;
+  if (!openInMonth(place, m)) return false;
+  // This season's own first and last day — a winter season opens the year before it closes.
+  const opens = Date.UTC(m >= s.openMonth ? y : y - 1, s.openMonth - 1, 1);
+  const closes = Date.UTC(m <= s.closeMonth ? y : y + 1, s.closeMonth, 0);
+  const edge = (closes - opens) * PLACE_SEASON_EDGE;
+  return first - opens >= edge && closes - (first + 6 * DAY_MS) >= edge;
+}
+
+/** Weeks a place spends in prime each year (month-level, like the seasons themselves). */
+function primeWeeks(place: Place): number {
+  const s = place.season;
+  if (s.type === "year-round") return 52;
+  const months = ((s.closeMonth - s.openMonth + 12) % 12) + 1;
+  return ((months * 52) / 12) * (1 - 2 * PLACE_SEASON_EDGE);
+}
+
+/** FNV-1a: a stable 32-bit hash, the same on every machine and every run. */
+function hash32(s: string): number {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < s.length; i++) h = Math.imul(h ^ s.charCodeAt(i), 0x01000193);
+  return h >>> 0;
+}
+
+/** Rule 1: a place's fixed slot on the wheel — a hash of its own slug and nothing else. */
+export function placeSlot(place: Place): number {
+  return hash32(place.slug) % PLACE_WHEEL_WEEKS;
+}
+
+/**
+ * The pick for one week index (rules 1–4 above) from any registry — the real
+ * one by default, a synthetic one in tests. Null only when nothing at all is in
+ * prime season (honest emptiness: the digest omits the block).
+ */
+export function placeForWeek(week: number, places: Place[] = PLACES): Place | null {
+  // Rule 3 without stored history. Within each block of four weeks the picks are
+  // settled in the order 0, 2, 1, 3, and each looks only at neighbours settled
+  // before it. So the lookups always terminate, and every pair of weeks one or
+  // two apart has had its kinds compared by whichever of the two settled later.
+  const settled = [[], [-1, 1], [-2, 2], [-2, -1, 1, 2]][week & 3];
+  const nearby = settled.map((d) => ({ d, kind: placeForWeek(week + d, places)?.kind }));
+  const adjacent = new Set(nearby.filter((n) => Math.abs(n.d) === 1).map((n) => n.kind));
+  const recent = new Set(nearby.map((n) => n.kind));
+
+  // Rule 1. `since` is how far this week sits from the place's own slot.
+  const since = (p: Place) => week - placeSlot(p);
+  const turn = (p: Place) =>
+    since(p) % (primeWeeks(p) < PLACE_FLOOR_WEEKS ? PLACE_FLOOR_WEEKS : PLACE_WHEEL_WEEKS) === 0;
+  // Rule 2.
+  const inLane = (p: Place) => (p.season.type === "seasonal") === (week % 2 === 0);
+
+  // What gives way, in order: the lane, then the two-weeks-apart kind rule, then
+  // the wheel down to its floor. The last two only ever serve a registry too
+  // small to fill the wheel (never the real one — guarded in the tests).
+  const tiers: ((p: Place) => boolean)[] = [
+    (p) => turn(p) && !recent.has(p.kind) && inLane(p),
+    (p) => turn(p) && !recent.has(p.kind),
+    (p) => turn(p) && !adjacent.has(p.kind),
+    (p) => since(p) % PLACE_FLOOR_WEEKS === 0 && !adjacent.has(p.kind),
+    (p) => !adjacent.has(p.kind),
+    () => true,
+  ];
+  // Whoever is left is shuffled by a hash of the week, so a slot shared by
+  // several places doesn't hand the same one the win every time round.
+  const rank = (p: Place) => hash32(`${week}:${p.slug}`);
+  const prime = places.filter((p) => inPrimeSeason(p, week));
+  for (const ok of tiers) {
+    const hit = prime.filter(ok).sort((a, b) => rank(a) - rank(b)).at(0);
+    if (hit) return hit;
+  }
+  return null;
+}
+
 export function placeOfTheWeek(now: Date): Place | null {
   if (PLACE_OF_WEEK_PIN) {
     const pinned = placeBySlug(PLACE_OF_WEEK_PIN);
     if (pinned) return pinned;
   }
-  const open = PLACES.filter((p) => openNow(p, now));
-  if (open.length === 0) return null;
-  const seasonal = open.filter((p) => p.season.type === "seasonal");
-  const pool = (seasonal.length > 0 ? seasonal : open)
-    .slice()
-    .sort((a, b) => a.slug.localeCompare(b.slug));
-  const [y, m, d] = chiDayKey(now).split("-").map(Number);
-  const week = Math.floor(Date.UTC(y, m - 1, d) / (7 * 86_400_000));
-  return pool[week % pool.length];
+  return placeForWeek(placeWeekOf(now));
 }

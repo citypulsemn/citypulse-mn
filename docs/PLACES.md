@@ -137,6 +137,36 @@ and one emailed link carries both lists.
   every check, the chips, and the saved section; rename it there and it changes
   everywhere.
 
+## Place of the week
+
+`placeOfTheWeek(now)` picks the one place the Thursday email and Admin → Content
+feature. It is a pure function of the date — no table, no stored history — so
+the two channels cannot disagree, and the pick holds for the whole
+Thursday–Wednesday week. Four rules, all in `lib/places.ts`:
+
+1. **The wheel.** Every place owns a fixed slot on a 57-week wheel
+   (`PLACE_WHEEL_WEEKS`), a hash of its own slug, and is only a candidate on its
+   turn. Short-season places ride the 19-week wheel (`PLACE_FLOOR_WEEKS`), which
+   is longer than any of their primes — never twice in one season. Nineteen
+   weeks is the hard floor for everything.
+2. **Lanes.** Even weeks an in-season place, odd weeks a year-round one; all
+   year-round when nothing is in season.
+3. **Kinds.** Never the same kind two weeks running.
+4. **Prime season.** `inPrimeSeason` — a seasonal place is featured only in the
+   middle 60% of its season (`PLACE_SEASON_EDGE`). A beach is "open" in May for
+   the banner's purposes and is not recommended until June.
+
+**Adding a place moves nobody else's slot**, so a registry sweep cannot cause a
+repeat. It can change which place wins a given week.
+
+`PLACE_OF_WEEK_PIN` (a slug) overrides the rotation for hand-picking.
+
+The tests (`lib/__tests__/place-of-week.test.ts`) simulate every Thursday for
+ten years against the real registry rather than sampling dates — the first
+rotation passed four sample dates while alternating two places through
+November. Rationale and the measured numbers:
+`docs/deploy-history/DEPLOY-PLACE-OF-WEEK-ROTATION.md`.
+
 ## Adding to the registry
 
 - **A new entry:** append to `PLACES` with a real `sourceUrl` and today's

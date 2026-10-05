@@ -29,7 +29,7 @@ const ROOT = join(__dirname, "..", "..");
 
 function stripSqlComments(text: string): string {
   return text
-    .split("\n")
+    .split(/\r?\n/) // a Windows checkout has CRLF, and `.` stops at \r — the comment survived
     .map((l) => l.replace(/--.*$/, ""))
     .join("\n");
 }
