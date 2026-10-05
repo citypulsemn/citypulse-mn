@@ -71,6 +71,33 @@ are never choosing between two buttons with the same outcome.
 - **A run with nothing pending writes no row and makes no model call.** Both
   queues are usually empty.
 
+## A verdict is one opinion, not a measurement
+
+The first two real runs, minutes apart on identical rows, disagreed on all
+three submissions:
+
+| | first run | second run |
+|---|---|---|
+| Ramsey's Fall Fest | `unconfirmed` — "appears under past events" | `confirmed` — "multiple current 2026 sources" |
+| Drive2Compare | `corrected` — fix both URLs | `confirmed` — "match exactly" |
+| Hunters Widow's Weekend | `unconfirmed` | `corrected` — venue is "Center", not "Building" |
+
+A hand check settled the first: Ramsey's Fall Fest **is** 10 Oct 2026 at The
+Draw, free admission. The second run was right and the first had read a
+past-events page.
+
+That is inherent — a web search returns different pages on different days, and
+nothing pins which page the check lands on. It is why **nothing here is ever
+applied automatically**, and why the email shows the evidence URL next to every
+verdict rather than only the conclusion. Treat a verdict as a well-researched
+opinion that saves you the first fifteen minutes, not as a measurement. A
+`confirmed` on something that matters is still worth the evidence link.
+
+The one correction the first run proposed was also cosmetic: it wanted
+`drive2compare.com` rewritten to `morries.com/drive2compare`, and the vanity
+domain simply redirects there. Watch for the check proposing churn on URLs that
+already work.
+
 ## The submitter hears nothing
 
 By choice. The form promises no reply and the inbox sends none — an email
