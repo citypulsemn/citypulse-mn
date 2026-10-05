@@ -219,3 +219,9 @@ tagged outdoor but carry the April–October season instead of June–August. Un
 the new rules Northview comes up on **9 Sep 2027**. It also makes the pools page
 call them open in April. Their source page needs reading before the season is
 changed, so it is flagged rather than guessed.
+
+> **Resolved 5 Oct 2026.** The source states no season, so Lorraine now carries
+> `POOL_SUMMER`, and a drift guard in `places.test.ts` holds every non-indoor
+> pool to June–August. Reading it also showed Northview did not open in 2026
+> and has no reopening date, so it is pulled from the registry — see the
+> correction in `DEPLOY-PLACES-FOUR-KINDS.md`.

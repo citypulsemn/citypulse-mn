@@ -91,6 +91,18 @@ parks. Northview is the deep one — three to twelve feet, diving board, climbin
 wall. Lorraine is zero-depth for small children, and is already closed for 2026.
 Both listed separately, which is what they are.
 
+> **Corrected 5 Oct 2026.** The closure was on the wrong pool. "Lorraine Splash
+> Pool has closed for the 2026 season. We look forward to seeing you next year!"
+> is the hub page's end-of-summer banner — Lorraine ran all summer. The pool that
+> never opened in 2026 is Northview: its own page (`/1047/Northview-Pool`) says
+> the site is being prepared for a new outdoor aquatics center, with no reopening
+> date. Both also shipped on the April–October season; no page states one, so
+> Lorraine now carries `POOL_SUMMER`. **Northview is pulled from the registry**
+> (Taren's call) until the city announces an opening — the registry cannot say
+> "closed until further notice" and would have called it open in June 2027. Its
+> page is now a 404. The lesson for the method: read the per-place pages under a
+> hub, not only the hub.
+
 Pools are the least urgent of the four — the outdoor season is eight months out —
 so the next pass has room to do this properly.
 

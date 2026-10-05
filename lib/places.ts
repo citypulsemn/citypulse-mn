@@ -1533,25 +1533,32 @@ export const PLACES: Place[] = [
   //
   // Pools are also the least urgent of the four: the outdoor season is eight
   // months out, so the next pass has time to do this properly.
-  {
-    slug: "northview-pool-south-st-paul", name: "Northview Pool", kind: "pool",
-    lat: 44.90062, lng: -93.05705, address: "Northview Park, South St. Paul, MN 55075",
-    city: "South St. Paul", neighborhood: null, season: WARM_SEASON, cost: "paid",
-    tags: ["outdoor", "diving-board"],
-    intro: "The deep one — three to twelve feet, with a diving board, a climbing wall and basketball hoops over the water.",
-    sourceUrl: "https://www.southstpaulmn.gov/171/Aquatics",
-    details: { indoor: false },
-    verifiedAt: "2026-09-06", venueSlug: null,
-  },
+  //
+  // Re-read 5 Oct 2026, this time with the two per-pool pages under the hub
+  // (/1047/Northview-Pool, /1048/Splash-Pool). Two corrections:
+  //   - Season. Both shipped as WARM_SEASON (April–October). No page states an
+  //     opening or closing month — the only months anywhere are "June – August"
+  //     on the swim-lesson schedule — so Lorraine takes the outdoor-pool floor.
+  //   - The closure was on the wrong pool. The hub's banner, "Lorraine Splash
+  //     Pool has closed for the 2026 season. We look forward to seeing you next
+  //     year!", is an end-of-summer notice: Lorraine ran all summer. The pool
+  //     that never opened is Northview, per the director's letter on its own
+  //     page: the site is being prepared for a new outdoor aquatics center, and
+  //     no reopening date is given.
+  //
+  // NORTHVIEW POOL IS PULLED (Taren's call, 5 Oct 2026) — a registry of places
+  // to go has no way to say "closed until further notice", and would have called
+  // it open again in June 2027. It was `northview-pool-south-st-paul`, Northview
+  // Park, 635 18th Ave N. Re-add it when the city's page announces an opening.
   {
     slug: "lorraine-splash-pool-south-st-paul", name: "Lorraine Splash Pool", kind: "pool",
     lat: 44.87873, lng: -93.0374, address: "Lorraine Park, South St. Paul, MN 55075",
-    city: "South St. Paul", neighborhood: null, season: WARM_SEASON, cost: "paid",
+    city: "South St. Paul", neighborhood: null, season: POOL_SUMMER, cost: "paid",
     tags: ["outdoor", "zero-depth"],
-    intro: "The little-kid counterpart to Northview: a big interactive play structure, zero-depth entry on two sides, and deck space to sit on. Closed for the 2026 season.",
+    intro: "South St. Paul's little-kid pool: a big interactive play structure, zero-depth entry on two sides, and deck space to sit on.",
     sourceUrl: "https://www.southstpaulmn.gov/171/Aquatics",
     details: { indoor: false, zeroDepth: true },
-    verifiedAt: "2026-09-06", venueSlug: null,
+    verifiedAt: "2026-10-05", venueSlug: null,
   },
   {
     slug: "brooklyn-center-community-center-pool", name: "Brooklyn Center Community Center Pool", kind: "pool",

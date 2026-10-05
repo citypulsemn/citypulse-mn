@@ -406,6 +406,17 @@ describe("pools (P2.1 kind)", () => {
     expect(openNow(gr, JULY)).toBe(false); // closed for summer
     expect(openNow(gr, JANUARY)).toBe(true); // open in the school year
   });
+
+  it("every pool that isn't indoor runs June–August — never the April–October window", () => {
+    // Drift guard (5 Oct 2026): the two South St. Paul pools shipped on the
+    // dog-park season, so the pools page called an outdoor pool open in April
+    // and the weekly email had Northview lined up for 9 Sep 2027.
+    const outdoor = pools.filter((p) => !p.tags.includes("indoor"));
+    expect(outdoor.length).toBeGreaterThanOrEqual(19);
+    for (const p of outdoor) {
+      expect(p.season, p.slug).toMatchObject({ type: "seasonal", openMonth: 6, closeMonth: 8 });
+    }
+  });
 });
 
 describe("winter kinds (P2.1 rinks + sledding)", () => {
@@ -720,7 +731,9 @@ describe("pool features (winning detail — moat, kind 5; source-verified)", () 
     // 25 → 27 on 6 Sep 2026: Northview Pool and Lorraine Splash Pool, South St.
     // Paul. Both outdoor, so `indoor: true` stays at 6; neither has a slide, so
     // waterSlide stays at 22; Lorraine adds one zero-depth (20 → 21).
-    expect(pools.length).toBe(27);
+    // 27 → 26 on 5 Oct 2026: Northview pulled — it did not open in 2026 and the
+    // city gives no reopening date. It carried none of the three badges.
+    expect(pools.length).toBe(26);
     expect(pools.filter((p) => p.details?.waterSlide === true).length).toBe(22);
     expect(pools.filter((p) => p.details?.zeroDepth === true).length).toBe(21);
     expect(pools.filter((p) => p.details?.indoor === true).length).toBe(6);
