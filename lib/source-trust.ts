@@ -35,6 +35,15 @@ import { hostOf } from "./verify-attribution";
  */
 export const AGGREGATOR_HOSTS: readonly string[] = [
   "365twincities.com",
+  // Added 4 Oct 2026, found while triaging verify flags: every one of these
+  // was supplying a TIME for a listing, and none of them runs the event.
+  // A tourism board and a radio station are roundups however local they are.
+  "burnsvillemn.com",
+  "discovershakopee.org",
+  "krocnews.com",
+  "minneapolis.org",
+  "minnesotahauntedhouses.com",
+  "playtimecompass.com",
   "axios.com",
   "bringmethenews.com",
   "cbsnews.com",

@@ -124,3 +124,30 @@ describe("isResaleSource — lookalikes, not box offices", () => {
     expect(isResaleSource("not a url")).toBe(false);
   });
 });
+
+describe("tourism boards and radio stations are roundups too", () => {
+  it("catches the hosts that were supplying times to the verify pass", () => {
+    for (const h of [
+      "https://www.minneapolis.org/calendar/2026-minnesota-renaissance-festival/",
+      "https://www.minnesotahauntedhouses.com/calendar/",
+      "https://playtimecompass.com/events/minneapolis-st-paul/weekend",
+      "https://krocnews.com/ixp/717/p/valleyscare-2026-info-hours/",
+      "https://discovershakopee.org/celebrate-fall-in-shakopee/",
+      "https://burnsvillemn.com/event/valleyscare/",
+    ]) {
+      expect(isAggregatorSource(h), h).toBe(true);
+    }
+  });
+
+  it("still lets an organiser's own site through", () => {
+    for (const h of [
+      "https://www.dakotacooks.com/event/afro-cuban-all-stars-oct-25",
+      "https://ordway.org/events/",
+      "https://www.visitsealife.com/minnesota/whats-inside/experiences/",
+      "https://www.stpaul.gov/node/23696",
+      "https://burnsvillemn.gov/calendar.aspx?EID=15936",
+    ]) {
+      expect(isAggregatorSource(h), h).toBe(false);
+    }
+  });
+});
