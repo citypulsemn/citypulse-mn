@@ -1,7 +1,7 @@
 # REELS-PUBLISH.md — Phase 2 architecture: auto-posting to Instagram
 
 **Status:** BUILT (Aug 27, 2026) — all modules implemented and tested
-(141 publish tests; `lib/reels/publish/`, `scripts/reels/publish.ts`,
+(142 publish tests; `lib/reels/publish/`, `scripts/reels/publish.ts`,
 `scripts/reels/ig-auth.ts`). Awaiting the one-time Meta setup below, then
 the supervised rollout. Phase 1 (docs/REELS.md) generates finished reels on
 schedule; this phase makes them post themselves.
@@ -180,3 +180,213 @@ schtasks /Create /TN "CityPulse Reels Publish 1830" /SC WEEKLY /D "MON,FRI" /ST 
 
 Roadmap note: the same architecture carries City Pulse Plymouth later — the
 publisher is per-account (token file + IG user id), everything else shared.
+
+---
+
+# Still cards (feed posts on non-reel days) — DESIGN v2, not built
+
+**Status:** DESIGN (Oct 4, 2026), revised after a three-way adversarial
+review that measured the first draft against live data. Recon by four
+parallel readers; API rules checked against Meta's current docs; mockups
+rendered from the real template. Decisions were locked Oct 5 (bottom).
+
+## What and why
+
+Admin → Content (roadmap 2.1, docs/CONTENT.md) renders Instagram feed cards
+that a human must download and post. That human step is the proven
+bottleneck: the account went a month without a post. This adds **arch-style
+still cards that post themselves on a day the reels don't**, through the gate
+the reels already use.
+
+The existing content-tab cards and captions are **not** what gets posted.
+They can't be automated honestly: every caption template carries emoji,
+hashtags and em dashes (all banned by the reel caption rules), the kit has no
+drag/political screen, and card and caption disagree in three places. The tab
+stays the manual pull tool it was built to be.
+
+## v1 is one card: "Five places"
+
+The arch template is a five-row list, so cards are **lists of five built from
+data alone — no model call**. The first draft proposed two cards. The review
+measured both against the live database and they are not equally good:
+
+| | Five places | Free this week |
+|---|---|---|
+| Overlap with that week's reels | **none** — the reels never touch Places | **5 of 5 rows** already on that week's reels, all three weeks measured |
+| Supply | a card in **52 of 52** simulated weeks | 6–10 honest rows in October, the best month; winter unmeasured |
+| Honesty hazards with nobody reviewing | registry facts with a source URL each | unverified rows, evergreen "daily admission" listings, events already over by post time, a brand screen with election-season gaps |
+
+So **v1 ships the Places card only** and the Free card is deferred — it is
+buildable (hardening list below) but it is a recap of the reels carrying the
+most risk. Places is the vertical with no social presence at all.
+
+### How the five are chosen
+
+- **Kind of the week.** One kind per card (orchards, museums, dog parks…).
+  Seasonal kinds in their safe season go first — orchards belong in October,
+  not whenever a shuffle reaches them — then year-round kinds. A kind needs at
+  least 10 eligible places, so a card is never most of the list.
+- **No kind repeats within 8 weeks.** That single rule replaces the draft's
+  two. The memory is the card folders themselves: each one records the kind
+  it posted, and the generator reads the last eight weeks of them. No separate
+  history file to lose (the reels' history.json would silently erase it).
+- **Card-safe seasons.** Registry seasons are month-level and wider than the
+  truth ("Memorial Day–Labor Day" is stored as May–September). A ±14-day
+  margin, measured, still put beaches on a card before Memorial Day and after
+  Labor Day. Each season gets explicit card-safe dates instead (summer Jun 1–
+  Aug 31, winter Jan 1–Feb 14, and so on), with golden tests on the edges.
+- **Which five.** Ordered by a hash of the place and the week — deterministic,
+  not alphabetical, different every time the kind comes round.
+- **What a row says.** Name and city, nothing else. **No tags**: they carry
+  schedule and staffing facts (market days, lifeguards, open-skate) that go
+  stale. **No cost**: the registry field means admission, and the mockup
+  showed what that does — "Pine Tree Apple Orchard · Free" reads as free
+  apples.
+- **Wording.** Never "best", "top", or anything implying a ranking. For the
+  kinds the registry marks as a curated sample, the header says "from our
+  list" and the bottom row reads "MORE AT CITYPULSEMN.COM/PLACES" — not
+  "FULL GUIDE", which would claim completeness the list doesn't have.
+
+Fewer than five honest rows means **no card that day, never padded**.
+
+### The image, caption and alt text
+
+The reel card is cropped to the arch and placed at about 95% on a 1080×1350
+canvas (4:5 is the tallest ratio Instagram's API accepts) over a painted
+background, then encoded as JPEG — the only format the API takes. Captions
+are deterministic templates under the reel policy (no hashtags, emoji or
+dashes), checked at run time by the same four caption rules the reels use;
+fixed strings live in `lib/editorial.ts`. Each post carries `alt_text`
+listing the five places — the card is an image made of text, so this is
+basic accessibility.
+
+## How it moves through the pipeline
+
+**Each card is its own one-post folder, published by its own small entry
+script.** The live reel publisher is not edited.
+
+```
+06:30 Wed   npm run cards           → Reels\auto\<postDate>_card\
+                                       card.jpg · caption.txt · alt.txt · manifest.json
+                                      emails the five rows ("posts at 11:45")
+11:45 Wed   npm run cards:publish   gate → temp-host JPEG → image container
+18:30 Wed   same command (catch-up)   → status check → publish → clean up
+```
+
+What the review changed here, and why:
+
+- **A separate script, not a `--cards` flag.** npm silently drops
+  `npm run reels:publish --cards` and runs the *reel* publisher, which on a
+  Tuesday resolves Monday's folder and would post a leftover Monday reel.
+- **No new manifest field.** The draft's `imageFile` is dropped by the
+  loader and the card would be held forever. The card manifest is reel-shaped
+  instead — the JPEG path goes in the existing media field, the template
+  colour is the variant — so the tested gate is reused with zero edits.
+- **A date guard.** Nothing in the gate compares a folder's date to today, so
+  the card script refuses any manifest not dated today. Preview renders are
+  marked as smoke runs, which the gate already refuses.
+- **The generator always writes a manifest**, including "skipped, and why".
+  A missing manifest then keeps one meaning: generation did not run.
+- **Its own labels.** Without them every card email would arrive titled as a
+  Monday reel problem.
+
+Code touched: one new request builder in `instagram.ts`, a content type
+chosen by file extension in `host.ts` (additive), `renderFeedCardJpeg` in
+`card.ts` (no existing line changes), the four caption checks exported from
+`validate.ts`, two new scripts, and the selection logic in a new pure module.
+All 142 existing publish tests stay as they are.
+
+## Failure modes
+
+| Failure | Behavior |
+|---|---|
+| Fewer than 10 eligible places in every candidate kind | Manifest says skipped and why; one email. |
+| PC asleep at 06:30 | No folder; the publish runs report that generation did not run. Fix: `npm run cards && npm run cards:publish`. |
+| Asleep at 11:45 | The 18:30 run posts it. |
+| Off all day | Nothing posts and nothing emails. Never posted on a later day. |
+| Meta rejects the image | Recorded as failed, emailed, hosted file removed; the 18:30 run tries once more. |
+| HOLD file, or `card.jpg` deleted | Veto — same as reels. |
+
+## Known residual risks
+
+- **Every card posts unseen.** The gate's automatic holds are all about
+  video clips; for a data-only card nothing is left but the HOLD file, which
+  needs hands on the PC. The 06:30 email shows the five rows on a phone, but
+  stopping one still means reaching the PC. A phone-side hold needs the admin
+  status screen (the other half of this idea) — worth building next.
+- Places have not been re-verified since Aug–Sep 2026. Cards use only name,
+  city and cost, and the 8-week rule limits how often any one error shows.
+- The image path has never run against Meta, 4:5 sits on the allowed
+  boundary, and Meta auto-blocked this app once (Sep 18). Dry run and one
+  supervised post before scheduling.
+- The scheduled tasks do not wake the PC and do not run on battery. So far
+  26 of 26 triggers have fired.
+
+## The Free card, if wanted later
+
+Viable, with this hardening (each item measured as necessary): require a
+verify stamp; window starts tomorrow, not today; strict-free price text
+(shipped today, see below); drop evergreen "daily admission" listings; one
+row per venue; a stricter election-season brand screen; start-day-only
+labels (shipped today); and a decision on repeating the reels.
+
+## Rollout
+
+1. Build; golden tests for kind choice, season edges, the 8-week rule, row
+   wording, the date guard, the image gate.
+2. Preview a few weeks of cards for Taren to judge on a phone.
+3. `npm run cards:publish -- --dry-run` — a real image container, no post.
+4. One supervised real post.
+5. Three scheduled tasks on the card day.
+
+## Found by the review — live reels (fixed Oct 4–5)
+
+The reviewers measured the reels' own formatter against live data and found
+it printing things the data does not support:
+
+- **"Daily" and "Weekdays".** 12 of 40 rows with a multi-day end date
+  printed "Daily"; none ran every day (a one-off parade among them). Five
+  past reel days carry the label. Now: the start day, always; "Sat & Sun"
+  only for a Saturday start ending the next day.
+- **"Free" on conditional prices.** The Free tier is a substring match, so
+  "$18; children under 36in free" printed "Free". Now only an unconditional
+  price text prints "Free" (`isStrictlyFree` in `lib/price-quality.ts`);
+  anything else falls to "Check site".
+- **Broken venue cuts** ("Lowell Park &", "Hennepin Avenue (W."). Now cut at
+  a natural separator with no dangling connector.
+- **"All Day" for an unknown time** (found Oct 5 on that day's weird reel).
+  A midnight start was printed as "All Day"; for a web-found event it just
+  means the time is unknown. Now printed only when the database attests it.
+- **A venue of "TBD"** reached a card through the web top-up. Rows with no
+  confirmed venue are now dropped, with the reason in the manifest.
+
+## Follow-ups (separate, small)
+
+- **Brand screen tightened (Oct 5, 2026).** Election, voting, candidate,
+  debate and town-hall vocabulary added; soft words (election, political,
+  voter registration) now match the TITLE only, because in a description they
+  are incidental; innocent look-alikes exempted (pep and stamp rallies, D&D
+  and charity "campaign kickoffs", debate tournaments, March Madness).
+  Measured against all 4,586 events the table has ever held: it newly blocks
+  exactly two listings, both real misses (a Drag Race winner's show; a
+  midterms podcast tour), and frees one false positive (a "Stamp Rally"
+  scavenger hunt). **It is a floor, not a guarantee:** against 70 crafted
+  election-season and drag titles the first draft caught 19 (the old rule
+  10). Listings that name a performer or a movement instead of a category
+  word ("Results & Brews: Nov. 3 Returns Party") cannot be caught by
+  pattern. The proposed answer is a model look at each reel's five
+  finalists — open decision, below.
+- `/admin/instagram` duplicates the reel selection rules and can drift.
+- The site's "Free this week" collection uses the same loose tier.
+- Pexels is deprecating the un-versioned video path the reels use.
+- The publisher hardcodes Meta's daily limit at 100; Meta's docs also say 50.
+- Place-of-the-week rotation repeats in November and feeds the digest
+  (flagged as its own task).
+
+## Decisions — locked with Taren (Oct 5, 2026)
+
+1. **Lineup: Places card only, once a week** — Wednesday, 11:45. Add more
+   only after Insights shows how it performs.
+2. **Background: cream field** in the site palette.
+3. **Brand screen: tightened now** for election season (applies to reels and
+   cards) — see the rule and its measured effect in the deploy notes.
