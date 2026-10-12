@@ -1238,3 +1238,55 @@ describe("nearbyOfKind — sideways links out of a detail page", () => {
     }
   });
 });
+
+describe("seasons re-verified against their own sources (6 Oct 2026)", () => {
+  const APRIL = new Date("2026-04-15T12:00:00Z");
+  const MAY = new Date("2026-05-15T12:00:00Z");
+  const OCTOBER = new Date("2026-10-15T12:00:00Z");
+
+  it("the two Three Rivers disc golf courses on ski hills close for winter", () => {
+    // Their pages read "Closed for the season" in every winter capture and were
+    // still closed on 14 Apr 2026; the registry had them year-round.
+    for (const slug of ["hyland-hills-disc-golf", "elm-creek-disc-golf"]) {
+      const p = placeBySlug(slug)!;
+      expect(p.season.type, slug).toBe("seasonal");
+      expect(openNow(p, JULY), slug).toBe(true);
+      expect(openNow(p, JANUARY), slug).toBe(false);
+      expect(openNow(p, APRIL), slug).toBe(false);
+    }
+  });
+
+  it("each course is the floor of what its own page's captures attest, no wider", () => {
+    const hyland = placeBySlug("hyland-hills-disc-golf")!;
+    const elm = placeBySlug("elm-creek-disc-golf")!;
+    expect(hyland.season).toMatchObject({ openMonth: 5, closeMonth: 9, label: "May–September" });
+    expect(elm.season).toMatchObject({ openMonth: 6, closeMonth: 10, label: "June–October" });
+    expect(openNow(hyland, MAY)).toBe(true); // "Open", 13 May 2026
+    expect(openNow(hyland, OCTOBER)).toBe(false); // "Closed for the 2026 season", 5 Oct 2026
+    expect(openNow(elm, OCTOBER)).toBe(true); // "Open", 6 Oct 2026
+    expect(openNow(elm, MAY)).toBe(false); // no May capture either way: the floor
+  });
+
+  it("drift guard: a disc golf course laid over ski slopes, ski trails or a tubing hill is never year-round", () => {
+    const winterGround = /ski slope|ski trail|tubing hill/i;
+    const onWinterGround = placesByKind("disc-golf").filter((p) => winterGround.test(p.intro));
+    expect(onWinterGround.length).toBeGreaterThanOrEqual(2);
+    for (const p of onWinterGround) expect(p.season.type, p.slug).toBe("seasonal");
+  });
+
+  it("Apple Valley Sports Arena is a rink only while its page says there is ice: October–March", () => {
+    const p = placeBySlug("apple-valley-sports-arena")!;
+    expect(p.intro).toContain("Ice from mid-October to mid-March");
+    expect(p.season).toMatchObject({ type: "seasonal", openMonth: 10, closeMonth: 3, label: "October–March" });
+    expect(openNow(p, OCTOBER)).toBe(true);
+    expect(openNow(p, JANUARY)).toBe(true);
+    expect(openNow(p, APRIL)).toBe(false); // a dry floor is not a rink
+    expect(openNow(p, JULY)).toBe(false);
+  });
+
+  it("drift guard: no rink shares the indoor water park's September–May season", () => {
+    for (const p of placesByKind("rink")) {
+      if (p.season.type === "seasonal") expect(p.season.label, p.slug).not.toBe("September–May (closed summer)");
+    }
+  });
+});

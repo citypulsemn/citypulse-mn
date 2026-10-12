@@ -1,0 +1,166 @@
+--- a/lib/reels/cards/places-card.ts
++++ b/lib/reels/cards/places-card.ts
+@@ -36,6 +36,11 @@
+   "December–February": ["01-01", "02-14"],
+   "December–March": ["01-01", "03-01"],
+   "September–October": ["09-15", "10-25"],
++  // Ice mid-October to mid-March (one arena): the settled middle of the ice.
++  "October–March": ["11-01", "03-10"],
++  // Disc golf on ski hills, each the floor of its own page's Wayback captures.
++  "May–September": ["06-01", "08-31"],
++  "June–October": ["06-15", "09-30"],
+ };
+ 
+ /**
+@@ -46,17 +51,12 @@
+  * when the entry is corrected, its line here should go.
+  */
+ export const CARD_SAFE_BY_SLUG: Record<string, readonly [from: string, to: string] | null> = {
+-  // Shares "September–May (closed summer)" with a water park, but its own
+-  // intro says "Ice from mid-October to mid-March". An "ice rinks" card on
+-  // March 31 would list a dry floor.
+-  "apple-valley-sports-arena": ["11-01", "03-10"],
+-  // Registered year-round. Its source page read "Closed for the 2026 season"
+-  // on 2026-10-05, and the holes climb the ski slopes.
+-  "hyland-hills-disc-golf": null,
+-  // Registered year-round on ground their own intros give to winter sports
+-  // (ski trails and a tubing hill; a par-3 golf course). Winter play is not
+-  // attested either way, so warm season only.
+-  "elm-creek-disc-golf": ["05-01", "09-30"],
++  // Registered year-round beside a par-3 golf course. Its page says "open
++  // sunrise to sunset daily" in summer and winter captures alike and nothing
++  // about a season, so winter play is not attested either way: warm season
++  // only. (Apple Valley Sports Arena and the two Three Rivers disc golf
++  // courses had lines here until their registry entries were re-verified
++  // against their sources on 6 Oct 2026.)
+   "theodore-wirth-disc-golf": ["05-01", "09-30"],
+   // Registered year-round; its own intro ends "open the warm months". The
+   // window its seasonal sibling museums (May–October) already get.
+--- a/lib/reels/cards/__tests__/places-card.test.ts
++++ b/lib/reels/cards/__tests__/places-card.test.ts
+@@ -137,6 +137,9 @@
+     ["December–February", "12-31", "01-01", "02-14", "02-15"],
+     ["December–March", "12-31", "01-01", "03-01", "03-02"],
+     ["September–October", "09-14", "09-15", "10-25", "10-26"],
++    ["October–March", "10-31", "11-01", "03-10", "03-11"],
++    ["May–September", "05-31", "06-01", "08-31", "09-01"],
++    ["June–October", "06-14", "06-15", "09-30", "10-01"],
+   ])("%s: out on %s, in from %s through %s, out on %s", (label, before, first, last, after) => {
+     expect(at(label, before)).toBe(false);
+     expect(at(label, first)).toBe(true);
+@@ -145,7 +148,7 @@
+   });
+ 
+   it("the table above covers every row of the real one", () => {
+-    expect(Object.keys(CARD_SAFE_SEASONS)).toHaveLength(8);
++    expect(Object.keys(CARD_SAFE_SEASONS)).toHaveLength(11);
+   });
+ 
+   it("the off-season window wraps the new year", () => {
+@@ -154,6 +157,11 @@
+     for (const outside of ["05-01", "07-04", "09-30"]) expect(at(label, outside), outside).toBe(false);
+   });
+ 
++  it("the ice window wraps the new year too", () => {
++    for (const inside of ["11-01", "12-31", "01-01", "03-10"]) expect(at("October–March", inside), inside).toBe(true);
++    for (const outside of ["10-31", "03-11", "07-04"]) expect(at("October–March", outside), outside).toBe(false);
++  });
++
+   it("the winter windows do NOT open in December, whatever the label says", () => {
+     for (const label of ["December–February", "December–March"]) {
+       for (const day of ["12-01", "12-15", "12-25", "12-31"]) expect(at(label, day), `${label} ${day}`).toBe(false);
+@@ -423,17 +431,23 @@
+   });
+ 
+   it("Apple Valley Sports Arena is an ice rink only while its own entry says there is ice", () => {
++    // Now the registry's own October–March season, not a line in this file.
+     expect(bySlug("apple-valley-sports-arena").intro).toContain("Ice from mid-October to mid-March");
++    expect(bySlug("apple-valley-sports-arena").season).toMatchObject({ label: "October–March" });
+     for (const dry of ["2026-10-07", "2026-10-31", "2027-03-11", "2027-03-31", "2027-04-28", "2027-07-07"]) {
+       expect(safeOn("apple-valley-sports-arena", dry), dry).toBe(false);
+     }
+     for (const ice of ["2026-11-01", "2027-01-20", "2027-03-10"]) expect(safeOn("apple-valley-sports-arena", ice), ice).toBe(true);
+-    // The water park that shares its label keeps the label's window.
++    // The water park keeps its own September–May window.
+     expect(safeOn("great-river-water-park", "2027-03-31")).toBe(true);
+   });
+ 
+-  it("a place whose own source says it is closed never makes a card", () => {
+-    for (const day of everyDayOf2027) expect(safeOn("hyland-hills-disc-golf", day), day).toBe(false);
++  it("Hyland Hills, 'Closed for the 2026 season' on 5 Oct, is May–September in the registry and cards June–August", () => {
++    expect(bySlug("hyland-hills-disc-golf").season).toMatchObject({ label: "May–September" });
++    expect(safeOn("hyland-hills-disc-golf", "2027-07-07")).toBe(true);
++    for (const day of ["2026-10-07", "2027-01-20", "2027-04-14", "2027-05-31", "2027-09-01", "2027-12-22"]) {
++      expect(safeOn("hyland-hills-disc-golf", day), day).toBe(false);
++    }
+   });
+ 
+   it("disc golf on winter-sports ground cards only in the warm season", () => {
+@@ -449,6 +463,12 @@
+     expect(PLACES.some((p) => p.slug === "northview-pool-south-st-paul")).toBe(false);
+     expect(bySlug("lorraine-splash-pool-south-st-paul").season).toMatchObject({ label: "June–August" });
+     expect(Object.keys(CARD_SAFE_BY_SLUG)).not.toContain("lorraine-splash-pool-south-st-paul");
++    // 6 Oct 2026: the arena and the two ski-hill disc golf courses, re-verified
++    // against their own pages, are seasonal in the registry now.
++    for (const slug of ["apple-valley-sports-arena", "hyland-hills-disc-golf", "elm-creek-disc-golf"]) {
++      expect(Object.keys(CARD_SAFE_BY_SLUG), slug).not.toContain(slug);
++      expect(bySlug(slug).season.type, slug).toBe("seasonal");
++    }
+   });
+ 
+   it("Gibbs Farm, 'open the warm months', cards in summer only", () => {
+--- a/docs/REELS-PUBLISH.md
++++ b/docs/REELS-PUBLISH.md
+@@ -243,16 +243,18 @@
+   margin, measured, still put beaches on a card before Memorial Day and after
+   Labor Day. Each season gets explicit card-safe dates instead (summer Jun 1–
+   Aug 31, winter Jan 1–Feb 14, and so on), with golden tests on the edges.
+-- **Five single places are corrected by hand** (`CARD_SAFE_BY_SLUG`), each
+-  with its evidence in the code: Apple Valley Sports Arena cards as an ice
+-  rink only Nov 1–Mar 10 (its own entry says the ice is in mid-October to
+-  mid-March; the label it shares with a water park would have listed a dry
+-  floor on March 31); Hyland Hills disc golf never cards (its page says
+-  closed for the 2026 season); two disc golf courses laid over ski trails
+-  and a tubing hill card in the warm season only; Gibbs Farm ("open the warm
+-  months") cards in summer. **These are registry errors showing through** —
+-  see "Left for Taren" below. Two more, the South St. Paul pools, were
+-  corrected in the registry itself the same day, and their lines came out.
++- **Two single places are corrected by hand** (`CARD_SAFE_BY_SLUG`), each
++  with its evidence in the code: Theodore Wirth disc golf cards in the warm
++  season only (its page says "open sunrise to sunset daily" in summer and
++  winter captures alike, so winter play is attested neither way); Gibbs Farm
++  ("open the warm months") cards in summer. **These are registry errors
++  showing through** — see "Left for Taren" below. Five more lines have
++  already come out because the registry itself was corrected: the two South
++  St. Paul pools on 5 Oct 2026, and on 6 Oct Apple Valley Sports Arena
++  (October–March, the city's "ice from mid-October to mid-March") and the two
++  Three Rivers disc golf courses on ski hills (Hyland May–September, Elm
++  Creek June–October — each the floor of what its own page's Wayback Machine
++  captures attest). Their windows now live in `CARD_SAFE_SEASONS` by label.
+ - **Which five.** Ordered by a hash of the place and the week — deterministic,
+   not alphabetical, different every time the kind comes round. The places on
+   that kind's last card go to the back of the order, so a kind never brings
+@@ -543,14 +545,15 @@
+ ## Left for Taren
+ 
+ - **Registry corrections.** The card works around these in
+-  `CARD_SAFE_BY_SLUG`, but the public Places pages still carry them: Hyland
+-  Hills Disc Golf is listed year-round and its own page says "Closed for the
+-  2026 season" (read Oct 5); Apple Valley Sports Arena is listed September to
+-  May as a rink while its entry says the ice is mid-October to mid-March;
+-  Gibbs Farm is listed year-round while its entry ends "open the warm
+-  months". When an entry is corrected, its line in `CARD_SAFE_BY_SLUG`
+-  should come out — as happened the same day for the two South St. Paul
+-  pools (Northview pulled, Lorraine on the pool summer; main, 90d89a3).
++  `CARD_SAFE_BY_SLUG`, but the public Places pages still carry them: Gibbs
++  Farm is listed year-round while its entry ends "open the warm months".
++  When an entry is corrected, its line in `CARD_SAFE_BY_SLUG` should come
++  out — as happened for the two South St. Paul pools (Northview pulled,
++  Lorraine on the pool summer; main, 90d89a3) and, on 6 Oct 2026, for Hyland
++  Hills, Elm Creek and Apple Valley Sports Arena (re-verified against their
++  own pages; see `docs/deploy-history/DEPLOY-PLACES-SEASONS-REVERIFIED.md`).
++  Theodore Wirth disc golf keeps its line: its page attests no season either
++  way, so the registry's year-round stands and the card stays conservative.
+   Richfield Ice Arena's entry says skating is paused through 1 November
+   2026 — true today, stale on 2 November; the card leaves it alone because a
+   one-off closure is not a season.

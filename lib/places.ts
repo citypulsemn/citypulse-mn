@@ -4087,6 +4087,12 @@ export const PLACES: Place[] = [
     sourceUrl: "https://www.minneapolisparks.org/golf/courses/disc_golf/",
     verifiedAt: "2026-08-14", venueSlug: null,
   },
+  // Re-read 6 Oct 2026 against its page and the Wayback Machine's January 2026
+  // copy of it: "Open sunrise to sunset daily" in both, no seasonal note in
+  // either, and the Par 3 page lists disc golf as an amenity next to
+  // "cross-country ski rentals in the winter". Whether the course closes for
+  // winter is not attested either way, so YEAR_ROUND stands as the page's own
+  // words. (The weekly still card keeps it to the warm season on its own.)
   {
     slug: "theodore-wirth-disc-golf", name: "Theodore Wirth Disc Golf Course", kind: "disc-golf",
     lat: 44.9958, lng: -93.3197, address: "1325 Theodore Wirth Pkwy, Minneapolis, MN 55422",
@@ -4095,7 +4101,7 @@ export const PLACES: Place[] = [
     intro: "The Park Board's 18-hole par-3 course alongside the Wirth par-3 golf — 46 to 156 yards, beginner and intermediate tees, sunrise to sunset. A small fee to play.",
     sourceUrl: "https://www.minneapolisparks.org/golf/courses/disc_golf/",
     details: { full18Holes: true, beginnerFriendly: true },
-    verifiedAt: "2026-08-17", venueSlug: null,
+    verifiedAt: "2026-10-06", venueSlug: null,
   },
   {
     slug: "highland-park-disc-golf", name: "Highland Park Disc Golf Course", kind: "disc-golf",
@@ -4144,25 +4150,39 @@ export const PLACES: Place[] = [
     sourceUrl: "https://cityofeagan.com/disc-golf",
     verifiedAt: "2026-08-14", venueSlug: null,
   },
+  // Disc golf on ski-hill ground is seasonal. These two Three Rivers courses
+  // were registered year-round until the weekly still card nearly listed one
+  // on 5 Oct 2026 while its page read "Closed for the 2026 season". Re-read
+  // 6 Oct 2026 against each page and the Wayback Machine's copies of it. Each
+  // season is the conservative floor of what those captures attest, and the
+  // edge months no capture settles are named here for the verify pass.
+  //
+  // Elm Creek: "Closed for the season" on 9 Feb and 19 Apr 2025, 25 Jan and
+  // 14 Apr 2026; "Open" on 17 Jun and 10 Sep 2025, 10 Jul and 6 Oct 2026.
+  // May and November are uncaptured either way.
   {
     slug: "elm-creek-disc-golf", name: "Elm Creek Disc Golf Course", kind: "disc-golf",
     lat: 45.1385, lng: -93.4370, address: "12420 James Deane Parkway, Maple Grove, MN 55369",
-    city: "Maple Grove", neighborhood: null, season: YEAR_ROUND, cost: "paid",
+    city: "Maple Grove", neighborhood: null, season: { type: "seasonal", openMonth: 6, closeMonth: 10, label: "June–October" }, cost: "paid",
     tags: ["18-hole", "championship"],
     intro: "Eighteen holes from the chalet along the cross-country ski trails and over the tubing hill, with two par-4s and championship-caliber holes. Three Rivers pass required ($10 daily / $59 annual).",
     sourceUrl: "https://www.threeriversparks.org/location/elm-creek-disc-golf",
     details: { full18Holes: true },
-    verifiedAt: "2026-08-17", venueSlug: null,
+    verifiedAt: "2026-10-06", venueSlug: null,
   },
+  // Hyland: "Closed for the season" on 9 Feb 2025, 17 Dec 2025, 26 Jan and
+  // 14 Apr 2026; "Open" on 17 Jun and 10 Sep 2025, 13 May and 27 Aug 2026;
+  // "Closed for the 2026 season" by 5 Oct 2026. April and October are
+  // uncaptured either way, and the one October reading is closed.
   {
     slug: "hyland-hills-disc-golf", name: "Hyland Hills Disc Golf Course", kind: "disc-golf",
     lat: 44.8440, lng: -93.3628, address: "8800 Chalet Road, Bloomington, MN 55438",
-    city: "Bloomington", neighborhood: null, season: YEAR_ROUND, cost: "paid",
+    city: "Bloomington", neighborhood: null, season: { type: "seasonal", openMonth: 5, closeMonth: 9, label: "May–September" }, cost: "paid",
     tags: ["18-hole", "championship"],
     intro: "An 18-hole championship course with big elevation changes climbing and dropping the ski slopes, and a Twin Cities view. Three Rivers pass required.",
     sourceUrl: "https://www.threeriversparks.org/location/hyland-hills-disc-golf",
     details: { full18Holes: true },
-    verifiedAt: "2026-08-17", venueSlug: null,
+    verifiedAt: "2026-10-06", venueSlug: null,
   },
   {
     slug: "bryant-lake-disc-golf", name: "Bryant Lake Disc Golf Course", kind: "disc-golf",
@@ -5247,14 +5267,18 @@ export const PLACES: Place[] = [
     sourceUrl: "https://burnsvillemn.gov/217/Burnsville-Ice-Center",
     verifiedAt: "2026-09-06", venueSlug: null,
   },
+  // Re-read 6 Oct 2026. The city's page: "ice from mid-October to mid-March
+  // and dry floor space from mid-March to September". It shipped on the water
+  // park's September–May season, which had the rinks page calling a dry floor
+  // an ice rink from mid-March to May. Month-level, like every other rink.
   {
     slug: "apple-valley-sports-arena", name: "Apple Valley Sports Arena", kind: "rink",
     lat: 44.74208, lng: -93.23294, address: "14452 Hayes Rd, Apple Valley, MN 55124",
-    city: "Apple Valley", neighborhood: null, season: OFF_SEASON, cost: "paid",
+    city: "Apple Valley", neighborhood: null, season: { type: "seasonal", openMonth: 10, closeMonth: 3, label: "October–March" }, cost: "paid",
     tags: ["indoor", "hockey"],
     intro: "Ice from mid-October to mid-March; the rest of the year the floor comes up dry for everything else. Open 9 a.m. to 10 p.m.",
     sourceUrl: "https://www.applevalleymn.gov/1226/Arenas",
-    verifiedAt: "2026-09-06", venueSlug: null,
+    verifiedAt: "2026-10-06", venueSlug: null,
   },
   {
     slug: "wings-arena-apple-valley", name: "Wings Arena", kind: "rink",
