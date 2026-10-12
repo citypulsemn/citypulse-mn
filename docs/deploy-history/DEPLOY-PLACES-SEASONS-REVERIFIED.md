@@ -20,7 +20,7 @@ across 2025–2026.
 | `lorraine-splash-pool-south-st-paul` | April–October | June–August — **already on main, 90d89a3 (5 Oct)** | "has closed for the 2026 season. We look forward to seeing you next year!" No 2027 date |
 | `northview-pool-south-st-paul` | April–October | **pulled from the registry, 90d89a3 (5 Oct)** | the parks director's letter: site being prepared for a new aquatics center, no reopening date |
 
-Card side (as a patch, see "Deploy steps"): the lines for Apple Valley, Hyland
+Card side (applied in the main checkout, see "Deploy steps"): the lines for Apple Valley, Hyland
 and Elm Creek come out of `CARD_SAFE_BY_SLUG`; the three new labels get windows
 in `CARD_SAFE_SEASONS` (October–March → Nov 1–Mar 10; May–September → Jun 1–Aug
 31; June–October → Jun 15–Sep 30). Theodore Wirth and Gibbs Farm keep their
@@ -57,16 +57,17 @@ lines. `docs/REELS-PUBLISH.md`'s two passages about the table are updated.
 
 The registry fix lives on branch `claude/elated-rubin-68f9e8` (this worktree).
 The card-side change cannot live there, because the card files are uncommitted
-work in the main checkout, so it ships as a patch and was verified in place:
+work in the main checkout, so it was applied there directly and verified in place:
 
-- **Combined, in the main checkout** (registry fix + card patch applied, 6 Oct):
+- **Combined, in the main checkout** (registry fix + card-side edits, 6 Oct):
   tsc clean (worktree copies under `.claude/` excluded); vitest 141 files,
   **2,607 tests passing**, card suite included (edge table of 11 labels, the
   three-year rotation from four go-live Wednesdays); `next build` clean, 610
   static pages; `npm audit` 0. The main checkout was then restored byte-for-byte
   to its prior state (the app's worktree guard is right that a session's edits
-  belong on its branch), and `git apply --check` confirms the patch still
-  applies there.
+  belong on its branch). After the registry fix landed on main (f88371c), the
+  card-side edits were re-applied there on 12 Oct 2026 by the same
+  string-matching script: 141 files, **2,610 tests passing**.
 - **This branch alone**: tsc clean; vitest 136 files, **2,358 tests passing**;
   `next build` clean. `npm audit`: **2 high, both pre-existing on HEAD's
   lockfile** and unrelated to this change (sharp < 0.35.5, CVE-2026-96889;
@@ -84,35 +85,25 @@ work in the main checkout, so it ships as a patch and was verified in place:
 
 ## Deploy steps
 
-Two parts, in this order.
+Two parts, in this order. Both are done.
 
 1. **Registry fix (this branch).** Files: `lib/places.ts`,
-   `lib/__tests__/places.test.ts`, this guide, and
-   `docs/deploy-history/places-seasons-card-table.patch`. Commit on the branch
-   (`fix — three Places seasons were wider than their sources`) and push with
-   `HEAD:main`. Vercel deploys on push. The kind pages are ISR with a one-hour
-   revalidate, so `/places/disc-golf` and `/places/rink` pick it up within the
-   hour.
-2. **Card table (main checkout, where the still-card work lives).** After the
-   push, in `C:\Users\mccul\Documents\Event_Site\citypulse-mn`:
-   ```bash
-   git pull
-   ```
-   ```bash
-   git apply docs/deploy-history/places-seasons-card-table.patch
-   ```
-   ```bash
-   npx vitest run --exclude ".claude/**"
-   ```
-   Expect the card suite green. Until the patch is applied, one card test fails
-   on purpose against the corrected registry: "drift guard: every seasonal
-   label in the registry has a card-safe window" (the three new labels). The
-   card does not post until it is scheduled, so nothing public is affected.
-   The patched files go into the still card's own commit.
+   `lib/__tests__/places.test.ts` and this guide. Committed as f88371c
+   (`fix — three Places seasons were wider than their sources`) and pushed to
+   `main` on 12 Oct 2026. Vercel deploys on push. The kind pages are ISR with
+   a one-hour revalidate, so `/places/disc-golf` and `/places/rink` pick it up
+   within the hour.
+2. **Card table (main checkout, where the still-card work lives).** Applied
+   there the same day, after `git pull`: three lines out of
+   `CARD_SAFE_BY_SLUG`, three label windows into `CARD_SAFE_SEASONS`, the card
+   tests and two passages of `docs/REELS-PUBLISH.md` updated. Full suite in
+   the main checkout: 2,610 passing. These files are uncommitted there and go
+   into the still card's own commit. (A `git apply` patch of the same change
+   shipped with f88371c and was retired once applied.)
 
 Also: the main checkout's `.next` folder was built from the combined tree
-during the smoke and is now stale against its source; `npm run build` there
-refreshes it. Nothing else in the main checkout was left changed.
+during the smoke and is stale against its source until the next `npm run
+build` there.
 
 ## Verify after deploy
 
