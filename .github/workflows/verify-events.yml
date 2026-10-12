@@ -32,6 +32,28 @@ name: Verify Upcoming Events
 # timeout-minutes must stay ABOVE lib/verify.ts RUN_BUDGET_MS (20m) plus setup.
 # The script stops itself at the budget; this is the backstop, not the schedule.
 # If it ever fires, the per-batch flush means the finished batches are saved.
+#
+# ── STANDS DOWN IF A SUPERVISED PASS ALREADY RAN (Oct 2026) ─────────────────
+# This pass measured $8.55 a run, the biggest single API line in the project.
+# The research half can be done in a supervised session instead (see
+# docs/MANUAL-VERIFY.md), so the SCHEDULED run now passes
+# --skip-if-verified-recently=72 and exits without spending if a pass already
+# completed inside that window.
+#
+# WHY 72 AND NOT 7 DAYS. The Thursday pre-send pass lands 93h before this one
+# (Thu 15:00 UTC → Mon 12:00 UTC). A window any wider than that would let
+# Thursday's run suppress Monday's, collapsing the cadence back to one pass a
+# week — the exact failure the twice-weekly schedule above was built to fix.
+# 72h leaves 21h of margin against the +1h02m–+3h52m scheduler drift observed
+# on this repo, and gives a Friday-noon-onward window to do it by hand.
+#
+# The gate is on `schedule` ONLY. A manual dispatch means someone wants this to
+# run now, and the Thursday pass in weekly-digest.yml carries no gate at all —
+# an email cannot be recalled.
+#
+# It fails OPEN: an unreachable database or a missing DATABASE_URL runs the
+# pass rather than skipping it (lib/upsert.ts recentVerifyPass). A lost secret
+# must not quietly switch verification off while every run still shows green.
 on:
   schedule:
     - cron: "0 12 * * 1"
@@ -61,7 +83,7 @@ jobs:
       - run: npm ci --prefer-offline --no-audit --no-fund
 
       - name: Verify upcoming events
-        run: npm run verify ${{ github.event.inputs.dry_run == 'true' && '-- --dry-run' || '' }}
+        run: npm run verify -- ${{ github.event_name == 'schedule' && '--skip-if-verified-recently=72' || '' }} ${{ github.event.inputs.dry_run == 'true' && '--dry-run' || '' }}
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           REVALIDATE_SECRET: ${{ secrets.REVALIDATE_SECRET }}

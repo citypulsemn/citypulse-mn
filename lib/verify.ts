@@ -1,5 +1,6 @@
 import type { EventRecord } from "./types";
-import { isAggregatorSource } from "./source-trust";
+import { isAggregatorSource, isNonScheduleSource } from "./source-trust";
+import { venueIsUnknown, unknownVenueReason } from "./venue-quality";
 import { chiWallClock } from "./clock";
 
 /**
@@ -265,5 +266,264 @@ export function parseVerdicts(text: string, validIds: Set<string>): Verification
 export function batchForVerification<T>(events: T[], perBatch = 8): T[][] {
   const out: T[][] = [];
   for (let i = 0; i < events.length; i += perBatch) out.push(events.slice(i, i + perBatch));
+  return out;
+}
+
+// ---------------------------------------------------------------------------
+// Routing verdicts to writes
+// ---------------------------------------------------------------------------
+
+/** What a batch of verdicts turns into: three write-buckets and the lines to print. */
+export interface RoutedVerdicts {
+  confirms: string[];
+  cancels: { id: string; evidence: string }[];
+  flags: { id: string; verdict: string; note: string }[];
+  /** Printed by the caller. Returned rather than logged so this stays pure. */
+  lines: string[];
+}
+
+/** The fields routing needs off an event. A superset of what the agent is sent. */
+export type RoutableEvent = Pick<
+  VerifiableEvent,
+  "id" | "title" | "venue" | "city" | "sourceUrl" | "ticketUrl"
+>;
+
+/**
+ * Turn verdicts into writes, applying every gate that stands between an
+ * agent's opinion and `verified_at`.
+ *
+ * EXTRACTED FROM scripts/verify-events.ts, where it was inline in the batch
+ * loop, because there are now TWO ways verdicts arrive: the paid agent loop,
+ * and a findings file produced in a supervised session (`--from=`). Two copies
+ * of this would be two definitions of "what a confirmation requires" — the
+ * exact drift that let the panel and the writer disagree about "same event"
+ * for five weeks. One definition, both callers.
+ *
+ * The gates, in order, each bought by an incident:
+ *   - actionFor        cancels need evidence; absence never cancels
+ *   - venueIsUnknown   a stamp must know WHERE the event is (12 Sep 2026: five
+ *                      live rows stamped verified with venue "TBD – Saint Paul")
+ *   - weak source      a roundup or reseller is good enough to cite, not good
+ *                      enough to stamp. The stamp still lands — withholding it
+ *                      re-queues the row and re-spends on it forever — but the
+ *                      flag lands with it so the confirmation is not laundered
+ *                      clean (4 Oct 2026: of 140 weakly-sourced live listings,
+ *                      113 carried a stamp).
+ *
+ * A verdict for an id not in `events` is dropped: nothing can be routed
+ * without the row it describes.
+ */
+export function routeVerdicts(
+  verdicts: VerificationVerdict[],
+  events: RoutableEvent[],
+): RoutedVerdicts {
+  const byId = new Map(events.map((e) => [e.id, e]));
+  const out: RoutedVerdicts = { confirms: [], cancels: [], flags: [], lines: [] };
+
+  for (const v of verdicts) {
+    const action = actionFor(v);
+    const ev = byId.get(action.id);
+    if (!ev) continue;
+    const title = ev.title ?? action.id;
+
+    if (action.kind === "cancel") {
+      out.lines.push(`[verify]   ✗ CANCELLED "${title}" — ${action.evidence.slice(0, 90)}`);
+      out.cancels.push({ id: action.id, evidence: action.evidence });
+      continue;
+    }
+
+    if (action.kind !== "confirm") {
+      out.lines.push(`[verify]   ⚑ ${action.verdict.toUpperCase()} "${title}" — ${action.note}`);
+      out.flags.push({ id: action.id, verdict: action.verdict, note: action.note });
+      continue;
+    }
+
+    // "Confirmed" has to mean we know WHERE it is. A stamp on a row that cannot
+    // tell a reader where to go is a promise we have not kept.
+    if (venueIsUnknown(ev.venue, ev.city)) {
+      const why = unknownVenueReason(ev.venue, ev.city) ?? "venue unknown";
+      out.lines.push(`[verify]   ⚑ NO-VENUE "${title}" — confirmed, but ${why}`);
+      out.flags.push({ id: action.id, verdict: "no_venue", note: why });
+      continue;
+    }
+
+    out.confirms.push(action.id);
+
+    // Roundups AND resellers. The first version of this gate covered only
+    // AGGREGATOR_HOSTS, which left the larger half uncovered: the commonest
+    // weak sources were ticketmaster (37), songkick (12) and bandsintown (8),
+    // none of them an aggregator by that list.
+    const src = (ev.sourceUrl || ev.ticketUrl || "").trim();
+    const roundup = isAggregatorSource(src);
+    const reseller = !roundup && isNonScheduleSource(src);
+    if (roundup || reseller) {
+      const host = (() => {
+        try {
+          return new URL(src).hostname;
+        } catch {
+          return src.slice(0, 40);
+        }
+      })();
+      const what = roundup
+        ? "a roundup rather than the organiser's own schedule"
+        : "a reseller or social page rather than the organiser's own schedule";
+      out.lines.push(`[verify]   ⚑ WEAK-SOURCE "${title}" — confirmed against ${host}, ${what}`);
+      out.flags.push({
+        id: action.id,
+        verdict: "weak_source",
+        note: `confirmed only against ${host}, ${what} — needs a primary source`,
+      });
+    }
+  }
+
+  return out;
+}
+
+// ---------------------------------------------------------------------------
+// Verdicts from a file
+// ---------------------------------------------------------------------------
+
+/** A parsed findings file: what survived, and every entry that did not. */
+export interface VerdictFileParse {
+  verdicts: VerificationVerdict[];
+  /** Each rejection, with a reason. Reported out loud — never silent. */
+  rejected: { entry: string; why: string }[];
+}
+
+/**
+ * Parse a verdicts file written by a supervised session (or by hand).
+ *
+ * WHY NOT `parseVerdicts`. That one reads an agent's reply inside a process we
+ * control and drops anything odd silently, which is right there: the next batch
+ * is seconds away. A FILE is a trust boundary — it was written somewhere else,
+ * possibly days ago, possibly edited on a phone (this project has already had
+ * an `.env.local` arrive with `//` turned into `..`). So every rejection is
+ * returned with a reason and printed, because a file that half-applied while
+ * reporting success is the failure mode that costs a week of verification.
+ *
+ * Accepts a bare array, an object with a `verdicts` key, or either wrapped in a
+ * ```json fence — all three are shapes a session plausibly writes.
+ */
+export function parseVerdictFile(text: string, validIds: Set<string>): VerdictFileParse {
+  const out: VerdictFileParse = { verdicts: [], rejected: [] };
+
+  // EVERY fenced block, not the first. A non-greedy match on the first ```…```
+  // silently dropped every verdict after it while `rejected` stayed empty, so
+  // the run reported "N usable, 0 dropped" having lost an evidenced
+  // cancellation. Appending a second block is exactly how a file gets corrected
+  // — and the only practical way on a phone.
+  const blocks = [...text.matchAll(/```(?:json)?\s*([\s\S]*?)```/g)].map((m) => m[1]);
+  const chunks = blocks.length > 0 ? blocks : [text];
+
+  const arr: unknown[] = [];
+  for (const [i, chunk] of chunks.entries()) {
+    const where = chunks.length > 1 ? `(block ${i + 1} of ${chunks.length})` : "(whole file)";
+    const raw = chunk.trim();
+    if (raw.length === 0) {
+      out.rejected.push({ entry: where, why: chunks.length > 1 ? "empty block" : "file is empty" });
+      continue;
+    }
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(raw);
+    } catch (err) {
+      out.rejected.push({ entry: where, why: `not valid JSON — ${String(err).slice(0, 120)}` });
+      continue;
+    }
+    const entries = Array.isArray(parsed)
+      ? parsed
+      : typeof parsed === "object" && parsed !== null && Array.isArray((parsed as { verdicts?: unknown }).verdicts)
+        ? (parsed as { verdicts: unknown[] }).verdicts
+        : null;
+    if (!entries) {
+      out.rejected.push({
+        entry: where,
+        why: "expected an array of verdicts, or an object with a `verdicts` array",
+      });
+      continue;
+    }
+    arr.push(...entries);
+  }
+  if (arr.length === 0) return out;
+
+  // A SELF-CONTRADICTORY FILE CANNOT BE RESOLVED BY POSITION. First-wins would
+  // let an earlier `confirmed` beat a later evidenced `cancelled` — stamping
+  // verified_at on a show a human had just found cancelled, and demoting it to
+  // risk tier 2 so later passes deprioritise it. Both entries are rejected;
+  // only an exact repeat keeps first-wins.
+  const verdictsPerId = new Map<string, Set<string>>();
+  for (const item of arr) {
+    if (typeof item !== "object" || item === null) continue;
+    const o = item as Record<string, unknown>;
+    if (typeof o.id !== "string" || typeof o.verdict !== "string") continue;
+    const id = o.id.trim();
+    if (!verdictsPerId.has(id)) verdictsPerId.set(id, new Set());
+    verdictsPerId.get(id)!.add(o.verdict.trim());
+  }
+  const conflicted = new Set(
+    [...verdictsPerId].filter(([, vs]) => vs.size > 1).map(([id]) => id),
+  );
+
+  const seen = new Set<string>();
+  for (const item of arr) {
+    const label = (() => {
+      try {
+        return JSON.stringify(item).slice(0, 80);
+      } catch {
+        return String(item).slice(0, 80);
+      }
+    })();
+    if (typeof item !== "object" || item === null) {
+      out.rejected.push({ entry: label, why: "not an object" });
+      continue;
+    }
+    const o = item as Record<string, unknown>;
+    const id = typeof o.id === "string" ? o.id.trim() : "";
+    if (!id) {
+      out.rejected.push({ entry: label, why: "no `id`" });
+      continue;
+    }
+    // NO DEFAULT, for the same reason parseVerdicts has none: a missing verdict
+    // once fell back to "confirmed" and stamped rows nobody had checked.
+    if (typeof o.verdict !== "string") {
+      out.rejected.push({ entry: label, why: "no `verdict`" });
+      continue;
+    }
+    const verdict = o.verdict.trim() as Verdict;
+    if (!VERDICTS.includes(verdict)) {
+      out.rejected.push({ entry: label, why: `unknown verdict "${verdict}" — expected one of ${VERDICTS.join(", ")}` });
+      continue;
+    }
+    // Not in the current window: archived, cancelled or past since the research
+    // ran. Dropping it is correct, saying nothing about it is not.
+    if (!validIds.has(id)) {
+      out.rejected.push({ entry: label, why: "id is not a published event in the current horizon — stale or wrong file" });
+      continue;
+    }
+    if (conflicted.has(id)) {
+      out.rejected.push({
+        entry: label,
+        why: `two different verdicts in this file for id ${id} (${[...(verdictsPerId.get(id) ?? [])].join(" vs ")}) — rejecting BOTH, since position cannot settle which is right. Fix the file.`,
+      });
+      continue;
+    }
+    if (seen.has(id)) {
+      out.rejected.push({ entry: label, why: "exact duplicate of an entry already taken" });
+      continue;
+    }
+    seen.add(id);
+    out.verdicts.push({
+      id,
+      verdict,
+      evidence: typeof o.evidence === "string" ? o.evidence : undefined,
+      newStart:
+        typeof o.new_start === "string"
+          ? o.new_start
+          : typeof o.newStart === "string"
+            ? o.newStart
+            : undefined,
+    });
+  }
+
   return out;
 }

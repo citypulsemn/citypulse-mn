@@ -419,3 +419,84 @@ export async function flagVerification(id: string, verdict: string, note: string
     values ('verify_flag', ${id}::uuid, ${sql.json({ verdict, note: note.slice(0, 300) })})
   `;
 }
+
+/**
+ * THE VERIFY RUN LEDGER — one row per completed pass.
+ *
+ * WHY A MARKER AND NOT `verified_at`. The obvious signal for "has a verify pass
+ * run lately" is the stamp the pass writes, and it is WRONG: `import-sports`
+ * and `import-venues` also set `verified_at = now()` on the rows they cover
+ * (scripts/import-sports.ts:239, scripts/import-venues.ts:283), and both run
+ * inside weekly-research.yml at 06:00 UTC Monday — six hours BEFORE the Monday
+ * verify job. A gate reading the stamp would have found fresh stamps every
+ * single Monday and skipped the pass forever, while reporting that it had
+ * correctly detected a run. The exact shape of bug this project keeps paying
+ * for: an instrument measuring something adjacent to the thing it names.
+ *
+ * So the pass marks ITSELF, unconditionally — a clean pass with no flags and no
+ * cancellations still writes its row, because "nothing was wrong" and "nothing
+ * ran" must not look the same. Written AFTER the work, so it means completed.
+ *
+ * `how` records who did it: "ci", "local" or "file" (verdicts applied from a
+ * supervised session). Nothing reads it yet; it is there because the next
+ * question anyone asks of this table is which runs were paid for.
+ */
+export async function recordVerifyPass(
+  how: "ci" | "local" | "file",
+  counts: {
+    /** Events actually adjudicated — never the number the run set out to do. */
+    checked: number;
+    confirmed: number;
+    cancelled: number;
+    flagged: number;
+    /** How many the run had queued, when the budget truncated it. */
+    ofCandidates?: number;
+    /** e.g. "10/25", so a truncated run is visibly truncated in the ledger. */
+    batches?: string;
+  },
+): Promise<void> {
+  const sql = requireSql();
+  await sql`
+    insert into admin_audit (action, patch)
+    values ('verify_pass', ${sql.json({ how, ...counts })})
+  `;
+}
+
+/**
+ * Did a verify pass complete within the last `hours`?
+ *
+ * FAILS OPEN, and that is the whole point. `hasSentDigestToday` fails CLOSED —
+ * it reports "already sent" when it cannot tell, because mailing the list twice
+ * is the expensive direction there. Here the expensive direction is the
+ * opposite: an unchecked week of listings reaching readers costs more than one
+ * duplicated pass. So an unreachable database, a missing DATABASE_URL or a
+ * malformed answer all return `ran: false` and the pass goes ahead and spends.
+ *
+ * Without this a lost secret would silently switch verification off for good
+ * while every Actions run still showed green — which is how this project lost
+ * its revalidation channel for two months.
+ */
+export async function recentVerifyPass(
+  hours: number,
+): Promise<{ ran: boolean; at: string | null; how: string | null }> {
+  const none = { ran: false, at: null, how: null };
+  try {
+    const sql = requireSql();
+    const [row] = await sql<{ ranAt: string; how: string | null }[]>`
+      select at::text as "ranAt", patch->>'how' as how
+      from admin_audit
+      where action = 'verify_pass'
+        and at >= now() - (${hours} * interval '1 hour')
+      order by at desc
+      limit 1
+    `;
+    if (!row?.ranAt) return none;
+    return { ran: true, at: row.ranAt, how: row.how ?? null };
+  } catch (err) {
+    console.error(
+      "[verify] could not check for a recent pass — running rather than risk skipping a week:",
+      err,
+    );
+    return none;
+  }
+}

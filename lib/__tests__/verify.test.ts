@@ -3,11 +3,14 @@ import {
   actionFor,
   selectForVerification,
   parseVerdicts,
+  parseVerdictFile,
+  routeVerdicts,
   batchForVerification,
   withinBudget,
   DEFAULT_CAP,
   RUN_BUDGET_MS,
   VERDICTS,
+  type RoutableEvent,
 } from "../verify";
 import { buildVerifyPrompt, buildResearchPrompt, buildVenueSweepPrompt } from "../agents/prompts";
 import type { EventRecord } from "../types";
@@ -415,5 +418,261 @@ describe("selectForVerification — riskiest source first (Sep 2026)", () => {
     const far = at("far", "2026-10-25T19:00", "https://mspmag.com/a", null);
     expect(selectForVerification([far], NOW).map((p) => p.id)).toEqual(["far"]);
     expect(selectForVerification([far], NOW, { days: 7 })).toEqual([]);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// routeVerdicts — the single definition both the paid loop and the file share
+// ---------------------------------------------------------------------------
+
+function re(overrides: Partial<RoutableEvent> = {}): RoutableEvent {
+  return {
+    id: "e1",
+    title: "Jeremy Messersmith",
+    venue: "First Avenue",
+    city: "Minneapolis",
+    sourceUrl: "https://first-avenue.com/shows/",
+    ticketUrl: "",
+    ...overrides,
+  };
+}
+
+describe("routeVerdicts", () => {
+  it("confirms a clean verdict against a primary source, with no flag", () => {
+    const r = routeVerdicts([{ id: "e1", verdict: "confirmed" }], [re()]);
+    expect(r.confirms).toEqual(["e1"]);
+    expect(r.flags).toEqual([]);
+    expect(r.cancels).toEqual([]);
+  });
+
+  it("cancels only with evidence, and flags the verdict when there is none", () => {
+    const withEv = routeVerdicts(
+      [{ id: "e1", verdict: "cancelled", evidence: "https://first-avenue.com/event/x — 'this show is cancelled'" }],
+      [re()],
+    );
+    expect(withEv.cancels).toHaveLength(1);
+    expect(withEv.confirms).toEqual([]);
+
+    const without = routeVerdicts([{ id: "e1", verdict: "cancelled" }], [re()]);
+    expect(without.cancels).toEqual([]);
+    expect(without.flags[0].verdict).toBe("cancelled");
+  });
+
+  it("refuses to stamp a row that cannot say where the event is", () => {
+    // 12 Sep 2026: five live listings carried verified_at with these venues.
+    for (const [venue, city] of [
+      ["TBD – Saint Paul", "Saint Paul"],
+      ["Saint Paul (location TBD)", "Saint Paul"],
+      ["", "Minneapolis"],
+      ["Minneapolis", "Minneapolis"],
+    ] as const) {
+      const r = routeVerdicts([{ id: "e1", verdict: "confirmed" }], [re({ venue, city })]);
+      expect(r.confirms, `${venue || "(empty)"} must not be confirmed`).toEqual([]);
+      expect(r.flags[0].verdict).toBe("no_venue");
+    }
+  });
+
+  it("stamps a roundup-sourced confirmation AND flags it — both, not either", () => {
+    // Withholding the stamp would re-queue the row and re-spend on it forever;
+    // withholding the flag would launder the weak source clean. 113 of 140
+    // weakly-sourced rows carried a stamp on 4 Oct 2026 with no flag.
+    const r = routeVerdicts(
+      [{ id: "e1", verdict: "confirmed" }],
+      [re({ sourceUrl: "https://www.minneapolis.org/calendar/thing/" })],
+    );
+    expect(r.confirms).toEqual(["e1"]);
+    expect(r.flags).toHaveLength(1);
+    expect(r.flags[0].verdict).toBe("weak_source");
+    expect(r.flags[0].note).toContain("minneapolis.org");
+    expect(r.flags[0].note).toContain("roundup");
+  });
+
+  it("treats a reseller as weak too — the larger half of the problem", () => {
+    // The first version of this gate covered only AGGREGATOR_HOSTS, so
+    // ticketmaster (37 rows), songkick (12) and bandsintown (8) sailed through.
+    for (const host of ["ticketmaster.com", "songkick.com", "bandsintown.com"]) {
+      const r = routeVerdicts(
+        [{ id: "e1", verdict: "confirmed" }],
+        [re({ sourceUrl: `https://www.${host}/event/123` })],
+      );
+      expect(r.confirms, host).toEqual(["e1"]);
+      expect(r.flags[0].verdict, host).toBe("weak_source");
+      expect(r.flags[0].note).toContain("reseller");
+    }
+  });
+
+  it("falls back to the ticket url when there is no source url", () => {
+    const r = routeVerdicts(
+      [{ id: "e1", verdict: "confirmed" }],
+      [re({ sourceUrl: "", ticketUrl: "https://www.songkick.com/concerts/1" })],
+    );
+    expect(r.flags[0].verdict).toBe("weak_source");
+  });
+
+  it("flags every non-confirming verdict without stamping anything", () => {
+    for (const verdict of ["moved", "sold_out", "not_found", "wrong_event"] as const) {
+      const r = routeVerdicts([{ id: "e1", verdict }], [re()]);
+      expect(r.confirms, verdict).toEqual([]);
+      expect(r.cancels, verdict).toEqual([]);
+      expect(r.flags[0].verdict).toBe(verdict);
+    }
+  });
+
+  it("drops a verdict for an event it was not given", () => {
+    // The file path validates ids before this, but routing must not invent a
+    // row it cannot see either.
+    const r = routeVerdicts([{ id: "ghost", verdict: "confirmed" }], [re()]);
+    expect(r.confirms).toEqual([]);
+    expect(r.flags).toEqual([]);
+    expect(r.lines).toEqual([]);
+  });
+
+  it("routes a file's verdicts exactly as the paid loop would", () => {
+    // The whole reason this function was extracted: two copies would be two
+    // definitions of what a confirmation requires.
+    const events = [
+      re({ id: "a", venue: "TBD", city: "Saint Paul" }),
+      re({ id: "b", sourceUrl: "https://www.ticketmaster.com/event/9" }),
+      re({ id: "c" }),
+    ];
+    const verdicts = [
+      { id: "a", verdict: "confirmed" as const },
+      { id: "b", verdict: "confirmed" as const },
+      { id: "c", verdict: "sold_out" as const },
+    ];
+    const fromFile = parseVerdictFile(JSON.stringify(verdicts), new Set(["a", "b", "c"]));
+    expect(fromFile.rejected).toEqual([]);
+    expect(routeVerdicts(fromFile.verdicts, events)).toEqual(routeVerdicts(verdicts, events));
+  });
+});
+
+// ---------------------------------------------------------------------------
+// parseVerdictFile — a file is a trust boundary; rejections must be visible
+// ---------------------------------------------------------------------------
+
+describe("parseVerdictFile", () => {
+  const ids = new Set(["e1", "e2"]);
+
+  it("accepts a bare array, a wrapper object, and a fenced block", () => {
+    const one = '[{"id":"e1","verdict":"confirmed"}]';
+    for (const text of [one, `{"verdicts":${one}}`, "```json\n" + one + "\n```", "```\n" + one + "\n```"]) {
+      const r = parseVerdictFile(text, ids);
+      expect(r.verdicts, text.slice(0, 20)).toHaveLength(1);
+      expect(r.rejected).toEqual([]);
+    }
+  });
+
+  it("never defaults a missing verdict to confirmed", () => {
+    // This fallback once stamped verified_at on events nobody had checked.
+    const r = parseVerdictFile('[{"id":"e1"},{"id":"e2","verdict":null}]', ids);
+    expect(r.verdicts).toEqual([]);
+    expect(r.rejected).toHaveLength(2);
+    expect(r.rejected.every((x) => x.why.includes("verdict"))).toBe(true);
+  });
+
+  it("names an empty file and a malformed one rather than reporting zero work", () => {
+    expect(parseVerdictFile("", ids).rejected[0].why).toMatch(/empty/);
+    expect(parseVerdictFile("   \n ", ids).rejected[0].why).toMatch(/empty/);
+    expect(parseVerdictFile("{not json", ids).rejected[0].why).toMatch(/not valid JSON/);
+    expect(parseVerdictFile('{"ok":true}', ids).rejected[0].why).toMatch(/expected an array/);
+  });
+
+  it("rejects an unknown verdict and lists what it would have accepted", () => {
+    const r = parseVerdictFile('[{"id":"e1","verdict":"probably fine"}]', ids);
+    expect(r.verdicts).toEqual([]);
+    expect(r.rejected[0].why).toContain("probably fine");
+    for (const v of VERDICTS) expect(r.rejected[0].why).toContain(v);
+  });
+
+  it("drops a stale id and says so — a week-old file is the normal case", () => {
+    const r = parseVerdictFile('[{"id":"archived-since","verdict":"confirmed"}]', ids);
+    expect(r.verdicts).toEqual([]);
+    expect(r.rejected[0].why).toMatch(/not a published event in the current horizon/);
+  });
+
+  it("reports a repeated id rather than applying it twice", () => {
+    // Two DIFFERENT verdicts for one id reject both — see the conflict test
+    // below. This one covers the shape where the repeat is harmless.
+    const r = parseVerdictFile(
+      '[{"id":"e1","verdict":"confirmed"},{"id":"e1","verdict":"confirmed"}]',
+      ids,
+    );
+    expect(r.verdicts).toEqual([{ id: "e1", verdict: "confirmed", evidence: undefined, newStart: undefined }]);
+    expect(r.rejected[0].why).toMatch(/duplicate/);
+  });
+
+  it("reads a new start under either spelling a session might write", () => {
+    expect(parseVerdictFile('[{"id":"e1","verdict":"moved","new_start":"2026-10-20T19:00"}]', ids).verdicts[0].newStart)
+      .toBe("2026-10-20T19:00");
+    expect(parseVerdictFile('[{"id":"e1","verdict":"moved","newStart":"2026-10-20T19:00"}]', ids).verdicts[0].newStart)
+      .toBe("2026-10-20T19:00");
+  });
+
+  it("keeps the good rows out of a part-bad file, and counts the bad ones", () => {
+    const r = parseVerdictFile(
+      '[{"id":"e1","verdict":"confirmed"},"nonsense",{"id":"e2","verdict":"sold_out"},{"verdict":"confirmed"}]',
+      ids,
+    );
+    expect(r.verdicts.map((v) => v.id)).toEqual(["e1", "e2"]);
+    expect(r.rejected).toHaveLength(2);
+  });
+
+  it("trims whitespace a hand edit leaves behind", () => {
+    const r = parseVerdictFile('[{"id":" e1 ","verdict":" confirmed "}]', ids);
+    expect(r.verdicts).toEqual([{ id: "e1", verdict: "confirmed", evidence: undefined, newStart: undefined }]);
+  });
+
+  it("reads EVERY fenced block, not just the first", () => {
+    // Appending a second block is how a file gets corrected, and the only
+    // practical way on a phone. A non-greedy match on the first fence dropped
+    // the cancellation below while reporting "1 usable, 0 dropped".
+    const text =
+      "Confirmed these:\n```json\n[{\"id\":\"e1\",\"verdict\":\"confirmed\"}]\n```\n" +
+      "And this one is off:\n```json\n[{\"id\":\"e2\",\"verdict\":\"cancelled\",\"evidence\":\"https://venue/x\"}]\n```";
+    const r = parseVerdictFile(text, ids);
+    expect(r.verdicts.map((v) => v.id)).toEqual(["e1", "e2"]);
+    expect(r.verdicts[1].verdict).toBe("cancelled");
+    expect(r.rejected).toEqual([]);
+  });
+
+  it("names the block when one of several is malformed", () => {
+    const text = "```json\n[{\"id\":\"e1\",\"verdict\":\"confirmed\"}]\n```\n```json\n{oops\n```";
+    const r = parseVerdictFile(text, ids);
+    expect(r.verdicts.map((v) => v.id)).toEqual(["e1"]);
+    expect(r.rejected[0].entry).toBe("(block 2 of 2)");
+    expect(r.rejected[0].why).toMatch(/not valid JSON/);
+  });
+
+  it("rejects BOTH entries when a file gives one id two different verdicts", () => {
+    // First-wins would let an earlier `confirmed` beat a later evidenced
+    // `cancelled` — stamping verified_at on a show found cancelled, and moving
+    // it to risk tier 2 so later passes deprioritise it. Position cannot settle
+    // which is right, so neither is applied.
+    const r = parseVerdictFile(
+      '[{"id":"e1","verdict":"confirmed"},{"id":"e1","verdict":"cancelled","evidence":"https://venue/x"}]',
+      ids,
+    );
+    expect(r.verdicts).toEqual([]);
+    expect(r.rejected).toHaveLength(2);
+    expect(r.rejected[0].why).toMatch(/two different verdicts/);
+    expect(r.rejected[0].why).toContain("confirmed vs cancelled");
+  });
+
+  it("still takes the first of an exact repeat", () => {
+    const r = parseVerdictFile(
+      '[{"id":"e1","verdict":"confirmed"},{"id":"e1","verdict":"confirmed"}]',
+      ids,
+    );
+    expect(r.verdicts.map((v) => v.id)).toEqual(["e1"]);
+    expect(r.rejected[0].why).toMatch(/exact duplicate/);
+  });
+
+  it("does not let a conflict in one id poison the others", () => {
+    const r = parseVerdictFile(
+      '[{"id":"e1","verdict":"confirmed"},{"id":"e2","verdict":"sold_out"},{"id":"e1","verdict":"not_found"}]',
+      ids,
+    );
+    expect(r.verdicts.map((v) => v.id)).toEqual(["e2"]);
+    expect(r.rejected).toHaveLength(2);
   });
 });

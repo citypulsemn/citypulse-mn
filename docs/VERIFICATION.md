@@ -118,3 +118,9 @@ full window. Halve it by deleting one cron line; nothing else depends on there
 being two.
 
 Use `npm run verify -- --dry-run --cap=8` to see the shape for one batch.
+
+Measured since the ledger started: **$8.55 a run, ~$74/month** — the biggest
+single API line in the project. The Monday half can be done in a supervised
+session instead (`--emit-queue` / `--from`), and the scheduled run then stands
+down via `--skip-if-verified-recently`. The Thursday pre-send pass is never
+gated. See **`docs/MANUAL-VERIFY.md`**.
