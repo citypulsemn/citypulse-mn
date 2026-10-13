@@ -156,11 +156,26 @@ is yours to keep or delete.
 
 ## Phase 2: auto-posting
 
-Architecture designed — see **docs/REELS-PUBLISH.md** (Instagram Platform
+Live since Sep 18, 2026 — see **docs/REELS-PUBLISH.md** (Instagram Platform
 API with Instagram Login, no Facebook Page needed; temporary public hosting
-for the video fetch; clean-auto/flagged-hold gate; 7:30 publish task an hour
-after generation as the human override window). Audio is a non-issue now
-that every reel carries its own licensed track.
+for the video fetch; clean-auto/flagged-hold gate; slots at 8:30, 11:45 and
+18:30). Audio is a non-issue now that every reel carries its own licensed
+track. The posting paragraph above describes the manual step this replaced.
+
+## Changed since this guide was written (all in docs/REELS-PUBLISH.md)
+
+- **Oct 4–5, 2026 — labels the data could not support** ("Daily", loose
+  "Free", "All Day", a "TBD" venue) were removed from the formatter.
+- **Oct 5 — three failures that used to cost a whole reel are repaired
+  instead**: an aside dash in the caption, a six-word b-roll search term, a
+  Pexels server error. Seven reels had been lost to them.
+- **Oct 5 — a model check on each reel's five finalists** backs up the
+  pattern brand screen.
+- **Oct 5 — flags need npm's `--`.** `npm run reels --smoke` (no `--`) used
+  to start a full paid run; every reel script now refuses and prints the
+  right command.
+- **Oct 5 — a weekly Places still card** was built on the same card renderer
+  (`npm run cards`). Not scheduled yet.
 
 ## Known limits (honest)
 

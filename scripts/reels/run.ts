@@ -27,6 +27,7 @@ import { makeScreenImages, seasonScreenNote } from "../../lib/reels/authenticity
 import { assembleReel } from "../../lib/reels/assemble";
 import { renderCardToFile } from "../../lib/reels/card";
 import { writeReelContent } from "../../lib/reels/copywriter";
+import { swallowedFlagsMessage } from "../../lib/reels/cli";
 import { CTA_LINE, detailsLine, headerFor } from "../../lib/reels/format";
 import {
   loadHistory,
@@ -42,6 +43,7 @@ import {
   downloadChosenClips,
 } from "../../lib/reels/pexels";
 import { topUpVariant } from "../../lib/reels/research-topup";
+import { finalizeFinalists, screenFinalists } from "../../lib/reels/finalist-screen";
 import {
   mergeTopUp,
   partitionEvents,
@@ -149,6 +151,13 @@ async function fixtureClips(dir: string): Promise<PickedClip[]> {
 }
 
 async function main() {
+  // `npm run reels --smoke` (no bare "--") would be a full paid run into the real folder.
+  const kept = swallowedFlagsMessage("reels", ["smoke", "date", "day", "variant", "out", "fixtures"]);
+  if (kept) {
+    console.error(`[reels] ${kept}`);
+    process.exit(2);
+  }
+
   const smoke = process.argv.includes("--smoke");
   const dateArg = argOf("date");
   const now = dateArg ? new Date(`${dateArg}T09:00:00`) : new Date();
@@ -194,18 +203,27 @@ async function main() {
     };
     outcomes.push(outcome);
     try {
-      let selection = selectFive(pools[variant], variant);
-      if (selection.shortfall > 0 && !smoke) {
-        console.log(`[reels] ${variant}: DB pool short by ${selection.shortfall} — web top-up…`);
-        const topUp = await topUpVariant(
-          variant,
-          window,
-          selection.shortfall,
-          selection.events.map((e) => e.title),
-        );
-        outcome.warnings.push(...topUp.warnings);
-        selection = mergeTopUp(selection, topUp.events);
-      }
+      // Select → web top-up → model brand screen, looped until the five
+      // finalists are clean (lib/reels/finalist-screen.ts). The pattern screen
+      // already ran in partitionEvents; the model catches what patterns can't
+      // (a listing that names a performer or a cause, not a category). Smoke
+      // runs skip both the search and the model.
+      const { selection, warnings: finalistWarnings } = await finalizeFinalists({
+        pool: pools[variant],
+        variant,
+        select: (p) => selectFive(p, variant),
+        topUp: smoke
+          ? undefined
+          : (need, haveTitles) => {
+              console.log(`[reels] ${variant}: pool short by ${need} — web top-up…`);
+              return topUpVariant(variant, window, need, haveTitles);
+            },
+        merge: mergeTopUp,
+        screen: smoke ? undefined : (events) => screenFinalists(events, todayIso),
+      });
+      outcome.warnings.push(...finalistWarnings);
+      const modelFlags = selection.excluded.filter((x) => x.reason.startsWith("brand screen (model)"));
+      for (const f of modelFlags) console.log(`[reels] ${variant}: swapped out "${f.title}" — ${f.reason}`);
       outcome.excluded = selection.excluded;
       if (selection.shortfall > 0) {
         outcome.reason = `only ${selection.events.length}/5 events after ${smoke ? "DB (smoke skips top-up)" : "top-up"} — reel not built (never pad, never invent)`;

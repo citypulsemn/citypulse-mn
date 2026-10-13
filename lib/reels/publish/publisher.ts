@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { VARIANTS, type Variant } from "../types";
 import type {
@@ -38,9 +38,12 @@ export interface PublisherFsDeps {
 
 export const defaultPublisherFsDeps: PublisherFsDeps = {
   readFile: (path) => readFileSync(path, "utf8"),
+  // Written whole or not at all: a ledger cut off mid-write reads as empty,
+  // and an empty ledger lets the catch-up run post the same reel again.
   writeFile: (path, data) => {
     mkdirSync(dirname(path), { recursive: true });
-    writeFileSync(path, data, "utf8");
+    writeFileSync(`${path}.tmp`, data, "utf8");
+    renameSync(`${path}.tmp`, path);
   },
   exists: (path) => existsSync(path),
 };
@@ -165,16 +168,23 @@ export function saveLedger(
   deps.writeFile(join(dayDir, LEDGER_FILE), JSON.stringify(ledger, null, 2) + "\n");
 }
 
+/**
+ * The names a hold file really ends up with on this PC. Explorer hides
+ * extensions here, so "New > Text Document" renamed to HOLD is HOLD.txt on
+ * disk and shows as "HOLD"; typing HOLD.txt into Notepad's Save As makes
+ * HOLD.txt.txt. A veto that only worked under the bare name posted anyway.
+ */
+const HOLD_ENDINGS = ["", ".txt", ".txt.txt"];
+
 /** HOLD file in the day folder = the human's veto; HOLD.<variant> per reel. */
 export function detectHolds(
   dayDir: string,
   deps: Pick<PublisherFsDeps, "exists"> = defaultPublisherFsDeps,
 ): HoldState {
+  const present = (name: string) => HOLD_ENDINGS.some((end) => deps.exists(join(dayDir, name + end)));
   return {
-    global: deps.exists(join(dayDir, HOLD_FILE)),
-    variants: new Set(
-      VARIANTS.filter((variant) => deps.exists(join(dayDir, holdFileFor(variant)))),
-    ),
+    global: present(HOLD_FILE),
+    variants: new Set(VARIANTS.filter((variant) => present(holdFileFor(variant)))),
   };
 }
 
@@ -380,7 +390,7 @@ export async function executePlan(
         saveLedger(dayDir, ledger, deps.files);
       } catch {
         // The post IS live — report it published, but flag the rerun risk.
-        detail += " — WARNING: published.json save failed; a rerun may double-post";
+        detail += ` — WARNING: published.json save failed; the next run will post it AGAIN unless a file named HOLD is put in ${dayDir} first`;
       }
       results.push({ variant: item.variant, outcome: "published", detail, mediaId });
     } catch (err) {

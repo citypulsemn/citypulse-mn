@@ -7,7 +7,7 @@
  *   npm run reels:publish                    publish whatever is due now
  *   npm run reels:publish -- --dry-run       full chain except media_publish;
  *                                            no ledger writes
- *   npm run reels:publish -- --only=regular  restrict to one variant
+ *   npm run reels:publish -- --variant=regular  restrict to one variant
  *   npm run reels:publish -- --force-held    publish authenticity-waived holds
  *                                            (HOLD files still always win)
  *   npm run reels:publish -- --day-dir=PATH  explicit day folder (testing)
@@ -17,6 +17,7 @@
  * next one. Every run also keeps the 60-day Instagram token fresh.
  */
 import { existsSync, readFileSync } from "node:fs";
+import { swallowedFlagsMessage } from "../../lib/reels/cli";
 import { defaultPostDay, buildWeekWindow } from "../../lib/reels/keys";
 import { dayDirFor } from "../../lib/reels/paths";
 import type { Variant } from "../../lib/reels/types";
@@ -45,10 +46,19 @@ const argOf = (name: string): string | null => {
 };
 
 async function main() {
+  // `npm run reels:publish --dry-run` (no bare "--") would be a REAL publish.
+  const kept = swallowedFlagsMessage("reels:publish", ["dry-run", "force-held", "variant", "day-dir"]);
+  if (kept) {
+    console.error(`[publish] ${kept}`);
+    // Emailed as well: if this ever fires in a scheduled run, nothing else would say so.
+    await sendOpsEmail({ subject: "Reels publish: refused to run", lines: [kept] });
+    process.exit(2);
+  }
+
   const dryRun = process.argv.includes("--dry-run");
   const forceHeld = process.argv.includes("--force-held");
-  const only = argOf("only") as Variant | null;
-  if (only && !VARIANTS.includes(only)) throw new Error(`--only must be one of ${VARIANTS.join("|")}`);
+  const only = argOf("variant") as Variant | null;
+  if (only && !VARIANTS.includes(only)) throw new Error(`--variant must be one of ${VARIANTS.join("|")}`);
 
   const now = new Date();
   const day = defaultPostDay(now);
@@ -107,7 +117,7 @@ async function main() {
       plan = plan.map((p) =>
         p.variant === only || p.action !== "publish"
           ? p
-          : { ...p, action: "skip" as const, reason: `not in --only=${only}` },
+          : { ...p, action: "skip" as const, reason: `not in --variant=${only}` },
       );
     }
 
@@ -150,7 +160,7 @@ async function main() {
       const summary = summarizeForOps(
         plan.map((p) => ({
           variant: p.variant,
-          outcome: p.action === "hold" ? ("held" as const) : ("skipped" as const),
+          outcome: p.action === "hold" ? ("held" as const) : p.action === "wait" ? ("waiting" as const) : ("skipped" as const),
           detail: p.reason,
         })),
         dayLabel,

@@ -238,7 +238,12 @@ export function partitionEvents(
 
 const PICK_TARGET = 5;
 
-function dedupeKey(e: CandidateEvent): string {
+/**
+ * One listing, however many rows it is stored as: a three-night stand is three
+ * rows with one key. selectFive seats one row per key; the finalist screen
+ * removes a flagged listing by the same key so its next night cannot step up.
+ */
+export function dedupeKey(e: CandidateEvent): string {
   const norm = (s: string) => s.trim().toLowerCase().replace(/\s+/g, " ");
   return `${norm(e.title)}|${norm(e.venue)}`;
 }

@@ -206,6 +206,29 @@ describe("detectHolds", () => {
     expect(holds.global).toBe(false);
     expect(holds.variants).toEqual(new Set(["family"]));
   });
+
+  // Explorer hides extensions on the PC that runs this: a file a person names
+  // HOLD is HOLD.txt on disk, and Notepad's Save As can make HOLD.txt.txt.
+  it.each(["HOLD.txt", "HOLD.txt.txt"])("%s is the global veto too", (name) => {
+    const { deps } = fakeFs({}, [join(DAY_DIR, name)]);
+    expect(detectHolds(DAY_DIR, deps)).toEqual({ global: true, variants: new Set() });
+  });
+
+  it.each(["HOLD.weird.txt", "HOLD.weird.txt.txt"])("%s holds only weird", (name) => {
+    const { deps } = fakeFs({}, [join(DAY_DIR, name)]);
+    expect(detectHolds(DAY_DIR, deps)).toEqual({ global: false, variants: new Set(["weird"]) });
+  });
+
+  it("a file that merely starts with HOLD is not a veto", () => {
+    const { deps } = fakeFs({}, [join(DAY_DIR, "HOLDING.txt"), join(DAY_DIR, "HOLD.notes.txt")]);
+    expect(detectHolds(DAY_DIR, deps)).toEqual({ global: false, variants: new Set() });
+  });
+
+  it("a HOLD.txt file stops a due reel at the gate", () => {
+    const { deps } = fakeFs({}, [join(DAY_DIR, "HOLD.txt")]);
+    const plan = planPublish(makeManifest(), {}, detectHolds(DAY_DIR, deps), DEFAULT_SLOTS, EVENING);
+    expect(plan.map((p) => p.action)).toEqual(["hold", "hold", "hold"]);
+  });
 });
 
 describe("slotReached — minute-precision local time", () => {
