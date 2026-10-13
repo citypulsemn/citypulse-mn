@@ -1,7 +1,8 @@
+import { captionErrors } from "../validate";
 import { describe, it, expect } from "vitest";
 import type { CandidateEvent, VariantSelection, WeekWindow } from "../types";
 import { buildCopywriterPrompt } from "../prompts";
-import { parseCopyJson, writeReelContent, type CopywriterDeps } from "../copywriter";
+import { clampTerm, parseCopyJson, tidyCaption, writeReelContent, type CopywriterDeps } from "../copywriter";
 import { CTA_LINE, detailsLine } from "../format";
 
 /*
@@ -247,5 +248,136 @@ describe("writeReelContent", () => {
       writeReelContent("friday", "regular", friday, empty, deps),
     ).rejects.toThrow(/has 0 events/);
     expect(prompts.length).toBe(0);
+  });
+
+  // The two repairs are only worth anything if the pipeline actually applies them.
+  it("an aside dash and a six-word search term no longer cost a model call, let alone the reel", async () => {
+    const sloppy = {
+      ...validCopy,
+      caption: validCopy.caption.replace("Weekend is here, Minneapolis.", "Weekend is here — Minneapolis."),
+      broll: validCopy.broll.map((b, i) =>
+        i === 0 ? { ...b, terms: ["Minneapolis skyline timelapse wide slow motion", ...b.terms.slice(1)] } : b,
+      ),
+    };
+    const { prompts, deps } = fakeComplete([fence(sloppy)]);
+    const content = await writeReelContent("friday", "regular", friday, selection, deps);
+
+    expect(prompts).toHaveLength(1);
+    expect(content.caption).toBe(validCopy.caption);
+    expect(content.broll[0].terms[0]).toBe("Minneapolis skyline timelapse wide slow");
+  });
+
+  it("a range written with a dash is never guessed at: the model is asked again", async () => {
+    // "Tuesday - Friday" as a comma would say two days; as written it fails the caption rule.
+    const ranged = { ...validCopy, caption: `Open Tuesday - Friday this week. ${validCopy.caption}` };
+    const { prompts, deps } = fakeComplete([fence(ranged), fence(validCopy)]);
+    const content = await writeReelContent("friday", "regular", friday, selection, deps);
+
+    expect(prompts).toHaveLength(2);
+    expect(prompts[1]).toContain("caption contains a dash");
+    expect(content.caption).toBe(validCopy.caption);
+  });
+});
+
+describe("tidyCaption — an aside dash is repaired, and the meaning is never changed", () => {
+  it("turns an aside written with an em dash, an en dash or a spaced hyphen into a comma", () => {
+    expect(tidyCaption("Big weekend — five picks. Jazz – late. Markets - early.")).toBe(
+      "Big weekend, five picks. Jazz, late. Markets, early.",
+    );
+    expect(tidyCaption("Twins at home — bring a blanket.")).toBe("Twins at home, bring a blanket.");
+    // every one of them, not just the first
+    expect(tidyCaption("a - b - c - d")).toBe("a, b, c, d");
+  });
+
+  it("leaves hyphens inside words alone and never doubles punctuation", () => {
+    expect(tidyCaption("Kid-Friendly fun at Can-Can, all day.")).toBe("Kid-Friendly fun at Can-Can, all day.");
+    expect(tidyCaption("One last thing —.")).toBe("One last thing.");
+    expect(tidyCaption("Minneapolis, — tonight")).toBe("Minneapolis, tonight");
+    expect(tidyCaption("What are you doing? — Corgi races.")).toBe("What are you doing? Corgi races.");
+  });
+
+  it("an unspaced en dash between two values is a range and reads 'to' — a comma would invent a second value", () => {
+    expect(tidyCaption("Sat 10 AM–2 PM at the market")).toBe("Sat 10 AM to 2 PM at the market");
+    expect(tidyCaption("ages 2–5, Oct 9–11, tickets $10–$15")).toBe("ages 2 to 5, Oct 9 to 11, tickets $10 to $15");
+    // Every shape the review found slipping through as a comma list.
+    expect(tidyCaption("Runs Oct 9–Oct 11, then Aug 31–Sept 4")).toBe("Runs Oct 9 to Oct 11, then Aug 31 to Sept 4");
+    expect(tidyCaption("Brunch noon–2 PM, art fair 10am–4pm, drop-in 10a–4p")).toBe(
+      "Brunch noon to 2 PM, art fair 10am to 4pm, drop-in 10a to 4p",
+    );
+    expect(tidyCaption("Open Tuesday–Friday, Fri–Sun, the 9th–11th, Saturday–Sunday")).toBe(
+      "Open Tuesday to Friday, Fri to Sun, the 9th to 11th, Saturday to Sunday",
+    );
+    expect(captionErrors(tidyCaption("Sat 10 AM–2 PM, ages 2–5, Oct 30–Nov 1"))).toEqual([]);
+    // A month's short form is a whole word: "Markets" is not March, "Friends" is not Friday.
+    expect(tidyCaption("Markets – early, Friends — late")).toBe("Markets, early, Friends, late");
+  });
+
+  it("leaves in what it cannot read, so the validator asks the model again", () => {
+    const kept = [
+      // A spaced dash or a hyphen next to a value: range or aside, no way to tell.
+      "Doors 9 - 5",
+      "Doors at 7 — 21 and up",
+      "Doors at 7 – 21 and up",
+      "Jazz 7 PM – 9 PM",
+      "Runs Tuesday - Friday",
+      "Runs Tuesday — Friday",
+      "Fri - Sun only",
+      "May – October only",
+      "Oct 9 - Oct 11",
+      "Doors at 7 — bring a blanket",
+      // A value on one side only.
+      "Doors 7–late",
+      "Kids 5–under free",
+      "Free–$10 at the door",
+      "Grades K–5",
+      // Range or name? An unspaced en dash between two plain words is either.
+      "Minneapolis–St. Paul",
+      // A compound: the word beside each dash is "for", not "for–1".
+      "2–for–1 tacos",
+      "3–on–3 hoops",
+      "9–to–5 crowd",
+    ];
+    for (const text of kept) {
+      expect(tidyCaption(text), text).toBe(text);
+      expect(captionErrors(tidyCaption(text)), text).toEqual([
+        "caption contains a dash (em dash, en dash, or spaced hyphen)",
+      ]);
+    }
+  });
+
+  it("never eats a line break or leaves a comma hanging off a line", () => {
+    const lines = "What are you doing this week?\n— Corgi races at Canterbury.\n— Goat yoga in Nordeast —\nSee you there";
+    expect(tidyCaption(lines)).toBe(
+      "What are you doing this week?\nCorgi races at Canterbury.\nGoat yoga in Nordeast\nSee you there",
+    );
+    expect(tidyCaption("— Here's your week")).toBe("Here's your week");
+    expect(tidyCaption("Everyone needs this —")).toBe("Everyone needs this");
+    // Windows line endings and a doubled dash leave nothing behind either.
+    expect(tidyCaption("Corgi races —\r\nGoat yoga")).toBe("Corgi races\r\nGoat yoga");
+    expect(tidyCaption("a — — b")).toBe("a, b");
+    expect(tidyCaption("a ——— b")).toBe("a, b");
+    expect(tidyCaption("a – – – b")).toBe("a, b");
+    // An opening bracket or quote is a line start as far as a comma is concerned.
+    expect(tidyCaption('(— aside) text, "— quoted" text')).toBe('(aside) text, "quoted" text');
+    // The result is settled: a second pass changes nothing.
+    for (const text of ["a ——— b", "x — y – z - w", "(— aside) — text —"]) {
+      expect(tidyCaption(tidyCaption(text))).toBe(tidyCaption(text));
+    }
+  });
+
+  it("a caption with an aside dash passes the caption rules after tidying", () => {
+    expect(captionErrors(tidyCaption("Weekend is here — which one are you going to?"))).toEqual([]);
+  });
+});
+
+describe("clampTerm — an over-long search term is trimmed, not fatal", () => {
+  it("keeps the leading subject and drops trailing words past five", () => {
+    expect(clampTerm("Mall of America ride close up")).toBe("Mall of America ride close");
+    expect(clampTerm("Stone Arch Bridge detail slow motion")).toBe("Stone Arch Bridge detail slow");
+  });
+
+  it("leaves terms of five words or fewer exactly as written", () => {
+    expect(clampTerm("Minneapolis skyline dusk")).toBe("Minneapolis skyline dusk");
+    expect(clampTerm("skyline")).toBe("skyline"); // too short stays too short — the validator's call
   });
 });

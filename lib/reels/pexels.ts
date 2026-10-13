@@ -51,7 +51,17 @@ export interface FetchJsonResult {
 
 export interface PexelsDeps {
   fetchJson(url: string, headers: Record<string, string>): Promise<FetchJsonResult>;
+  /** Wait between 5xx retries; tests inject a no-op. */
+  sleep?(ms: number): Promise<void>;
 }
+
+/**
+ * A reel makes ~20 searches and one 5xx used to kill all of it: three reels
+ * were lost that way in the first month (2026-09-11 x2, 2026-09-28). A server
+ * error is retried; a 401 or 429 never is — waiting does not fix those.
+ */
+export const SERVER_ERROR_RETRIES = 2;
+export const SERVER_ERROR_WAIT_MS = 3_000;
 
 export const defaultPexelsDeps: PexelsDeps = {
   fetchJson: async (url, headers) => {
@@ -80,7 +90,12 @@ export async function searchVideos(
   const orientation = opts.orientation ?? "portrait";
   let url = `https://api.pexels.com/videos/search?query=${encodeURIComponent(term)}&per_page=${perPage}`;
   if (orientation) url += `&orientation=${orientation}`;
-  const res = await deps.fetchJson(url, { Authorization: opts.apiKey });
+  const sleep = deps.sleep ?? ((ms: number) => new Promise<void>((r) => setTimeout(r, ms)));
+  let res = await deps.fetchJson(url, { Authorization: opts.apiKey });
+  for (let retry = 0; retry < SERVER_ERROR_RETRIES && res.status >= 500; retry++) {
+    await sleep(SERVER_ERROR_WAIT_MS);
+    res = await deps.fetchJson(url, { Authorization: opts.apiKey });
+  }
   if (res.status === 401) throw new Error("Invalid Pexels API key");
   if (res.status === 429) {
     throw new Error("Pexels rate limit reached (200/hour on the free tier) — wait and retry");

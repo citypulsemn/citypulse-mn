@@ -20,7 +20,7 @@ const MAX_CAPTION_WORDS = 100; // exclusive — 100 words is already too many
 const BROLL_LINES = 7;
 const TERMS_PER_LINE = 3;
 const MIN_TERM_WORDS = 2;
-const MAX_TERM_WORDS = 5; // 4 normally; 5 when a shot-type modifier is baked in
+export const MAX_TERM_WORDS = 5; // 4 normally; 5 when a shot-type modifier is baked in
 
 const EMOJI_RE = /[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{2B00}-\u{2BFF}\u{FE0F}]/u;
 
@@ -39,6 +39,25 @@ const SUMMER_MISMATCH = ["snow", "ice skating", "frozen", "foliage", "autumn", "
 const WINTER_MISMATCH = ["kayak", "paddleboard", "swimming", "patio dining", "beach"];
 const SPRING_MISMATCH = ["snow", "frozen", "foliage", "autumn", "sledding", "ice skating"];
 const FALL_MISMATCH = ["kayak", "paddleboard", "swimming", "splash pad"];
+
+/**
+ * The caption policy on its own, so the still cards are held to the very same
+ * four rules as the reels — validateReelContent calls this, never a copy.
+ */
+export function captionErrors(caption: string): string[] {
+  const errors: string[] = [];
+  const captionWords = countWords(caption);
+  if (captionWords >= MAX_CAPTION_WORDS) {
+    errors.push(`caption is ${captionWords} words (must be under ${MAX_CAPTION_WORDS})`);
+  }
+  if (caption.includes("#")) errors.push("caption contains a hashtag");
+  if (EMOJI_RE.test(caption)) errors.push("caption contains emoji");
+  // Em/en dashes and the spaced hyphen are the tells; "Kid-Friendly" is fine.
+  if (/[—–]/.test(caption) || caption.includes(" - ")) {
+    errors.push("caption contains a dash (em dash, en dash, or spaced hyphen)");
+  }
+  return errors;
+}
 
 export function validateReelContent(
   content: ReelContent,
@@ -85,16 +104,7 @@ export function validateReelContent(
     .join("\n");
   if (EMOJI_RE.test(cardText)) errors.push("card contains emoji");
 
-  const captionWords = countWords(caption);
-  if (captionWords >= MAX_CAPTION_WORDS) {
-    errors.push(`caption is ${captionWords} words (must be under ${MAX_CAPTION_WORDS})`);
-  }
-  if (caption.includes("#")) errors.push("caption contains a hashtag");
-  if (EMOJI_RE.test(caption)) errors.push("caption contains emoji");
-  // Em/en dashes and the spaced hyphen are the tells; "Kid-Friendly" is fine.
-  if (/[—–]/.test(caption) || caption.includes(" - ")) {
-    errors.push("caption contains a dash (em dash, en dash, or spaced hyphen)");
-  }
+  errors.push(...captionErrors(caption));
 
   if (broll.length !== BROLL_LINES) {
     errors.push(`broll has ${broll.length} lines (need exactly ${BROLL_LINES})`);

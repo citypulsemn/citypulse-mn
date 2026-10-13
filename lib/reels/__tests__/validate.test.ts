@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { validateReelContent, countWords } from "../validate";
+import { validateReelContent, countWords, captionErrors } from "../validate";
 import type { BrollLine, ReelContent, WeekWindow } from "../types";
 
 const SUMMER: WeekWindow = {
@@ -300,5 +300,50 @@ describe("a name may not out-claim the price line", () => {
     c.card.events[2] = { name: "Gluten-Free Bake-Off", details: "Midtown Global Market · Sat · 10 AM · $12" };
     const { errors } = validateReelContent(c, SUMMER);
     expect(errors.filter((e) => e.includes("free"))).toEqual([]);
+  });
+});
+
+describe("captionErrors — the caption rules on their own", () => {
+  it("a clean caption has no errors", () => {
+    expect(captionErrors("Five orchards from our list. More on the site.")).toEqual([]);
+  });
+
+  it("word limit: 99 passes, 100 is already too many", () => {
+    expect(captionErrors(Array(99).fill("word").join(" "))).toEqual([]);
+    expect(captionErrors(Array(100).fill("word").join(" "))).toEqual([
+      "caption is 100 words (must be under 100)",
+    ]);
+  });
+
+  it("flags a hashtag, emoji, and each kind of dash with the reel's exact wording", () => {
+    expect(captionErrors("Great week #minneapolis")).toEqual(["caption contains a hashtag"]);
+    expect(captionErrors("Great week 🎉")).toEqual(["caption contains emoji"]);
+    for (const dash of ["Five — good", "Five – good", "Five - good"]) {
+      expect(captionErrors(dash)).toEqual([
+        "caption contains a dash (em dash, en dash, or spaced hyphen)",
+      ]);
+    }
+    expect(captionErrors("Kid-Friendly picks, sun-up to sun-down.")).toEqual([]);
+  });
+
+  it("reports every broken rule at once, in a stable order", () => {
+    expect(captionErrors(`${Array(100).fill("word").join(" ")} #tag 🎡 — end`)).toEqual([
+      "caption is 104 words (must be under 100)",
+      "caption contains a hashtag",
+      "caption contains emoji",
+      "caption contains a dash (em dash, en dash, or spaced hyphen)",
+    ]);
+  });
+
+  it("an empty caption breaks none of these four rules — emptiness is the caller's check", () => {
+    expect(captionErrors("")).toEqual([]);
+  });
+
+  it("validateReelContent reports exactly what captionErrors reports", () => {
+    const c = goodContent();
+    c.caption = "Five plans — all good #mpls 🎉";
+    const { errors } = validateReelContent(c, SUMMER);
+    expect(errors).toEqual(captionErrors(c.caption));
+    expect(errors).toHaveLength(3);
   });
 });

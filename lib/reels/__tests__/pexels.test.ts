@@ -39,6 +39,7 @@ function fakeSearch(byTerm: Record<string, PexelsVideo[]>, status = 200) {
       if (status !== 200) return { ok: false, status, body: null };
       return { ok: true, status: 200, body: { videos: byTerm[term] ?? [] } };
     },
+    sleep: async () => {},
   };
   return { deps, calls };
 }
@@ -94,9 +95,32 @@ describe("searchVideos", () => {
     await expect(searchVideos("x", { apiKey: "k" }, deps)).rejects.toThrow(/rate limit/i);
   });
 
-  it("throws with the status on other errors", async () => {
-    const { deps } = fakeSearch({}, 503);
+  it("throws with the status on other errors — after retrying a server error twice", async () => {
+    const { deps, calls } = fakeSearch({}, 503);
     await expect(searchVideos("x", { apiKey: "k" }, deps)).rejects.toThrow(/503/);
+    expect(calls).toHaveLength(3);
+  });
+
+  it("a server error that clears on retry costs nothing", async () => {
+    let n = 0;
+    const waits: number[] = [];
+    const deps: PexelsDeps = {
+      fetchJson: async () =>
+        ++n === 1
+          ? { ok: false, status: 500, body: null }
+          : { ok: true, status: 200, body: { videos: [vid(7)] } },
+      sleep: async (ms) => void waits.push(ms),
+    };
+    expect((await searchVideos("x", { apiKey: "k" }, deps)).map((v) => v.id)).toEqual([7]);
+    expect(waits).toEqual([3_000]);
+  });
+
+  it("never retries a bad key or a rate limit", async () => {
+    for (const status of [401, 429, 404]) {
+      const { deps, calls } = fakeSearch({}, status);
+      await expect(searchVideos("x", { apiKey: "k" }, deps)).rejects.toThrow();
+      expect(calls).toHaveLength(1);
+    }
   });
 
   it("a response with no videos array yields an empty list, not an error", async () => {
