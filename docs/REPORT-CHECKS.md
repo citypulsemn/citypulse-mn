@@ -131,18 +131,43 @@ npm run check-reports -- --limit=3    # smaller batch
 ### When it runs
 
 **On submission, immediately.** Filing a report dispatches the workflow
-(`lib/check-dispatch.ts`), so the verdict email lands in minutes.
+(`lib/check-dispatch.ts`). Measured end to end on 10 Sep 2026: report saved at
+14:35:34, dispatch fired at 14:35:35, verdict email sent at 14:36:28. **54
+seconds.** This is the only thing that makes report checking prompt.
 
-**And on a cron**, at :07 and :37 past every hour, which is the guarantee. The
-dispatch is only an accelerator and is allowed to fail — an expired token, a
-GitHub outage, an unset variable. Nothing is lost when it does; the next
-scheduled run collects whatever piled up.
+**And on a cron**, nominally :07 and :37 past every hour. Treat it as a loose
+backstop, not a guarantee of promptness — see the numbers below.
 
-The cron used to say every 2 hours. GitHub drops scheduled runs under load, and
-the run history showed 4–5 a day rather than 12, with real gaps of 6h35m and
-7h51m — every run green, the missing ones simply never happening. Denser cron
-narrowed that; the dispatch is what actually closes it. See
-HOTFIX-cadence-extrapolation.md.
+#### The cron is slower than it looks, and tightening it did not help
+
+It said every 2 hours until 10 Sep 2026, when it was tightened to :07/:37 on the
+theory that GitHub drops scheduled runs at some rate, so asking four times as
+often would land the survivors closer together. **Measured over the 33 days
+since, that theory is wrong:**
+
+| cron asks | actually delivered | period |
+|---|---|---|
+| 12 runs/day | ~5.0/day | 6–10 Sep 2026 (before) |
+| 48 runs/day | **5.3/day** | 11 Sep – 13 Oct 2026 (after) |
+
+Quadrupling the request bought 0.3 runs a day. GitHub appears to cap this
+repository's scheduled delivery near five a day regardless of the cron, and the
+surviving runs do not land near :07/:37 — they scatter across the clock.
+
+- **Median gap between runs: 4.5 hours.**
+- **Worst observed gap: 10h05m**, on 12 Oct 2026 — *worse* than the 7h51m that
+  prompted the change in the first place.
+
+The practical consequence, and the reason this correction is worth its space:
+**if `GH_DISPATCH_TOKEN` expires, prompt checking is gone, not degraded.** The
+fallback is a half-day tail, not the half hour the old wording implied. A
+dispatch failure is urgent. It now announces itself in the operator email rather
+than only in a Vercel log — see "Setting up the dispatch token".
+
+The cron is left dense because it is marginally better and an undelivered run is
+not billed. Do not tighten it further expecting a result.
+
+See HOTFIX-cadence-extrapolation.md for the original incident.
 
 ### Setting up the dispatch token
 

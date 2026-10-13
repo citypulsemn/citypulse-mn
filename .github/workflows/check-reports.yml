@@ -15,17 +15,31 @@ name: Inbox — check submissions and reports
 # doors opened. Reports are about things that are happening now.
 #
 # Twice an hour, offset from the hour. The job no-ops in ~20s when nothing is
-# pending (it only spends an agent call when there is an unchecked report), so
-# the frequency costs essentially nothing on a quiet week.
+# pending (it only spends an agent call when there is unchecked work), so the
+# frequency costs essentially nothing on a quiet week.
 #
-# WHY NOT EVERY 2 HOURS, which is what this said until 10 Sep 2026: GitHub drops
-# scheduled runs under scheduler load, and it was dropping most of these. The
-# cron asked for 12 runs a day; the run history showed 4–5, with real gaps of
-# 6h35m and 7h51m. A reader report about a show TONIGHT could sit eight hours —
-# the exact failure this workflow was built to prevent. Asking more often does
-# not stop the dropping, it just makes the surviving runs land closer together;
-# worst case falls from ~8h to ~2h. Minutes :07/:37 rather than :00/:30 because
-# the top and half of the hour are the most contended slots.
+# DO NOT TRUST THIS CRON TO BE PROMPT. It was "17 */2" until 10 Sep 2026, when it
+# was tightened to :07/:37 on the theory that GitHub drops scheduled runs at some
+# rate, so asking more often would land the survivors closer together. Measured
+# over the 33 days since, that theory is WRONG:
+#
+#   cron asked 12/day  →  delivered ~5.0/day   (Sep 6-10, before)
+#   cron asked 48/day  →  delivered  5.3/day   (Sep 11 - Oct 13, after)
+#
+# Quadrupling the request bought 0.3 runs a day. GitHub appears to cap this
+# repository's scheduled delivery near five a day whatever the cron says, and the
+# surviving runs do not land near :07/:37 at all — they scatter. Median gap
+# between runs: 4.5 hours. Worst observed: 10h05m on 12 Oct 2026, which is WORSE
+# than the 7h51m that prompted the change.
+#
+# So this schedule is a ~5x/day backstop with a half-day tail, not a 30-minute
+# one. What actually makes reports prompt is lib/check-dispatch.ts, which fires
+# this workflow on submission — report to verdict email in 54 seconds, measured.
+# If GH_DISPATCH_TOKEN ever expires, prompt checking is GONE, not degraded: the
+# fallback is multi-hour. Treat a dispatch failure as urgent, not cosmetic.
+#
+# The cron is left dense because it is marginally better and costs nothing — an
+# undelivered run is not billed. Do not tighten it further expecting a result.
 on:
   schedule:
     - cron: "7,37 * * * *"
