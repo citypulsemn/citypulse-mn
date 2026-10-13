@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   GRAPH,
   buildCreateContainerRequest,
+  buildCreateImageContainerRequest,
   buildStatusRequest,
   buildPublishRequest,
   buildQuotaRequest,
@@ -345,5 +346,81 @@ describe("waitForContainer", () => {
     const { sleep, waits } = fakeSleep();
     await waitForContainer(getStatus, "c1", { sleep });
     expect(waits).toHaveLength(1);
+  });
+});
+
+describe("still image container", () => {
+  const IMAGE_URL = "https://cdn.example/reels-publish/card.jpg";
+
+  it("golden: POST {GRAPH}/{igUserId}/media with image_url and caption — and no media_type", () => {
+    const req = buildCreateImageContainerRequest(IG_USER, {
+      imageUrl: IMAGE_URL,
+      caption: "Five orchards from our list.",
+    });
+    expect(req.url).toBe(`https://graph.instagram.com/v23.0/${IG_USER}/media`);
+    expect(req.method).toBe("POST");
+    const body = new URLSearchParams(req.body);
+    expect(body.get("image_url")).toBe(IMAGE_URL);
+    expect(body.get("caption")).toBe("Five orchards from our list.");
+    expect([...body.keys()].sort()).toEqual(["caption", "image_url"]);
+  });
+
+  it("alt_text rides along only when given; media_type never does", () => {
+    const altText = "A list of five orchards: Pine Tree, Aamodt's & three more.";
+    const withAlt = new URLSearchParams(
+      buildCreateImageContainerRequest(IG_USER, { imageUrl: IMAGE_URL, caption: "c", altText }).body,
+    );
+    expect([...withAlt.keys()].sort()).toEqual(["alt_text", "caption", "image_url"]);
+    expect(withAlt.get("alt_text")).toBe(altText);
+
+    // An empty alt text is no alt text — don't send Meta a blank field.
+    const blankAlt = new URLSearchParams(
+      buildCreateImageContainerRequest(IG_USER, { imageUrl: IMAGE_URL, caption: "c", altText: "" })
+        .body,
+    );
+    expect(blankAlt.has("alt_text")).toBe(false);
+    expect(withAlt.has("media_type")).toBe(false);
+    expect(blankAlt.has("media_type")).toBe(false);
+  });
+
+  it("the builder never carries a token field", () => {
+    const req = buildCreateImageContainerRequest(IG_USER, { imageUrl: IMAGE_URL, caption: "c" });
+    expect(req.url).not.toContain("access_token");
+    expect(req.body ?? "").not.toContain("access_token");
+  });
+
+  it("createImageContainer returns the container id; token in the Bearer header only", async () => {
+    const { deps, calls } = fakeGraph(() => ok({ id: "17900000077" }));
+    const client = makeInstagramClient(TOKEN, deps);
+    const opts = { imageUrl: IMAGE_URL, caption: "cap", altText: "alt" };
+    const id = await client.createImageContainer(IG_USER, opts);
+    expect(id).toBe("17900000077");
+    expect(calls).toHaveLength(1);
+    expect(calls[0].headers).toEqual({ Authorization: `Bearer ${TOKEN}` });
+    expect(calls[0].req).toEqual(buildCreateImageContainerRequest(IG_USER, opts));
+    expect(calls[0].req.body ?? "").not.toContain(TOKEN);
+  });
+
+  it("createImageContainer throws the same honest error as the reel path when there is no id", async () => {
+    for (const body of [{}, null, { id: "" }, { id: 42 }]) {
+      const { deps } = fakeGraph(() => ok(body));
+      const client = makeInstagramClient(TOKEN, deps);
+      await expect(
+        client.createImageContainer(IG_USER, { imageUrl: IMAGE_URL, caption: "c" }),
+      ).rejects.toThrow("Instagram /media returned no container id");
+    }
+  });
+
+  it("createImageContainer surfaces Meta's message verbatim, with the token scrubbed", async () => {
+    const { deps } = fakeGraph(() =>
+      fail(400, { error: { message: `Only photo or video can be accepted; token ${TOKEN} seen` } }),
+    );
+    const client = makeInstagramClient(TOKEN, deps);
+    const err = await client
+      .createImageContainer(IG_USER, { imageUrl: IMAGE_URL, caption: "c" })
+      .catch((e: unknown) => e);
+    expect(err).toBeInstanceOf(Error);
+    expect((err as Error).message).toContain("Only photo or video can be accepted");
+    expect((err as Error).message).not.toContain(TOKEN);
   });
 });

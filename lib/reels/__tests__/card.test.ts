@@ -4,7 +4,7 @@ import os from "node:os";
 import path from "node:path";
 import { createCanvas, loadImage } from "@napi-rs/canvas";
 import { VARIANTS, type CardContent, type Variant } from "../types";
-import { renderCardPng, renderCardToFile } from "../card";
+import { renderCardPng, renderCardToFile, renderFeedCardJpeg } from "../card";
 
 function fixture(variant: Variant): CardContent {
   return {
@@ -127,5 +127,84 @@ describe("renderCardToFile", () => {
     const img = await loadImage(written);
     expect(img.width).toBe(1080);
     expect(img.height).toBe(1920);
+  });
+});
+
+describe("renderFeedCardJpeg", () => {
+  /** The site's cream, #f1ece0. JPEG is lossy, so colours are compared loosely. */
+  const CREAM: [number, number, number] = [241, 236, 224];
+  const near = (px: number[], rgb: number[], tol = 8) =>
+    rgb.every((c, i) => Math.abs(px[i] - c) <= tol);
+
+  it("is a 1080x1350 JPEG under Instagram's 8 MB limit, cream to the corners — never black", async () => {
+    const jpeg = await renderFeedCardJpeg(fixture("family"));
+    expect(Array.from(jpeg.subarray(0, 3))).toEqual([0xff, 0xd8, 0xff]);
+    expect(jpeg.length).toBeLessThan(8 * 1024 * 1024);
+
+    const px = await decode(jpeg);
+    expect(px.width).toBe(1080);
+    expect(px.height).toBe(1350);
+    for (const [x, y] of [[0, 0], [1079, 0], [0, 1349], [1079, 1349]]) {
+      expect(near(px.at(x, y), CREAM), `corner ${x},${y} = ${px.at(x, y)}`).toBe(true);
+    }
+  });
+
+  for (const variant of VARIANTS) {
+    it(`keeps the ${variant} template's hue in the middle of a row`, async () => {
+      const px = await decode(await renderFeedCardJpeg(fixture(variant)));
+      // The reel frame's (540, 900) — between a row's two text lines — lands
+      // here after the crop and scale.
+      const [r, g, b] = px.at(540, 726);
+      expect(r + g + b).toBeLessThan(400);
+      if (variant === "regular") expect(b).toBeGreaterThan(r);
+      if (variant === "family") {
+        expect(g).toBeGreaterThanOrEqual(r);
+        expect(g).toBeGreaterThanOrEqual(b);
+      }
+      if (variant === "weird") {
+        expect(r).toBeGreaterThan(g);
+        expect(r).toBeGreaterThan(b);
+      }
+    });
+  }
+
+  it("fills the frame: ~40px above and below the arch, centred left to right", async () => {
+    const px = await decode(await renderFeedCardJpeg(fixture("family")));
+    // "Card" = clearly not background; the soft shadow doesn't count.
+    const isCard = (x: number, y: number) => {
+      const [r, g, b] = px.at(x, y);
+      return Math.abs(r - CREAM[0]) + Math.abs(g - CREAM[1]) + Math.abs(b - CREAM[2]) > 120;
+    };
+    let top = 0;
+    while (!isCard(540, top)) top++;
+    let bottom = 1349;
+    while (!isCard(540, bottom)) bottom--;
+    let left = 0;
+    while (!isCard(left, 726)) left++;
+    let right = 1079;
+    while (!isCard(right, 726)) right--;
+
+    // Scaling the whole 1920 frame instead of cropping to the arch would put
+    // the top near y=127 and leave ~400px empty underneath.
+    expect(top).toBeGreaterThanOrEqual(38);
+    expect(top).toBeLessThanOrEqual(50);
+    expect(1349 - bottom).toBeGreaterThanOrEqual(38);
+    expect(1349 - bottom).toBeLessThanOrEqual(50);
+    expect(Math.abs(left - (1079 - right))).toBeLessThanOrEqual(2);
+  });
+
+  it("paints the background it is given", async () => {
+    const px = await decode(await renderFeedCardJpeg(fixture("regular"), { background: "#102030" }));
+    expect(near(px.at(3, 3), [0x10, 0x20, 0x30])).toBe(true);
+  });
+
+  it("renders an empty event list as a bare card on cream — no invented rows", async () => {
+    const px = await decode(await renderFeedCardJpeg({ ...fixture("weird"), events: [] }));
+    expect(px.height).toBe(1350);
+    expect(near(px.at(0, 0), CREAM)).toBe(true);
+    // Where row 1's name sits on a full card: bare burgundy, no white ink.
+    const [r, g, b] = px.at(540, 660);
+    expect(r).toBeGreaterThan(g);
+    expect(r + g + b).toBeLessThan(400);
   });
 });

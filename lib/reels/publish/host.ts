@@ -95,7 +95,7 @@ export const defaultHostDeps: HostDeps = {
 export interface SupabaseHost {
   /** Creates the public bucket on the first ever run; a no-op after that. */
   ensureBucket(): Promise<void>;
-  /** Uploads the mp4; returns the public URL Meta will fetch. */
+  /** Uploads the mp4 (or a still card's .jpg); returns the public URL Meta will fetch. */
   upload(localFile: string, objectName: string): Promise<string>;
   /** Deletes the hosted object. 404 = already gone — idempotent cleanup. */
   remove(objectName: string): Promise<void>;
@@ -170,9 +170,12 @@ export function makeSupabaseHost(
 
     async upload(localFile, objectName) {
       const bytes = await deps.readFile(localFile);
+      // Meta fetches the public URL and trusts the stored type: a still card
+      // served as video/mp4 is rejected as an invalid image.
+      const contentType = /\.jpe?g$/i.test(localFile) ? "image/jpeg" : "video/mp4";
       const res = await deps.fetch(objectUrl(supabaseUrl, PUBLISH_BUCKET, objectName), {
         method: "POST",
-        headers: { ...auth, "Content-Type": "video/mp4", "x-upsert": "true" },
+        headers: { ...auth, "Content-Type": contentType, "x-upsert": "true" },
         body: bytes,
       });
       if (!res.ok) {

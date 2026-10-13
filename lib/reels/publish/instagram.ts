@@ -40,6 +40,19 @@ export function buildCreateContainerRequest(
   };
 }
 
+/**
+ * A single feed image. No media_type on purpose: Meta accepts that field only
+ * for reels, carousels and stories — a plain image is the absence of it.
+ */
+export function buildCreateImageContainerRequest(
+  igUserId: string,
+  opts: { imageUrl: string; caption: string; altText?: string },
+): GraphRequest {
+  const body = new URLSearchParams({ image_url: opts.imageUrl, caption: opts.caption });
+  if (opts.altText) body.set("alt_text", opts.altText);
+  return { url: `${GRAPH}/${igUserId}/media`, method: "POST", body: body.toString() };
+}
+
 export function buildStatusRequest(containerId: string): GraphRequest {
   return {
     url: `${GRAPH}/${containerId}?fields=status_code,status`,
@@ -106,6 +119,11 @@ export interface InstagramClient {
     igUserId: string,
     opts: { videoUrl: string; caption: string },
   ): Promise<string>;
+  /** Returns the container id of a single feed image. */
+  createImageContainer(
+    igUserId: string,
+    opts: { imageUrl: string; caption: string; altText?: string },
+  ): Promise<string>;
   getContainerStatus(containerId: string): Promise<ContainerStatus>;
   /** Returns the published media id. */
   publish(igUserId: string, containerId: string): Promise<string>;
@@ -138,6 +156,16 @@ export function makeInstagramClient(
   return {
     async createReelContainer(igUserId, opts) {
       const body = (await execute(buildCreateContainerRequest(igUserId, opts))) as {
+        id?: unknown;
+      } | null;
+      if (typeof body?.id !== "string" || !body.id) {
+        throw new Error("Instagram /media returned no container id");
+      }
+      return body.id;
+    },
+
+    async createImageContainer(igUserId, opts) {
+      const body = (await execute(buildCreateImageContainerRequest(igUserId, opts))) as {
         id?: unknown;
       } | null;
       if (typeof body?.id !== "string" || !body.id) {

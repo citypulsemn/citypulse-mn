@@ -26,3 +26,16 @@ export function dayDirFor(
 ): string {
   return path.join(reelsOutRoot(env), dayDirName(windowStart, day));
 }
+
+/** A still card's own one-post folder: "{postDate}_card", e.g. "2026-10-07_card". */
+export function cardDirFor(postDate: string, env: NodeJS.ProcessEnv = process.env): string {
+  return path.join(reelsOutRoot(env), `${postDate}_card`);
+}
+
+/**
+ * Preview renders live here and nowhere else: anything in a real dated folder
+ * is a post as far as the publish gate can tell.
+ */
+export function cardPreviewRoot(env: NodeJS.ProcessEnv = process.env): string {
+  return path.join(reelsOutRoot(env), "_card-previews");
+}

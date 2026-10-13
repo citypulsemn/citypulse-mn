@@ -93,6 +93,12 @@ Nothing here is blocked; everything has an owner.
    our jobs for September against $181.87 on the console. The per-key breakdown
    in the console is the only thing that can find it. From October the ledger is
    complete going forward, so the remaining gap is the real signal.
+8. **The weekly Places still card is built and rehearsed, not scheduled**
+   (5 Oct). **Taren:** judge the previews, one supervised Wednesday post, then
+   three scheduled tasks — `docs/REELS-PUBLISH.md`, "Go-live: the Places card".
+   The same day's reel fixes run from the working tree, so they are live for
+   the Mon/Fri reels whether or not they are committed. Four registry seasons
+   the card had to work around are listed there under "Left for Taren".
 
 ## Environment notes (this machine)
 

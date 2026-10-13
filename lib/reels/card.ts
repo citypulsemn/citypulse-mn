@@ -237,3 +237,46 @@ export async function renderCardToFile(
   await mkdir(path.dirname(outFile), { recursive: true });
   await writeFile(outFile, png);
 }
+
+/** 4:5 is the tallest ratio Instagram's API accepts for a feed image. */
+const FEED_W = 1080;
+const FEED_H = 1350;
+const FEED_MARGIN = 40;
+/**
+ * The arch plus its soft shadow inside the 1080x1920 frame (alpha scan of all
+ * three variants: x178-901, y178-1515; padded 2px, centred on x=540).
+ */
+const ARCH = { x: 176, y: 176, w: 728, h: 1341 } as const;
+/** The site's cream. */
+const FEED_BACKGROUND = "#f1ece0";
+
+/**
+ * The same arch card as a still feed post: a 1080x1350 JPEG, the only format
+ * Instagram's API takes for an image. The reel frame is cropped to the arch
+ * rather than scaled whole — scaling 1920 down to 1350 leaves a small card
+ * sitting above centre.
+ */
+export async function renderFeedCardJpeg(
+  content: CardContent,
+  opts: { background?: string; assets?: CardAssets } = {}
+): Promise<Buffer> {
+  const card = await loadImage(await renderCardPng(content, opts.assets));
+
+  const canvas = createCanvas(FEED_W, FEED_H);
+  const ctx = canvas.getContext("2d");
+  // Background first: JPEG has no alpha, so an unpainted pixel encodes black.
+  ctx.fillStyle = opts.background ?? FEED_BACKGROUND;
+  ctx.fillRect(0, 0, FEED_W, FEED_H);
+
+  const destH = FEED_H - 2 * FEED_MARGIN;
+  const destW = ARCH.w * (destH / ARCH.h);
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = "high";
+  ctx.drawImage(
+    card,
+    ARCH.x, ARCH.y, ARCH.w, ARCH.h,
+    (FEED_W - destW) / 2, FEED_MARGIN, destW, destH
+  );
+
+  return canvas.encode("jpeg", 92);
+}

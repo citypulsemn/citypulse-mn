@@ -164,3 +164,31 @@ export const PLACE_VISIT_COPY = {
   keepListSub:
     "Your saved events and the places you've checked off live in this browser. Email yourself a link and open it anywhere — phone, laptop, a fresh browser — to bring both with you.",
 };
+
+/**
+ * The weekly "Five places" still card (docs/REELS-PUBLISH.md, "Still cards").
+ * Plain strings, edit freely — with one caution: this card posts to Instagram
+ * with nobody reviewing it, so tests hold the wording to three things. No
+ * "best", "top", "favorite" or "must" (the five are a draw, not a ranking).
+ * Captions keep the reel rules: under 100 words, no hashtags, emoji or dashes,
+ * and they end on citypulsemn.com/places. And the "curated" strings say "from
+ * our list", because for those kinds the list is a sample, not the whole metro.
+ *
+ * {PLURAL} / {plural} become the kind's name in capitals / lower case, and
+ * {places} becomes the five "Name in City." sentences. `kindNames` is for a
+ * shorter name where the Places page's own plural is a mouthful on a card;
+ * a kind not listed here uses that plural as is.
+ */
+export const CARD_COPY = {
+  kindNames: {
+    "indoor-playground": "Indoor Playgrounds",
+    orchard: "Orchards & Pumpkin Patches", // the registry plural "Orchards & Patches" leaves "patches" on its own
+  } as Record<string, string>,
+  headerExhaustive: "FIVE {PLURAL} AROUND THE METRO",
+  headerCurated: "FIVE {PLURAL} FROM OUR LIST",
+  cta: "MORE AT CITYPULSEMN.COM/PLACES",
+  captionExhaustive:
+    "Five {plural} around the metro this week. {places} Which ones have you been to? More at citypulsemn.com/places",
+  captionCurated:
+    "Five {plural} from our list this week. {places} Which ones have you been to? More at citypulsemn.com/places",
+};

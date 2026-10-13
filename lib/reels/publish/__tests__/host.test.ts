@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   PUBLISH_BUCKET,
   buildObjectName,
+  objectNameFor,
   randomSuffix,
   storageBase,
   bucketInfoUrl,
@@ -294,5 +295,24 @@ describe("makeSupabaseHost URL validation", () => {
     expect(message).toContain("https URL");
     expect(message).not.toContain("hunter2");
     expect(message).not.toContain("postgresql");
+  });
+});
+
+describe("still cards — content type by file extension", () => {
+  it("a .jpg or .jpeg upload is sent as image/jpeg, whatever the case", async () => {
+    for (const file of ["C:/reels/auto/2026-10-07_card/card.jpg", "C:/x/card.JPEG"]) {
+      const { deps, calls } = fakeDeps(ok);
+      await makeSupabaseHost(ENV, deps).upload(file, "2026-10-07_card.jpg");
+      expect(calls[0].headers["Content-Type"]).toBe("image/jpeg");
+      expect(calls[0].headers["x-upsert"]).toBe("true");
+    }
+  });
+
+  it("everything else is still video/mp4 — including a name that merely contains .jpg", async () => {
+    for (const file of ["C:/reels/regular.mp4", "C:/reels/card.jpg.mp4", "C:/reels/noext"]) {
+      const { deps, calls } = fakeDeps(ok);
+      await makeSupabaseHost(ENV, deps).upload(file, NAME);
+      expect(calls[0].headers["Content-Type"]).toBe("video/mp4");
+    }
   });
 });
