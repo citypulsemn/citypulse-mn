@@ -81,6 +81,9 @@ export function renderInboxEmail(
   reports: ReportRow[],
   siteUrl: string,
   secret: string,
+  /** Infra problem the operator must act on — see dispatchLagWarning(). Our own
+   *  words, never public input, but escaped like everything else regardless. */
+  warning?: string,
 ): { subject: string; html: string; text: string } {
   const base = siteUrl.replace(/\/+$/, "");
   const wrong = reports.filter((r) => r.result.verdict === "supported").length;
@@ -174,12 +177,14 @@ ${r.result.evidence ? `<div style="${ROW_STYLE}color:#9aa3b5;">Evidence: ${esc(r
 <div style="max-width:560px;margin:0 auto;">
 <h1 style="font-size:18px;letter-spacing:0.06em;color:#c9a961;margin:0 0 4px;">CITY PULSE — INBOX</h1>
 <p style="margin:0 0 4px;font-size:13px;color:#9aa3b5;">Everything below was checked against an organiser's own page before this was sent. Nothing arrives here unchecked.</p>
+${warning ? `<p style="margin:10px 0 4px;padding:10px 12px;border-left:3px solid #e0a458;background:#1a2235;font-size:13px;line-height:1.5;color:#e0a458;">&#9888; ${esc(warning)}</p>` : ""}
 ${section(`SUBMISSIONS (${submissions.length})`, submissions.map(subBlock).join(""))}
 ${section(`REPORTS (${reports.length})`, reports.map(repBlock).join(""))}
 <p style="font-size:11.5px;color:#707a8d;margin-top:20px;">Publishing uses the details shown. Taking a listing down hides it as a draft — nothing is ever deleted, and Admin puts it back.</p>
 </div></body></html>`;
 
   const text = [
+    ...(warning ? [`! ${warning}`, ""] : []),
     ...submissions.map((s) => {
       const corrections = realCorrections(s.row, (s.result.corrections ?? {}) as SubmissionCorrections);
       return [
@@ -224,6 +229,7 @@ ${section(`REPORTS (${reports.length})`, reports.map(repBlock).join(""))}
 export async function sendInboxEmail(
   submissions: SubmissionRow[],
   reports: ReportRow[],
+  warning?: string,
 ): Promise<boolean> {
   if (submissions.length === 0 && reports.length === 0) return false;
   try {
@@ -237,7 +243,7 @@ export async function sendInboxEmail(
       );
       return false;
     }
-    const { subject, html, text } = renderInboxEmail(submissions, reports, siteUrl, reportActionSecret());
+    const { subject, html, text } = renderInboxEmail(submissions, reports, siteUrl, reportActionSecret(), warning);
     const res = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },

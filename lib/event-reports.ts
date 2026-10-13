@@ -205,6 +205,20 @@ export interface UncheckedReportRow extends ReportRow {
   event_ticket_url: string;
 }
 
+/**
+ * Minutes the oldest unchecked report has been waiting, or undefined when there
+ * are none. Feeds dispatchLagWarning — see there for why waiting time is the
+ * signal rather than the token itself.
+ */
+export async function getOldestUncheckedReportMinutes(): Promise<number | undefined> {
+  if (!sql) return undefined;
+  const [row] = await sql<{ minutes: number | null }[]>`
+    select floor(extract(epoch from (now() - min(created_at))) / 60)::int as minutes
+    from event_reports where status = 'pending' and checked_at is null
+  `;
+  return row?.minutes ?? undefined;
+}
+
 /** Pending reports that have never been checked, oldest first. */
 export async function getUncheckedReports(limit = 12): Promise<UncheckedReportRow[]> {
   if (!sql) return [];

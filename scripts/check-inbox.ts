@@ -23,9 +23,11 @@
  * SELECTs, no model call and no row.
  */
 import { sql } from "../lib/db";
+import { dispatchLagWarning } from "../lib/check-dispatch";
 import { recordRunSpend } from "../lib/model-spend";
 import {
   getUncheckedReports,
+  getOldestUncheckedReportMinutes,
   saveReportCheck,
   type UncheckedReportRow,
 } from "../lib/event-reports";
@@ -72,6 +74,11 @@ async function main() {
 
   const pendingSubs = await getUncheckedSubmissions(LIMIT);
   const pendingReports = await getUncheckedReports(LIMIT);
+  // Read the waiting time NOW: saveReportCheck below stamps checked_at, after
+  // which there is nothing left to measure. This is how a broken dispatch
+  // announces itself — see dispatchLagWarning() for why waiting time is the
+  // signal rather than the token.
+  const oldestWaitMinutes = await getOldestUncheckedReportMinutes();
   console.log(
     `[inbox] ${pendingSubs.length} unchecked submission(s), ${pendingReports.length} unchecked report(s)` +
       `${dryRun ? " (DRY RUN)" : ""}`,
@@ -212,7 +219,9 @@ async function main() {
     return row ? [{ result, row }] : [];
   });
 
-  const sent = await sendInboxEmail(subRows, repRows);
+  const dispatchWarning = dispatchLagWarning(oldestWaitMinutes);
+  if (dispatchWarning) console.warn(`[inbox] ${dispatchWarning}`);
+  const sent = await sendInboxEmail(subRows, repRows, dispatchWarning);
   if (sent) {
     console.log("[inbox] email sent");
   } else {

@@ -73,6 +73,56 @@ export function buildDispatchRequest(token: string | undefined): DispatchRequest
 }
 
 /**
+ * A dispatched run checks a report within about a minute (measured 10 Sep 2026:
+ * saved 14:35:34, dispatched 14:35:35, verdict emailed 14:36:28). The cron is
+ * the only other way a report gets picked up, and GitHub caps it near five runs
+ * a day with a measured 10h05m worst gap. The two are nowhere near each other,
+ * so a report that sat this long before anyone looked was NOT dispatched.
+ */
+export const DISPATCH_LAG_WARN_MINUTES = 20;
+
+/**
+ * Says, from nothing but how long a report sat, whether the dispatch is broken.
+ *
+ * WHY INFER IT RATHER THAN CHECK THE TOKEN. The dispatch runs in Vercel, where
+ * the token lives; the only operator email runs in GitHub Actions, where it does
+ * not. Reading the token's expiry would mean either a second copy of the secret
+ * to keep in sync or somewhere to persist the date — and neither would catch a
+ * revoked token, a read-only token, or a Vercel variable lost in a redeploy,
+ * which are three of the faults that actually broke this on 10 Sep 2026. The
+ * waiting time catches all of them, costs one query, and needs no configuration.
+ *
+ * This replaced the obvious design, a calendar reminder for the expiry date.
+ * GitHub already emails the owner before a fine-grained token expires, so expiry
+ * was never the unmonitored part — NOT NOTICING was. Until 4 Oct 2026 a report
+ * sent an instant operator email, so a failed dispatch had somewhere to surface;
+ * that email now goes out after the check, from the Actions side, which cannot
+ * know the dispatch failed. A dead token became completely silent: reports still
+ * get checked, just hours later, with nothing saying why.
+ */
+export function dispatchLagWarning(
+  oldestAgeMinutes: number | undefined,
+  threshold: number = DISPATCH_LAG_WARN_MINUTES,
+): string | undefined {
+  // No pending work, or no age to judge: nothing to say. Rule 6 — an absent
+  // measurement must not render as a reassuring "0 minutes, all well".
+  if (oldestAgeMinutes === undefined || !Number.isFinite(oldestAgeMinutes)) return undefined;
+  if (oldestAgeMinutes <= threshold) return undefined;
+
+  const waited =
+    oldestAgeMinutes >= 120
+      ? `${Math.floor(oldestAgeMinutes / 60)} hours`
+      : `${Math.round(oldestAgeMinutes)} minutes`;
+  return (
+    `This report waited ${waited} to be checked. A working dispatch checks one in about a minute, ` +
+    `so GH_DISPATCH_TOKEN is probably broken — expired (401), read-only (403), or missing from Vercel ` +
+    `since the last redeploy. Until it is fixed, reports wait on the schedule, which GitHub caps near ` +
+    `five runs a day and which has been measured at a 10-hour gap.`
+  );
+}
+
+
+/**
  * Ask GitHub to run the report checker now. Returns whether the dispatch was
  * accepted, for logging only. Never throws — a caller can `await` this inside a
  * form submission without risking the submission.

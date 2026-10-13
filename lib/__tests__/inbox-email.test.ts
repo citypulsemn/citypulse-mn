@@ -123,3 +123,31 @@ describe("an expired submission", () => {
     expect(subject).toBe("Checked 1 inbox item");
   });
 });
+
+/**
+ * The dispatch-lag banner (13 Oct 2026). A dead GH_DISPATCH_TOKEN used to be
+ * completely silent to the operator — reports still got checked, just hours
+ * later, with nothing saying why. This is where it now says so.
+ */
+describe("renderInboxEmail — dispatch warning banner", () => {
+  const render = (warning?: string) =>
+    renderInboxEmail([], [], "https://www.citypulsemn.com", "s3cret", warning);
+
+  it("is absent entirely when nothing is wrong — no empty scaffolding", () => {
+    const { html, text } = render();
+    expect(html).not.toContain("9888");
+    expect(text).not.toMatch(/^! /m);
+  });
+
+  it("appears in BOTH parts — a plain-text reader must not miss an outage", () => {
+    const { html, text } = render("GH_DISPATCH_TOKEN is probably broken");
+    expect(html).toContain("GH_DISPATCH_TOKEN");
+    expect(text).toContain("GH_DISPATCH_TOKEN");
+  });
+
+  it("escapes it like every other value that lands in an inbox", () => {
+    const { html } = render('<img src=x onerror="alert(1)">');
+    expect(html).not.toContain("<img src=x");
+    expect(html).toContain("&lt;img src=x");
+  });
+});
