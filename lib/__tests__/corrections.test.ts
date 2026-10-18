@@ -97,6 +97,62 @@ describe("planCorrection", () => {
   });
 });
 
+describe("whether a change can invalidate a verify stamp", () => {
+  it("a pin or address fix cannot — the pass never sees those fields", () => {
+    // 95 listings needed their pin corrected on 18 Oct 2026. Clearing their
+    // stamps would have pushed a week of paid verification back into the queue
+    // to re-establish facts the change never touched.
+    for (const c of [
+      base({ lat: 44.980876, lng: -93.236924 }),
+      base({ address: "1308 4th St SE" }),
+      base({ address: "1020 Duluth St", lat: 44.9717762, lng: -93.0494985 }),
+    ]) {
+      const p = planCorrection(row(), c);
+      expect(p.kind).toBe("edit");
+      if (p.kind === "edit") expect(p.affectsVerification).toBe(false);
+    }
+  });
+
+  it("a title, venue, city or date change does", () => {
+    const cases: Partial<Correction>[] = [
+      { title: "Jigitz" },
+      { venue: "Varsity Theater", address: "1308 4th St SE", lat: 44.980876, lng: -93.236924 },
+      { city: "Saint Paul" },
+      { start: "2026-10-24T20:00" },
+      { end: "2026-10-24T01:00" },
+    ];
+    for (const c of cases) {
+      const p = planCorrection(row(), base(c));
+      expect(p.kind, JSON.stringify(c)).toBe("edit");
+      if (p.kind === "edit") expect(p.affectsVerification, JSON.stringify(c)).toBe(true);
+    }
+  });
+
+  it("a venue move counts even though it also moves the pin", () => {
+    // The pin half is invisible to the pass; the venue half is not. Either one
+    // being verification-relevant has to win.
+    const p = planCorrection(
+      row(),
+      base({ venue: "Varsity Theater", address: "1308 4th St SE", lat: 44.980876, lng: -93.236924 }),
+    );
+    if (p.kind === "edit") expect(p.affectsVerification).toBe(true);
+  });
+
+  it("refuses to claim a verification a pin fix cannot establish", () => {
+    // A geocoder agreeing with another geocoder says where an address is. It
+    // says nothing about whether an event is real on that date.
+    expect(
+      validateCorrection(base({ lat: 44.98, lng: -93.23, verified: true, evidence: "https://nominatim.example/x" })),
+    ).toMatch(/cannot see/);
+    // The same flag on a date change, with a page cited, is fine.
+    expect(
+      validateCorrection(
+        base({ start: "2027-03-14T19:30", verified: true, evidence: "https://first-avenue.com/event/2027-03-baby-bugs/" }),
+      ),
+    ).toBeNull();
+  });
+});
+
 describe("the collision this module exists for", () => {
   it("two Underoath titles differing only by a dash share one identity", () => {
     // 18 Oct 2026. A flag said the 12 Dec row should move to 23 Nov. A 23 Nov row

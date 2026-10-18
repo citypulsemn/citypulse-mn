@@ -386,9 +386,18 @@ describe("the upstream guard — the pipeline must not store what it cannot name
     expect(src).toContain('import { isPlaceholderTitle } from "../lib/contradictions"');
     // Guard first, geocode second: a listing we are going to throw away must
     // not spend a Mapbox call on the way to the bin.
+    //
+    // The call became `roomPin(...)` on 18 Oct 2026 — one pin per ROOM instead
+    // of one per address spelling, see lib/room-pin.ts. A known room now costs
+    // nothing at all, but the ordering still matters for the first event at an
+    // unknown one, and that is the case a placeholder listing is most likely to
+    // be. Matched loosely on the resolver name so a future rename fails LOUDLY
+    // here rather than silently passing on an index of -1, which is how this
+    // guard went green against a call that no longer existed.
     const guard = src.indexOf("if (isPlaceholderTitle(ev.title, ev.venue))");
-    const geo = src.indexOf("await geocode(ev.address, ev.city)");
+    const geo = src.search(/await (roomPin|geocode)\(/);
     expect(guard).toBeGreaterThan(-1);
+    expect(geo).toBeGreaterThan(-1);
     expect(guard).toBeLessThan(geo);
   });
 

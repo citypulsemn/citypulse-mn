@@ -22,6 +22,7 @@
     "reclassify": "tsx --env-file-if-exists=.env.local scripts/reclassify.ts",
     "collapse": "tsx --env-file-if-exists=.env.local scripts/collapse-multiday.ts",
     "correct": "tsx --env-file-if-exists=.env.local scripts/apply-correction.ts",
+    "pins": "tsx --env-file-if-exists=.env.local scripts/venue-pins.ts",
     "verify": "tsx --env-file-if-exists=.env.local scripts/verify-events.ts",
     "inbox": "tsx --env-file-if-exists=.env.local scripts/check-inbox.ts",
     "resweep-verified": "tsx --env-file-if-exists=.env.local scripts/resweep-verified.ts",

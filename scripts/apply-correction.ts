@@ -123,15 +123,24 @@ async function main() {
       await sql`update events set status = 'archived', updated_at = now() where id::text = ${c.id}`;
     } else {
       const f = plan.fields;
-      // verified_at defaults to cleared: a stamp left on a row whose date just
-      // changed would claim a source vouched for the NEW date, when the source
-      // is why it changed. The "verified" flag — which validateCorrection only
-      // allows alongside a cited page — keeps it, because then the correction IS
-      // the verification and clearing it would re-spend to re-establish a fact
-      // already evidenced in the correction file.
+      // THREE OUTCOMES for verified_at, not two:
+      //   - the change touches nothing the pass checks (a pin, an address
+      //     spelling) -> LEAVE THE STAMP ALONE. Clearing it would re-queue the
+      //     row to re-establish a fact the correction never touched.
+      //   - it touches title/venue/city/date and "verified" is set (only
+      //     allowed alongside a cited page) -> stamp now: the correction IS the
+      //     verification.
+      //   - it touches those and nothing was cited -> clear it. A stamp left on
+      //     a row whose date just changed claims a source vouched for the new
+      //     date, when the source is why it changed.
       //
       // Keep prose OUT of the template below. A backtick in a SQL comment
       // terminates the JS template literal, which is how this line first broke.
+      const stamp = !plan.affectsVerification
+        ? sql`verified_at`
+        : c.verified
+          ? sql`now()`
+          : sql`null`;
       await sql`
         update events set
           event_key  = ${plan.newKey ?? row.event_key},
@@ -147,7 +156,7 @@ async function main() {
               ? null
               : sql`(${(f.end_local ?? row.end_local) as string}::text::timestamp at time zone 'America/Chicago')`
           },
-          verified_at = ${c.verified ? sql`now()` : null},
+          verified_at = ${stamp},
           updated_at  = now()
         where id::text = ${c.id}
       `;

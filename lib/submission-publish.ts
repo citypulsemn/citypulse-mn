@@ -1,7 +1,7 @@
 import { getSubmissionForDecision, markSubmissionReviewed, markDecidedVia, submissionToDbEvent } from "./submissions";
 import { realCorrections, correctedSubmission, type SubmissionCorrections } from "./submission-check";
 import { upsertEvents } from "./upsert";
-import { geocode } from "./geocode";
+import { roomPin } from "./room-pin";
 
 /**
  * Turn a reviewed submission into a published event.
@@ -49,7 +49,7 @@ export async function publishSubmission(
   try {
     // Geocode whatever address we are actually publishing — the corrected one
     // when there is one, which is how the Animal Farm pin got fixed.
-    const geo = opts.geo ?? (await geocode(fields.address || fields.venue, fields.city));
+    const geo = opts.geo ?? (await roomPin(fields.venue, fields.address || fields.venue, fields.city));
     const event = submissionToDbEvent(
       {
         title: fields.title,

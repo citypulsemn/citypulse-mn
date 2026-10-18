@@ -23,7 +23,7 @@ import { isPlaceholderTitle } from "../lib/contradictions";
 import { assessCoverage, formatCoverageAlerts } from "../lib/coverage";
 import type { CoverageInput } from "../lib/coverage";
 import { VENUES_PER_SHARD, VENUE_SWEEP_SEARCHES } from "../lib/pipeline-config";
-import { geocode } from "../lib/geocode";
+import { roomPin } from "../lib/room-pin";
 import { computeEventKey, normalizeTier } from "../lib/event-key";
 import { upsertEvents, archivePastEvents, markCancelled, dedupeNearDuplicates, collapseMultiDayRuns } from "../lib/upsert";
 import { pruneRateEvents } from "../lib/rate-limit";
@@ -166,7 +166,8 @@ async function main() {
           continue;
         }
 
-        const geo = await geocode(ev.address, ev.city);
+        // One pin per ROOM, not per address spelling — see lib/room-pin.ts.
+        const geo = await roomPin(ev.venue, ev.address, ev.city);
         if (!geo) {
           console.warn(`[pipeline] no geocode, skipping: ${ev.title} @ ${ev.venue}`);
           continue;

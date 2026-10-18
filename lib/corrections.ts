@@ -90,8 +90,27 @@ export type CorrectionPlan =
       newKey: string | null;
       /** Human-readable `field: old → new`, for the log and the audit row. */
       changed: string[];
+      /**
+       * Does this change touch anything the verify pass actually checks?
+       *
+       * The pass is given title, venue, city and start (`VerifiableEvent`) and
+       * asks whether the event is real on that date at that place. So moving a
+       * map pin or fixing an address spelling does NOT invalidate a stamp —
+       * and clearing it anyway would push the row back into a queue that costs
+       * about 5p a listing to work, to re-establish a fact the correction never
+       * touched. 95 listings needed their pin corrected on 18 Oct 2026; that is
+       * the whole verify budget for a week, spent on nothing.
+       */
+      affectsVerification: boolean;
     }
   | { kind: "nothing"; id: string; why: string; note: string };
+
+/**
+ * The fields the verify pass is shown, and therefore the only ones whose change
+ * can invalidate its stamp. `address`, `lat` and `lng` are deliberately absent:
+ * the pass never sees them.
+ */
+const VERIFY_RELEVANT = ["title", "venue", "city", "start_local", "end_local"] as const;
 
 const WALL = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/;
 
@@ -110,6 +129,15 @@ export function validateCorrection(c: Correction): string | null {
   // the laundering this project keeps finding: a confirmation with no source.
   if (c.verified && !(c.evidence ?? "").trim()) {
     return "verified:true needs `evidence` — a stamp with no cited page is the thing we keep catching";
+  }
+  // A pin fix cannot verify an event. The pass never sees lat/lng or address, so
+  // `verified` on a change that touches only those would claim a confirmation
+  // nothing established — and the stamp is left untouched there anyway.
+  if (
+    c.verified &&
+    !["title", "venue", "city", "start", "end"].some((k) => c[k as keyof Correction] !== undefined)
+  ) {
+    return "verified:true on a change the verify pass cannot see (pin or address only) — the stamp is left as it is for those";
   }
   if (c.start !== undefined && !WALL.test(c.start)) return `start "${c.start}" is not YYYY-MM-DDTHH:MM`;
   if (c.end !== undefined && c.end !== null && !WALL.test(c.end)) return `end "${c.end}" is not YYYY-MM-DDTHH:MM`;
@@ -183,6 +211,7 @@ export function planCorrection(row: CorrectionRow, c: Correction): CorrectionPla
     fields,
     newKey: nextKey === row.event_key ? null : nextKey,
     changed,
+    affectsVerification: VERIFY_RELEVANT.some((k) => k in fields),
   };
 }
 

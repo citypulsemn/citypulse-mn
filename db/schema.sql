@@ -592,3 +592,34 @@ alter table event_submissions add column if not exists checked_at        timesta
 alter table event_submissions add column if not exists decided_via       text;
 create index if not exists idx_event_submissions_unchecked
   on event_submissions (created_at) where status = 'pending' and checked_at is null;
+
+-- ── One pin per room (18 Oct 2026) ───────────────────────────────────────────
+-- WHY. `geocode()` was called once per EVENT, in the pipeline loop, with
+-- whatever address string the finding agent happened to supply. Agents spell the
+-- same address several ways — "1308 SE 4th Street" / "1308 4th St SE", "10 West
+-- Seventh Street" / "10 West 7th Street" — and Mapbox answers differently for
+-- each, with no cache and nothing reconciling the results afterwards. Measured:
+-- 14 rooms held 2-4 different pins across 95 live listings. The Minnesota
+-- Children's Museum had two pins 8.2km apart carrying the SAME address, and
+-- 44.932149,-93.112696 was serving both Grand Casino Arena and the Science
+-- Museum because "W Kellogg Blvd" resolved to a street centroid and the house
+-- number was ignored.
+--
+-- So a room's coordinate is now decided ONCE and stored here, keyed by
+-- `roomKey(venue)` (which folds "Turf Club" and "Turf Club (St Paul)" together).
+-- The pipeline reads this before geocoding. Fixing a room fixes it for every
+-- event that ever lands there.
+--
+-- `source` records how the pin was established, because the lesson from the
+-- places audit is that one geocoder is a question and two agreeing is a finding.
+-- Every row seeded here was confirmed by two INDEPENDENT providers (Nominatim
+-- and US Census TIGER); `agreed_m` is how far apart they were.
+create table if not exists venue_coords (
+  room_key   text primary key,
+  lat        double precision not null,
+  lng        double precision not null,
+  label      text,
+  source     text not null,
+  agreed_m   integer,
+  set_at     timestamptz not null default now()
+);
