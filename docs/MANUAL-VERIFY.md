@@ -179,6 +179,63 @@ Run it a few weeks, read those counts, then decide.
 Until then the honest summary is: **you choose coverage or cost each week, and
 the gate makes that choice explicit instead of accidental.**
 
+## Applying what the pass found
+
+The pass flags; it never applies a date. So roughly half the open flags carry a
+ready-to-apply date or room taken from the venue's own calendar, and until
+18 Oct 2026 the only way to act on one was hand-written SQL.
+
+```bash
+npm run correct -- --from=corrections.json                        # dry run
+npm run correct -- --from=corrections.json --apply --backup=before.json
+```
+
+`lib/corrections.ts` holds the shape. It exists for one reason: **`event_key` is
+unique across every status**, and identity is `sha256(title | venue | start
+DATE)` — so editing a title, a room or a day changes the row's identity, and the
+new identity may already belong to another row, including an archived one
+nobody can see on the site. The script computes the new key and **refuses the
+correction if anything else holds it**, naming the other row.
+
+That is not theoretical. On 18 Oct a flag said an Underoath date should move
+from 12 Dec to 23 Nov. A 23 Nov row was already published and verified, its
+title differing only by an en-dash where the other used an em-dash — so the
+moved row's key came out byte-identical. The right action was archiving a
+duplicate, not moving a date, and a hand-written UPDATE would have hit the
+unique index and told you nothing about why.
+
+Three other things it does that `admin-actions.ts updateEvent` cannot:
+
+- **Coordinates move with the room.** `updateEvent` has no lat/lng, so a venue
+  change made there leaves the pin at the old address. A venue change without
+  coordinates is refused.
+- **`verified_at` is cleared by default.** A stamp left on a row whose date just
+  changed would claim a source vouched for the *new* date, when the source is
+  why it changed. `"verified": true` keeps it, and is only allowed alongside a
+  cited `evidence` page — then the correction *is* the verification, and
+  clearing it would re-spend to re-establish a fact already cited.
+- **Re-running is a no-op.** A correction whose values the row already has
+  reports `no change` instead of writing a second audit row claiming one.
+
+### A primary source is not the same as a current one
+
+Baby Bugs is the case worth remembering. The listing's `source_url` was
+`first-avenue.com` — the organiser's own site, so never flagged weak. First
+Avenue announced on 2 Oct that the show had moved to March 2027, retiring the
+old slug behind a 301. The paid verify pass stamped the row `confirmed` for
+21 Oct on **15 Oct at 19:18:27**, thirteen days later, and the subscriber email
+went to 44 people four seconds afterwards.
+
+The likely reason is that a general search for the show still returns AXS,
+TickPick, SeatPick and ConcertFix, all of which were still selling the dead
+October date. Stale resale inventory reads exactly like confirmation. `source_url`
+being primary says where we got the listing, not that the page still says what
+it said.
+
+Note also that `digest_sends` records only a recipient count and a note — not
+which events went out. So after finding an error like this there is **no way to
+establish what the list was actually told**.
+
 ## Deploying
 
 **Nothing to set.** No new secret, no schema change (`admin_audit` already
