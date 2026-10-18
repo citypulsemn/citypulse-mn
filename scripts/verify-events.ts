@@ -235,22 +235,31 @@ async function main() {
     const routed = routeVerdicts(verdicts, rows as RoutableEvent[]);
     for (const line of routed.lines) console.log(line);
 
-    // Same measure as the paid path: what was adjudicated, not what was offered.
-    // routeVerdicts drops a verdict whose id it was not given, so these can
-    // differ from verdicts.length, and the ledger must carry the smaller number.
-    const adjudicated = routed.confirms.length + routed.cancels.length + routed.flags.length;
+    // DISTINCT EVENTS, not the sum of the three buckets. A weak-source row gets
+    // BOTH a stamp and a flag, so adding the buckets double-counts it — the
+    // first real run reported 163 for 153 events. `checked` is the field a
+    // coverage floor would be read off, so it has to be a count of rows.
+    const touched = new Set([
+      ...routed.confirms,
+      ...routed.cancels.map((c) => c.id),
+      ...routed.flags.map((f) => f.id),
+    ]);
     let cancelled = 0;
     if (!dryRun) {
       await markVerified(routed.confirms);
       cancelled = await cancelVerified(routed.cancels);
       for (const f of routed.flags) await flagVerification(f.id, f.verdict, f.note);
-      if (adjudicated > 0) {
+      if (touched.size > 0) {
         await recordVerifyPass("file", {
-          checked: adjudicated,
+          checked: touched.size,
           confirmed: routed.confirms.length,
           cancelled,
           flagged: routed.flags.length,
-          ofCandidates: candidates.length,
+          // What the file offered — NOT candidates.length, which on this path is
+          // whatever today's selector happens to pick and has nothing to do with
+          // what was researched, possibly days ago under a different --cap.
+          ofFile: verdicts.length,
+          dropped: rejected.length,
         });
       }
     }

@@ -444,15 +444,22 @@ export async function flagVerification(id: string, verdict: string, note: string
 export async function recordVerifyPass(
   how: "ci" | "local" | "file",
   counts: {
-    /** Events actually adjudicated — never the number the run set out to do. */
+    /**
+     * DISTINCT EVENTS adjudicated — never the number the run set out to do, and
+     * never the sum of confirmed+cancelled+flagged, which double-counts a
+     * weak-source row (it gets a stamp AND a flag).
+     */
     checked: number;
     confirmed: number;
     cancelled: number;
     flagged: number;
-    /** How many the run had queued, when the budget truncated it. */
+    /** Paid path: how many were queued, when the budget truncated the run. */
     ofCandidates?: number;
-    /** e.g. "10/25", so a truncated run is visibly truncated in the ledger. */
+    /** Paid path: e.g. "10/25", so a truncated run is visibly truncated. */
     batches?: string;
+    /** File path: how many verdicts the file offered, and how many it lost. */
+    ofFile?: number;
+    dropped?: number;
   },
 ): Promise<void> {
   const sql = requireSql();

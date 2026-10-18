@@ -118,12 +118,18 @@ non-zero instead:
 A pass that adjudicated verdicts but found nothing wrong **does** mark itself —
 "nothing was wrong" and "nothing ran" must not look the same.
 
-`checked` is the number of events in batches that actually returned, **never
-`candidates.length`**. The budget truncates most full windows, so recording
-what the run set out to do would have overstated coverage by up to 2.5× — the
-`collapsed_runs` bug exactly, a counter that reported intent and read clean
-through five broken weeks. `ofCandidates` and `batches` ("10/25") ride along so
-a truncated run is visibly truncated rather than looking like a clean sweep.
+`checked` is a count of **distinct events**, and getting it honest took two
+goes. It is never `candidates.length` — the budget truncates most full windows,
+so recording what the run set out to do overstated coverage by up to 2.5×, the
+`collapsed_runs` bug exactly. And on the file path it is not
+`confirmed + cancelled + flagged` either: a weak-source row gets **both** a
+stamp and a flag, so summing the buckets double-counts it. The first real run
+recorded 163 for 153 events before that was fixed; the 18 Oct 2026 marker row
+still carries the inflated figure, since `admin_audit` is append-only.
+
+`ofCandidates` and `batches` ("10/25") ride along on the paid path, and `ofFile`
+and `dropped` on the file path, so a truncated or partly-rejected run is
+visibly so rather than looking like a clean sweep.
 
 ### Why 72 hours
 
