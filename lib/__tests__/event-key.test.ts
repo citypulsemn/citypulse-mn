@@ -38,9 +38,30 @@ describe("normalizeTier", () => {
     expect(normalizeTier("Free")).toBe("Free");
     expect(normalizeTier("$$$")).toBe("$$$");
   });
-  it("maps free-ish strings to Free", () => {
+  it("maps a price that leads with free, and names no other amount, to Free", () => {
     expect(normalizeTier("Free entry")).toBe("Free");
     expect(normalizeTier("$0")).toBe("Free");
+    expect(normalizeTier("Free admission; fee for some activities")).toBe("Free");
+    expect(normalizeTier("Free (some ticketed elements)")).toBe("Free");
+    expect(normalizeTier("FREE with registration")).toBe("Free");
+    expect(normalizeTier("Free (parking $10)")).toBe("Free");
+    expect(normalizeTier("Free general; $30–$150 for concerts")).toBe("Free");
+  });
+
+  it("a conditional free is not Free — the Free tier used to be a substring match", () => {
+    // 209 of 1,337 Free-tier rows were one of these shapes (Oct 2026).
+    expect(normalizeTier("$22 general; children 3 and under free")).toBe("$$");
+    expect(normalizeTier("$8 per child; free for adults and children under 1")).toBe("$");
+    expect(normalizeTier("Free for members; $10 others")).toBe("$");
+    expect(normalizeTier("Free with museum admission ($18)")).toBe("$");
+    expect(normalizeTier("$0–$25")).toBe("$$");
+    expect(normalizeTier("Freestyle session $20")).toBe("$$");
+  });
+
+  it("a bare number is an age or a count, not a price", () => {
+    expect(normalizeTier("$22; ages 3 and under free")).toBe("$$");
+    expect(normalizeTier("2 shows, $45")).toBe("$$");
+    expect(normalizeTier("Ages 21+")).toBe("$$"); // no price named: unknown, not $
   });
   it("buckets by the lowest dollar amount", () => {
     expect(normalizeTier("$15")).toBe("$"); // < 20

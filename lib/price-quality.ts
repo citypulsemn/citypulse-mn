@@ -60,6 +60,41 @@ export function isStrictlyFree(price: string | null | undefined): boolean {
   return STRICTLY_FREE.test(String(price ?? "").trim());
 }
 
+/** Every dollar amount in a price text. A bare number is an age or a count ("children 3 and under"), never a price. */
+export function dollarAmounts(price: string): number[] {
+  return [...price.matchAll(/\$\s?(\d+(?:\.\d{2})?)/g)].map((m) => parseFloat(m[1]));
+}
+
+/**
+ * True when a reader can turn up and pay nothing. This decides the Free price
+ * TIER — the filter chip and the "Free This Week" collection — so it is
+ * looser than isStrictlyFree, which decides whether to print the bare word.
+ *
+ * The text must LEAD with "free" (or $0): "Free admission; pumpkin patch $5"
+ * and "Free (parking $10)" are free to attend, extras cost. What comes right
+ * after "free" can take it back: a limit on who ("for members", "kids",
+ * "with Arboretum admission") or when ("Fri", "on Thursdays"), or a range
+ * upward ("Free–$20", "Free or low cost"). "$22 general; children 3 and under
+ * free" never leads with free, so it never qualifies. Every shape here was
+ * read off the live table (Oct 2026): the tier used to be a substring match
+ * on "free", and 209 of its 1,337 rows were one of the taken-back kinds.
+ */
+const LEADS_FREE = /^(?:free\b|\$0(?:\.00)?(?!\d))/i;
+// Each lookahead also refuses whitespace, or "\s*" would back off a space and
+// let "Free / RSVP" read as a limit.
+const TAKEN_BACK =
+  /^(?:free|\$0(?:\.00)?)\s*(?:[–\-]|to\s+\$|\/\s*(?!\s|rsvp|donation|free)|or\s+(?!\s|free)|\(?\s*(?:(?:for|only)\s+(?!\s|all\b|everyone\b|the\s+public\b)|with\s+(?!\s|registration|rsvp|reservation|ticket|sign|pre)|if\b|when\b|on\b|before\b|after\b|until\b|members?\b|kids?\b|children\b|youth\b|under\b|ages?\b|students?\b|seniors?\b|veterans?\b|(?:mon|tues?|wed|thu|thurs|fri|sat|sun)[a-z]*\b|first\b))/i;
+// "Free (outdoor) / Ticketed (venue events)": a later " / " that is not RSVP or donations splits the price.
+const SPLIT_LATER = /\s\/\s(?!rsvp|donation|free)/i;
+const MEMBERS_ONLY = /\bmembers?\b/i;
+
+export function isFreeToAttend(price: string | null | undefined): boolean {
+  const p = String(price ?? "").trim();
+  if (!LEADS_FREE.test(p) || TAKEN_BACK.test(p) || SPLIT_LATER.test(p)) return false;
+  // "Free (Como Friends donors/members)": free for members is not free.
+  return !(MEMBERS_ONLY.test(p) && !/non-?members?/i.test(p));
+}
+
 /**
  * What to show a reader. Never empty — an event page with no Price row and an
  * event page that says "See listing" both keep our promise, and the second is

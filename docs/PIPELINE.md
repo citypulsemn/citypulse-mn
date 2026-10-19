@@ -52,7 +52,7 @@ The prompts steer each agent at the right sources. The **Unique** category (inte
 
 - **Geocode** every address to coordinates (`geocode()`); events that can't be geocoded are skipped (they can't be mapped). Geocoding is server-side only.
 - **Dedup key** from normalized title + venue + start date.
-- **Price tier** inferred from the price string.
+- **Price tier** inferred from the price string: Free only when the text leads with free and names no other amount (`isFreeToAttend`); otherwise the lowest dollar amount buckets it. A stored column — `npm run retier` recomputes it after a rule change.
 
 ### 3. Upsert (idempotent)
 
