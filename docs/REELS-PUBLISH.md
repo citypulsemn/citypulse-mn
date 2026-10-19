@@ -185,9 +185,11 @@ publisher is per-account (token file + IG user id), everything else shared.
 
 # Still cards (feed posts on non-reel days) — BUILT, not scheduled
 
-**Status:** BUILT Oct 5, 2026 and rehearsed against Instagram twice. **Nothing
-is scheduled and nothing has posted** — go-live steps are at the bottom
-("Go-live: the Places card"). Designed Oct 4 and revised after a three-way
+**Status:** BUILT Oct 5, 2026 and rehearsed against Instagram three times.
+**Not scheduled, by decision** — the 19 Oct retro (`docs/RETRO-INSTAGRAM-OCT-2026.md`)
+found the account sending 10 readers in five weeks, and Taren chose to keep
+the reels running as a presence and add nothing. The go-live steps at the
+bottom ("Go-live: the Places card") stay for the day that changes. Designed Oct 4 and revised after a three-way
 adversarial review that measured the first draft against live data;
 decisions were locked Oct 5. The build then had its own four-way review, each
 finding independently reproduced: 21 confirmed, all fixed or handed to Taren
