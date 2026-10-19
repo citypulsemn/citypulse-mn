@@ -26,6 +26,14 @@ in `CARD_SAFE_SEASONS` (October–March → Nov 1–Mar 10; May–September → 
 31; June–October → Jun 15–Sep 30). Theodore Wirth and Gibbs Farm keep their
 lines. `docs/REELS-PUBLISH.md`'s two passages about the table are updated.
 
+**Addendum, 19 Oct 2026 — Gibbs Farm.** `gibbs-farm` (museum) was year-round
+against its own intro ("open the warm months"). rchs.com/gibbs-farm/visit-us,
+read 19 Oct: public hours Saturdays 10–2, from opening day in late May (May
+23, 2026) to mid-October (last public day Oct 17, 2026); ticketed events run
+outside those hours. Now **May–October** (the label its sibling museums use),
+intro rewritten to say the Saturdays, `verifiedAt` 2026-10-19. Its line came
+out of `CARD_SAFE_BY_SLUG`; only Theodore Wirth keeps one.
+
 ## Why it was done this way
 
 - **The conservative floor, flagged.** No Three Rivers page states opening or

@@ -5396,12 +5396,15 @@ export const PLACES: Place[] = [
   {
     slug: "gibbs-farm", name: "Gibbs Farm", kind: "museum",
     lat: 44.9910, lng: -93.1850, address: "2097 Larpenteur Ave W, Falcon Heights, MN 55113",
-    city: "Falcon Heights", neighborhood: null, season: YEAR_ROUND, cost: "paid",
+    // rchs.com/gibbs-farm/visit-us (read 19 Oct 2026): public hours are Saturdays
+    // 10–2, from opening day in late May (May 23 in 2026) to mid-October (last
+    // public day Oct 17, 2026). Listed year-round until then, against its own intro.
+    city: "Falcon Heights", neighborhood: null, season: { type: "seasonal", openMonth: 5, closeMonth: 10, label: "May–October" }, cost: "paid",
     tags: ["history", "farm"],
-    intro: "An 1850s pioneer and Dakota-life farm museum in Falcon Heights — a one-room schoolhouse, heritage animals, and a tipi, run by the Ramsey County Historical Society. Paid; open the warm months.",
-    sourceUrl: "https://www.rchs.com",
+    intro: "An 1850s pioneer and Dakota-life farm museum in Falcon Heights — a one-room schoolhouse, heritage animals, and a tipi, run by the Ramsey County Historical Society. Open Saturdays 10 to 2, late May through mid-October; ticketed events run outside those hours. Paid.",
+    sourceUrl: "https://rchs.com/gibbs-farm/visit-us/",
     details: { handsOn: true },
-    verifiedAt: "2026-08-17", venueSlug: null,
+    verifiedAt: "2026-10-19", venueSlug: null,
   },
   {
     slug: "james-j-hill-house", name: "James J. Hill House", kind: "museum",

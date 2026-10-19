@@ -472,7 +472,7 @@ describe("single places whose registry season is wider than a card may claim", (
   });
 
   it("Gibbs Farm, 'open the warm months', cards in summer only", () => {
-    expect(bySlug("gibbs-farm").intro).toContain("open the warm months");
+    expect(bySlug("gibbs-farm").season).toMatchObject({ label: "May–October" }); // registry fixed 19 Oct; the card line came out
     expect(safeOn("gibbs-farm", "2027-07-07")).toBe(true);
     for (const cold of ["2026-12-23", "2027-02-17", "2027-03-31", "2027-05-05", "2027-10-06"]) {
       expect(safeOn("gibbs-farm", cold), cold).toBe(false);

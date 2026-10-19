@@ -58,9 +58,6 @@ export const CARD_SAFE_BY_SLUG: Record<string, readonly [from: string, to: strin
   // courses had lines here until their registry entries were re-verified
   // against their sources on 6 Oct 2026.)
   "theodore-wirth-disc-golf": ["05-01", "09-30"],
-  // Registered year-round; its own intro ends "open the warm months". The
-  // window its seasonal sibling museums (May–October) already get.
-  "gibbs-farm": ["06-01", "09-30"],
 };
 
 /** Can this place go on a card posted on `postDate` (yyyy-mm-dd)? */
