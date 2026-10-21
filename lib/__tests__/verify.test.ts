@@ -308,6 +308,31 @@ describe("the verify prompt asks the question that catches a fabrication", () =>
     },
   ]);
 
+  it("hands over a curated calendar instead of making the agent search", () => {
+    // 15 Oct 2026: Baby Bugs' source_url was first-avenue.com — primary, so
+    // never flagged weak — but the show had moved to 2027 and the old slug was
+    // retired. Searching for the listing returns AXS, TickPick and SeatPick,
+    // all still selling the dead October date, and the pass stamped it
+    // confirmed four seconds before the subscriber email went out.
+    const withCurated = buildVerifyPrompt([
+      {
+        id: "b",
+        title: "Baby Bugs",
+        venue: "7th St Entry",
+        city: "Minneapolis",
+        start: "2026-10-21T19:30",
+        sourceUrl: "https://first-avenue.com/event/2026-10-baby-bugs/",
+        ticketUrl: "",
+      },
+    ]);
+    expect(withCurated).toContain("venue's own calendar: https://first-avenue.com/venue/7th-st-entry/");
+    expect(withCurated).toMatch(/OPEN THAT FIRST/);
+    expect(withCurated).toMatch(/still being on sale confirms nothing/);
+
+    // An uncurated room gets no such line, rather than an invented one.
+    expect(prompt).not.toContain("venue's own calendar:");
+  });
+
   it("makes the venue's own calendar the authority", () => {
     expect(prompt).toMatch(/VENUE'S OWN CALENDAR/i);
     expect(prompt).toMatch(/outranks the source we cite/i);

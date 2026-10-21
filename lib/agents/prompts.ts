@@ -1,4 +1,5 @@
 import type { CategoryKey } from "../types";
+import { canonicalSourceFor } from "../venue-sources";
 
 /** The geographic scope every agent researches. */
 const METRO_SCOPE =
@@ -172,10 +173,23 @@ export function buildVerifyPrompt(
   events: { id: string; title: string; venue: string; city: string; start: string; sourceUrl: string; ticketUrl: string }[],
 ): string {
   const list = events
-    .map(
-      (e) =>
-        `- id: ${e.id}\n  event: ${e.title} @ ${e.venue}, ${e.city} — ${e.start}\n  source: ${e.sourceUrl || e.ticketUrl}`,
-    )
+    .map((e) => {
+      // Hand over the room's own calendar when somebody has curated one, rather
+      // than making the agent search for it. This is where the pass failed on
+      // 15 Oct 2026: Baby Bugs' source_url was first-avenue.com — primary, so
+      // never flagged weak — but First Avenue had moved the show to 2027 and
+      // retired the old slug. A general search for the listing returns AXS,
+      // TickPick and SeatPick, all still selling the dead October date, and the
+      // pass stamped it "confirmed" thirteen days after the venue announced the
+      // move, four seconds before the subscriber email went out. Stale resale
+      // inventory reads exactly like confirmation. A known URL removes the
+      // search that finds it.
+      const own = canonicalSourceFor(e.venue);
+      return (
+        `- id: ${e.id}\n  event: ${e.title} @ ${e.venue}, ${e.city} — ${e.start}\n  source: ${e.sourceUrl || e.ticketUrl}` +
+        (own ? `\n  venue's own calendar: ${own}` : "")
+      );
+    })
     .join("\n");
 
   return `You are a VERIFICATION agent for City Pulse MN, a Twin Cities events calendar. These events are happening in the next few days. Check each one:
@@ -184,7 +198,9 @@ ${list}
 
 START WITH THE VENUE'S OWN CALENDAR. For each event, find what the VENUE ITSELF says is in that room that night — its website, or its official ticketing page. That is the authority and it outranks the source we cite.
 
-The "source" line above is where WE got the listing. It is often a roundup article, not a schedule. If it does not actually name this event, it confirms nothing — say so and go to the venue.
+Where a "venue's own calendar" line is given, OPEN THAT FIRST — it is hand-checked and it is the room's real schedule. Do not take a search engine's word for this event before you have read that page. Resale and listing sites keep selling shows for weeks after a venue has moved or cancelled them, so a ticket still being on sale confirms nothing.
+
+The "source" line above is where WE got the listing. It is often a roundup article, not a schedule. If it does not actually name this event, it confirms nothing — say so and go to the venue. A primary-looking source can also simply be out of date: a venue that moved a show often retires the old page.
 
 For EACH event, decide exactly one verdict:
 - "confirmed"   — you SAW this event named on the venue's own calendar or its official ticketing page. Not "the venue exists", not "the source page loaded" — you found this event.
