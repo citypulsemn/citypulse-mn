@@ -34,6 +34,35 @@ which turns the **GitHub Actions tile on `/admin/ops` red**. That tile is the
 loudness mechanism; hiding the failure would make this another instrument
 raising its hand into a void.
 
+### It did not run at all for four weeks (29 Sep – 26 Oct 2026)
+
+The paragraph above reasoned carefully about this check's *own* failures and
+never considered the step **in front of it**. On 29 Sep an eleven-line comment
+was written inside a `sql` template in `scripts/import-sports.ts` as `//` lines;
+Postgres received them as the start of the statement and the step died with
+`syntax error at or near "//"` on every week a team had a game to add. Nothing
+after it ran. The newest `source_checked_at` in the database was **28 Sep** —
+the day before — and only 189 of 691 published listings had ever been checked.
+
+Two things to take from it:
+
+- **A step's own error handling says nothing about what it is standing behind.**
+  All three reconciliations now carry `if: ${{ !cancelled() }}`, so each runs
+  whatever the others did, and the job still reports failure if any failed. They
+  check different things against different sources; chaining them was never
+  meaningful.
+- **The loudness mechanism fired and did not produce action.** The workflow
+  conclusion *was* `failure` and the Actions tile *was* red, for four Mondays.
+  Red that nobody is looking at is indistinguishable from green. The thing that
+  would actually have caught this is an instrument that notices the check has
+  not run — `source_checked_at` going stale is visible in the database and in
+  nothing anyone reads.
+
+`lib/__tests__/sql-templates.test.ts` now fails the build on a `//` line inside
+any SQL template, which is the narrow cause. The broad cause — a passing
+`npm test`, a green build and a four-week-dead weekly job all coexisting — has
+no guard yet.
+
 Cost: about 12 minutes and no model spend. The weekly job has run 19–44 minutes
 over the last five weeks against a 90-minute timeout, so there is room.
 

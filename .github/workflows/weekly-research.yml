@@ -44,7 +44,23 @@ jobs:
       # the loop, which is the entire point. A feed that is down reports itself
       # unavailable and changes nothing, so this step failing the run would be
       # noise; it only exits non-zero on a real error like a missing DB URL.
+      #
+      # THE THREE RECONCILIATIONS BELOW EACH RUN EVEN IF AN EARLIER ONE FAILED
+      # (`if: !cancelled()`), and the job still reports failure if any did. They
+      # check different things against different sources and none depends on
+      # another's output, so chaining them was never meaningful — it just meant
+      # the first one to break silenced the rest.
+      #
+      # On 29 Sep 2026 an eleven-line comment was written INSIDE a `sql`
+      # template in import-sports.ts as `//` lines. Postgres read them as the
+      # start of the statement ("syntax error at or near //") and the step died
+      # on every week a team had a game to add. import-venues and check-sources
+      # sat behind it and never ran: the free weekly fabrication check was dead
+      # for FOUR WEEKS, and the newest source_checked_at in the database was
+      # 28 Sep. Nothing flagged it, because the step that failed was the step
+      # that was supposed to fail loudly, and it did — into a log nobody read.
       - name: Reconcile sports against official league schedules
+        if: ${{ !cancelled() }}
         run: npm run import-sports
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
@@ -55,6 +71,7 @@ jobs:
       # good guest on a venue's site — a few minutes on a week with a lot of new
       # shows, and near-instant once the season is loaded.
       - name: Reconcile listings against venue calendars
+        if: ${{ !cancelled() }}
         run: npm run import-venues
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
@@ -76,6 +93,7 @@ jobs:
       # the GitHub Actions tile on /admin/ops goes red, which is the point of
       # not wrapping it in continue-on-error.
       - name: Check every listing against the page it cites
+        if: ${{ !cancelled() }}
         run: npm run check-sources -- --apply
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}

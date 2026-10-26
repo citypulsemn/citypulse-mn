@@ -316,7 +316,6 @@ async function main() {
       // the same title, and upsertEvents leaves status alone on UPDATE, so the
       // show would stay hidden and be "added" forever. The venue's own calendar
       // outranks a stale hide.
-      const woken = await sql`
       // 'draft' ONLY, never 'archived'. The White Sox row this guard was built
       // for was a stale human HIDE, which is a draft. An archive is a decision
       // some other pass made deliberately, and re-publishing it undoes that
@@ -328,6 +327,11 @@ async function main() {
       //   consecutive Mondays and the Bell Museum's programme sat on the
       //   calendar twice a day for weeks. It would also resurrect every
       //   duplicate and fabrication archived by hand.
+      //
+      // KEEP THIS PROSE OUTSIDE THE TEMPLATE — see the same note in
+      // scripts/import-sports.ts. The identical block was pasted into both
+      // files on 29 Sep 2026 and broke both queries for four weeks.
+      const woken = await sql`
         update events set status = 'published'
         where event_key = any(${keys}) and status = 'draft'
       `;

@@ -258,7 +258,6 @@ async function runTeam(source: SportsSource, today: string): Promise<TeamResult>
       //
       // The league's own schedule outranks a stale hide, so we republish and say
       // out loud how many rows that resurrected.
-      const woken = await sql`
       // 'draft' ONLY, never 'archived'. The White Sox row this guard was built
       // for was a stale human HIDE, which is a draft. An archive is a decision
       // some other pass made deliberately, and re-publishing it undoes that
@@ -270,6 +269,14 @@ async function runTeam(source: SportsSource, today: string): Promise<TeamResult>
       //   consecutive Mondays and the Bell Museum's programme sat on the
       //   calendar twice a day for weeks. It would also resurrect every
       //   duplicate and fabrication archived by hand.
+      //
+      // KEEP THIS PROSE OUTSIDE THE TEMPLATE. It was written INSIDE it on
+      // 29 Sep 2026 as `//` lines, and Postgres received them as the start of
+      // the statement: "syntax error at or near //", position 8 — the first
+      // slash after the indent. The logic fix in that commit was correct and
+      // then never executed once. A SQL comment is `--`; a JS comment inside a
+      // tagged template is just text sent to the server.
+      const woken = await sql`
         update events set status = 'published'
         where event_key = any(${keys}) and status = 'draft'
       `;
