@@ -524,6 +524,13 @@ create table if not exists referrer_stats (
   primary key (day, host)
 );
 create index if not exists idx_referrer_stats_day on referrer_stats (day desc);
+-- RLS, like every other table. These three were missed when they were added
+-- and Supabase flagged them on 25 Oct 2026: with RLS off and the default
+-- anon/authenticated grants in place, a DELETE with no filter through the
+-- public REST API would have emptied them. The app reaches them through the
+-- owner connection, which has BYPASSRLS, so this costs the app nothing and
+-- with no policies those roles get zero access.
+alter table referrer_stats enable row level security;
 
 -- When the source check last actually read the page this listing cites.
 --
@@ -569,6 +576,8 @@ create table if not exists model_spend (
   note           text
 );
 create index if not exists idx_model_spend_ran on model_spend (ran_at desc);
+-- RLS on — see the note on referrer_stats. Spend figures are operator data.
+alter table model_spend enable row level security;
 
 -- The check a submission gets BEFORE anyone is asked to look at it.
 --
@@ -623,6 +632,8 @@ create table if not exists venue_coords (
   agreed_m   integer,
   set_at     timestamptz not null default now()
 );
+-- RLS on — see the note on referrer_stats. A wrong pin is a wrong map.
+alter table venue_coords enable row level security;
 
 -- WHY THE LAST ATTEMPT ON A CITED PAGE FAILED, not just when it last succeeded.
 --

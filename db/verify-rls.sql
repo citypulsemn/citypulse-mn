@@ -2,6 +2,18 @@
 -- In the SQL Editor you're a privileged role, so we use `set role anon` to
 -- simulate what the public REST API (anon key) can see, then reset.
 
+-- 0a) THE ENUMERATING CHECK — run this one first, and before any release that
+-- adds a table. Every check below names its tables literally, which is exactly
+-- how `referrer_stats`, `model_spend` and `venue_coords` sat unsealed until
+-- Supabase reported them on 25 Oct 2026: a table nobody remembered was a table
+-- nobody checked. This asks the database for the set instead of trusting a list.
+select c.relname as table_without_rls
+from pg_class c join pg_namespace n on n.oid = c.relnamespace
+where n.nspname = 'public' and c.relkind in ('r', 'p') and not c.relrowsecurity
+order by 1;
+-- expect: zero rows. Anything listed is readable AND writable through the
+-- public REST API with the anon key — including a DELETE with no filter.
+
 -- 0) Confirm RLS is enabled and the policy exists.
 select relname, relrowsecurity as rls_enabled
 from pg_class where relname in ('events','pipeline_runs','admin_audit');

@@ -184,3 +184,54 @@ describe("the sweep — every SQL column reference in lib/ app/ scripts/ exists 
     expect(bad, `\n${report}\n`).toEqual([]);
   });
 });
+
+/**
+ * EVERY TABLE IS SEALED, AND SOMETHING COUNTS THEM.
+ *
+ * docs/DATABASE.md has said since roadmap 1.6 that "every new table ships with
+ * RLS from day one", and on 25 Oct 2026 Supabase reported three that had not:
+ * `referrer_stats`, `model_spend`, `venue_coords`. With RLS off and the default
+ * `anon` grants in place, a filterless DELETE through the public REST API would
+ * have emptied any of them.
+ *
+ * The rule was never the problem. The CHECK was: `db/verify-rls.sql` names
+ * `events`, `pipeline_runs` and `admin_audit` literally, and every table added
+ * afterwards got its own hand-written verifier — so a table nobody remembered
+ * was a table nobody checked, and the gap could only be found from outside.
+ * This asserts the whole SET, so the next table that arrives unsealed fails
+ * here instead of in an advisory email.
+ *
+ * It reads db/schema.sql, not the database, so it cannot see a table created by
+ * hand in the Supabase editor. That is the remaining hole and it is a narrow
+ * one: every table this project has was declared here first.
+ */
+describe("RLS covers every table in db/schema.sql, not just the remembered ones", () => {
+  const raw = readFileSync(join(ROOT, "db", "schema.sql"), "utf8");
+  const declared = [...parseSchema(raw).keys()].sort();
+  const sealed = new Set(
+    [...stripSqlComments(raw).matchAll(/alter table\s+(\w+)\s+enable\s+row\s+level\s+security/g)].map(
+      (m) => m[1],
+    ),
+  );
+
+  it(`actually sees the schema — ${declared.length} tables (a parse that collapsed would pass vacuously)`, () => {
+    expect(declared.length).toBeGreaterThanOrEqual(15);
+    expect(declared).toContain("events");
+    expect(declared).toContain("subscribers");
+  });
+
+  it("every declared table enables row level security", () => {
+    const unsealed = declared.filter((t) => !sealed.has(t));
+    expect(
+      unsealed,
+      `\nunsealed tables: ${unsealed.join(", ")}\n` +
+        `add "alter table <t> enable row level security;" to db/schema.sql and run it in Supabase\n`,
+    ).toEqual([]);
+  });
+
+  it("the three Supabase flagged on 25 Oct 2026 are among them", () => {
+    for (const t of ["referrer_stats", "model_spend", "venue_coords"]) {
+      expect(sealed.has(t), `${t} is not sealed`).toBe(true);
+    }
+  });
+});

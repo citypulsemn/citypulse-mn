@@ -112,6 +112,7 @@ The public site and the pipeline connect through `DATABASE_URL` as the table **o
 
 - **`events`** — RLS enabled with a single policy: `anon`/`authenticated` may `select` only `status = 'published'`. There is no insert/update/delete policy, so that path is read-only. Drafts, cancelled, and archived rows are invisible to it.
 - **`pipeline_runs`, `admin_audit`** — RLS enabled with **no policy at all** → fully sealed from `anon`/`authenticated`.
+- **`referrer_stats`, `model_spend`, `venue_coords`** — declared sealed in `db/schema.sql` on 27 Oct 2026, pending one run in the Supabase SQL Editor. They were added without RLS; see the gap below.
 
 Verified with `db/verify-rls.sql` (run it in the Supabase SQL Editor) and, during development, against a real Postgres engine: anon sees only published, the owner role sees everything.
 
@@ -122,3 +123,39 @@ Verified with `db/verify-rls.sql` (run it in the Supabase SQL Editor) and, durin
 - `subscribers` (2.2) ✓ built — sealed; writes go through the server action as the owner.
 - `saved_events` (3.3) — RLS with a per-user policy (`user_id = auth.uid()`).
 - any future personal or operational data — sealed by default.
+
+#### The gap, 25 Oct 2026
+
+Supabase reported three tables with RLS off: `referrer_stats`, `model_spend`
+and `venue_coords`. The rule above was not the problem — the *check* was.
+`db/verify-rls.sql` names `events`, `pipeline_runs` and `admin_audit`
+literally, and every table added since got its own hand-written verifier
+(`verify-rls-saved.sql`, `verify-rls-visits.sql`). Nothing ever enumerated the
+set, so a table nobody remembered was a table nobody checked, and the gap could
+only be found from outside.
+
+What those three exposed, concretely: with RLS off and Supabase's default
+`anon` grants in place, a `DELETE` with no filter through the public REST API
+would have emptied any of them — 341 days of referrer counts, the model-spend
+ledger, 120 twice-confirmed venue pins.
+
+Two things changed:
+
+- `lib/__tests__/schema-drift.test.ts` now asserts that **every** table parsed
+  out of `db/schema.sql` has a matching `enable row level security`. The next
+  unsealed table fails `npm test`, not an advisory email. It reads the file
+  rather than the database, so a table created by hand in the Supabase editor
+  is still invisible to it — a narrow hole, since every table here was declared
+  in `schema.sql` first.
+- The three `alter table … enable row level security` statements are in
+  `db/schema.sql`. They still need one run in the Supabase SQL Editor — the
+  schema file is the declaration, not the application.
+
+One thing deliberately left alone: `anon` and `authenticated` also hold
+`TRUNCATE` on every table, and **RLS does not govern `TRUNCATE`**. It is not
+reachable — PostgREST exposes no truncate verb and the `anon` role cannot log
+in directly — so the grant is ugly rather than dangerous. Closing it is one
+statement (`revoke all on all tables in schema public from anon, authenticated;`
+plus `alter default privileges … revoke`), worth doing the next time this
+database is touched, and not worth an unrequested change to how the whole
+project is configured.
