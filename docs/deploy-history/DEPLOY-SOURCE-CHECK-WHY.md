@@ -122,7 +122,36 @@ npm run check-sources -- --host=minnesotaorchestra.org
 Then, after a real sweep, the Monday email's `Source check` section should name
 its causes rather than guessing.
 
-Proven against the live database inside a transaction that was rolled back —
+## Applied, and what it actually did
+
+The column was applied in Supabase on 27 Oct 2026. Observed, not predicted:
+
+```
+column: source_check_note | text | nullable
+
+[sources] 4 pages fetched (4 unreadable) · present 0 · NOT ON SOURCE 0 · unchecked 13
+[sources] why each listing landed where it did:
+               13  blocked      403 13
+
+note stored         blocked:403  on 13 rows
+source_checked_at   still null   on all 13  (so they come up again next run)
+verified_at         untouched    on all 12 that had one
+verify_flag rows    0
+```
+
+The ops digest coverage line changed in the same breath, from a guess to a
+count:
+
+```
+before  477 of 642 upcoming listings have never been checked — 477 not yet attempted
+after   477 of 642 upcoming listings have never been checked — 464 not yet attempted, 13 blocked
+```
+
+The staleness alarm still reads `down` (4 missed sweeps, 29 days), which is
+correct: a blocked page is not a read page, so the newest stamp is still
+28 Sep. The two columns kept their two meanings.
+
+Proven before that against the live database inside a transaction that was rolled back —
 `ALTER TABLE` is transactional in Postgres, so the migration itself was
 rehearsed and reverted:
 
