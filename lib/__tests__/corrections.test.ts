@@ -3,10 +3,14 @@ import {
   planCorrection,
   validateCorrection,
   describePlan,
+  nextValue,
   type Correction,
   type CorrectionRow,
 } from "../corrections";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { computeEventKey } from "../event-key";
+import { isAggregatorSource, isNonScheduleSource } from "../source-trust";
 
 // The real Jigitz row as it stood on 18 Oct 2026, down to the address spelling.
 function row(overrides: Partial<CorrectionRow> = {}): CorrectionRow {
@@ -17,6 +21,8 @@ function row(overrides: Partial<CorrectionRow> = {}): CorrectionRow {
     venue: "Green Room",
     city: "Minneapolis",
     address: "2923 Girard Avenue South",
+    // Empty is a real state: the column defaults to '' and plenty of rows have it.
+    source_url: "",
     start_local: "2026-10-23T20:00",
     end_local: "2026-10-23T23:00",
     lat: 44.948965,
@@ -245,5 +251,205 @@ describe("describePlan", () => {
     const r = row();
     const out = describePlan(planCorrection(r, base({ start: "2026-10-23T19:00" })), r).join("\n");
     expect(out).not.toContain("identity changed");
+  });
+});
+
+describe("source_url — repairing a bad citation", () => {
+  const VENUE_PAGE = "https://hennepinarts.org/events/the-unauthorized-hallmark-ish-parody-musical-2026";
+
+  it("is an edit the verify pass cannot see, so the stamp survives", () => {
+    // The live case, 27 Oct 2026: the listing was right in every fact and cited
+    // a touring-Broadway roundup. Clearing verified_at would push a correct row
+    // back through a pass that costs about 5p a listing.
+    const p = planCorrection(row(), base({ source_url: VENUE_PAGE }));
+    expect(p.kind).toBe("edit");
+    if (p.kind !== "edit") return;
+    expect(p.affectsVerification).toBe(false);
+    expect(p.newKey).toBeNull();
+    expect(p.fields.source_url).toBe(VENUE_PAGE);
+    expect(p.changed.some((c) => c.startsWith("source_url:"))).toBe(true);
+  });
+
+  it("resets the source check, because the new page has never been read", () => {
+    // Without this the weekly sweep sees a fresh stamp, treats the NEW page as
+    // checked, and parks it behind every genuinely stale page in a queue that
+    // only reaches ~400 of them per run.
+    const p = planCorrection(row(), base({ source_url: VENUE_PAGE }));
+    expect(p.kind === "edit" && p.resetsSourceCheck).toBe(true);
+  });
+
+  it("does not reset the source check for any other kind of edit", () => {
+    const pin = planCorrection(row(), base({ lat: 44.9489, lng: -93.2967 }));
+    expect(pin.kind === "edit" && pin.resetsSourceCheck).toBe(false);
+    const when = planCorrection(row(), base({ start: "2026-10-23T19:00" }));
+    expect(when.kind === "edit" && when.resetsSourceCheck).toBe(false);
+  });
+
+  it("is a no-op when the row already cites that page", () => {
+    const p = planCorrection(row({ source_url: VENUE_PAGE }), base({ source_url: VENUE_PAGE }));
+    expect(p.kind).toBe("nothing");
+  });
+
+  it("travels with a real fix without disturbing its verification", () => {
+    const r = row();
+    const p = planCorrection(
+      r,
+      base({ title: "Jigitz at the Green Room", source_url: VENUE_PAGE, verified: true, evidence: VENUE_PAGE }),
+    );
+    expect(p.kind).toBe("edit");
+    if (p.kind !== "edit") return;
+    expect(p.affectsVerification).toBe(true);
+    expect(p.resetsSourceCheck).toBe(true);
+    // A REAL identity change, not a dash swap. "Jigitz – …" and "Jigitz - …"
+    // canonicalize to the SAME key (the Underoath finding above), so asserting
+    // `newKey !== event_key` on those passed only because null !== the key.
+    expect(p.newKey).toBe(computeEventKey("Jigitz at the Green Room", r.venue, r.start_local));
+    expect(p.newKey).not.toBeNull();
+  });
+
+  it("counts as a change on its own, so it is not refused as a no-op correction", () => {
+    expect(validateCorrection(base({ source_url: VENUE_PAGE }))).toBeNull();
+  });
+
+  it("refuses something that is not an http(s) URL with a host", () => {
+    for (const bad of ["hennepinarts.org/events", "javascript:alert(1)", "", "https://", "https://localhost"]) {
+      expect(validateCorrection(base({ source_url: bad })), bad).toMatch(/not an http\(s\) URL/);
+    }
+  });
+
+  it("refuses a roundup, which is the defect this field exists to repair", () => {
+    // tourstoyou.org is the host that produced the 27 Oct flag.
+    expect(validateCorrection(base({ source_url: "https://tourstoyou.org/resources/venues/hennepin-arts/" }))).toMatch(
+      /third-party roundup/,
+    );
+    // …and a subdomain of one, which is how these are usually written.
+    expect(validateCorrection(base({ source_url: "https://www.mspmag.com/best-of-october/" }))).toMatch(
+      /third-party roundup/,
+    );
+  });
+
+  it("refuses a reseller dressed up as the venue", () => {
+    // Seven live listings sent readers to one of these on 29 Sep 2026.
+    expect(
+      validateCorrection(base({ source_url: "https://first-avenue.minneapolis-tickets.com/shows" })),
+    ).toMatch(/reseller/);
+  });
+
+  it("allows a social page, which is citable but not verifiable", () => {
+    // isNonScheduleSource is documented as good enough to cite, and source_url
+    // stamps nothing. Refusing these would be a new policy, not this one.
+    expect(validateCorrection(base({ source_url: "https://www.facebook.com/events/123456" }))).toBeNull();
+  });
+
+  it("but still refuses the hosts that are in BOTH lists", () => {
+    // eventbrite.com is a directory AND an AGGREGATOR_HOSTS entry, so the
+    // roundup rule reaches it first. Stated here because the comment above the
+    // checks used to claim every directory was allowed, which was not true.
+    expect(isAggregatorSource("https://www.eventbrite.com/e/123")).toBe(true);
+    expect(isNonScheduleSource("https://www.eventbrite.com/e/123")).toBe(true);
+    expect(validateCorrection(base({ source_url: "https://www.eventbrite.com/e/123" }))).toMatch(/roundup/);
+  });
+
+  it("refuses a verified stamp that rests only on a new citation", () => {
+    // Pointing at a better page is not a confirmation of a date. The pass never
+    // sees source_url, so the stamp is left alone and the claim is refused.
+    expect(validateCorrection(base({ source_url: VENUE_PAGE, verified: true, evidence: VENUE_PAGE }))).toMatch(
+      /cannot see/,
+    );
+  });
+
+  it("refuses an archive that also rewrites the citation", () => {
+    expect(validateCorrection(base({ archive: true, source_url: VENUE_PAGE }))).toMatch(/source_url/);
+  });
+});
+
+describe("nextValue — presence decides, never the value", () => {
+  /**
+   * The bug this exists to stop: `npm run correct` could NEVER clear an end
+   * time, and reported that it had. The script wrote
+   * `fields.end_local ?? row.end_local`, and `??` falls through on null, so a
+   * correction of `{"end": null}` wrote the old timestamp straight back while
+   * describePlan printed `→ (none)` and the audit row stored that line.
+   *
+   * The pre-existing test "can clear an end time without clearing it by
+   * accident" stayed green throughout, because it asserted the PLAN — and the
+   * plan was always right. Only the write was wrong.
+   */
+  const plan = (c: Partial<Correction>) => {
+    const p = planCorrection(row(), base(c));
+    if (p.kind !== "edit") throw new Error("expected an edit");
+    return p;
+  };
+
+  it("CLEARS a field the plan explicitly set to null", () => {
+    const p = plan({ end: null });
+    expect(p.fields.end_local).toBeNull();
+    expect(nextValue(p.fields, row(), "end_local")).toBeNull();
+    // The old expression, kept as a fixture so this test cannot go vacuous.
+    expect(p.fields.end_local ?? row().end_local).toBe("2026-10-23T23:00");
+  });
+
+  it("keeps the row's value for a field the plan never mentions", () => {
+    const p = plan({ start: "2026-10-23T19:00" });
+    expect("end_local" in p.fields).toBe(false);
+    expect(nextValue(p.fields, row(), "end_local")).toBe("2026-10-23T23:00");
+    expect(nextValue(p.fields, row(), "title")).toBe("Jigitz – 50 Ballerinas Tour");
+  });
+
+  it("passes a changed value through", () => {
+    const p = plan({ start: "2026-10-23T19:00" });
+    expect(nextValue(p.fields, row(), "start_local")).toBe("2026-10-23T19:00");
+  });
+
+  it("does not coalesce an empty string or a zero away", () => {
+    // source_url is `not null default ''`, so "" is a real stored value and a
+    // real target. A `?? row.x` here would silently keep the old citation.
+    const r = row({ source_url: "https://example.com/old" });
+    expect(nextValue({ source_url: "" }, r, "source_url")).toBe("");
+    expect(nextValue({ lat: 0 }, r, "lat")).toBe(0);
+  });
+
+  it("clears a nullable coordinate the plan nulls, and keeps one it does not", () => {
+    const r = row({ lat: 44.9, lng: -93.2 });
+    expect(nextValue({ lat: null }, r, "lat")).toBeNull();
+    expect(nextValue({}, r, "lat")).toBe(44.9);
+  });
+});
+
+describe("the script actually uses it — tripwire on scripts/apply-correction.ts", () => {
+  /**
+   * `nextValue` being correct is worth nothing if the UPDATE goes back to
+   * coalescing. And a drift guard that matches nothing is worse than none: one
+   * in this repo searched for a literal call that a rename had removed, so
+   * `indexOf` returned -1 and it passed for two weeks. Hence the first
+   * assertion — prove the statement is found before judging it.
+   */
+  const src = readFileSync(join(__dirname, "..", "..", "scripts", "apply-correction.ts"), "utf8");
+  // Anchored on `event_key  =`, not on `update events set` — the archive
+  // statement earlier in the file matches that and was what the first version
+  // of this guard sliced out.
+  const at = src.indexOf("event_key  =");
+  const update = src.slice(at, src.indexOf("where id::text = ${c.id}", at));
+
+  it("finds the UPDATE at all", () => {
+    expect(at).toBeGreaterThan(-1);
+    expect(update).toContain("event_key  =");
+    expect(update.length).toBeGreaterThan(200);
+  });
+
+  it("reads every column through nextValue, never through `?? row.`", () => {
+    for (const col of ["title", "venue", "city", "address", "source_url", "lat", "lng"]) {
+      expect(update, col).toContain(`nextValue(f, row, "${col}")`);
+    }
+    // The shape that could not tell "clear this" from "not mentioned":
+    // coalescing a PLAN FIELD, whose absence and whose null mean different
+    // things. `plan.newKey ?? row.event_key` is deliberately still here and is
+    // fine — that null has one defined meaning, "identity unchanged".
+    expect(update).not.toMatch(/\bf\.\w+\s*\?\?/);
+  });
+
+  it("still casts both timestamps through ::text, or params shift five hours", () => {
+    expect(update).toContain("::text::timestamp at time zone 'America/Chicago'");
+    expect(update.match(/::text::timestamp/g)?.length).toBe(2);
   });
 });

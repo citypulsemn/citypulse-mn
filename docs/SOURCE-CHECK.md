@@ -171,16 +171,34 @@ Known ceiling, in the code as a `ponytail:` comment: a one-word lead that is
 also a bare category link next to a dated entry ("Sports", "Music") would clear
 a real absence. That costs a miss, never an accusation.
 
-### The fourth flag was a bad citation, not a bad match
+### The fourth flag was a bad citation, not a bad match — fixed 27 Oct 2026
 
 `The Unauthorized Hallmark(ish) Parody Musical` cites
 `tourstoyou.org/resources/venues/hennepin-arts/`, which lists the show
 ("Hallmark(ish) ~ December 14-15, 2026") beside archived runs from 2020, 2021 and
 2022. The title has no lead segment to strip and shares only `Hallmark(ish)`, so
-it is still flagged. **The listing is correct** — Pantages Theatre, 14 Dec
-19:30, confirmed by Hennepin Arts' own event page, which scores 1.0. The repair
-is the `source_url`, not the matcher; `tourstoyou.org` is now in
-`AGGREGATOR_HOSTS` so nothing new publishes from it unreviewed.
+it could not be cleared by the matcher. **The listing was correct all along** —
+Pantages Theatre, 14 Dec 19:30, confirmed by Hennepin Arts' own event page,
+which scores 1.0.
+
+So the repair was the `source_url`, not the matcher. `npm run correct` gained a
+`source_url` field (see docs/MANUAL-VERIFY.md) and the row now cites
+`hennepinarts.org/events/the-unauthorized-hallmark-ish-parody-musical-2026`,
+with `verified_at` untouched and `source_checked_at` back to null so the new page
+is read. The sweep reports `present 4 · NOT ON SOURCE 0` for that host.
+`tourstoyou.org` is in `AGGREGATOR_HOSTS`, so nothing new publishes from it
+unreviewed.
+
+**A changed citation now nulls `source_checked_at` everywhere**, not just in the
+correction tool. `upsertEvents`' conflict clause overwrites `source_url` on
+every re-find and used to leave the stamp alone, so a row could carry a brand-new
+source with a freshness earned by the old one — and since the budget is ordered
+by that stamp, nulls first, the new page went to the *back* of the queue. That
+also meant a weekly run could silently revert an operator's citation repair while
+keeping it looking checked. Tripwired in
+`lib/__tests__/upsert-queries.test.ts`. It does raise the never-checked count
+whenever the pipeline legitimately moves a source, which is correct — those pages
+genuinely have not been read — but it is worth watching against the ~400/run cap.
 
 ## What it does to a row
 

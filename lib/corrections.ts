@@ -1,4 +1,5 @@
 import { computeEventKey } from "./event-key";
+import { isAggregatorSource, isResaleSource } from "./source-trust";
 
 /**
  * APPLYING AN ANSWER WE ALREADY HAVE.
@@ -41,6 +42,20 @@ export interface Correction {
   venue?: string;
   city?: string;
   address?: string;
+  /**
+   * The page the listing cites.
+   *
+   * A citation is not a fact about the event, so changing it never touches
+   * `verified_at` — but it does reset `source_checked_at`, or the source check
+   * would treat the NEW page as recently read and leave it at the back of the
+   * queue (`stalestFirst` in lib/source-presence.ts).
+   *
+   * Note this is NOT `evidence`. `evidence` is the page an operator read to
+   * decide the correction and it goes in the audit row; `source_url` is what
+   * the listing tells a reader and what the source check fetches every week.
+   * Often they are the same page, and then both want setting.
+   */
+  source_url?: string;
   /** Chicago wall clock, `YYYY-MM-DDTHH:MM`. */
   start?: string;
   /** Chicago wall clock, or null to clear. */
@@ -70,6 +85,7 @@ export interface CorrectionRow {
   venue: string;
   city: string;
   address: string;
+  source_url: string;
   start_local: string;
   end_local: string | null;
   lat: number | null;
@@ -90,6 +106,16 @@ export type CorrectionPlan =
       newKey: string | null;
       /** Human-readable `field: old → new`, for the log and the audit row. */
       changed: string[];
+      /**
+       * Did the citation change, so that `source_checked_at` must go back to
+       * null?
+       *
+       * Lives on the plan rather than in the script because it is a decision,
+       * not plumbing: leaving the old stamp would tell `stalestFirst` the new
+       * page was read this week, and a page that is never re-read is a page
+       * whose listing is never checked again.
+       */
+      resetsSourceCheck: boolean;
       /**
        * Does this change touch anything the verify pass actually checks?
        *
@@ -119,9 +145,9 @@ export function validateCorrection(c: Correction): string | null {
   if (!c.id?.trim()) return "no id";
   if (!c.why?.trim()) return "no `why` — the audit row has to say why this changed";
   if (c.archive) {
-    const edits = (["title", "venue", "city", "address", "start", "end", "lat", "lng"] as const).filter(
-      (k) => c[k] !== undefined,
-    );
+    const edits = (
+      ["title", "venue", "city", "address", "source_url", "start", "end", "lat", "lng"] as const
+    ).filter((k) => c[k] !== undefined);
     if (edits.length > 0) return `archive:true cannot be combined with edits (${edits.join(", ")})`;
     return null;
   }
@@ -137,7 +163,36 @@ export function validateCorrection(c: Correction): string | null {
     c.verified &&
     !["title", "venue", "city", "start", "end"].some((k) => c[k as keyof Correction] !== undefined)
   ) {
-    return "verified:true on a change the verify pass cannot see (pin or address only) — the stamp is left as it is for those";
+    return "verified:true on a change the verify pass cannot see (pin, address or citation only) — the stamp is left as it is for those";
+  }
+  // THE CITATION HAS TO BE AN IMPROVEMENT. This field exists to repair a bad
+  // source, so pointing it at the two kinds of page the project has already
+  // been burned by is refused rather than merely warned about:
+  //   - a roundup, because `statusForNewEvent` will not publish on one, and a
+  //     seasonal list's content is replaced under a stable URL every year.
+  //   - a fake-venue reseller, because on 29 Sep 2026 seven live listings sent
+  //     readers to one at a markup, all seven stamped verified.
+  // A social page IS allowed. `isNonScheduleSource` is documented as good
+  // enough to cite and not good enough to verify on, and `source_url` never
+  // stamps anything. Note the two lists OVERLAP: eventbrite.com is in both, so
+  // an Eventbrite page is refused by the roundup rule above even though it is
+  // also a directory. That is the existing policy, not a new one — a host in
+  // AGGREGATOR_HOSTS is one `statusForNewEvent` already will not publish on.
+  // `String(...)` because corrections arrive from JSON.parse of an operator's
+  // file, where `"source_url": null` is one keystroke away and is not the typed
+  // shape. Reading `.slice` off it threw out of `validateCorrection`, which runs
+  // inside a flatMap — so one typo abandoned every other correction in the file.
+  if (c.source_url !== undefined) {
+    const url = String(c.source_url).trim();
+    if (!/^https?:\/\/[^\s/]+\.[^\s/]/i.test(url)) {
+      return `source_url "${url.slice(0, 60)}" is not an http(s) URL with a host`;
+    }
+    if (isAggregatorSource(url)) {
+      return `source_url ${url.slice(0, 60)} is a third-party roundup — cite the organiser's own page, which is the defect this field exists to fix`;
+    }
+    if (isResaleSource(url)) {
+      return `source_url ${url.slice(0, 60)} is a reseller dressed up as the venue — never send a reader there`;
+    }
   }
   if (c.start !== undefined && !WALL.test(c.start)) return `start "${c.start}" is not YYYY-MM-DDTHH:MM`;
   if (c.end !== undefined && c.end !== null && !WALL.test(c.end)) return `end "${c.end}" is not YYYY-MM-DDTHH:MM`;
@@ -150,9 +205,9 @@ export function validateCorrection(c: Correction): string | null {
   if ((c.lat === undefined) !== (c.lng === undefined)) return "lat and lng go together";
   if (c.lat !== undefined && (c.lat < 43 || c.lat > 49.5)) return `lat ${c.lat} is outside Minnesota`;
   if (c.lng !== undefined && (c.lng < -97.5 || c.lng > -89)) return `lng ${c.lng} is outside Minnesota`;
-  const touches = (["title", "venue", "city", "address", "start", "end", "lat", "lng"] as const).some(
-    (k) => c[k] !== undefined,
-  );
+  const touches = (
+    ["title", "venue", "city", "address", "source_url", "start", "end", "lat", "lng"] as const
+  ).some((k) => c[k] !== undefined);
   if (!touches) return "nothing to change";
   return null;
 }
@@ -187,6 +242,7 @@ export function planCorrection(row: CorrectionRow, c: Correction): CorrectionPla
   put("venue", c.venue, row.venue);
   put("city", c.city, row.city);
   put("address", c.address, row.address);
+  put("source_url", c.source_url, row.source_url);
   put("start_local", c.start, row.start_local);
   put("end_local", c.end, row.end_local);
   put("lat", c.lat, row.lat);
@@ -212,7 +268,38 @@ export function planCorrection(row: CorrectionRow, c: Correction): CorrectionPla
     newKey: nextKey === row.event_key ? null : nextKey,
     changed,
     affectsVerification: VERIFY_RELEVANT.some((k) => k in fields),
+    resetsSourceCheck: "source_url" in fields,
   };
+}
+
+/**
+ * The value to write for one field: PRESENCE in the plan decides, never the
+ * value itself.
+ *
+ * `fields` only carries keys whose value actually DIFFERS from the row (see
+ * `put`), so an absent key means "leave it alone". The script used to write
+ * `fields.end_local ?? row.end_local`, and `??` cannot tell "clear this" from
+ * "not mentioned": a correction of `{"end": null}` on a row with an end time
+ * evaluated `null ?? "2026-10-23T23:00"` and wrote the OLD timestamp straight
+ * back. `end_at` could therefore never be cleared — and every piece of evidence
+ * said it had been, because `describePlan` printed `end_local: 2026-10-23T23:00
+ * → (none)` and the audit row stored that same line. `end_local` is in
+ * VERIFY_RELEVANT, so the row also lost its `verified_at` to a change that did
+ * not happen, and re-running the file rewrote the same lie every time.
+ *
+ * The golden test named "can clear an end time without clearing it by accident"
+ * was green throughout: it asserted the PLAN, and the plan was always right.
+ * Found 27 Oct 2026 by an adversarial review of the `source_url` change, which
+ * edits the same UPDATE. `source_url` escaped it only because that column is
+ * `not null default ''` and so is never cleared.
+ */
+export function nextValue(
+  fields: Partial<Record<keyof CorrectionRow, string | number | null>>,
+  row: CorrectionRow,
+  key: keyof CorrectionRow,
+): string | number | null {
+  if (key in fields) return fields[key] ?? null;
+  return row[key] as string | number | null;
 }
 
 /** One block of log lines per plan. */

@@ -68,3 +68,24 @@ describe("getDuplicatePairs (admin view) — same R0.3 predicate", () => {
     expect(body).not.toMatch(/a\.start_at::date = b\.start_at::date/);
   });
 });
+
+describe("upsertEvents — a changed citation is an unread page", () => {
+  const body = fnBody("upsertEvents");
+
+  it("nulls source_checked_at when the conflict clause replaces source_url", () => {
+    // Until 27 Oct 2026 this clause overwrote source_url and left the stamp
+    // alone, so a row could carry a brand-new source with a freshness earned by
+    // the old one. check-sources orders its ~400-page budget by that stamp
+    // (`stalestFirst`, nulls first), so the new page went to the BACK of the
+    // queue and the listing stopped being checked against anything real. It is
+    // also the one thing that could silently undo `npm run correct`'s
+    // source_url repair.
+    expect(body).toContain("source_url  = excluded.source_url");
+    expect(body).toContain("source_checked_at = case when events.source_url is distinct from excluded.source_url");
+    expect(body).toContain("then null else events.source_checked_at end");
+  });
+
+  it("does not reset it unconditionally, which would re-read every page every week", () => {
+    expect(body).not.toMatch(/source_checked_at\s*=\s*null\s*,/);
+  });
+});

@@ -216,6 +216,57 @@ Three other things it does that `admin-actions.ts updateEvent` cannot:
   clearing it would re-spend to re-establish a fact already cited.
 - **Re-running is a no-op.** A correction whose values the row already has
   reports `no change` instead of writing a second audit row claiming one.
+- **A citation can be repaired** (`"source_url"`, added 27 Oct 2026). This is
+  the one field that is right to change on a listing whose every fact is
+  already correct — the Hallmark(ish) row at the Pantages was accurate in
+  title, room, date and time, and cited a touring-Broadway roundup that mixed
+  its live run in with archived 2020–2022 runs, so the weekly source check
+  flagged it falsely. Three things follow from it, and all three are in
+  `planCorrection` rather than the script:
+  - **`verified_at` is untouched.** `source_url` is deliberately not in
+    `VERIFY_RELEVANT`; the pass never sees it, so a better citation is not a
+    changed fact. Setting `"verified": true` on a citation-only correction is
+    *refused* for the same reason — pointing at a page is not reading it.
+  - **`source_checked_at` goes back to null** (`resetsSourceCheck`). The new
+    page has never been read, whatever the old one's stamp says, and
+    `stalestFirst` reaches only ~400 pages a run — a stale stamp would park
+    the new page behind every genuinely unread one.
+  - **A roundup or a reseller is refused**, naming the host. Citing a
+    third-party seasonal list is the defect this field exists to repair, and
+    `statusForNewEvent` will not publish on one anyway. A social page is
+    *allowed*: `lib/source-trust.ts` is explicit that those are good enough to
+    cite and not good enough to verify on. Note the two host lists overlap —
+    `eventbrite.com` is in both, so an Eventbrite page is caught by the roundup
+    rule even though it is also a directory.
+
+#### `end_at` could never be cleared, and said it had been
+
+Found 27 Oct 2026 by an adversarial review of the `source_url` change, which
+edits the same UPDATE. `{"end": null}` is the documented way to clear an end
+time. The script wrote `fields.end_local ?? row.end_local` — and `??` falls
+through on null, so it evaluated `null ?? "2026-10-23T23:00"` and wrote the
+**old timestamp straight back**. The column could not be cleared at all: the
+null branch was reachable only when the row was already null, because `put`
+skips a field whose value already matches.
+
+Everything downstream said it had worked. `describePlan` printed `end_local:
+2026-10-23T23:00 → (none)`, the `admin_audit` row stored that line, and the run
+counted the id as applied. `end_local` is in `VERIFY_RELEVANT`, so the row also
+lost its `verified_at` to a change that never happened and went back into the
+~5p-a-listing queue. Re-running the file rewrote the same lie every time.
+
+**The golden test named "can clear an end time without clearing it by accident"
+was green the whole time.** It asserted the *plan*, and the plan was always
+right — the same shape as the drift guard that searched for a call a rename had
+removed. The decision now lives in `nextValue` in `lib/corrections.ts`, where
+presence in the plan decides and the value never does, with goldens for the
+clear, the keep, the pass-through, and `""`/`0`. A tripwire asserts the script
+reads every column through it and that both timestamps still carry their
+`::text::timestamp` cast.
+
+Verified end to end against the live database inside a transaction that was
+rolled back: `{"end": null}` now clears, a real end time still lands without the
+five-hour shift, and the row came back unchanged afterwards.
 
 ### A primary source is not the same as a current one
 

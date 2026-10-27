@@ -25,6 +25,7 @@ import { revalidateAndReport } from "../lib/revalidate-client";
 import {
   planCorrection,
   describePlan,
+  nextValue,
   validateCorrection,
   type Correction,
   type CorrectionRow,
@@ -72,7 +73,7 @@ async function main() {
   }
 
   const rows = await sql<CorrectionRow[]>`
-    select id::text as id, event_key, title, venue, city, address,
+    select id::text as id, event_key, title, venue, city, address, source_url,
            to_char(start_at at time zone 'America/Chicago', 'YYYY-MM-DD"T"HH24:MI') as start_local,
            to_char(end_at   at time zone 'America/Chicago', 'YYYY-MM-DD"T"HH24:MI') as end_local,
            lat::float as lat, lng::float as lng, status
@@ -141,20 +142,32 @@ async function main() {
         : c.verified
           ? sql`now()`
           : sql`null`;
+      // A new citation has never been read, whatever the old one's stamp says.
+      // Leaving it would tell `stalestFirst` this page was checked this week and
+      // park it at the back of a queue that only reaches ~400 pages a run.
+      const checked = plan.resetsSourceCheck ? sql`null` : sql`source_checked_at`;
+      // Every field reads through `nextValue`: PRESENCE in the plan decides, not
+      // the value. `f.end_local ?? row.end_local` could not tell "clear this"
+      // from "not mentioned", so `{"end": null}` wrote the old timestamp back
+      // while the log and the audit row both reported the clear. See the note on
+      // `nextValue` in lib/corrections.ts.
+      const endLocal = nextValue(f, row, "end_local");
       await sql`
         update events set
           event_key  = ${plan.newKey ?? row.event_key},
-          title      = ${f.title ?? row.title},
-          venue      = ${f.venue ?? row.venue},
-          city       = ${f.city ?? row.city},
-          address    = ${f.address ?? row.address},
-          lat        = ${f.lat ?? row.lat},
-          lng        = ${f.lng ?? row.lng},
-          start_at   = (${(f.start_local ?? row.start_local) as string}::text::timestamp at time zone 'America/Chicago'),
+          title      = ${nextValue(f, row, "title")},
+          venue      = ${nextValue(f, row, "venue")},
+          city       = ${nextValue(f, row, "city")},
+          address    = ${nextValue(f, row, "address")},
+          source_url = ${nextValue(f, row, "source_url")},
+          source_checked_at = ${checked},
+          lat        = ${nextValue(f, row, "lat")},
+          lng        = ${nextValue(f, row, "lng")},
+          start_at   = (${nextValue(f, row, "start_local") as string}::text::timestamp at time zone 'America/Chicago'),
           end_at     = ${
-            (f.end_local ?? row.end_local) === null
+            endLocal === null
               ? null
-              : sql`(${(f.end_local ?? row.end_local) as string}::text::timestamp at time zone 'America/Chicago')`
+              : sql`(${endLocal as string}::text::timestamp at time zone 'America/Chicago')`
           },
           verified_at = ${stamp},
           updated_at  = now()

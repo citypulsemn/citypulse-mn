@@ -164,6 +164,17 @@ export async function upsertEvents(events: DbEventInput[]): Promise<number> {
     "ticket_url", "description", "image", "source_url", "status",
   ] as const;
 
+  // A CHANGED CITATION IS AN UNREAD PAGE. This clause overwrites `source_url`
+  // on every re-find, and until 27 Oct 2026 it left `source_checked_at` alone —
+  // so a row could be handed a brand-new source while carrying a stamp earned
+  // by the old one. The weekly source check orders its ~400-page budget by that
+  // stamp, nulls first (`stalestFirst`), so the new page went to the back of
+  // the queue wearing a freshness it never earned, and the listing stopped
+  // being checked against anything real. Also the one thing that could silently
+  // undo an operator's citation repair (`npm run correct --from=…`).
+  //
+  // Keep prose out of the template below: a `//` line inside it is sent to
+  // Postgres, and a backtick in a SQL comment ends the JS literal.
   await sql`
     insert into events ${sql(rows, ...cols)}
     on conflict (event_key) do update set
@@ -183,6 +194,8 @@ export async function upsertEvents(events: DbEventInput[]): Promise<number> {
       description = excluded.description,
       image       = excluded.image,
       source_url  = excluded.source_url,
+      source_checked_at = case when events.source_url is distinct from excluded.source_url
+                               then null else events.source_checked_at end,
       last_seen_at = now()
   `;
 
