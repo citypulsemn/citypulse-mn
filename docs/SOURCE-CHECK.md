@@ -59,9 +59,62 @@ Two things to take from it:
   nothing anyone reads.
 
 `lib/__tests__/sql-templates.test.ts` now fails the build on a `//` line inside
-any SQL template, which is the narrow cause. The broad cause — a passing
-`npm test`, a green build and a four-week-dead weekly job all coexisting — has
-no guard yet.
+any SQL template, which is the narrow cause.
+
+The broad cause — a passing `npm test`, a green build and a four-week-dead
+weekly job all coexisting — now has the guard it needed. **The Monday ops email
+carries a `Source check` section** that judges `max(source_checked_at)` and
+alerts when it is overdue (`judgeSourceSweep` in `lib/vendor-health.ts`,
+measured by `lib/source-sweep.ts`). It went in deliberately as an *email*
+section and not only as an `/admin/ops` tile: the Actions tile was red for four
+Mondays and produced nothing, because red on a page nobody opens is
+indistinguishable from green. `/admin/ops` gets the tile too, from the same
+judge and the same query, so the two cannot drift.
+
+It judges two failures, not one:
+
+- **It did not run.** Nothing stamped since the sweep was last *due*
+  (`sweepsMissed`). One missed slot is a `warn`, two is `down`.
+- **It ran and read almost nothing.** Only pages actually read are stamped, so a
+  sweep that dies after a few fetches, or meets a wall of 403s, leaves a *fresh*
+  stamp and no coverage. Fewer than half a run's page budget is a `warn`.
+
+### Both halves were wrong first, and an adversarial review caught them
+
+Worth recording, because the first version reproduced the bug it was built to
+fix — an alarm reading green while the thing it watched was dead.
+
+**It judged a stopwatch, not a schedule.** The bands were copied from
+`judgeCron`: late past 1.25 periods, `down` past two. But the ops digest fires
+on `workflow_run: completed` for Weekly Event Research and `check-sources` is
+the *last step of that same workflow*, so the email samples **minutes after the
+sweep should have run**. On the first dead Monday the newest stamp is therefore
+exactly *one* period old, which a 1.25-period grace calls fine. Measured: green
+on the first dead Monday, amber on the second, red on the third. And tightening
+the threshold could not fix it, because `/admin/ops` samples the same judge
+mid-week, where a Sunday read is six days after a perfectly healthy run. The
+right question at every sampling time is not "how long ago?" but **"has it run
+since it was last due?"**
+
+**`pagesSwept` counted two runs.** The window was a fixed 8 days against a
+7-day cadence, so it always carried the previous run's stamps. The two faults
+compounded: on the first dead Monday the stamp was one period old *and*
+`pagesSwept` was last week's 372, so the email read **"372 of 400 cited pages
+re-read" on a week when zero pages were read.** It is anchored to the newest
+stamp now (`SWEEP_RUN_WINDOW_HOURS`), which measures one run however long after
+it the question is asked.
+
+**It read its own column by accident of formatting.** `max(source_checked_at)::text`
+returns `2026-09-28 13:14:38.494716+00`, which `Date.parse` handles only through
+its lenient non-ISO path; the same instant with a `T` is `NaN`, because a bare
+`+00` offset is not valid ISO-8601. `parseStampMs` normalises both. It would
+have failed safe — `unknown` alerts — but as an unexplained grey square rather
+than as the answer.
+
+The share of the calendar never checked is reported as a **fact and never drives
+the verdict**, because the ~177 listings behind hosts that refuse a script mean
+it can never reach zero, and an alarm that is permanently amber is one nobody
+reads.
 
 Cost: about 12 minutes and no model spend. The weekly job has run 19–44 minutes
 over the last five weeks against a 90-minute timeout, so there is room.

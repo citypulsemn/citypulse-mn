@@ -249,3 +249,235 @@ export function judgeCostCoverage(runs: number, priced: number): VendorStatus {
   if (priced < runs) return "warn"; // a floor, and we know by how many rows it is short
   return "ok";
 }
+
+/* ------------------------------------------------- the weekly source sweep */
+
+/** What `getSourceSweepHealth` measures. Counts are of PUBLISHED upcoming rows. */
+export interface SourceSweepHealth {
+  /** `max(source_checked_at)`, ISO, or null when nothing has ever been read. */
+  newestIso: string | null;
+  /** Pages stamped by the LATEST run — see `runWindowHours`. */
+  pagesSwept: number;
+  /** Distinct cited pages on the calendar right now. */
+  pagesTotal: number;
+  /** What one run may cover: `expectedPages(pagesTotal, budget)`. */
+  pagesExpected: number;
+  /** Listings whose cited page has never been read. A fact, never the verdict. */
+  neverChecked: number;
+  /** Listings in total, for the denominator. */
+  listings: number;
+  /**
+   * How far back from the newest stamp still counts as "the same run".
+   *
+   * NOT a calendar window, and that distinction is the whole correctness of
+   * `pagesSwept` — see `judgeSourceSweep`.
+   */
+  runWindowHours: number;
+}
+
+/** When a sweep is due. `cron: "0 6 * * 1"` is Monday 06:00 UTC. */
+export interface SweepSchedule {
+  everyHours: number;
+  /** 0 = Sunday, as `Date.getUTCDay()` counts. */
+  dueDayUTC: number;
+  dueHourUTC: number;
+}
+
+/**
+ * Below this share of a full run's budget, the sweep ran but barely read
+ * anything. Far from a healthy run rather than close to it: a good week reads
+ * nearly every page it is allowed to, ~90% once the hosts that refuse a script
+ * are subtracted, so half is unmistakably partial and still never cries wolf.
+ */
+export const SWEEP_PARTIAL_AT = 0.5;
+
+/**
+ * What one run may cover. The budget binds once the calendar outgrows it: 593
+ * pages against a 400-page budget means a healthy run reads 400, not 593, and
+ * judging it against the whole calendar would report every good week as
+ * two-thirds done.
+ *
+ * Pure, and here rather than inside the SQL module so a test can reach it.
+ */
+export function expectedPages(pagesTotal: number, budget: number): number {
+  if (!Number.isFinite(pagesTotal) || !Number.isFinite(budget)) return 0;
+  if (pagesTotal <= 0 || budget <= 0) return 0;
+  return Math.min(budget, pagesTotal);
+}
+
+/**
+ * The most recent moment the sweep was DUE, at or before `now`.
+ *
+ * WHY A SCHEDULE AND NOT A STOPWATCH. The first version of this alarm compared
+ * elapsed time against the period, copying `judgeCron`. That is wrong for this
+ * instrument because of WHERE it is read: the ops digest fires on
+ * `workflow_run: completed` for Weekly Event Research, and `check-sources` is
+ * the LAST STEP of that same workflow. So the email samples minutes after the
+ * sweep should have run — which means on the first dead Monday the newest stamp
+ * is almost exactly ONE period old, and a band that warns past 1.25 periods
+ * reads `ok`. Measured before this was fixed: first dead Monday green, second
+ * amber, third red. An alarm built to catch a four-week silence would have
+ * stayed quiet through three weeks of it.
+ *
+ * Tightening the elapsed-time threshold cannot fix that, because the
+ * `/admin/ops` tile samples the same judge MID-WEEK: a Sunday read is six days
+ * after a perfectly healthy Monday run, so any threshold tight enough for the
+ * email is a false alarm on the page.
+ *
+ * The question that is right at every sampling time is not "how long ago?" but
+ * "has it run since it was last due?".
+ */
+export function lastDueAt(now: Date, s: SweepSchedule): Date {
+  const slot = new Date(
+    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), s.dueHourUTC, 0, 0, 0),
+  );
+  slot.setUTCDate(slot.getUTCDate() - ((slot.getUTCDay() - s.dueDayUTC + 7) % 7));
+  // Standing before this week's slot, the last one due was a period earlier.
+  if (slot.getTime() > now.getTime()) slot.setUTCDate(slot.getUTCDate() - 7);
+  return slot;
+}
+
+/**
+ * Parse a Postgres `timestamptz::text`, which `Date.parse` only half handles.
+ *
+ * The driver returns `2026-09-28 13:14:38.494716+00`, and V8 reads that only
+ * through its lenient non-ISO path. The SAME instant written with a `T` is
+ * `NaN`, because a bare `+00` offset is not valid ISO-8601:
+ *
+ *   Date.parse("2026-09-28 13:14:38.494716+00")  ->  ok
+ *   Date.parse("2026-09-28T13:14:38.494716+00")  ->  NaN
+ *
+ * So the alarm worked by accident of formatting, and one normalising keystroke
+ * anywhere upstream would have turned it into a permanently grey tile. It would
+ * have failed safe — `unknown` alerts — but as an unexplained grey square, not
+ * as the answer. Normalise instead of relying on the lenient path.
+ */
+export function parseStampMs(stamp: string): number {
+  const s = String(stamp ?? "").trim();
+  const iso = s.replace(" ", "T").replace(/([+-]\d{2})$/, "$1:00");
+  const t = Date.parse(iso);
+  return Number.isNaN(t) ? Date.parse(s) : t;
+}
+
+/**
+ * How many scheduled sweeps have come and gone since the newest stamp. Null
+ * when the stamp is missing, unreadable, or in the future.
+ *
+ * Zero whenever the sweep stamped something at or after the latest due moment —
+ * true both minutes after a healthy run and all week long afterwards, so the
+ * email and the mid-week tile agree without either being loosened.
+ */
+export function sweepsMissed(newestIso: string | null, now: Date, s: SweepSchedule): number | null {
+  if (!newestIso) return null;
+  const t = parseStampMs(newestIso);
+  if (Number.isNaN(t)) return null;
+  // A stamp from the future is a clock problem, not a health signal.
+  if (t - now.getTime() > 3_600_000) return null;
+  const due = lastDueAt(now, s).getTime();
+  if (t >= due) return 0;
+  const period = Math.max(1, s.everyHours) * 3_600_000;
+  return 1 + Math.floor((due - t) / period);
+}
+
+/**
+ * Has the source check actually swept, and did it cover a plausible slice?
+ *
+ * WHY, AND IT IS THE WORST SILENCE THIS PROJECT HAS HAD. On 29 Sep 2026 a `//`
+ * comment inside a `sql` template killed `import-sports`, and because the two
+ * steps behind it carried no `if: !cancelled()`, `check-sources` never ran
+ * again. The free weekly fabrication check was dead for FOUR WEEKS. The newest
+ * `source_checked_at` sat at 28 Sep the whole time and NOTHING READ THAT
+ * COLUMN — `stalestFirst` sorts by it and no instrument judged it.
+ *
+ * The workflow conclusion *was* `failure` and the Actions tile *was* red, for
+ * four Mondays, and neither produced action. So this is a separate instrument,
+ * and its verdict goes in the Monday EMAIL: red that nobody opens is
+ * indistinguishable from green, and what nobody opened was a page.
+ *
+ * TWO FAILURES, and the second is the one a freshness check alone would miss:
+ *   1. It did not run — nothing stamped since the sweep was last due. Counted
+ *      by `sweepsMissed`, which asks about the SCHEDULE rather than about
+ *      elapsed time; `lastDueAt` carries the measurement that forced that.
+ *   2. It ran and read almost nothing: died after a few pages, or every fetch
+ *      was refused. Only pages actually READ are stamped, so the newest stamp
+ *      goes fresh while coverage collapses.
+ *
+ * `pagesSwept` MUST BE ONE RUN'S WORK. The first version counted a fixed 8-day
+ * window against a 7-day cadence, so it always carried the previous run's
+ * stamps — and the two faults compounded: on the first dead Monday the stamp
+ * was one period old (`ok` under the old bands) and `pagesSwept` was last
+ * week's 372, so the email read "372 of 400 cited pages re-read" on a week when
+ * zero pages were read. A lying alarm is worse than no alarm, and that is the
+ * exact failure this file exists to refuse. It is anchored to the newest stamp
+ * now.
+ *
+ * WHAT IS DELIBERATELY NOT A VERDICT. The share of the calendar never checked
+ * is printed as a FACT and never sets the status. Around 177 listings sit
+ * behind hosts that 403 a script — minnesotaorchestra.org, guthrietheater.org,
+ * artsmia.org, ESPN — so never-checked cannot reach zero, and an alarm that is
+ * permanently amber is one nobody reads.
+ *
+ * One missed sweep is `warn`, not `down`: it already counts as an alert and
+ * reaches the subject line, and GitHub's scheduler drops runs routinely. Two
+ * missed is not lateness, it is absence.
+ */
+export function judgeSourceSweep(
+  h: SourceSweepHealth,
+  schedule: SweepSchedule,
+  now: Date,
+): { status: VendorStatus; lines: string[] } {
+  const coverage =
+    Number.isFinite(h.listings) && h.listings > 0
+      ? `${h.neverChecked} of ${h.listings} upcoming listings have never been checked` +
+        ` (some hosts refuse a script — see docs/SOURCE-CHECK.md)`
+      : "no upcoming listings to check — an empty calendar is Coverage's alarm, not this one";
+
+  const verdict = (status: VendorStatus, first: string) => ({ status, lines: [first, coverage] });
+  const every = Math.max(1, Math.round(schedule.everyHours / 24));
+  const everyLabel = every === 1 ? "every day" : `every ${every} days`;
+
+  const missed = sweepsMissed(h.newestIso, now, schedule);
+  if (missed === null) {
+    if (!h.newestIso) {
+      return verdict("unknown", "no source check on record at all — cannot tell whether the sweep has ever run");
+    }
+    if (Number.isNaN(parseStampMs(h.newestIso))) {
+      return verdict("unknown", `the last source check reads "${h.newestIso}", which is not a date`);
+    }
+    return verdict("unknown", "the last source check is stamped in the future — check the clock, not the sweep");
+  }
+
+  const days = Math.max(0, Math.round((now.getTime() - parseStampMs(h.newestIso!)) / 86_400_000));
+  if (missed >= 2) {
+    return verdict(
+      "down",
+      `⚠️ ${missed} scheduled sweeps missed — nothing source-checked for ${days} days, and it runs ${everyLabel}`,
+    );
+  }
+  if (missed === 1) {
+    return verdict(
+      "warn",
+      `⚠️ the scheduled sweep did not run — the newest check is ${days} days old, and it runs ${everyLabel}`,
+    );
+  }
+
+  // It ran on schedule. Did it actually read anything?
+  if (!Number.isFinite(h.pagesExpected) || h.pagesExpected <= 0) {
+    return verdict("unknown", "the sweep ran on schedule, but there is no page budget to compare it against");
+  }
+  if (!Number.isFinite(h.pagesSwept) || h.pagesSwept < 0) {
+    return verdict("unknown", "the sweep ran on schedule, but the pages it read could not be counted");
+  }
+  if (h.pagesSwept < h.pagesExpected * SWEEP_PARTIAL_AT) {
+    return verdict(
+      "warn",
+      `⚠️ the latest sweep read only ${h.pagesSwept} of ${h.pagesExpected} pages` +
+        " — it died early, or the hosts refused it",
+    );
+  }
+  return verdict(
+    "ok",
+    `the latest sweep read ${h.pagesSwept} of ${h.pagesExpected} cited pages` +
+      ` (${days === 0 ? "today" : `${days}d ago`})`,
+  );
+}

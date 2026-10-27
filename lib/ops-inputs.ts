@@ -21,6 +21,7 @@ import { getDigestSends, getDaysSinceLastDigest } from "./digest-send";
 import { getFeedAdoption } from "./feed-stats";
 import { getSearchImpressions } from "./search-console";
 import { withDeadline } from "./vendor-health";
+import { getSourceSweepHealth } from "./source-sweep";
 import { getPendingSubmissionCount } from "./submissions";
 import { getPendingReportCount, getOldestPendingReportDays, getPendingReportsWithChecks } from "./event-reports";
 import { formatCheckLine, type CheckVerdict } from "./report-check";
@@ -298,6 +299,11 @@ export async function gatherOpsInputs(): Promise<OpsInputs> {
     return parseStoredTotals(rows[0]?.totals)?.search_impressions ?? null;
   });
 
+  // Is the weekly fabrication check alive? Null on a failed read, which the
+  // section renders "unavailable" and alerts on — never a quiet green. This is
+  // the column that sat frozen at 28 Sep for four weeks while nothing read it.
+  const sourceSweep = await wrap("source_sweep", null, () => getSourceSweepHealth());
+
   return {
     pipeline,
     prevPipeline,
@@ -305,6 +311,7 @@ export async function gatherOpsInputs(): Promise<OpsInputs> {
     coverageHealthy: coverage.healthy,
     coverageAlerts: coverage.alerts,
     verify,
+    sourceSweep,
     engagement,
     prevTotals,
     trending,

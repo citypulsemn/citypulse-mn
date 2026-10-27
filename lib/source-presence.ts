@@ -407,6 +407,17 @@ export function htmlToText(html: string): string {
  * a newly added listing on an old page deserves a look, and the cheap
  * conservative choice is to re-read the page.
  */
+/**
+ * How many pages one sweep may fetch, the default behind `--limit`.
+ *
+ * Exported so the staleness alarm can ask "did the last run read a plausible
+ * share of what it was allowed to?" without a second copy of the number. The
+ * tile and the sweep disagreeing about what a full run looks like would make
+ * the alarm lie on exactly the week it mattered — the same reason
+ * `DIGEST_STALE_DAYS` is passed into `judgeDigest` rather than duplicated.
+ */
+export const SWEEP_PAGE_BUDGET = 400;
+
 export function stalestFirst(pages: { url: string; lastChecked: string | null }[]): string[] {
   return pages
     .slice()

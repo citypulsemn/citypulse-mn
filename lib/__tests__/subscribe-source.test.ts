@@ -9,6 +9,14 @@ function base(sub: Partial<OpsInputs["subscribers"]>): OpsInputs {
     coverageHealthy: true,
     coverageAlerts: ["ok"],
     verify: { verified7: 0, neverVerifiedUpcoming: 0 },
+    // A healthy sweep: that Monday morning, 372 of the 400 pages it was
+    // allowed. The 41 never-checked are the hosts that refuse a script, which
+    // is a fact in the report and deliberately not part of the verdict.
+    sourceSweep: {
+      newestIso: "2026-07-20T06:10:00Z",
+      pagesSwept: 372, pagesTotal: 593, pagesExpected: 400,
+      neverChecked: 41, listings: 902, runWindowHours: 24,
+    },
     engagement: { totals: { view: 0, ticket_click: 0, save: 0, calendar: 0 }, daily: [], top: [] },
     prevTotals: null,
     trending: { count: 0, top: [] },

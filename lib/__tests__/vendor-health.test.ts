@@ -1,6 +1,14 @@
 import { describe, it, expect } from "vitest";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import {
   judgeUsage,
+  judgeSourceSweep,
+  parseStampMs,
+  lastDueAt,
+  sweepsMissed,
+  expectedPages,
+  type SourceSweepHealth,
   judgeCron,
   judgeDigest,
   worstStatus,
@@ -292,5 +300,340 @@ describe("judgeCostCoverage — a floor must not render as a total", () => {
     const budget = judgeUsage(22.78, 500);
     expect(budget).toBe("ok");
     expect(worstStatus([{ status: coverage }, { status: budget }])).toBe("warn");
+  });
+});
+
+describe("judgeSourceSweep — the alarm for the silence that lasted four weeks", () => {
+  /**
+   * EVERY TIME HERE IS A MONDAY MORNING, because that is when the email is
+   * composed: ops-digest.yml fires on `workflow_run: completed` for Weekly
+   * Event Research, and check-sources is the last step of that same workflow.
+   * A test that samples at any other moment is testing a reading the email
+   * never takes — which is how the first version of this alarm passed its own
+   * tests while reading green on the first dead Monday.
+   */
+  const SCHEDULE = { everyHours: 24 * 7, dueDayUTC: 1, dueHourUTC: 6 };
+  const MONDAY = new Date("2026-11-02T06:10:00Z"); // digest firing, 10 min after the slot
+  const WEEK_MS = 7 * 86_400_000;
+
+  const h = (over: Partial<SourceSweepHealth> = {}): SourceSweepHealth => ({
+    newestIso: "2026-11-02T06:12:00Z", // this morning's run
+    pagesSwept: 372,
+    pagesTotal: 593,
+    pagesExpected: 400,
+    neverChecked: 41,
+    listings: 902,
+    runWindowHours: 24,
+    ...over,
+  });
+  const judge = (over: Partial<SourceSweepHealth> = {}, now = MONDAY) =>
+    judgeSourceSweep(h(over), SCHEDULE, now);
+
+  /** The stamp a run N Mondays ago would have left. */
+  const mondaysAgo = (n: number) => new Date(MONDAY.getTime() - n * WEEK_MS + 2 * 60_000).toISOString();
+
+  it("is green when this morning's sweep ran and read its budget", () => {
+    const v = judge();
+    expect(v.status).toBe("ok");
+    expect(v.lines[0]).toMatch(/the latest sweep read 372 of 400 cited pages \(today\)/);
+  });
+
+  it("CATCHES THE FIRST DEAD MONDAY — the reading the email actually takes", () => {
+    // THE REGRESSION. The first version compared elapsed time against the
+    // period with judgeCron's 1.25x grace. At this sampling the stamp is
+    // exactly ONE period old, which that grace called fine: measured green on
+    // the first dead Monday, amber on the second, red on the third. An alarm
+    // for a four-week silence that stays quiet for three weeks of it.
+    //
+    // And `pagesSwept` is 372 here ON PURPOSE: last Monday's run really did
+    // read 372 pages and its stamps really are still in the table, which is
+    // what the old 8-day window counted. Both faults had to be fixed for this
+    // to go amber.
+    const v = judge({ newestIso: mondaysAgo(1), pagesSwept: 372 });
+    expect(v.status).toBe("warn");
+    expect(v.lines[0]).toMatch(/the scheduled sweep did not run/);
+    expect(v.lines[0]).toMatch(/7 days old/);
+  });
+
+  it("escalates to down once two scheduled sweeps are gone", () => {
+    const v = judge({ newestIso: mondaysAgo(2), pagesSwept: 372 });
+    expect(v.status).toBe("down");
+    expect(v.lines[0]).toMatch(/2 scheduled sweeps missed/);
+  });
+
+  it("names the real four-week outage for what it was", () => {
+    // 28 Sep 2026 was the newest stamp; the next Mondays were 5, 12, 19 and 26
+    // Oct. By 2 Nov that is five missed slots.
+    const v = judge({ newestIso: "2026-09-28T13:14:38.494716+00", pagesSwept: 0 });
+    expect(v.status).toBe("down");
+    expect(v.lines[0]).toMatch(/5 scheduled sweeps missed/);
+    expect(v.lines[0]).toMatch(/nothing source-checked for 35 days/);
+    // The unit, which the first version dropped: "it runs every 7" said nothing.
+    expect(v.lines[0]).toMatch(/it runs every 7 days/);
+  });
+
+  it("does NOT cry wolf on the mid-week tile, which samples the same judge", () => {
+    // /admin/ops read on Thursday, Saturday, Sunday — all after a healthy
+    // Monday run. Any elapsed-time threshold tight enough to catch the dead
+    // Monday above would make every one of these amber, which is exactly why
+    // the judge asks about the schedule instead.
+    const healthyRun = "2026-10-26T06:12:00Z"; // the Monday before
+    for (const day of ["2026-10-29T12:00:00Z", "2026-10-31T20:00:00Z", "2026-11-01T23:00:00Z"]) {
+      const v = judge({ newestIso: healthyRun }, new Date(day));
+      expect(v.status, day).toBe("ok");
+    }
+  });
+
+  it("tolerates GitHub running the sweep hours late, which it routinely does", () => {
+    // The slot is 06:00 UTC; a run at 09:30 is still a run for that slot.
+    const v = judge({ newestIso: "2026-11-02T09:30:00Z" }, new Date("2026-11-02T10:00:00Z"));
+    expect(v.status).toBe("ok");
+  });
+
+  it("CATCHES A PARTIAL RUN, which an age check alone cannot", () => {
+    // Only pages actually READ are stamped, so a sweep that dies after a few
+    // fetches — or meets a wall of 403s — leaves a FRESH stamp and no coverage.
+    const v = judge({ pagesSwept: 7 });
+    expect(v.status).toBe("warn");
+    expect(v.lines[0]).toMatch(/read only 7 of 400 pages/);
+  });
+
+  it("puts the partial-run boundary exactly at half a full run", () => {
+    expect(judge({ pagesSwept: 200 }).status).toBe("ok");
+    expect(judge({ pagesSwept: 199 }).status).toBe("warn");
+  });
+
+  describe("every doubt is `unknown`, and `unknown` is never green", () => {
+    it("nothing has ever been checked", () => {
+      const v = judge({ newestIso: null });
+      expect(v.status).toBe("unknown");
+      expect(v.lines[0]).toMatch(/no source check on record/);
+    });
+
+    it("the stamp is not a date", () => {
+      expect(judge({ newestIso: "never" }).status).toBe("unknown");
+      expect(judge({ newestIso: "never" }).lines[0]).toMatch(/not a date/);
+    });
+
+    it("the stamp is in the future — a clock problem, not a health signal", () => {
+      const v = judge({ newestIso: "2026-11-09T00:00:00Z" });
+      expect(v.status).toBe("unknown");
+      expect(v.lines[0]).toMatch(/future/);
+    });
+
+    it("there is no budget to compare a run against", () => {
+      expect(judge({ pagesExpected: 0 }).status).toBe("unknown");
+      expect(judge({ pagesExpected: Number.NaN }).status).toBe("unknown");
+    });
+
+    it("the pages read could not be counted", () => {
+      expect(judge({ pagesSwept: -1 }).status).toBe("unknown");
+      expect(judge({ pagesSwept: Number.NaN }).status).toBe("unknown");
+    });
+
+    it("is never `ok` for any of them", () => {
+      for (const over of [
+        { newestIso: null },
+        { newestIso: "never" },
+        { newestIso: "2026-11-09T00:00:00Z" },
+        { pagesExpected: 0 },
+        { pagesSwept: -1 },
+      ] as Partial<SourceSweepHealth>[]) {
+        expect(needsAttention(judge(over).status), JSON.stringify(over)).toBe(true);
+      }
+    });
+  });
+
+  describe("coverage is a FACT, never the verdict", () => {
+    it("stays green when most of the calendar has never been checked", () => {
+      // THE DESIGN DECISION, pinned. ~177 listings sit behind hosts that 403 a
+      // script, so never-checked cannot reach zero. If it drove the status the
+      // alarm would be permanently amber — and an alarm that is always on is
+      // one nobody reads, which is the failure this replaces.
+      const v = judge({ neverChecked: 801, listings: 902 });
+      expect(v.status).toBe("ok");
+      expect(v.lines[1]).toMatch(/801 of 902 upcoming listings have never been checked/);
+    });
+
+    it("reports the coverage line on every verdict, including the dead one", () => {
+      for (const over of [{}, { newestIso: null }, { newestIso: mondaysAgo(4) }, { pagesSwept: 1 }]) {
+        const v = judge(over as Partial<SourceSweepHealth>);
+        expect(v.lines, JSON.stringify(over)).toHaveLength(2);
+        expect(v.lines[1], JSON.stringify(over)).toMatch(/never been checked|empty calendar/);
+      }
+    });
+
+    it("hands an empty calendar to Coverage rather than blaming the sweep", () => {
+      const v = judge({ listings: 0, neverChecked: 0, pagesTotal: 0, pagesExpected: 0 });
+      expect(v.lines[1]).toMatch(/an empty calendar is Coverage's alarm, not this one/);
+      // Still not green: there is genuinely nothing to measure here.
+      expect(needsAttention(v.status)).toBe(true);
+    });
+  });
+});
+
+describe("lastDueAt / sweepsMissed — the schedule, not a stopwatch", () => {
+  const S = { everyHours: 24 * 7, dueDayUTC: 1, dueHourUTC: 6 };
+  const iso = (d: Date) => d.toISOString();
+
+  it("finds the Monday 06:00 slot from any point in the week", () => {
+    const expectSlot = (from: string, slot: string) =>
+      expect(iso(lastDueAt(new Date(from), S)), from).toBe(slot);
+    expectSlot("2026-11-02T06:10:00Z", "2026-11-02T06:00:00.000Z"); // Monday, just after
+    expectSlot("2026-11-02T06:00:00Z", "2026-11-02T06:00:00.000Z"); // exactly on it
+    expectSlot("2026-11-02T05:59:00Z", "2026-10-26T06:00:00.000Z"); // Monday, just before
+    expectSlot("2026-11-05T12:00:00Z", "2026-11-02T06:00:00.000Z"); // Thursday
+    expectSlot("2026-11-08T23:59:00Z", "2026-11-02T06:00:00.000Z"); // Sunday night
+  });
+
+  it("crosses a month and a year boundary without drifting", () => {
+    expect(iso(lastDueAt(new Date("2027-01-01T12:00:00Z"), S))).toBe("2026-12-28T06:00:00.000Z");
+    expect(iso(lastDueAt(new Date("2026-12-01T00:00:00Z"), S))).toBe("2026-11-30T06:00:00.000Z");
+  });
+
+  it("counts zero missed all week after one healthy run", () => {
+    const ran = "2026-11-02T06:12:00Z";
+    for (const when of ["2026-11-02T06:13:00Z", "2026-11-05T12:00:00Z", "2026-11-08T23:00:00Z"]) {
+      expect(sweepsMissed(ran, new Date(when), S), when).toBe(0);
+    }
+  });
+
+  it("counts one the moment the next slot passes unstamped", () => {
+    expect(sweepsMissed("2026-10-26T06:12:00Z", new Date("2026-11-02T05:59:00Z"), S)).toBe(0);
+    expect(sweepsMissed("2026-10-26T06:12:00Z", new Date("2026-11-02T06:10:00Z"), S)).toBe(1);
+  });
+
+  it("counts every slot that has gone by", () => {
+    const now = new Date("2026-11-02T06:10:00Z");
+    expect(sweepsMissed("2026-10-19T06:12:00Z", now, S)).toBe(2);
+    expect(sweepsMissed("2026-09-28T13:14:38+00", now, S)).toBe(5);
+  });
+
+  it("is null for the three things it cannot read", () => {
+    const now = new Date("2026-11-02T06:10:00Z");
+    expect(sweepsMissed(null, now, S)).toBeNull();
+    expect(sweepsMissed("not a date", now, S)).toBeNull();
+    expect(sweepsMissed("2026-11-09T00:00:00Z", now, S)).toBeNull();
+  });
+});
+
+describe("expectedPages — one run's budget, not the whole calendar", () => {
+  it("clamps to the budget once the calendar outgrows it", () => {
+    expect(expectedPages(593, 400)).toBe(400);
+  });
+
+  it("is the calendar when the budget is not the binding constraint", () => {
+    // Today's real numbers: 388 cited pages against a 400-page budget.
+    expect(expectedPages(388, 400)).toBe(388);
+  });
+
+  it("is zero rather than a guess for nonsense, so the judge reports unknown", () => {
+    for (const [total, budget] of [[0, 400], [-1, 400], [593, 0], [Number.NaN, 400], [593, Number.NaN]]) {
+      expect(expectedPages(total as number, budget as number), `${total}/${budget}`).toBe(0);
+    }
+  });
+});
+
+describe("the page and the email share one judge — tripwire", () => {
+  /**
+   * `/admin/ops` and the Monday email reach the source-check verdict by
+   * different paths (vendors.ts -> a tile; ops-inputs -> buildSections -> a
+   * section). The project's standing contract is that they cannot drift. A
+   * second copy of either the judge or the period would let the page say green
+   * on the week the email said four weeks dead.
+   */
+  const vendors = readFileSync(join(__dirname, "..", "vendors.ts"), "utf8");
+  const digest = readFileSync(join(__dirname, "..", "ops-digest.ts"), "utf8");
+
+  it("the tile calls judgeSourceSweep with the email's own schedule", () => {
+    expect(vendors).toContain("judgeSourceSweep(h, SOURCE_SWEEP_SCHEDULE, now)");
+    expect(vendors).toContain('from "./ops-digest"');
+  });
+
+  it("the email section calls the same judge with the same schedule", () => {
+    expect(digest).toContain("judgeSourceSweep(inputs.sourceSweep, SOURCE_SWEEP_SCHEDULE, now)");
+  });
+
+  it("both read the one query, so neither can measure its own numbers", () => {
+    expect(vendors).toContain('from "./source-sweep"');
+    const inputs = readFileSync(join(__dirname, "..", "ops-inputs.ts"), "utf8");
+    expect(inputs).toContain("getSourceSweepHealth()");
+  });
+
+  it("the sweep and the alarm share one page budget", () => {
+    const script = readFileSync(join(__dirname, "..", "..", "scripts", "check-sources.ts"), "utf8");
+    expect(script).toContain("SWEEP_PAGE_BUDGET");
+    expect(script).not.toMatch(/\?\?\s*400\b/);
+  });
+});
+
+describe("the alarm measures the same rows the sweep does — tripwire", () => {
+  /**
+   * `getSourceSweepHealth` judges coverage of a population. If the sweep ever
+   * narrows or widens its own scope and the alarm does not follow, the alarm
+   * reports a percentage of the wrong denominator — and would read healthy
+   * while a whole class of listing went unchecked. Both predicates are asserted
+   * literally, so changing one on purpose means changing this test on purpose.
+   */
+  const SCOPE = ["status = 'published'", "start_at > now()", "source_url ~* '^https?://'"];
+
+  it("both queries carry the same three scope clauses", () => {
+    const sweep = readFileSync(join(__dirname, "..", "..", "scripts", "check-sources.ts"), "utf8");
+    const alarm = readFileSync(join(__dirname, "..", "source-sweep.ts"), "utf8");
+    for (const clause of SCOPE) {
+      // check-sources aliases the table as `e`; compare with the alias stripped.
+      expect(sweep.replace(/\be\./g, ""), `sweep: ${clause}`).toContain(clause);
+      expect(alarm, `alarm: ${clause}`).toContain(clause);
+    }
+  });
+
+  it("only check-sources ever STAMPS the column, so nothing else can fake freshness", () => {
+    // apply-correction and upsertEvents both set it to NULL and never to a
+    // time. If anything else started stamping `now()`, a run that read nothing
+    // could look like a sweep.
+    const stampers = ["lib/upsert.ts", "lib/corrections.ts", "scripts/apply-correction.ts", "lib/source-sweep.ts"];
+    for (const rel of stampers) {
+      const src = readFileSync(join(__dirname, "..", "..", rel), "utf8");
+      expect(src, rel).not.toMatch(/source_checked_at\s*=\s*now\(\)/);
+    }
+    const sweep = readFileSync(join(__dirname, "..", "..", "scripts", "check-sources.ts"), "utf8");
+    expect(sweep).toMatch(/source_checked_at\s*=\s*now\(\)/);
+  });
+});
+
+describe("parseStampMs — the alarm read its own column by accident of formatting", () => {
+  const INSTANT = Date.UTC(2026, 8, 28, 13, 14, 38, 494); // 28 Sep 2026 13:14:38.494 UTC
+
+  it("reads the exact string the driver returns for this column", () => {
+    // Copied from a live read of max(source_checked_at)::text.
+    expect(parseStampMs("2026-09-28 13:14:38.494716+00")).toBe(INSTANT);
+  });
+
+  it("reads the same instant written the way Date.parse rejects", () => {
+    // THE FRAGILITY. A bare +00 offset is not valid ISO-8601, so with a `T`
+    // separator Date.parse returns NaN — the alarm would have gone permanently
+    // grey on a formatting change it never chose.
+    expect(Number.isNaN(Date.parse("2026-09-28T13:14:38.494716+00"))).toBe(true);
+    expect(parseStampMs("2026-09-28T13:14:38.494716+00")).toBe(INSTANT);
+  });
+
+  it("reads the forms that were already fine", () => {
+    expect(parseStampMs("2026-09-28T13:14:38.494Z")).toBe(INSTANT);
+    expect(parseStampMs("2026-09-28T13:14:38.494+00:00")).toBe(INSTANT);
+    expect(parseStampMs("  2026-09-28 13:14:38.494716+00  ")).toBe(INSTANT);
+  });
+
+  it("is NaN for what is not a timestamp, so the judge reports unknown", () => {
+    for (const bad of ["", "never", "not a date", "2026-13-45 99:99:99+00"]) {
+      expect(Number.isNaN(parseStampMs(bad)), JSON.stringify(bad)).toBe(true);
+    }
+  });
+
+  it("does not shift the instant by a time zone — the five-hour hazard", () => {
+    // 13:14 UTC is 08:14 Chicago. If this ever came back as 18:14 UTC the
+    // staleness arithmetic would be five hours out in the dangerous direction.
+    expect(new Date(parseStampMs("2026-09-28 13:14:38.494716+00")).toISOString()).toBe(
+      "2026-09-28T13:14:38.494Z",
+    );
   });
 });

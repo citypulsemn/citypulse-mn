@@ -26,13 +26,16 @@ import { envValue } from "./env";
 import { getMonthlySpend, totalSpend, describeSpend } from "./model-spend";
 import { sql } from "./db";
 import { getDigestHealth } from "./digest-send";
-import { DIGEST_STALE_DAYS } from "./ops-digest";
+import { DIGEST_STALE_DAYS, SOURCE_SWEEP_SCHEDULE } from "./ops-digest";
+import { getSourceSweepHealth } from "./source-sweep";
 import { withDeadline,
   judgeCron,
   judgeUsage,
   judgeCostCoverage,
   worstStatus,
   judgeDigest,
+  judgeSourceSweep,
+  parseStampMs,
   unknownTile,
   formatBytes,
   formatDuration,
@@ -329,6 +332,7 @@ export async function gatherVendorTiles(now: Date = new Date()): Promise<VendorT
     ["Supabase", supabaseTile()],
     ["Anthropic", anthropicTile()],
     ["Weekly email", digestTile()],
+    ["Source check", sourceCheckTile(now)],
   ];
   const settled = await Promise.allSettled(
     probes.map(([name, probe]) =>
@@ -383,5 +387,40 @@ export async function digestTile(): Promise<VendorTile> {
     };
   } catch (err) {
     return unknownTile("Weekly email", reason(err), link);
+  }
+}
+
+/* ------------------------------------------------------- weekly source check */
+
+/**
+ * Is the weekly fabrication check still sweeping?
+ *
+ * The same verdict the Monday email prints, from the same judge and the same
+ * query — the page must not be able to say green while the email says four
+ * weeks dead. The email is the surface that gets read; this tile is for the
+ * 9pm phone check.
+ *
+ * Not a vendor, and it fails like the worst kind of one: silently, in a column
+ * nothing looked at. See `judgeSourceSweep`.
+ */
+export async function sourceCheckTile(now: Date): Promise<VendorTile> {
+  const link = "/admin/ops";
+  if (!sql) return unknownTile("Source check", "no database connection", link);
+  try {
+    const h = await getSourceSweepHealth();
+    const v = judgeSourceSweep(h, SOURCE_SWEEP_SCHEDULE, now);
+    if (!h.newestIso) {
+      return unknownTile("Source check", "no page has ever been read — the sweep may never have run", link);
+    }
+    const days = Math.max(0, Math.round((now.getTime() - parseStampMs(h.newestIso)) / 86_400_000));
+    return {
+      service: "Source check",
+      status: v.status,
+      headline: days === 0 ? "swept today" : `${days}d since a page was read`,
+      detail: v.lines[0],
+      link,
+    };
+  } catch (err) {
+    return unknownTile("Source check", reason(err), link);
   }
 }

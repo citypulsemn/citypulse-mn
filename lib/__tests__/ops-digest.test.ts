@@ -33,6 +33,14 @@ function healthy(overrides: Partial<OpsInputs> = {}): OpsInputs {
     coverageHealthy: true,
     coverageAlerts: ["[coverage] all categories meet their weekly floor ✓"],
     verify: { verified7: 41, neverVerifiedUpcoming: 12 },
+    // A healthy sweep: that Monday morning, 372 of the 400 pages it was
+    // allowed. The 41 never-checked are the hosts that refuse a script, which
+    // is a fact in the report and deliberately not part of the verdict.
+    sourceSweep: {
+      newestIso: "2026-07-20T06:10:00Z",
+      pagesSwept: 372, pagesTotal: 593, pagesExpected: 400,
+      neverChecked: 41, listings: 902, runWindowHours: 24,
+    },
     engagement: {
       totals: { view: 412, ticket_click: 38, save: 21, calendar: 9 },
       daily: [],
@@ -824,5 +832,87 @@ describe("judgeVerification — a dying pass must not read as a quiet week", () 
   it("treats a nonsense count as dead rather than as success", () => {
     expect(judgeVerification(NaN, 10).alert).toBe(true);
     expect(judgeVerification(-3, 10).alert).toBe(true);
+  });
+});
+
+describe("Source check section — the alarm lands where it gets read", () => {
+  const find = (i: OpsInputs) => buildSections(i, NOW).find((s) => s.title === "Source check")!;
+
+  it("exists at all, which is the entire point", () => {
+    // It was a tile on /admin/ops or nothing, and the Actions tile was already
+    // red for four Mondays without producing action. A verdict nobody opens is
+    // not an instrument.
+    expect(find(healthy())).toBeTruthy();
+  });
+
+  it("is quiet on a healthy sweep", () => {
+    const s = find(healthy());
+    expect(s.alert).toBe(false);
+    expect(s.lines[0]).toMatch(/the latest sweep read 372 of 400 cited pages/);
+  });
+
+  it("ALERTS when nothing has been checked for four weeks", () => {
+    const s = find(
+      healthy({
+        sourceSweep: {
+          newestIso: "2026-06-22T06:10:00Z", // 28 days before NOW
+          pagesSwept: 0, pagesTotal: 593, pagesExpected: 400,
+          neverChecked: 502, listings: 902, runWindowHours: 24,
+        },
+      }),
+    );
+    expect(s.alert).toBe(true);
+    // NOW is Monday 20 Jul; the stamp is 22 Jun, so 29 Jun, 6, 13 and 20 Jul
+    // all came and went unstamped.
+    expect(s.lines[0]).toMatch(/4 scheduled sweeps missed/);
+    expect(s.lines[0]).toMatch(/it runs every 7 days/);
+  });
+
+  it("counts into the subject line, so a phone shows it without opening anything", () => {
+    const dead = healthy({
+      sourceSweep: {
+        newestIso: "2026-06-22T06:10:00Z",
+        pagesSwept: 0, pagesTotal: 593, pagesExpected: 400,
+        neverChecked: 502, listings: 902, runWindowHours: 24,
+      },
+    });
+    const before = composeOpsDigest(healthy(), NOW).subject;
+    const after = composeOpsDigest(dead, NOW).subject;
+    expect(before).toContain("all green");
+    expect(after).toMatch(/⚠️ City Pulse ops — 1 alert/);
+  });
+
+  it("alerts when its own read failed, instead of reporting a quiet green", () => {
+    const s = find(healthy({ errors: { source_sweep: "db down" } }));
+    expect(s.alert).toBe(true);
+    expect(s.lines[0]).toContain("section unavailable: db down");
+  });
+
+  it("alerts on a null measurement even with no recorded error", () => {
+    // `wrap` falls back to null. A section that rendered that as nothing to see
+    // would be the exact shape of the bug: silence reading as health.
+    const s = find(healthy({ sourceSweep: null }));
+    expect(s.alert).toBe(true);
+    expect(s.lines[0]).toMatch(/unavailable/);
+  });
+
+  it("alerts on `unknown` — we could not tell is never green", () => {
+    const s = find(
+      healthy({
+        sourceSweep: {
+          newestIso: null,
+          pagesSwept: 0, pagesTotal: 0, pagesExpected: 0,
+          neverChecked: 0, listings: 0, runWindowHours: 24,
+        },
+      }),
+    );
+    expect(s.alert).toBe(true);
+    expect(s.lines[0]).toMatch(/no source check on record/);
+  });
+
+  it("renders into the email body, not just the section list", () => {
+    const { html, text } = composeOpsDigest(healthy(), NOW);
+    expect(text).toContain("Source check");
+    expect(html).toContain("Source check");
   });
 });

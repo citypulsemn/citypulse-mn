@@ -30,12 +30,13 @@ import {
   isTransientNetworkError,
   stalestFirst,
   pageLastChecked,
+  SWEEP_PAGE_BUDGET,
   type SourceCheck,
 } from "../lib/source-presence";
 
 const arg = (n: string) => process.argv.find((a) => a.startsWith(`--${n}=`))?.split("=")[1];
 const APPLY = process.argv.includes("--apply");
-const LIMIT = Math.max(1, Number(arg("limit") ?? 400));
+const LIMIT = Math.max(1, Number(arg("limit") ?? SWEEP_PAGE_BUDGET));
 const HOST = arg("host");
 const TIMEOUT_MS = 12_000;
 const PAUSE_MS = 700; // be a polite guest on someone else's site

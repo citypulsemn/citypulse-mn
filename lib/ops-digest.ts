@@ -1,4 +1,5 @@
 import type { Engagement } from "./stats";
+import { judgeSourceSweep, type SourceSweepHealth } from "./vendor-health";
 import type { SearchStats } from "./search-console";
 import { esc } from "./digest";
 import { EMAIL_HEAD } from "./email-head";
@@ -137,6 +138,16 @@ export interface OpsInputs {
   coverageHealthy: boolean;
   coverageAlerts: string[]; // formatCoverageAlerts() output, verbatim
   verify: { verified7: number; neverVerifiedUpcoming: number };
+  /**
+   * Is the weekly source check alive? Null when the read itself failed.
+   *
+   * THE SECTION THAT WOULD HAVE CAUGHT THE WORST SILENCE THIS PROJECT HAS HAD.
+   * `check-sources` was dead for four weeks in Sep-Oct 2026 behind a broken
+   * step, and the only evidence was `source_checked_at` going stale in a column
+   * nothing read. The Actions tile was red for four Mondays and produced no
+   * action, so the verdict belongs HERE, in the thing that gets opened.
+   */
+  sourceSweep: SourceSweepHealth | null;
   engagement: Engagement;
   prevTotals: Engagement["totals"] | null; // last ops_digest_runs row, or null on first run
   trending: { count: number; top: string[] };
@@ -252,6 +263,7 @@ const SECTION_KEYS = [
   "pipeline",
   "coverage",
   "verify",
+  "source_sweep",
   "engagement",
   "trending",
   "subscribers",
@@ -269,6 +281,19 @@ export const STALE_REPORT_DAYS = 3;
  *  single skipped send reads 11 — 8 catches the miss without ever crying wolf on
  *  a normal week (or on GitHub's routine 1-4h scheduling delays). */
 export const DIGEST_STALE_DAYS = 8;
+
+/**
+ * When the source sweep is DUE: the last step of Weekly Event Research, whose
+ * cron is `0 6 * * 1` — Monday 06:00 UTC.
+ *
+ * A SCHEDULE AND NOT JUST A PERIOD, because this email is composed minutes
+ * after that workflow completes. Judged on elapsed time, the first dead Monday
+ * reads exactly one period old and any `judgeCron`-style grace calls it fine;
+ * measured, that produced green on the first dead Monday, amber on the second,
+ * red on the third. Shared with the /admin/ops tile, which samples the same
+ * judge mid-week, so neither surface needs its own looser rule.
+ */
+export const SOURCE_SWEEP_SCHEDULE = { everyHours: 24 * 7, dueDayUTC: 1, dueHourUTC: 6 } as const;
 
 function unavailable(reason: string): string[] {
   return [`section unavailable: ${reason}`];
@@ -310,7 +335,7 @@ function fmtDuration(startIso: string, endIso: string): string {
   return m > 0 ? `${m}m ${s}s` : `${s}s`;
 }
 
-export function buildSections(inputs: OpsInputs): OpsSection[] {
+export function buildSections(inputs: OpsInputs, now: Date = new Date()): OpsSection[] {
   const out: OpsSection[] = [];
   const err = (k: string) => inputs.errors[k];
 
@@ -396,6 +421,27 @@ export function buildSections(inputs: OpsInputs): OpsSection[] {
       alert = v.alert;
     }
     out.push({ title: "Verification", lines, alert });
+  }
+
+  // 3b — Source check. Its own section rather than a line under Verification:
+  // the two fail independently (the verify pass runs twice a week from two
+  // different workflows; the sweep is the last step of a third), and a dead
+  // instrument folded into a healthy section's prose is how four weeks of
+  // silence went unread the first time.
+  {
+    let lines: string[];
+    let alert = false;
+    if (err("source_sweep") || !inputs.sourceSweep) {
+      lines = unavailable(err("source_sweep") ?? "the source-check health read returned nothing");
+      alert = true;
+    } else {
+      const v = judgeSourceSweep(inputs.sourceSweep, SOURCE_SWEEP_SCHEDULE, now);
+      lines = v.lines;
+      // `unknown` alerts. "We could not tell" is never green — the rule the
+      // vendor tiles already enforce, and the reason this section exists.
+      alert = v.status !== "ok";
+    }
+    out.push({ title: "Source check", lines, alert });
   }
 
   // 4 — Engagement (with WoW)
@@ -693,7 +739,7 @@ export function composeOpsDigest(
   inputs: OpsInputs,
   now: Date,
 ): { subject: string; html: string; text: string } {
-  const sections = buildSections(inputs);
+  const sections = buildSections(inputs, now);
   const alerts = sections.filter((s) => s.alert).length;
   const dateLabel = now.toLocaleDateString("en-US", {
     month: "short",
