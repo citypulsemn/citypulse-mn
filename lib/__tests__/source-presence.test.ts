@@ -9,6 +9,9 @@ import {
   stalestFirst,
   pageLastChecked,
   leadSegment,
+  opponentSegment,
+  fixtureRow,
+  venueMarks,
   pageNote,
   noteCategory,
   type SourceCheck,
@@ -735,3 +738,291 @@ describe("pageNote — four problems had been wearing one name", () => {
     }
   });
 });
+
+/**
+ * A fixture page, in the shape gophersports.com actually writes one: the
+ * opponent on its own line, then arena / TV / radio, then the date. Lines are
+ * verbatim from the men's basketball schedule of 27 Oct 2026, with two games
+ * added to pin the Michigan / Michigan State hazard. The heading is
+ * deliberately NEUTRAL: the real page's heading carries "Minnesota Gophers
+ * Men's Basketball", which scores 4 of our 6 title words all by itself, and a
+ * fixture that let the heading answer would test nothing.
+ */
+const GOPHER_SCHEDULE = [
+  "Official Athletics Site — Schedule",
+  "Buy Tickets  Game Center  Watch  Listen Live  Stats  Varsity Network Audio  Game Info",
+  "Season tickets, single-game tickets, parking passes and group rates are available all season.",
+  "Follow the team for roster news, injury updates and postgame interviews after every contest.",
+  "vs", "Southern", "The Barn by Blue Cross and Blue Shield of Minnesota",
+  "Radio: KTLK (103.5FM & AM 1130)", "Nov 12 (Thu)", "7:00 PM",
+  "Game Center Watch Listen Live Stats", "Game Info",
+  "vs", "Western Illinois", "The Barn by Blue Cross and Blue Shield of Minnesota",
+  "TV: BTN", "Radio: KFAN FM 100.3", "Nov 16 (Mon)", "7:00 PM",
+  "Game Center Watch Listen Live Stats", "Game Info",
+  "vs", "Michigan State", "The Barn by Blue Cross and Blue Shield of Minnesota",
+  "TV: BTN", "Radio: KFAN FM 100.3", "Jan 5 (Tue)", "7:00 PM",
+  "Game Center Watch Listen Live Stats", "Game Info",
+  "vs", "Michigan", "The Barn by Blue Cross and Blue Shield of Minnesota",
+  "TV: BTN", "Radio: KFAN FM 100.3", "Jan 14 (Thu)", "8:00 PM",
+  "Game Center Watch Listen Live Stats", "Game Info",
+  "vs", "Alaska-Anchorage", "3M Arena at Mariucci",
+  "Radio: KFAN FM 100.3", "Fri. Nov 13, 2026 7:00 PM", "Game Info",
+].join("\n");
+
+describe("opponentSegment — the home team is the one name a schedule page omits", () => {
+  it("takes what follows vs.", () => {
+    expect(opponentSegment("Gophers Men's Basketball vs. Western Illinois")).toBe("Western Illinois");
+    expect(opponentSegment("Gophers Men's Hockey: Minnesota vs Wisconsin")).toBe("Wisconsin");
+  });
+
+  it("drops the decoration our titles carry and schedule pages never do", () => {
+    expect(opponentSegment("Minnesota Gophers Men's Hockey vs. Michigan (Game 2)")).toBe("Michigan");
+    expect(opponentSegment("Gophers Men's Hockey: Minnesota vs. Wisconsin (Game 2) – Gold Out")).toBe("Wisconsin");
+    expect(opponentSegment("Gophers vs. Minnesota State [Sold Out]")).toBe("Minnesota State");
+  });
+
+  it("never fires on ` at `, because that is how half this calendar is titled", () => {
+    // "Holiday Market at Union Depot" would otherwise let a venue name standing
+    // near the right date confirm an event the page never names.
+    expect(opponentSegment("Holiday Market at Union Depot")).toBe("");
+    expect(opponentSegment("Jazz at the Dakota")).toBe("");
+    expect(opponentSegment("Gophers Men's Basketball at Purdue")).toBe("");
+  });
+
+  it("is empty when there is no fixture in the title", () => {
+    expect(opponentSegment("Prairie Bathing Under a Harvest Moon")).toBe("");
+    expect(opponentSegment("")).toBe("");
+  });
+});
+
+describe("fixtureRow — a row must prove it is a fixture, by its own structure", () => {
+  it("shape A: the date immediately before the opponent, as gopherpucklive writes a home game", () => {
+    const e = ["Fri. Nov 13, 2026 7:00 PM 3M Arena at Mariucci", "Alaska-Anchorage", "Box Score"];
+    expect(fixtureRow(e, 1, "alaska anchorage")).toMatchObject({ dateIndex: 0 });
+  });
+
+  it("shape B: a marker before the opponent, the date further down the block", () => {
+    const e = ["vs", "Western Illinois", "The Barn", "TV: BTN", "Nov 16 (Mon)", "7:00 PM"];
+    expect(fixtureRow(e, 1, "western illinois")).toMatchObject({ dateIndex: 4, blockStart: 0 });
+  });
+
+  it("does not care how many lines a block carries — proximity did", () => {
+    // Two extra lines (a streaming line, a promo line) used to make the
+    // PREVIOUS game's date nearer, and the gate then confirmed the wrong night.
+    const e = ["vs", "Southern", "The Barn", "Nov 12 (Thu)", "7:00 PM", "Game Info",
+      "vs", "Western Illinois", "The Barn", "TV: BTN", "Streaming: BTN+",
+      "Radio: KFAN", "Promotion: Youth Jersey Giveaway", "Nov 16 (Mon)"];
+    expect(fixtureRow(e, 7, "western illinois")).toMatchObject({ dateIndex: 13 });
+  });
+
+  it("stops at the next block's marker rather than borrowing its date", () => {
+    const e = ["vs", "Wisconsin", "The Barn", "vs", "Purdue", "Nov 12 (Thu)"];
+    expect(fixtureRow(e, 1, "wisconsin")).toBeNull();
+  });
+
+  it("refuses an away row in every shape it is written", () => {
+    expect(fixtureRow(["at", "Western Illinois", "Western Hall, Macomb, Ill.", "Nov 16 (Mon)"], 1, "western illinois")).toBeNull();
+    expect(fixtureRow(["boilerplate", "at Western Illinois", "Nov 16 (Mon)"], 1, "western illinois")).toBeNull();
+    expect(fixtureRow(["boilerplate", "@ Western Illinois", "Nov 16 (Mon)"], 1, "western illinois")).toBeNull();
+  });
+
+  it("refuses a bare name with neither a date beside it nor a marker", () => {
+    // A region nav link three lines from a dated entry. This is what let an
+    // `absent` be turned into `present` by inserting " vs. " into a title.
+    const e = ["Browse by region", "Denver", "Minneapolis", "Nov 16 (Mon) listings"];
+    expect(fixtureRow(e, 1, "denver")).toBeNull();
+  });
+
+  it("finds a five-character date — a length floor once hid it", () => {
+    // "Nov 5" is five characters. A floor of six made the true date invisible
+    // and the search reached past it to the next game's.
+    expect(fixtureRow(["vs", "Wisconsin", "Nov 5", "7:00 PM"], 1, "wisconsin")).toMatchObject({ dateIndex: 2 });
+    expect(fixtureRow(["Nov 5", "Wisconsin", "Box Score"], 1, "wisconsin")).toMatchObject({ dateIndex: 0 });
+  });
+
+  it("will not match a different team whose name merely contains the opponent's", () => {
+    expect(fixtureRow(["vs", "Michigan State", "The Barn", "Jan 5 (Tue)"], 1, "michigan")).toBeNull();
+    expect(fixtureRow(["vs", "Michigan", "The Barn", "Jan 14 (Thu)"], 1, "michigan")).toMatchObject({ dateIndex: 3 });
+  });
+});
+
+describe("venueMarks — the words that identify a building", () => {
+  it("keeps the distinctive words and drops the ones every page carries", () => {
+    expect(venueMarks("Williams Arena (The Barn)")).toEqual(["williams", "barn"]);
+    expect(venueMarks("3M Arena at Mariucci")).toEqual(["3m", "mariucci"]);
+    expect(venueMarks("Ridder Arena")).toEqual(["ridder"]);
+  });
+
+  it("drops 'center', because every athletics block says 'Game Center'", () => {
+    // Otherwise a Target Center listing matches any Gophers fixture on the
+    // strength of one generic word.
+    expect(venueMarks("Target Center")).toEqual(["target"]);
+    expect(venueMarks("Xcel Energy Center")).toEqual(["xcel", "energy"]);
+  });
+});
+
+describe("the fixture gate — 33 listings the sweep could not read, and none of them JavaScript", () => {
+  const bball = (opponent: string) => `Minnesota Gophers Men's Basketball vs. ${opponent}`;
+
+  it("confirms a game from the row that names its opponent", () => {
+    const v = checkTitleOnPage(bball("Western Illinois"), GOPHER_SCHEDULE, { day: "2026-11-16" });
+    expect(v.kind).toBe("present");
+    if (v.kind === "present") {
+      expect(v.matched).toContain("Western Illinois");
+      expect(v.matched).toContain("Nov 16");
+    }
+  });
+
+  /**
+   * THE LIVE ERROR THIS FOUND. We publish "Minnesota Gophers Men's Basketball
+   * vs. Western Illinois" on 12 Nov 2026. The schedule page puts Western
+   * Illinois on the 16th and somebody else on the 12th. A gate that accepted a
+   * date on either side of the opponent would have confirmed it — "Western
+   * Illinois" sits five lines after "Nov 12" and four before "Nov 16".
+   */
+  it("does NOT confirm the same opponent on the wrong night", () => {
+    const v = checkTitleOnPage(bball("Western Illinois"), GOPHER_SCHEDULE, { day: "2026-11-12" });
+    expect(v.kind).not.toBe("present");
+    expect(v.kind).not.toBe("absent");
+  });
+
+  it("will not let Michigan be confirmed by the Michigan State row", () => {
+    expect(checkTitleOnPage(bball("Michigan"), GOPHER_SCHEDULE, { day: "2027-01-05" }).kind).not.toBe("present");
+    expect(checkTitleOnPage(bball("Michigan"), GOPHER_SCHEDULE, { day: "2027-01-14" }).kind).toBe("present");
+    expect(checkTitleOnPage(bball("Michigan State"), GOPHER_SCHEDULE, { day: "2027-01-05" }).kind).toBe("present");
+  });
+
+  it("reads the row's punctuation, not ours", () => {
+    // We write "Alaska Anchorage"; the row says "Alaska-Anchorage".
+    const v = checkTitleOnPage("Minnesota Gophers Men's Hockey vs. Alaska Anchorage", GOPHER_SCHEDULE, { day: "2026-11-13" });
+    expect(v.kind).toBe("present");
+  });
+
+  it("stays unchecked when our title carries a nickname the page omits", () => {
+    // Three of the 33 are volleyball titles like this. A miss, not an accusation.
+    const v = checkTitleOnPage("Minnesota Gophers Volleyball vs. Michigan State Spartans", GOPHER_SCHEDULE, { day: "2027-01-05" });
+    expect(v.kind).not.toBe("present");
+  });
+
+  it("cannot fire without a date, and cannot produce an accusation", () => {
+    const noDay = checkTitleOnPage(bball("Western Illinois"), GOPHER_SCHEDULE, {});
+    expect(noDay.kind).toBe("unchecked");
+    if (noDay.kind === "unchecked") expect(noDay.why).toBe("no-date-given");
+    // Every fixture title against this page, on every date in it: never absent.
+    for (const opponent of ["Western Illinois", "Michigan", "Michigan State", "Southern", "Purdue"]) {
+      for (const day of ["2026-11-12", "2026-11-16", "2027-01-05", "2027-01-14", "2026-11-13"]) {
+        expect(checkTitleOnPage(bball(opponent), GOPHER_SCHEDULE, { day }).kind).not.toBe("absent");
+      }
+    }
+  });
+
+  it("leaves a non-fixture listing exactly as it was", () => {
+    // The gate must be invisible to everything that is not "X vs. Y".
+    const v = checkTitleOnPage("Holiday Market at Union Depot", GOPHER_SCHEDULE, { day: "2026-11-16" });
+    expect(v.kind).toBe("unchecked");
+    if (v.kind === "unchecked") expect(v.why).toBe("not-an-index");
+  });
+});
+
+describe("a fixture confirmation says so in its note", () => {
+  it("marks the verdict `via: fixture`, because its score looks like a contradiction", () => {
+    const v = checkTitleOnPage(
+      "Minnesota Gophers Men's Basketball vs. Western Illinois",
+      GOPHER_SCHEDULE,
+      { day: "2026-11-16" },
+    );
+    expect(v.kind).toBe("present");
+    if (v.kind === "present") {
+      expect(v.via).toBe("fixture");
+      // The score is the FULL TITLE's, which is below presentAt — that is the
+      // whole reason the gate exists, and why `present:0.333` needed a name.
+      expect(v.score).toBeLessThan(0.6);
+      expect(pageNote({ status: 200, check: v })).toBe("present:fixture");
+      expect(noteCategory(pageNote({ status: 200, check: v }))).toBe("present");
+    }
+  });
+
+  it("an ordinary title match still records its score", () => {
+    const v = checkTitleOnPage("Western Illinois", GOPHER_SCHEDULE, { day: "2026-11-16" });
+    expect(v.kind).toBe("present");
+    if (v.kind === "present") {
+      expect(v.via).toBeUndefined();
+      expect(pageNote({ status: 200, check: v })).toBe("present:1");
+    }
+  });
+});
+
+/**
+ * Both of these came from an adversarial review of the fixture gate, and both
+ * were real: the gate as first written confirmed a listing from a row that
+ * described a different year, and from a row that described a game 400 miles
+ * away.
+ */
+describe("what the fixture gate must refuse — found by review, not by me", () => {
+  const filler = [
+    "Official Athletics Site — Schedule",
+    "Buy Tickets  Game Center  Watch  Listen Live  Stats  Varsity Network Audio  Game Info",
+    "Season tickets, single-game tickets, parking passes and group rates are available all season.",
+    "Follow the team for roster news, injury updates and postgame interviews after every contest.",
+  ];
+  const T = "Minnesota Gophers Men's Basketball vs. Western Illinois";
+
+  describe("a row that prints its year must print ours", () => {
+    // `pageCoversDate` matches on month and day alone, deliberately, because
+    // index pages omit the year. An event re-dated to the wrong year is one of
+    // the fabrication shapes this project has shipped.
+    const dated = [...filler,
+      "vs", "Alaska-Anchorage", "3M Arena at Mariucci",
+      "Radio: KFAN FM 100.3", "Fri. Nov 13, 2026 7:00 PM", "Game Info",
+    ].join("\n");
+    const title = "Minnesota Gophers Men's Hockey vs. Alaska Anchorage";
+
+    it("confirms the year the row names", () => {
+      expect(checkTitleOnPage(title, dated, { day: "2026-11-13" }).kind).toBe("present");
+    });
+
+    it("refuses the same month and day in another year", () => {
+      const v = checkTitleOnPage(title, dated, { day: "2027-11-13" });
+      expect(v.kind).not.toBe("present");
+      expect(v.kind).not.toBe("absent");
+    });
+  });
+
+  describe("an away row names the same opponent and means somewhere else", () => {
+    const pad = [
+      "Group rates, season tickets and parking passes are available for every home contest.",
+      "Radio affiliates carry every game statewide, and the pregame show starts an hour early.",
+    ];
+    const home = [...filler, "vs", "Western Illinois", "The Barn by Blue Cross and Blue Shield of Minnesota",
+      "TV: BTN", "Radio: KFAN FM 100.3", "Nov 16 (Mon)", "7:00 PM", "Game Info"].join("\n");
+    const awayMultiline = [...filler, "at", "Western Illinois", "Western Hall, Macomb, Ill.",
+      "TV: ESPN+", "Radio: KFAN FM 100.3", "Nov 16 (Mon)", "7:00 PM", "Game Info"].join("\n");
+    const awayOneLine = [...filler, ...pad, "at Western Illinois", "Nov 16 (Mon) 7:00 PM"].join("\n");
+    const awayAtSign = [...filler, ...pad, "@ Western Illinois", "Nov 16 (Mon) 7:00 PM"].join("\n");
+
+    it("confirms the home game", () => {
+      const v = checkTitleOnPage(T, home, { day: "2026-11-16" });
+      expect(v.kind).toBe("present");
+      if (v.kind === "present") expect(v.via).toBe("fixture");
+    });
+
+    it("refuses it when the marker sits on its own line, as gophersports writes it", () => {
+      // The opponent entry is IDENTICAL to a home game's; only the neighbour
+      // tells them apart, which is why the line before is examined.
+      expect(checkTitleOnPage(T, awayMultiline, { day: "2026-11-16" }).kind).not.toBe("present");
+    });
+
+    it("refuses the one-line and @ shapes", () => {
+      expect(checkTitleOnPage(T, awayOneLine, { day: "2026-11-16" }).kind).not.toBe("present");
+      expect(checkTitleOnPage(T, awayAtSign, { day: "2026-11-16" }).kind).not.toBe("present");
+    });
+
+    it("does not mistake an opponent whose name merely starts with 'at'", () => {
+      const atlanta = [...filler, "vs", "Atlanta", "The Barn by Blue Cross and Blue Shield of Minnesota",
+        "TV: BTN", "Radio: KFAN FM 100.3", "Nov 16 (Mon)", "7:00 PM", "Game Info"].join("\n");
+      const v = checkTitleOnPage("Minnesota Gophers Men's Basketball vs. Atlanta", atlanta, { day: "2026-11-16" });
+      expect(v.kind).toBe("present");
+    });
+  });
+});
+

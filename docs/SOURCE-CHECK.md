@@ -112,9 +112,10 @@ have failed safe — `unknown` alerts — but as an unexplained grey square rath
 than as the answer.
 
 The share of the calendar never checked is reported as a **fact and never drives
-the verdict**, because it can never reach zero — 59 listings are blocked
-outright and 348 more sit on readable pages that are not dated indexes — and an
-alarm that is permanently amber is one nobody reads. The line **names its
+the verdict**, because it can never reach zero — 76 listings sit behind hosts
+that block us, redirect in a loop or have gone dead, and 86 more cite pages that
+are not indexes and so cannot convict — and an alarm that is permanently
+amber is one nobody reads. The line **names its
 causes** rather than guessing at them; see below for why that matters.
 
 Cost: about 12 minutes and no model spend. The weekly job has run 19–44 minutes
@@ -254,6 +255,103 @@ keeping it looking checked. Tripwired in
 whenever the pipeline legitimately moves a source, which is correct — those pages
 genuinely have not been read — but it is worth watching against the ~400/run cap.
 
+### The largest block was not JavaScript — the fixture gate, 27 Oct 2026
+
+Once the composition was measured per listing, the biggest single thing the
+sweep could not read turned out to be **33 listings citing team schedule
+pages** — and the schedule was in the HTML the whole time, written in a shape
+nothing here knew how to read.
+
+A team's own schedule page never repeats the home team. We write *Minnesota
+Gophers Men's Basketball vs. Western Illinois*; `gophersports.com` writes the
+same game down five separate lines:
+
+```
+vs
+Western Illinois
+The Barn by Blue Cross and Blue Shield of Minnesota
+TV: BTN
+Nov 16 (Mon)
+```
+
+The full title scores **2 of its 6** distinctive words against that, and the
+page carries 31 dated entries — under the 50-entry index bar. So the listing
+could be neither confirmed nor convicted, permanently.
+
+What makes a fixture checkable is that a schedule page writes each game as a
+**block**, and the block says who, where and when. The gate confirms a listing
+only when five things agree:
+
+1. **A row naming the opponent and nothing else.** Scoring the opponent's words
+   instead gives "Michigan" a perfect 1.0 against a *Michigan State* row.
+2. **That row must prove it is a fixture row, by its own structure** — either
+   its date sits immediately before it (`gopherpucklive.com` writes
+   `Fri. Nov 13, 2026 … 3M Arena at Mariucci` then `Alaska-Anchorage`) or a
+   home/away marker sits immediately before it (`gophersports.com` writes `vs`
+   on a line of its own).
+3. **The marker must say home.** An away row names the same opponent and means
+   somewhere else: `at` / `Western Illinois` / `Western Hall, Macomb, Ill.` is
+   byte-identical to a home row at the opponent line and differs only in its
+   marker.
+4. **The date must belong to that block**, found by scanning forward to the next
+   marker — never by proximity.
+5. **The block must name the venue the listing claims**, when the caller supplies
+   one. The sweep does.
+
+Five is what lifts this from *somebody on this page plays Western Illinois that
+night* to *a home game against Western Illinois, at the arena we claim, on the
+day we claim* — a stronger attestation than a title match. It is also the only
+thing that separates one team's schedule from its sibling's: `gophersports.com`
+runs parallel men's and women's pages with overlapping opponents, and token
+overlap cannot tell them apart, because the site's own navigation names every
+sport. Measured: a bogus *Gophers Volleyball vs. Western Illinois* scores **1.00**
+against the basketball page — higher than the real title's 0.75.
+
+**Rules 2, 3, 4 and 5 exist because an adversarial review broke the first draft
+four separate ways**, each of which confirmed a listing the page did not attest:
+
+- **Proximity has a one-line margin.** The first draft took the date printed
+  nearest the opponent. On a real page "Western Illinois" sits five lines after
+  `Nov 12 (Thu)` and four before its own `Nov 16 (Mon)` — so two extra lines in
+  a block (a streaming line, a promo line, which real pages carry unevenly)
+  make the previous game's date nearer. Reproduced: the draft then **confirmed
+  the one live wrong listing and refused the right one**, inverting exactly the
+  behaviour it was credited with.
+- **A bare name is not a fixture.** With no structural requirement, a "Denver"
+  in a region nav standing a few lines from a dated entry confirmed a listing —
+  and because this gate runs *before* the index gate, inserting " vs. " into a
+  title could turn a real `absent` into `present` and silence an accusation.
+- **The away marker was read on our title and ignored on the page.**
+  `opponentSegment` refuses " at " in *our* title, which is a rule about our
+  syntax; the page's own marker was never consulted, and the residue check even
+  stripped `at` as noise.
+- **A row that prints its year must print ours.** `pageCoversDate` matches month
+  and day alone — index pages omit the year — so a listing dated 2027-11-13 was
+  confirmed by `Fri. Nov 13, 2026`. Wrong-year re-dating is one of the three
+  fabrication shapes this project has shipped.
+
+A fifth finding was a plain bug: a six-character floor on what counted as a
+dated entry made `Nov 5` invisible, so the search reached past the true date to
+the next game's.
+
+**None of the five rules cost a confirmation.** Re-measured live after each:
+still 26, the same 26.
+
+
+It can only ever return `present`; it never convicts. Live, it confirms 26 of
+the 33, all on `gophersports.com` and `gopherpucklive.com`, and no other host
+changed. The seven it leaves alone each fail legibly: three volleyball titles
+carry a nickname the page omits (*Penn State Nittany Lions* against a page that
+says *Penn State*), three sit on a schedule-announcement article and a
+text-only schedule page, where the team name appears with neither a marker nor
+an adjacent date, and one is a listing that is simply wrong.
+
+**It found a wrong listing on its first run.** We publish *Gophers Men's
+Basketball vs. Western Illinois* on **12 Nov 2026**. The official schedule puts
+Western Illinois on the **16th** and Southern on the 12th, and we carry the
+16th as a separate listing. The gate declined to confirm the 12th — which is
+the whole purpose, and the reason proximity was not good enough.
+
 ## What it does to a row
 
 A missing listing is **flagged and un-verified. Never archived, never edited.**
@@ -303,21 +401,45 @@ every readable page and the sweep would stall silently. Comfortable at 41 of
 ## Four problems were wearing one name
 
 Every doubt returned `unchecked`, so "how much of the calendar is structurally
-unverifiable?" could not be answered from data. On 27 Oct 2026 it was answered
-wrongly in an operator's report — **"177 listings behind hosts that 403 a
-script"** — and then measured properly across 97 hosts:
+unverifiable?" could not be answered from data. It was answered wrongly twice
+in one day.
+
+First as **"177 listings behind hosts that 403 a script"**, read straight off a
+dry run's `unchecked` count. Then, correcting that, by probing **one page per
+host** across 97 hosts and attributing each host's whole listing count to the
+verdict of the single page sampled:
 
 | cause | hosts | listings |
 |---|---|---|
-| **readable, but not a dated index** | 69 | **348** |
+| readable, but not a dated index | 69 | 348 |
 | readable index, simply not swept yet | 12 | 61 |
-| **blocked** (401/403/429) | 12 | **59** |
+| blocked (401/403/429) | 12 | 59 |
 | dead link, HTTP error, thin page | 4 | 10 |
 
-Blocking is **a sixth of the problem**, and the dominant cause is JavaScript:
-`first-avenue.com`'s own venue page answers 200 with **zero** dated entries, as
-do Fine Line's and Chanhassen Dinner Theatres'. An afternoon spent on "blocked
-hosts" is an afternoon spent on the smallest bucket.
+**That table is wrong too, and the error is the instructive part.**
+`first-avenue.com` has 170 upcoming listings. One of them cites
+`/venue/first-avenue/`, which really is a JavaScript calendar — 200 OK with
+zero dated entries. The other 163 pages on that host are each a listing's own
+event page, and every one carries its title plainly. Sampling the venue page
+and multiplying by the host's listing count invented about sixty unverifiable
+listings that verify fine.
+
+Measured per **listing** on 27 Oct 2026 — every cited page fetched, every title
+scored, which is exactly what the sweep does:
+
+| verdict | listings |
+|---|---|
+| **present** — the page names it | **465** |
+| not an index, so the page cannot convict | 86 |
+| unreachable (403 · 429 · redirect loop · 404) | 76 |
+| day not covered, partial match, thin page, weak title | 15 |
+| **absent** | **0** |
+
+72% of the calendar was already verifiable from plain HTML, and the real
+remainder is 177 — the number this started with, arrived at honestly for the
+first time. The lesson is in the method, not the arithmetic: a per-host sample
+answers a question about hosts, and every question worth asking here is about
+listings.
 
 So the sweep now records **why**, on every attempt, in
 `events.source_check_note` — `category:detail`, written even when the timestamp
@@ -349,12 +471,23 @@ Taren's: leave them, identify as a browser, or ask the organisations.
 
 ## Known limits, stated plainly
 
+- **The check cannot tell one year from the next on a yearless page.**
+  `pageCoversDate` matches month and day only, because index pages omit the
+  year — so a listing re-dated by exactly a year, onto a day the page really
+  covers, is confirmed. The fixture gate refuses this when the matched row
+  prints a four-digit year; the title path, which confirmed 465 listings, has no
+  such guard. Closing it properly means establishing a page's season span. It is
+  the largest known hole in the check and it is NOT the blocked hosts.
 - **Small organiser calendars are not checked.** The 50-entry bar excludes a
   parish with ten events. That is a miss, not a false accusation, and it is the
   right direction to err.
-- **JavaScript calendars are invisible**, and this is the single biggest limit —
-  348 listings, six times the blocked count. If the events are drawn
-  client-side we read only the nav menu and gate 1 refuses.
+- **JavaScript calendars are a real limit, and a small one.** Of the 86 listings
+  whose cited page cannot convict, almost none carry a client-side payload —
+  they are team schedules, aggregator pages and single-event pages.
+  `first-avenue.com/venue/first-avenue/` is a genuine JS calendar and exactly
+  one listing cites it. Rendering JavaScript in the weekly job was costed
+  against this measurement and is not worth it; what the measurement pointed at
+  instead was the fixture gate above.
 - **Sites that block us return 403** and stay `unchecked`. The fetch identifies
   itself honestly; a site that would rather we did not read it gets that wish.
   59 listings across 12 hosts, now countable rather than estimated.

@@ -32,7 +32,15 @@
 
 export type SourceCheck =
   /** A line on the page carries most of the title's distinctive words. */
-  | { kind: "present"; score: number; matched: string }
+  /**
+   * `via: "fixture"` means the opponent's row and the nearest date confirmed
+   * it, not the title — the full-title score is below `presentAt` in that case,
+   * so a note reading `present:0.333` would look like a contradiction. It is
+   * recorded because the gate's trust model differs from the title's: if it
+   * ever proves too loose, one query has to be able to find everything it
+   * confirmed.
+   */
+  | { kind: "present"; score: number; matched: string; via?: "fixture" }
   /** The page reads well, lists things, and none of them is this. */
   | { kind: "absent"; score: number; best: string }
   /** We could not form an opinion. Never treat this as either answer. */
@@ -153,6 +161,114 @@ export function pageEntries(pageText: string): string[] {
     .filter((l) => l.length > 0);
 }
 
+/**
+ * The opponent in a fixture title — everything after "vs."
+ *
+ * `vs` only, never ` at `. An away game is not a Twin Cities event, and " at "
+ * is how half the non-sports titles on this calendar are written ("Holiday
+ * Market at Union Depot"), which would let a venue name standing near the right
+ * date confirm a listing the page never names.
+ *
+ * Trailing decoration goes: "(Game 2)", "[Sold Out]", "– Gold Out". Our titles
+ * carry it and a schedule page never does.
+ */
+export function opponentSegment(title: string): string {
+  const m = /\svs\.?\s+(.+)$/i.exec(String(title ?? "").trim());
+  if (!m) return "";
+  return m[1]
+    .replace(/\s*[([][^)\]]*[)\]]\s*/g, " ")
+    .replace(/\s*[-–—]\s.*$/, "")
+    .trim();
+}
+
+/** Lower-cased and punctuation-flattened, for comparing a row against a name. */
+function normalizeForRow(s: string): string {
+  return String(s ?? "").toLowerCase().replace(/[''’]/g, "").replace(/[^a-z0-9]+/g, " ").trim();
+}
+
+/** A marker entry on a line of its own: "vs" / "at" / "@". */
+const MARKER_ONLY = /^(?:vs\.?|v|at|@)$/i;
+const HOME_MARKER = /^(?:vs\.?|v)$/i;
+
+/**
+ * The distinctive words of a venue — the ones that identify THIS building.
+ *
+ * "arena", "center" and the rest are dropped because every block on a college
+ * athletics page carries "Game Center", so a listing at Target Center would
+ * match any Gophers fixture on the strength of the word "center" alone.
+ * "Williams Arena (The Barn)" keeps `williams` and `barn`, and the page's own
+ * "The Barn by Blue Cross and Blue Shield of Minnesota" answers to `barn`.
+ */
+const GENERIC_VENUE_WORDS = new Set([
+  "arena", "center", "centre", "stadium", "field", "park", "theater", "theatre",
+  "hall", "pavilion", "complex", "the", "at", "of", "and",
+]);
+
+export function venueMarks(venue: string): string[] {
+  return normalizeForRow(venue)
+    .split(" ")
+    .filter((w) => w.length >= 2 && !GENERIC_VENUE_WORDS.has(w));
+}
+
+/**
+ * Is the entry at `i` a fixture row for `opp` — and if so, which entry carries
+ * the block's date, and how far does the block run?
+ *
+ * Two shapes, both taken from live pages, and nothing else is accepted:
+ *
+ *   A. the date immediately before the opponent, which is how
+ *      gopherpucklive.com writes a home game:
+ *          "Fri. Nov 13, 2026 7:00 PM 3M Arena at Mariucci" / "Alaska-Anchorage"
+ *   B. a home/away marker immediately before the opponent, which is how
+ *      gophersports.com writes one, with the date further down the block:
+ *          "vs" / "Western Illinois" / arena / "TV: BTN" / "Nov 16 (Mon)"
+ *
+ * In shape B the date is found by scanning FORWARD and stopping at the next
+ * block's marker — never by proximity. Proximity was the first draft and its
+ * margin is one line: two extra lines in a block (a streaming line, a promo
+ * line) make the PREVIOUS game's date nearer, and the gate then confirms the
+ * wrong night. Requiring the row's own structure is also what stops a bare
+ * category link — a "Denver" in a region nav standing a few lines from a dated
+ * entry — from confirming anything at all.
+ */
+export function fixtureRow(
+  entries: string[],
+  i: number,
+  opp: string,
+): { dateIndex: number; blockStart: number; blockEnd: number } | null {
+  if (!opp || i < 0 || i >= entries.length) return null;
+  const bare = normalizeForRow(entries[i]);
+  let marker = "";
+  let name = bare;
+  const inline = /^(vs|v|at)\s+(.*)$/.exec(bare);
+  if (inline) {
+    marker = inline[1];
+    name = inline[2];
+  } else if (/^\s*@/.test(entries[i])) {
+    // Normalisation eats "@", so the raw entry has to be consulted for it.
+    marker = "at";
+    name = normalizeForRow(entries[i].replace(/^\s*@/, ""));
+  }
+  if (name !== opp) return null;
+
+  const prev = (entries[i - 1] ?? "").trim();
+  const prevIsMarker = MARKER_ONLY.test(prev);
+  if (!marker && prevIsMarker) marker = prev.replace(/\.$/, "");
+  // An away row names the same opponent and means somewhere else.
+  if (marker && !HOME_MARKER.test(marker)) return null;
+
+  if (i > 0 && !prevIsMarker && ANY_DATE.test(prev)) {
+    return { dateIndex: i - 1, blockStart: i - 1, blockEnd: Math.min(entries.length - 1, i + 2) };
+  }
+  if (!marker) return null;
+  const blockStart = prevIsMarker ? i - 1 : i;
+  for (let j = i + 1; j < entries.length && j <= i + 12; j++) {
+    if (MARKER_ONLY.test(entries[j].trim())) return null;
+    if (ANY_DATE.test(entries[j])) return { dateIndex: j, blockStart, blockEnd: j };
+  }
+  return null;
+}
+
 /** How much of `tokens` appears in one entry, 0..1. */
 function scoreEntry(tokens: string[], entry: string): number {
   const hay = entry.toLowerCase().replace(/[''’]/g, "");
@@ -234,6 +350,12 @@ export interface PresenceOptions {
   minIndexEntries?: number;
   /** A page this short is a redirect, a cookie wall or an error. Default 400. */
   minPageChars?: number;
+  /**
+   * The venue the listing claims, if the caller has it. Supplying it is what
+   * lets the fixture gate tell one team's schedule page from its sibling's —
+   * see the gate for why token overlap cannot.
+   */
+  venue?: string;
 }
 
 /**
@@ -260,9 +382,10 @@ export function checkTitleOnPage(
     return { kind: "unchecked", why: "weak-title", reason: "title has no distinctive words" };
   }
 
+  const entries = pageEntries(text);
   let best = 0;
   let bestEntry = "";
-  for (const entry of pageEntries(text)) {
+  for (const entry of entries) {
     const s = scoreEntry(tokens, entry);
     if (s > best) {
       best = s;
@@ -278,6 +401,95 @@ export function checkTitleOnPage(
   if (!opts.day) {
     return { kind: "unchecked", why: "no-date-given", reason: "no listing date supplied — cannot tell whether the page covers it" };
   }
+  // THE FIXTURE GATE — the largest block the sweep could not read.
+  //
+  // A team's own schedule page never repeats the home team. Our "Minnesota
+  // Gophers Men's Basketball vs. Western Illinois" meets a page that writes the
+  // game down five separate lines — "vs", "Western Illinois", the arena, the
+  // radio station, "Nov 16 (Mon)" — so the full title scores 2 of its 6 words
+  // and the page carries 31 dated entries, under the index bar. 33 listings on
+  // 27 Oct 2026 were permanently unchecked for that reason, more than any other
+  // single cause, and none of them was JavaScript: the schedule was in the HTML
+  // the whole time, written in a shape nothing here knew how to read.
+  //
+  // IT CONFIRMS A GAME, NOT A DATE NEAR A NAME. Four things must agree, and the
+  // first draft of this gate required only the last two. An adversarial review
+  // broke that draft three separate ways, each of which confirmed a listing the
+  // page did not attest — the worst failure this file can have, because
+  // `present` means the sweep neither flags the listing nor withdraws its
+  // `verified_at`:
+  //
+  //   1. a row naming the opponent AND NOTHING ELSE. Scoring the opponent's
+  //      words instead gives "Michigan" a perfect 1.0 against a Michigan State
+  //      row, confirming a game against the wrong Michigan.
+  //   2. that row must be a FIXTURE ROW, established by its own structure —
+  //      either its date sits immediately before it (gopherpucklive.com writes
+  //      "Fri. Nov 13, 2026" then "Alaska-Anchorage") or a home/away marker
+  //      sits immediately before it (gophersports.com writes "vs" on its own
+  //      line). Without this a bare category link — a "Denver" in a region nav
+  //      three lines from a dated entry — confirmed a listing, and because this
+  //      gate runs BEFORE the index gate it could turn a real `absent` into
+  //      `present` and silence an accusation by the insertion of " vs. ".
+  //   3. the marker must say HOME. An away row names the same opponent and
+  //      means somewhere else: "at" / "Western Illinois" / "Western Hall,
+  //      Macomb, Ill." is byte-identical to a home row at the opponent line and
+  //      differs only in its marker. We publish Twin Cities events; confirming
+  //      one from a game 400 miles away would call a wrong venue corroborated.
+  //   4. the date must belong to THIS block — found by scanning forward to the
+  //      next marker, never by proximity. "Nearest date" was the first draft
+  //      and its margin is one line wide: with two extra lines in a block (a
+  //      streaming line, a promo line — real pages carry them unevenly) the
+  //      PREVIOUS game's date becomes nearer, and the gate then confirmed the
+  //      one live wrong listing while refusing the right one.
+  //
+  // And when the caller supplies the listing's venue, the block must name it.
+  // That is what lifts this from "somebody on this page plays Western Illinois
+  // that night" to "a home game against Western Illinois, at the arena we
+  // claim, on the day we claim" — which is a stronger attestation than a title
+  // match. Without it the gate cannot tell one team's schedule from its
+  // sibling's: gophersports.com runs parallel men's and women's pages whose
+  // opponents overlap, and token overlap cannot separate them, because the
+  // site's own navigation names every sport (a bogus "Gophers Volleyball vs.
+  // Western Illinois" scores 1.00 against the basketball page, higher than the
+  // real title's 0.75 — measured, not guessed).
+  //
+  // It can only ever return `present`; it never convicts. The cost of demanding
+  // a row that names the opponent and nothing else is that a title carrying a
+  // nickname the page omits ("Penn State Nittany Lions" against a page that
+  // says "Penn State") stays unchecked. That is a miss, not an accusation,
+  // which is the direction this file errs.
+  const opponent = opponentSegment(title);
+  const oppTokens = opponent ? distinctiveTokens(opponent) : [];
+  if (oppTokens.length > 0 && oppTokens.length < tokens.length) {
+    const opp = normalizeForRow(opponent);
+    const venueTokens = opts.venue ? venueMarks(opts.venue) : [];
+    for (let i = 0; i < entries.length; i++) {
+      const row = fixtureRow(entries, i, opp);
+      if (!row) continue;
+      const dated = entries[row.dateIndex];
+      if (!pageCoversDate(dated, opts.day)) continue;
+      // A ROW THAT PRINTS ITS YEAR MUST PRINT OURS. `pageCoversDate` matches on
+      // month and day alone, deliberately, because index pages omit the year —
+      // so without this a listing dated 2027-11-13 is confirmed by the 2026
+      // season's row, and re-dating an event by a year is one of the three
+      // fabrication shapes this project has actually shipped. Only a full
+      // four-digit year counts, so "2026-27 season" yields 2026 alone and a
+      // January 2027 fixture written that way is a miss, not an accusation.
+      const rowYears = [...dated.matchAll(/\b(20\d{2})\b/g)].map((m) => m[1]);
+      if (rowYears.length > 0 && !rowYears.includes(opts.day.slice(0, 4))) continue;
+      if (venueTokens.length > 0) {
+        const block = entries.slice(row.blockStart, row.blockEnd + 1).join(" ").toLowerCase();
+        if (!venueTokens.some((t) => block.includes(t))) continue;
+      }
+      return {
+        kind: "present",
+        score: Number(best.toFixed(3)),
+        matched: `${entries[i].slice(0, 80)} — ${dated.slice(0, 60)}`,
+        via: "fixture",
+      };
+    }
+  }
+
   // …and it must cover it as ENTRIES, not as a stray date in a footer or a
   // date-picker. arb.umn.edu/events/calendar mentions "September 26" while
   // carrying no events at all in its HTML — everything a reader sees there is
@@ -303,7 +515,6 @@ export function checkTitleOnPage(
   // could therefore have listed this. The bar is set well above the false
   // positives on purpose: it costs coverage of small organiser calendars, and
   // a miss is the right direction to err.
-  const entries = pageEntries(text);
   const distinctDated = new Set(
     entries.filter((e) => e.length >= 12 && ANY_DATE.test(e)).map((e) => e.toLowerCase()),
   );
@@ -513,7 +724,7 @@ export function pageNote(a: {
     return `error:${s}`;
   }
   if (!a.check) return "error:no verdict recorded";
-  if (a.check.kind === "present") return `present:${a.check.score}`;
+  if (a.check.kind === "present") return `present:${a.check.via ?? a.check.score}`;
   if (a.check.kind === "absent") return `absent:${a.check.score}`;
   return `unchecked:${a.check.why}`;
 }

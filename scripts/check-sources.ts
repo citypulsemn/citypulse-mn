@@ -201,7 +201,7 @@ async function main() {
     }
     const notes = new Map<string, string[]>();
     for (const row of group) {
-      const check = checkTitleOnPage(row.title, got.text, { day: row.iso });
+      const check = checkTitleOnPage(row.title, got.text, { day: row.iso, venue: row.venue });
       tally[check.kind]++;
       const note = pageNote({ status: 200, check });
       byNote.set(note, (byNote.get(note) ?? 0) + 1);
