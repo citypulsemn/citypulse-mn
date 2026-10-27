@@ -8,6 +8,7 @@ import {
   htmlToText,
   stalestFirst,
   pageLastChecked,
+  leadSegment,
 } from "../source-presence";
 
 /**
@@ -459,5 +460,193 @@ describe("pageLastChecked", () => {
         { source_checked_at: null },
       ]),
     ).toBeNull();
+  });
+});
+
+/**
+ * A verbatim trimmed extract of targetcenter.com/events/all as it stood on
+ * 27 Oct 2026 — the page that produced three of the four flags in the first
+ * sweep after a four-week outage, every one of them false. The act is on its
+ * own line and the date on the line above it; our stored titles carry the tour
+ * name that this page never prints.
+ */
+const TARGET_CENTER = `
+TARGET CENTER
+Wed, Oct 28 , 2026 - 7:00 PM
+Minnesota Timberwolves vs Golden State Warriors
+Buy Tickets Premium
+Fri, Oct 30 , 2026 - 7:00 PM
+Minnesota Timberwolves vs Los Angeles Clippers
+Buy Tickets More Info
+Sun, Nov 1 , 2026 - 7:00 PM
+Live Nation Presents
+SOMBR
+with special guests The Last Dinner Party and Hannah Jadagu
+Buy Tickets Premium
+Mon, Nov 2 , 2026 - 7:00 PM
+Minnesota Timberwolves vs Milwaukee Bucks
+Buy Tickets More Info
+Sat, Nov 7 , 2026 - 8:00 PM
+Live Nation Presents
+KATSEYE
+Buy Tickets Premium
+Sun, Nov 8 , 2026 - 6:00 PM
+Minnesota Timberwolves vs Utah Jazz
+Buy Tickets More Info
+Tue, Nov 10 , 2026 - 6:30 PM
+Live Nation Presents
+Motionless In White
+with special guests Dayseeker, The Devil Wears Prada & Dark Divine
+Buy Tickets Premium
+Thu, Nov 12 , 2026 - 7:00 PM
+Minnesota Timberwolves vs Dallas Mavericks
+Buy Tickets More Info
+Sat, Nov 14 , 2026 - 7:00 PM
+Minnesota Timberwolves vs Chicago Bulls
+Buy Tickets More Info
+Sun, Nov 15 , 2026 - 7:00 PM
+Awakening Events Presents
+MercyMe
+with special guests Jeremy Camp and Tim Timmons + Sam Wesley
+Buy Tickets Premium
+`;
+
+/**
+ * Both bars are lowered because the fixture is a TRIMMED extract: the live page
+ * carries 394 entries and renders each event twice, so it clears the defaults of
+ * 50 index entries and 2 dated entries for the day on its own. Both gates are
+ * exercised at their defaults elsewhere in this file.
+ */
+const tc = (day: string) => ({ day, minIndexEntries: 8, minDatedEntries: 1 });
+
+describe("leadSegment — our title carries the tour, the venue lists the act", () => {
+  it("takes the head off the decorations an index page never prints", () => {
+    expect(leadSegment("SOMBR: You Are The Reason Tour")).toBe("SOMBR");
+    expect(leadSegment("Motionless In White: The Sweat and Blood Tour")).toBe("Motionless In White");
+    expect(leadSegment("Fulton Oktoberfest – Weekend 1")).toBe("Fulton Oktoberfest");
+    expect(leadSegment("Clue - Saturday Performance")).toBe("Clue");
+    expect(leadSegment("Hadestown — Opening Night")).toBe("Hadestown");
+  });
+
+  it("is empty when a title carries no decoration at all", () => {
+    // The gate must not fire for these, which is what keeps the sports hole shut.
+    expect(leadSegment("Minnesota Twins vs Chicago White Sox")).toBe("");
+    expect(leadSegment("Prairie Bathing Under a Harvest Moon")).toBe("");
+  });
+
+  it("does not treat a hyphen inside a word as decoration", () => {
+    expect(leadSegment("Drop-In Discoveries: Meet the Animal Ambassadors")).toBe("Drop-In Discoveries");
+    expect(leadSegment("Drop-In Discoveries")).toBe("");
+  });
+
+  it("refuses a lead too short to identify anything", () => {
+    expect(leadSegment("Q: The Quiz")).toBe("");
+  });
+
+  it("is empty rather than throwing on nothing at all", () => {
+    expect(leadSegment("")).toBe("");
+    expect(leadSegment(undefined as unknown as string)).toBe("");
+  });
+});
+
+describe("the three false flags of 27 Oct 2026", () => {
+  /**
+   * Every flag the first sweep in four weeks produced against this page, and
+   * all three acts are printed on it verbatim. The one-directional score
+   * divides by OUR token count, so "SOMBR" matched perfectly and still read
+   * 0.333 against "SOMBR: You Are The Reason Tour".
+   */
+  const CASES: [string, string, string][] = [
+    ["SOMBR: You Are The Reason Tour", "2026-11-01", "SOMBR"],
+    ["KATSEYE: THE WILDWORLD TOUR", "2026-11-07", "KATSEYE"],
+    ["Motionless In White: The Sweat and Blood Tour", "2026-11-10", "Motionless In White"],
+  ];
+
+  for (const [title, day, act] of CASES) {
+    it(`does not accuse "${title}" on a page that prints "${act}"`, () => {
+      const r = checkTitleOnPage(title, TARGET_CENTER, tc(day));
+      expect(r.kind).toBe("unchecked");
+      // Assert WHICH doubt. Without this the test passes on any gate that
+      // happens to fire first, and would have gone green before the fix.
+      expect(r.kind === "unchecked" && r.reason).toContain(act);
+    });
+  }
+
+  it("the page is convictable, so the tests above are not passing on a gate", () => {
+    // Same page, same options, a title whose lead is genuinely not there.
+    const r = checkTitleOnPage("Prairie Bathing: Harvest Moon Walk", TARGET_CENTER, tc("2026-11-01"));
+    expect(r.kind).toBe("absent");
+  });
+
+  it("abstains rather than confirming — an act on the calendar is not a date", () => {
+    // The gate may only ever turn a negative into a doubt. If it ever reports
+    // `present` it is attesting a date that nothing on the page attests.
+    for (const [title, day] of CASES) {
+      expect(checkTitleOnPage(title, TARGET_CENTER, tc(day)).kind, title).not.toBe("present");
+    }
+  });
+});
+
+describe("what the lead-segment gate must never clear", () => {
+  it("still catches the fabrication, whose title has no decoration to strip", () => {
+    const r = checkTitleOnPage("Prairie Bathing Under a Harvest Moon", THREE_RIVERS, SEP26);
+    expect(r.kind).toBe("absent");
+  });
+
+  it("still catches it when the title IS decorated and the lead is absent too", () => {
+    const r = checkTitleOnPage("Prairie Bathing: Under a Harvest Moon", THREE_RIVERS, SEP26);
+    expect(r.kind).toBe("absent");
+  });
+
+  it("a bare category link does not clear a real absence", () => {
+    // The reason the gate reads a LEAD and not any prefix: "Music" is a prefix
+    // of this title and a nav link on half the calendars we read.
+    const page = `
+MUSIC ON THE MALL
+Music
+Theater
+Family
+Thursday, July 2: Lake Street Brass Collective
+Thursday, July 9: Powderhorn Winds
+Thursday, July 16: The Brass Messengers
+Thursday, July 23: Bones & Brass
+Thursday, July 30: Nordeast Jazz Octet
+Thursday, August 6: Mill City Brass
+Thursday, August 13: Riverside Winds
+Thursday, August 20: Dakota Street Brass
+Thursday, July 9: Second Stage — Powderhorn Winds
+Thursday, August 27: Cedar Avenue Horns
+Thursday, September 3: Longfellow Brass Band
+`;
+    const r = checkTitleOnPage("Music on the Mall: Brass Band Night", page, {
+      day: "2026-07-09",
+      minIndexEntries: 8,
+    });
+    expect(r.kind).toBe("absent");
+  });
+
+  it("a game missing from a schedule page is not cleared by a different game", () => {
+    // Scoring the page line against the title — the symmetric fix — would have
+    // cleared this: "Minnesota Twins vs Detroit Tigers" is half contained in
+    // our title. A sports title carries no lead segment, so the gate is silent.
+    const page = `
+MINNESOTA TWINS 2026 SCHEDULE
+Tuesday, July 7: Minnesota Twins vs Detroit Tigers
+Wednesday, July 8: Minnesota Twins vs Detroit Tigers
+Thursday, July 9: Minnesota Twins vs Cleveland Guardians
+Friday, July 10: Minnesota Twins vs Cleveland Guardians
+Saturday, July 11: Minnesota Twins vs Kansas City Royals
+Sunday, July 12: Minnesota Twins vs Kansas City Royals
+Tuesday, July 14: Minnesota Twins vs Houston Astros
+Wednesday, July 15: Minnesota Twins vs Houston Astros
+Thursday, July 9: Gates open 90 minutes before first pitch
+Friday, July 17: Minnesota Twins vs Texas Rangers
+Saturday, July 18: Minnesota Twins vs Texas Rangers
+`;
+    const r = checkTitleOnPage("Minnesota Twins vs Chicago White Sox", page, {
+      day: "2026-07-09",
+      minIndexEntries: 8,
+    });
+    expect(r.kind).toBe("absent");
   });
 });

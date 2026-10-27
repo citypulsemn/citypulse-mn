@@ -123,8 +123,64 @@ Three gates gate every negative, each one added after it flagged something real:
 3. **The title must have ≥3 distinctive words.** "Sting" missing from an index
    proves nothing.
 
+4. **The page must not name the act beside the date.** Added 27 Oct 2026, after
+   the gate below.
+
 Anything else — a thin page, a 403, a partial match, a title of stopwords —
 returns `unchecked`. **`unchecked` is never treated as either answer.**
+
+### The score is one-directional, and our titles are longer than the page's
+
+The first sweep after the four-week outage produced four flags against 475
+present. **Three were false, and all three for one reason.** `scoreEntry`
+divides by *our* token count, so a verbatim match on the act still reads as a
+miss once the tour name is counted against it:
+
+| our title | the line on the page it cites | score |
+|---|---|---|
+| SOMBR: You Are The Reason Tour | `SOMBR` | 0.333 |
+| KATSEYE: THE WILDWORLD TOUR | `KATSEYE` | 0.333 |
+| Motionless In White: The Sweat and Blood Tour | `Motionless In White` | 0.400 |
+
+Our titles come off ticketing pages and carry the tour; `targetcenter.com` lists
+the act. So `leadSegment` takes the head of a title — the part before a `:` or a
+spaced dash — and a negative is withdrawn when that head is on the page.
+
+**Two safer-looking fixes were measured and rejected.**
+
+- *Lower `presentAt` from 0.6.* The genuine catch scored **0.25**, so every
+  point of slack comes straight off the margin that makes the check work.
+- *Score the page line against the title too* — the symmetric fix, which looks
+  obviously right. `Minnesota Twins vs Detroit Tigers` is half contained in
+  `Minnesota Twins vs Chicago White Sox`, so a game genuinely missing from a
+  schedule page would be cleared by a different game. It also cleared the fourth
+  flag for the wrong reason: the line it matched was `BOOP! The Musical`.
+
+**The lead match must sit beside the listing's own date** (within three
+entries), and that is not a refinement — without it the gate would be worse than
+no gate. An index page prints its own series name at the top, so `Music on the
+Mall` is the lead of every listing in `Music on the Mall: …`, and every night of
+a real series becomes unconvictable. Inventing the next night of a real series is
+one of the three fabrication shapes this project has actually shipped.
+
+A lead match returns `unchecked`, never `present`: the act being on the calendar
+on that date does not attest that *this* show is. The gate can only ever
+withdraw an accusation.
+
+Known ceiling, in the code as a `ponytail:` comment: a one-word lead that is
+also a bare category link next to a dated entry ("Sports", "Music") would clear
+a real absence. That costs a miss, never an accusation.
+
+### The fourth flag was a bad citation, not a bad match
+
+`The Unauthorized Hallmark(ish) Parody Musical` cites
+`tourstoyou.org/resources/venues/hennepin-arts/`, which lists the show
+("Hallmark(ish) ~ December 14-15, 2026") beside archived runs from 2020, 2021 and
+2022. The title has no lead segment to strip and shares only `Hallmark(ish)`, so
+it is still flagged. **The listing is correct** — Pantages Theatre, 14 Dec
+19:30, confirmed by Hennepin Arts' own event page, which scores 1.0. The repair
+is the `source_url`, not the matcher; `tourstoyou.org` is now in
+`AGGREGATOR_HOSTS` so nothing new publishes from it unreviewed.
 
 ## What it does to a row
 

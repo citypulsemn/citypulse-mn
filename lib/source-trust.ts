@@ -71,6 +71,11 @@ export const AGGREGATOR_HOSTS: readonly string[] = [
   "teamkathyborys.com",
   "thrillist.com",
   "timeout.com",
+  // Added 27 Oct 2026: a touring-Broadway roundup, and the page it gave as a
+  // source for a Pantages show was an ARCHIVE listing runs from 2020, 2021 and
+  // 2022 beside the live one. The venue's own event page carries the same show,
+  // the same theatre and both performance times.
+  "tourstoyou.org",
   "twincitiesfamily.com",
   "westopolis.org",
   "wjon.com",

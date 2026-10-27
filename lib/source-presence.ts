@@ -77,6 +77,39 @@ export function distinctiveTokens(title: string): string[] {
 }
 
 /**
+ * The part of a title before its decoration, or "" when it carries none.
+ *
+ * WHY. Our titles come off ticketing pages and carry the tour name —
+ * "SOMBR: You Are The Reason Tour". A venue's own calendar lists the act:
+ * "SOMBR". `scoreEntry` divides by OUR token count, so a verbatim match on the
+ * act dilutes to 0.333 against a three-token title, and the listing reads as
+ * missing from the page that plainly names it.
+ *
+ * On 27 Oct 2026 that was EVERY flag the first sweep in four weeks produced.
+ * All three Target Center listings were named verbatim on the page they cite:
+ *
+ *   SOMBR: You Are The Reason Tour                 line "SOMBR"                0.333
+ *   KATSEYE: THE WILDWORLD TOUR                    line "KATSEYE"              0.333
+ *   Motionless In White: The Sweat and Blood Tour  line "Motionless In White"  0.400
+ *
+ * A LEAD SEGMENT ONLY — never a trailing one, never an arbitrary prefix. An
+ * index shortens a title by dropping the tail, so the head is what survives.
+ * Scoring any prefix would be strictly worse: "Music" is a prefix of "Music on
+ * the Mall: Brass Band Night" and is also a category link on half the calendars
+ * we read, so a nav word would clear a real absence.
+ *
+ * Scoring the page line against the title instead — the symmetric fix — was
+ * measured and rejected. "Minnesota Twins vs Detroit Tigers" is half contained
+ * in "Minnesota Twins vs Chicago White Sox", so a game genuinely missing from a
+ * schedule page would clear on the strength of a different game, which is the
+ * one thing this file exists to prevent.
+ */
+export function leadSegment(title: string): string {
+  const m = /^(.{3,}?)\s*(?::|\s[-–—]\s)/.exec(String(title ?? "").trim());
+  return m ? m[1].trim() : "";
+}
+
+/**
  * Cut a page into the entries a reader would see as separate items. Index pages
  * put one event per line; long prose lines are split further so a paragraph
  * mentioning several events cannot pool their words into one "entry".
@@ -256,13 +289,8 @@ export function checkTitleOnPage(
   // the date can repeat down a page; counting the copies would let boilerplate
   // stand in for a listing. Two different lines is evidence, twelve copies of
   // one line is furniture.
-  const dated = [
-    ...new Set(
-      entries
-        .filter((e) => e.length >= 12 && pageCoversDate(e, opts.day!))
-        .map((e) => e.toLowerCase()),
-    ),
-  ];
+  const onDay = entries.map((e) => e.length >= 12 && pageCoversDate(e, opts.day!));
+  const dated = [...new Set(entries.filter((_, i) => onDay[i]).map((e) => e.toLowerCase()))];
   if (dated.length < (opts.minDatedEntries ?? 2)) {
     return {
       kind: "unchecked",
@@ -281,6 +309,44 @@ export function checkTitleOnPage(
   }
   if (best >= absentBelow) {
     return { kind: "unchecked", reason: `partial match (${score}) — the page may name it differently` };
+  }
+  // LAST APPEAL: does the page list this under the act's name, without the tour
+  // title? See `leadSegment` — that was every false flag of 27 Oct 2026. It can
+  // only ever turn a negative into `unchecked`; it never clears anything to
+  // `present`, because an act being on the calendar does not attest the date.
+  //
+  // AND THE LEAD MATCH MUST SIT BESIDE THE LISTING'S OWN DATE. A bare lead
+  // match is not enough, because an index page's own HEADING is the lead of
+  // every listing in its series: "Music on the Mall" is printed at the top of
+  // the page that lists "Music on the Mall: Brass Band Night", so the gate
+  // would make every night of a real series unconvictable — and inventing the
+  // next night of a real series is one of the three fabrication shapes this
+  // project has actually shipped (docs/SOURCE-CHECK.md). Requiring the act to
+  // appear within NEAR entries of a line carrying the day turns the gate from
+  // "this name is somewhere on the page" into "this name is on the page, on
+  // this date", which is the thing we wanted to know.
+  //
+  // ponytail: a one-word lead that is also a bare category link beside a dated
+  // entry ("Sports", "Music") would still clear a real absence. That costs a
+  // miss, never an accusation — the direction this whole file errs in. Tighten
+  // by demanding two lead tokens if a sweep ever shows it mattering.
+  const lead = leadSegment(title);
+  const leadTokens = lead ? distinctiveTokens(lead) : [];
+  if (leadTokens.length > 0 && leadTokens.length < tokens.length) {
+    // Target Center prints the date, then the promoter, then the act: a gap of
+    // two. Three allows a venue or a door time in between without letting a
+    // heading forty lines up stand in for a listing.
+    const NEAR = 3;
+    for (let i = 0; i < entries.length; i++) {
+      if (scoreEntry(leadTokens, entries[i]) < presentAt) continue;
+      if (!onDay.slice(Math.max(0, i - NEAR), i + NEAR + 1).some(Boolean)) continue;
+      return {
+        kind: "unchecked",
+        reason:
+          `the page does not carry "${title}" but does carry "${entries[i].slice(0, 80)}" ` +
+          `beside a line for ${opts.day} — it lists this under the act's name, without the tour title`,
+      };
+    }
   }
   return { kind: "absent", score, best: bestEntry.slice(0, 160) };
 }
