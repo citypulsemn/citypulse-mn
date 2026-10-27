@@ -623,3 +623,18 @@ create table if not exists venue_coords (
   agreed_m   integer,
   set_at     timestamptz not null default now()
 );
+
+-- WHY THE LAST ATTEMPT ON A CITED PAGE FAILED, not just when it last succeeded.
+--
+-- `source_checked_at` is stamped only when a page is actually READ, which is
+-- deliberate: an unreadable page keeps its null and comes up again next run. But
+-- that left "unverified" meaning four different things at once, and on
+-- 27 Oct 2026 the difference was reported wrongly — "177 listings behind hosts
+-- that 403 a script" when the real figure was 59, with 348 sitting on readable
+-- pages that simply are not dated indexes because the venue draws its calendar
+-- with JavaScript.
+--
+-- Written on EVERY attempt, success or failure, so the question is a query
+-- rather than an afternoon of probing. Format `category:detail` (see `pageNote`
+-- in lib/source-presence.ts): blocked:403, unchecked:not-an-index, present:1.
+alter table events add column if not exists source_check_note text;

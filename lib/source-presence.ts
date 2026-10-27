@@ -36,7 +36,38 @@ export type SourceCheck =
   /** The page reads well, lists things, and none of them is this. */
   | { kind: "absent"; score: number; best: string }
   /** We could not form an opinion. Never treat this as either answer. */
-  | { kind: "unchecked"; reason: string };
+  | { kind: "unchecked"; reason: string; why: UncheckedWhy };
+
+/**
+ * WHICH gate refused, as a token rather than as prose.
+ *
+ * WHY IT IS STRUCTURED. On 27 Oct 2026 the question "how much of the calendar
+ * is structurally unverifiable?" could not be answered from data, because every
+ * doubt collapsed into one `unchecked` bucket. Asked to work "the 177 blocked
+ * hosts", a measurement found 478 never-checked listings of which only 59 were
+ * blocked at all — the other 348 were readable pages that simply are not dated
+ * indexes, because the venue renders its calendar with JavaScript. Three
+ * different problems had been wearing one name, and the wrong one got the
+ * attention. A regex over the reason prose would have been the obvious shortcut
+ * and the obvious next fragility.
+ */
+export type UncheckedWhy =
+  /** A redirect, a cookie wall or an error page: too little text to judge. */
+  | "thin"
+  /** The title is stopwords and short words; a negative would prove nothing. */
+  | "weak-title"
+  /** No listing date was supplied, so silence cannot be read as absence. */
+  | "no-date-given"
+  /**
+   * Readable, and not a dated index. THE BIGGEST BUCKET BY FAR, and it is
+   * mostly JavaScript: first-avenue.com's own venue page serves 200 and zero
+   * dated entries, as do Fine Line's and Chanhassen's.
+   */
+  | "not-an-index"
+  /** An index, but it does not enumerate the listing's day. */
+  | "day-not-covered"
+  /** A partial match in the grey band — the page may name it differently. */
+  | "partial-match";
 
 /**
  * Words that carry no identifying power. Deliberately SHORT: over-stripping
@@ -221,12 +252,12 @@ export function checkTitleOnPage(
 
   const text = String(pageText ?? "");
   if (text.trim().length < minPageChars) {
-    return { kind: "unchecked", reason: `page has only ${text.trim().length} characters of text` };
+    return { kind: "unchecked", why: "thin", reason: `page has only ${text.trim().length} characters of text` };
   }
 
   const tokens = distinctiveTokens(title);
   if (tokens.length === 0) {
-    return { kind: "unchecked", reason: "title has no distinctive words" };
+    return { kind: "unchecked", why: "weak-title", reason: "title has no distinctive words" };
   }
 
   let best = 0;
@@ -245,7 +276,7 @@ export function checkTitleOnPage(
 
   // A confident negative needs a page that actually covers the day in question.
   if (!opts.day) {
-    return { kind: "unchecked", reason: "no listing date supplied — cannot tell whether the page covers it" };
+    return { kind: "unchecked", why: "no-date-given", reason: "no listing date supplied — cannot tell whether the page covers it" };
   }
   // …and it must cover it as ENTRIES, not as a stray date in a footer or a
   // date-picker. arb.umn.edu/events/calendar mentions "September 26" while
@@ -279,6 +310,7 @@ export function checkTitleOnPage(
   if (distinctDated.size < (opts.minIndexEntries ?? 50)) {
     return {
       kind: "unchecked",
+      why: "not-an-index",
       reason:
         `the page lists only ${distinctDated.size} dated entries — it is a single event, an article ` +
         `or a JavaScript calendar, not an index that could have listed this one`,
@@ -294,6 +326,7 @@ export function checkTitleOnPage(
   if (dated.length < (opts.minDatedEntries ?? 2)) {
     return {
       kind: "unchecked",
+      why: "day-not-covered",
       reason:
         dated.length === 0
           ? `the page lists nothing on ${opts.day} — it may show only today, one topic, or render its calendar with JavaScript`
@@ -304,11 +337,12 @@ export function checkTitleOnPage(
   if (tokens.length < minTokens) {
     return {
       kind: "unchecked",
+      why: "weak-title",
       reason: `only ${tokens.length} distinctive word${tokens.length === 1 ? "" : "s"} in the title — too few to call it missing`,
     };
   }
   if (best >= absentBelow) {
-    return { kind: "unchecked", reason: `partial match (${score}) — the page may name it differently` };
+    return { kind: "unchecked", why: "partial-match", reason: `partial match (${score}) — the page may name it differently` };
   }
   // LAST APPEAL: does the page list this under the act's name, without the tour
   // title? See `leadSegment` — that was every false flag of 27 Oct 2026. It can
@@ -342,6 +376,7 @@ export function checkTitleOnPage(
       if (!onDay.slice(Math.max(0, i - NEAR), i + NEAR + 1).some(Boolean)) continue;
       return {
         kind: "unchecked",
+        why: "partial-match",
         reason:
           `the page does not carry "${title}" but does carry "${entries[i].slice(0, 80)}" ` +
           `beside a line for ${opts.day} — it lists this under the act's name, without the tour title`,
@@ -439,4 +474,53 @@ export function pageLastChecked(rows: { source_checked_at: string | null }[]): s
     if (oldest === null || r.source_checked_at < oldest) oldest = r.source_checked_at;
   }
   return oldest;
+}
+
+/**
+ * What happened on the last attempt at a page, as one short queryable token.
+ *
+ * WHY IT IS STORED. `source_checked_at` records WHEN a page was last read and
+ * nothing recorded WHY it was not. So "how much of the calendar is
+ * structurally unverifiable?" was unanswerable from data, and on 27 Oct 2026 it
+ * was answered wrongly: a report of "177 listings behind hosts that 403 a
+ * script" went out, and the measurement that followed found 478 never-checked
+ * listings of which **59** were blocked. The other 348 were readable pages that
+ * are not dated indexes — venue calendars drawn client-side. first-avenue.com's
+ * own venue page answers 200 with ZERO dated entries, and so do Fine Line's and
+ * Chanhassen Dinner Theatres'. Three unrelated problems wore one name, and the
+ * smallest got the attention.
+ *
+ * `category:detail`, category first so it groups with a `like 'blocked:%'`
+ * rather than a regex over prose. The detail is for a human reading one row.
+ */
+export function pageNote(a: {
+  /** HTTP status, when we got an answer at all. */
+  status?: number;
+  /** Why we never got one: a timeout, a dropped socket, DNS. */
+  network?: string;
+  /** The verdict, when the page was read. */
+  check?: SourceCheck;
+}): string {
+  if (a.network) return `unreachable:${a.network.slice(0, 40)}`;
+  const s = a.status;
+  if (typeof s === "number" && (s < 200 || s >= 300)) {
+    // 401/403/429 are a bot policy, however they are dressed. new.artsmia.org
+    // answers 429 to every path including robots.txt and never clears, so it is
+    // a block wearing a rate limit's number — a retry there is dead code, which
+    // was measured before one was written.
+    if (s === 401 || s === 403 || s === 429) return `blocked:${s}`;
+    if (s === 404 || s === 410) return `dead:${s}`;
+    return `error:${s}`;
+  }
+  if (!a.check) return "error:no verdict recorded";
+  if (a.check.kind === "present") return `present:${a.check.score}`;
+  if (a.check.kind === "absent") return `absent:${a.check.score}`;
+  return `unchecked:${a.check.why}`;
+}
+
+/** The category half of a `pageNote`, for grouping. */
+export function noteCategory(note: string | null): string {
+  if (!note) return "never attempted";
+  const at = note.indexOf(":");
+  return at === -1 ? note : note.slice(0, at);
 }

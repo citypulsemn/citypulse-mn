@@ -264,6 +264,18 @@ export interface SourceSweepHealth {
   pagesExpected: number;
   /** Listings whose cited page has never been read. A fact, never the verdict. */
   neverChecked: number;
+  /**
+   * Why those listings are unverified, biggest cause first, from
+   * `source_check_note`.
+   *
+   * THE LINE USED TO SAY "some hosts refuse a script", and that was wrong in
+   * the way that matters: measured on 27 Oct 2026, 59 listings were blocked and
+   * **348** sat on readable pages that are not dated indexes, because the venue
+   * draws its calendar with JavaScript. A parenthetical guess in an operator's
+   * email sent an afternoon at the wrong problem. Empty when nothing has been
+   * attempted yet, which is itself the honest answer.
+   */
+  unverifiedBy: { category: string; listings: number }[];
   /** Listings in total, for the denominator. */
   listings: number;
   /**
@@ -412,10 +424,11 @@ export function sweepsMissed(newestIso: string | null, now: Date, s: SweepSchedu
  * now.
  *
  * WHAT IS DELIBERATELY NOT A VERDICT. The share of the calendar never checked
- * is printed as a FACT and never sets the status. Around 177 listings sit
- * behind hosts that 403 a script — minnesotaorchestra.org, guthrietheater.org,
- * artsmia.org, ESPN — so never-checked cannot reach zero, and an alarm that is
- * permanently amber is one nobody reads.
+ * is printed as a FACT and never sets the status. Measured 27 Oct 2026: 59
+ * listings are blocked outright (minnesotaorchestra.org, guthrietheater.org,
+ * artsmia.org, ESPN) and 348 more sit on READABLE pages that are not dated
+ * indexes, because the venue draws its calendar with JavaScript. Neither number
+ * can reach zero, and an alarm that is permanently amber is one nobody reads.
  *
  * One missed sweep is `warn`, not `down`: it already counts as an alert and
  * reaches the subject line, and GitHub's scheduler drops runs routinely. Two
@@ -426,10 +439,18 @@ export function judgeSourceSweep(
   schedule: SweepSchedule,
   now: Date,
 ): { status: VendorStatus; lines: string[] } {
+  // Name the causes rather than guessing at them: "some hosts refuse a script"
+  // was this line's first wording and it was wrong by 6x in the direction that
+  // wastes an afternoon. See `unverifiedBy`.
+  const causes = (h.unverifiedBy ?? [])
+    .filter((c) => c.listings > 0)
+    .slice(0, 3)
+    .map((c) => `${c.listings} ${c.category}`)
+    .join(", ");
   const coverage =
     Number.isFinite(h.listings) && h.listings > 0
       ? `${h.neverChecked} of ${h.listings} upcoming listings have never been checked` +
-        ` (some hosts refuse a script — see docs/SOURCE-CHECK.md)`
+        (causes ? ` — ${causes} (see docs/SOURCE-CHECK.md)` : " — no cause recorded yet, so the next sweep will say why")
       : "no upcoming listings to check — an empty calendar is Coverage's alarm, not this one";
 
   const verdict = (status: VendorStatus, first: string) => ({ status, lines: [first, coverage] });

@@ -9,6 +9,10 @@ import {
   stalestFirst,
   pageLastChecked,
   leadSegment,
+  pageNote,
+  noteCategory,
+  type SourceCheck,
+  type UncheckedWhy,
 } from "../source-presence";
 
 /**
@@ -648,5 +652,86 @@ Saturday, July 18: Minnesota Twins vs Texas Rangers
       minIndexEntries: 8,
     });
     expect(r.kind).toBe("absent");
+  });
+});
+
+describe("pageNote — four problems had been wearing one name", () => {
+  /**
+   * On 27 Oct 2026, asked to work "the 177 listings behind hosts that 403 a
+   * script", a measurement of 97 hosts found something else entirely: 478
+   * never-checked listings, of which 59 were blocked and **348** sat on
+   * readable pages that are not dated indexes, because the venue draws its
+   * calendar with JavaScript. The figure reported had been six times too large
+   * on the wrong cause, and it could not be checked from data because every
+   * doubt collapsed into one `unchecked` bucket.
+   */
+  it("calls a bot policy what it is, however it is dressed", () => {
+    expect(pageNote({ status: 403 })).toBe("blocked:403");
+    expect(pageNote({ status: 401 })).toBe("blocked:401");
+    // new.artsmia.org answers 429 to every path including robots.txt and never
+    // clears — 15s, the apex domain, three paths. A block wearing a rate
+    // limit's number, so a retry there would have been dead code.
+    expect(pageNote({ status: 429 })).toBe("blocked:429");
+  });
+
+  it("separates a dead link from a block, because the repair is different", () => {
+    expect(pageNote({ status: 404 })).toBe("dead:404");
+    expect(pageNote({ status: 410 })).toBe("dead:410");
+    expect(pageNote({ status: 500 })).toBe("error:500");
+    expect(pageNote({ status: 307 })).toBe("error:307");
+  });
+
+  it("separates never getting an answer from getting a refusal", () => {
+    expect(pageNote({ network: "no answer in 12s" })).toBe("unreachable:no answer in 12s");
+    expect(pageNote({ status: 0, network: "ECONNRESET" })).toBe("unreachable:ECONNRESET");
+  });
+
+  it("records WHICH gate refused a readable page — the bucket that was hiding 348", () => {
+    const unchecked = (why: UncheckedWhy): SourceCheck => ({ kind: "unchecked", why, reason: "x" });
+    expect(pageNote({ status: 200, check: unchecked("not-an-index") })).toBe("unchecked:not-an-index");
+    expect(pageNote({ status: 200, check: unchecked("day-not-covered") })).toBe("unchecked:day-not-covered");
+    expect(pageNote({ status: 200, check: unchecked("thin") })).toBe("unchecked:thin");
+    expect(pageNote({ status: 200, check: unchecked("weak-title") })).toBe("unchecked:weak-title");
+    expect(pageNote({ status: 200, check: unchecked("partial-match") })).toBe("unchecked:partial-match");
+    expect(pageNote({ status: 200, check: unchecked("no-date-given") })).toBe("unchecked:no-date-given");
+  });
+
+  it("records the verdicts too, so a row always says where it stands", () => {
+    expect(pageNote({ status: 200, check: { kind: "present", score: 1, matched: "x" } })).toBe("present:1");
+    expect(pageNote({ status: 200, check: { kind: "absent", score: 0.25, best: "x" } })).toBe("absent:0.25");
+  });
+
+  it("never returns an empty or cheerier note when it has nothing", () => {
+    // A blank note would group as "not yet attempted" and read as a page we
+    // simply have not reached — the exact confusion this exists to end.
+    expect(pageNote({})).toBe("error:no verdict recorded");
+    expect(pageNote({ status: 200 })).toBe("error:no verdict recorded");
+  });
+
+  it("puts the category first so grouping is a prefix, not a regex over prose", () => {
+    for (const note of ["blocked:403", "unchecked:not-an-index", "present:1", "unreachable:timeout"]) {
+      expect(noteCategory(note)).toBe(note.split(":")[0]);
+    }
+    expect(noteCategory("never")).toBe("never");
+    expect(noteCategory(null)).toBe("never attempted");
+    expect(noteCategory("")).toBe("never attempted");
+  });
+
+  it("every gate in checkTitleOnPage produces a note, so none can go unlabelled", () => {
+    // Drives the real function rather than hand-built fixtures: if a new
+    // `unchecked` return ever ships without a `why`, tsc catches it — and if a
+    // gate's token is wrong, this catches it.
+    const index = Array.from({ length: 60 }, (_, i) => `Saturday, September ${(i % 28) + 1}: Programme ${i}`).join("\n");
+    const cases: [string, string, Parameters<typeof checkTitleOnPage>[2]][] = [
+      ["thin", "Some Long Distinctive Title Here", {}],
+      ["weak-title", "the a an", { day: "2026-09-26" }],
+      ["no-date-given", "Prairie Bathing Under a Harvest Moon", {}],
+      ["not-an-index", "Prairie Bathing Under a Harvest Moon", { day: "2026-09-26" }],
+    ];
+    for (const [why, title, opts] of cases) {
+      const page = why === "thin" ? "short" : why === "not-an-index" ? THREE_RIVERS : index;
+      const check = checkTitleOnPage(title, page, opts);
+      expect(pageNote({ status: 200, check }), `${why} / ${title}`).toBe(`unchecked:${why}`);
+    }
   });
 });

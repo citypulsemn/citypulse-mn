@@ -75,6 +75,30 @@ export async function getSourceSweepHealth(
     from scoped s cross join newest n
     group by n.at
   `;
+  // Why the unverified ones are unverified, from the note the sweep records on
+  // every attempt. Grouped on the category half so `blocked:403` and
+  // `blocked:429` read as one cause.
+  //
+  // RULE 1: this is the aux half of the measurement and it must not be able to
+  // take the main half down with it. `source_check_note` arrives by migration,
+  // so between the deploy and the `alter table` this query is the one thing here
+  // that cannot run — and a missing breakdown has a correct rendering ("no cause
+  // recorded yet") while a thrown error would blank the whole Source check
+  // section in the Monday email and call it unavailable.
+  let causes: { category: string; listings: number }[] = [];
+  try {
+    causes = [
+      ...(await sql<{ category: string; listings: number }[]>`
+        select split_part(coalesce(source_check_note, 'not yet attempted'), ':', 1) as category,
+               count(*)::int as listings
+        from events
+        where status = 'published' and start_at > now() and source_url ~* '^https?://'
+          and source_checked_at is null
+        group by 1 order by 2 desc`),
+    ];
+  } catch {
+    causes = [];
+  }
   const pagesTotal = row?.pages_total ?? 0;
   return {
     newestIso: row?.newest ?? null,
@@ -82,6 +106,7 @@ export async function getSourceSweepHealth(
     pagesTotal,
     pagesExpected: expectedPages(pagesTotal, SWEEP_PAGE_BUDGET),
     neverChecked: row?.never_checked ?? 0,
+    unverifiedBy: causes.map((c) => ({ category: c.category, listings: c.listings })),
     listings: row?.listings ?? 0,
     runWindowHours,
   };

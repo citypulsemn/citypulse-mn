@@ -16,6 +16,7 @@ function base(sub: Partial<OpsInputs["subscribers"]>): OpsInputs {
       newestIso: "2026-07-20T06:10:00Z",
       pagesSwept: 372, pagesTotal: 593, pagesExpected: 400,
       neverChecked: 41, listings: 902, runWindowHours: 24,
+      unverifiedBy: [{ category: "blocked", listings: 41 }],
     },
     engagement: { totals: { view: 0, ticket_click: 0, save: 0, calendar: 0 }, daily: [], top: [] },
     prevTotals: null,

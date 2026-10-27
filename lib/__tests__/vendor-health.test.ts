@@ -324,6 +324,7 @@ describe("judgeSourceSweep — the alarm for the silence that lasted four weeks"
     neverChecked: 41,
     listings: 902,
     runWindowHours: 24,
+    unverifiedBy: [{ category: "not-an-index", listings: 30 }, { category: "blocked", listings: 11 }],
     ...over,
   });
   const judge = (over: Partial<SourceSweepHealth> = {}, now = MONDAY) =>
@@ -446,10 +447,10 @@ describe("judgeSourceSweep — the alarm for the silence that lasted four weeks"
 
   describe("coverage is a FACT, never the verdict", () => {
     it("stays green when most of the calendar has never been checked", () => {
-      // THE DESIGN DECISION, pinned. ~177 listings sit behind hosts that 403 a
-      // script, so never-checked cannot reach zero. If it drove the status the
-      // alarm would be permanently amber — and an alarm that is always on is
-      // one nobody reads, which is the failure this replaces.
+      // THE DESIGN DECISION, pinned. Measured: 59 listings blocked and 348 on
+      // readable pages that are not dated indexes, so never-checked cannot
+      // reach zero. If it drove the status the alarm would be permanently
+      // amber — and an alarm that is always on is one nobody reads.
       const v = judge({ neverChecked: 801, listings: 902 });
       expect(v.status).toBe("ok");
       expect(v.lines[1]).toMatch(/801 of 902 upcoming listings have never been checked/);
@@ -635,5 +636,75 @@ describe("parseStampMs — the alarm read its own column by accident of formatti
     expect(new Date(parseStampMs("2026-09-28 13:14:38.494716+00")).toISOString()).toBe(
       "2026-09-28T13:14:38.494Z",
     );
+  });
+});
+
+describe("the coverage line names its causes instead of guessing", () => {
+  const SCHEDULE = { everyHours: 24 * 7, dueDayUTC: 1, dueHourUTC: 6 };
+  const MONDAY = new Date("2026-11-02T06:10:00Z");
+  const h = (over: Partial<SourceSweepHealth> = {}): SourceSweepHealth => ({
+    newestIso: "2026-11-02T06:12:00Z",
+    pagesSwept: 372, pagesTotal: 593, pagesExpected: 400,
+    neverChecked: 407, listings: 902, runWindowHours: 24,
+    unverifiedBy: [
+      { category: "unchecked", listings: 348 },
+      { category: "blocked", listings: 59 },
+    ],
+    ...over,
+  });
+
+  it("reports the real proportions, which are nothing like the guess it replaced", () => {
+    // The line used to read "(some hosts refuse a script)". Measured: blocking
+    // accounts for 59 of 407 and the dominant cause is readable pages that are
+    // not dated indexes — venue calendars drawn client-side. An operator sent
+    // at "blocked hosts" by that parenthetical spends an afternoon on the
+    // smallest sixth of the problem.
+    const v = judgeSourceSweep(h(), SCHEDULE, MONDAY);
+    expect(v.lines[1]).toContain("407 of 902 upcoming listings have never been checked");
+    expect(v.lines[1]).toContain("348 unchecked, 59 blocked");
+    expect(v.lines[1]).not.toContain("some hosts refuse a script");
+  });
+
+  it("names at most three causes, worst first, so the line stays readable", () => {
+    const v = judgeSourceSweep(
+      h({
+        unverifiedBy: [
+          { category: "unchecked", listings: 348 },
+          { category: "blocked", listings: 59 },
+          { category: "dead", listings: 4 },
+          { category: "unreachable", listings: 2 },
+        ],
+      }),
+      SCHEDULE,
+      MONDAY,
+    );
+    expect(v.lines[1]).toContain("348 unchecked, 59 blocked, 4 dead");
+    expect(v.lines[1]).not.toContain("unreachable");
+  });
+
+  it("drops a cause that counts nothing rather than printing a zero", () => {
+    const v = judgeSourceSweep(
+      h({ unverifiedBy: [{ category: "blocked", listings: 59 }, { category: "dead", listings: 0 }] }),
+      SCHEDULE,
+      MONDAY,
+    );
+    expect(v.lines[1]).toContain("59 blocked");
+    expect(v.lines[1]).not.toContain("0 dead");
+  });
+
+  it("says the next sweep will explain, rather than inventing a cause", () => {
+    // Before the first sweep that records notes there is genuinely nothing to
+    // report. Honest emptiness: no cause, and no guess at one.
+    const v = judgeSourceSweep(h({ unverifiedBy: [] }), SCHEDULE, MONDAY);
+    expect(v.lines[1]).toContain("no cause recorded yet");
+    expect(v.status).toBe("ok"); // coverage still never drives the verdict
+  });
+
+  it("survives a health row with no causes field at all", () => {
+    // source-sweep is the only producer, but the judge is public and a stale
+    // caller must degrade rather than throw inside the email.
+    const bare = { ...h() } as Partial<SourceSweepHealth>;
+    delete bare.unverifiedBy;
+    expect(() => judgeSourceSweep(bare as SourceSweepHealth, SCHEDULE, MONDAY)).not.toThrow();
   });
 });

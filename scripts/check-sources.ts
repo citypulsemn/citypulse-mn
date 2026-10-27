@@ -30,6 +30,8 @@ import {
   isTransientNetworkError,
   stalestFirst,
   pageLastChecked,
+  pageNote,
+  noteCategory,
   SWEEP_PAGE_BUDGET,
   type SourceCheck,
 } from "../lib/source-presence";
@@ -73,7 +75,15 @@ type Row = {
   source_checked_at: string | null;
 };
 
-async function fetchText(url: string): Promise<{ text: string } | { error: string }> {
+/**
+ * `status` travels alongside `error` so the note can tell a bot policy from a
+ * dead link from a timeout. Before it did, every one of those was the same
+ * `unchecked` and the proportions could only be found by probing 97 hosts by
+ * hand — which is how they came to be reported wrongly. See `pageNote`.
+ */
+async function fetchText(
+  url: string,
+): Promise<{ text: string } | { error: string; status?: number; network?: string }> {
   const ctl = new AbortController();
   const timer = setTimeout(() => ctl.abort(), TIMEOUT_MS);
   try {
@@ -87,13 +97,14 @@ async function fetchText(url: string): Promise<{ text: string } | { error: strin
         Accept: "text/html,application/xhtml+xml",
       },
     });
-    if (!res.ok) return { error: `${res.status} ${res.statusText}` };
+    if (!res.ok) return { error: `${res.status} ${res.statusText}`, status: res.status };
     const ct = res.headers.get("content-type") ?? "";
-    if (!/html|text/i.test(ct)) return { error: `not a web page (${ct.split(";")[0] || "unknown type"})` };
+    if (!/html|text/i.test(ct)) return { error: `not a web page (${ct.split(";")[0] || "unknown type"})`, status: res.status };
     return { text: htmlToText(await res.text()) };
   } catch (err) {
     const m = err instanceof Error ? err.message : String(err);
-    return { error: m.includes("abort") ? `no answer in ${TIMEOUT_MS / 1000}s` : m.slice(0, 90) };
+    const network = m.includes("abort") ? `no answer in ${TIMEOUT_MS / 1000}s` : m.slice(0, 60);
+    return { error: network, network };
   } finally {
     clearTimeout(timer);
   }
@@ -101,6 +112,31 @@ async function fetchText(url: string): Promise<{ text: string } | { error: strin
 
 async function main() {
   const sql = requireSql();
+
+  /**
+   * Record why a page landed where it did — and never let that kill the sweep.
+   *
+   * RULE 1. This is instrumentation on the instrument: the sweep's job is
+   * checking sources, and saying why it could not is the aux path. The column
+   * arrives by migration (`alter table events add column if not exists
+   * source_check_note`), so between a deploy and that `alter` every one of these
+   * writes fails — and check-sources is the LAST step of weekly-research with no
+   * continue-on-error, so an unguarded write would fail the whole workflow and
+   * take the ops digest's trigger with it. That is precisely the shape of the
+   * four-week outage this instrument exists to report.
+   *
+   * It counts its own failures and the summary says so, because a note nobody
+   * writes and nobody misses is how the last blind spot got made.
+   */
+  let noteFailures = 0;
+  const note_ = async (note: string, ids: string[]) => {
+    if (ids.length === 0) return;
+    try {
+      await sql`update events set source_check_note = ${note} where id = any(${ids}::uuid[])`;
+    } catch {
+      noteFailures += ids.length;
+    }
+  };
 
   const rows = await sql<Row[]>`
     select e.id::text as id, e.title, e.venue, e.source_url,
@@ -139,6 +175,9 @@ async function main() {
   );
 
   const tally = { present: 0, absent: 0, unchecked: 0, pages: 0, failed: 0 };
+  // Why each listing ended where it did, so the run reports its own blind spots
+  // instead of leaving them to be probed by hand. See `pageNote`.
+  const byNote = new Map<string, number>();
   const misses: { row: Row; check: Extract<SourceCheck, { kind: "absent" }> }[] = [];
 
   for (const [i, url] of urls.entries()) {
@@ -148,13 +187,25 @@ async function main() {
     if ("error" in got) {
       tally.failed++;
       tally.unchecked += group.length;
-      console.log(`  · ${new URL(url).hostname.replace(/^www\./, "")} — ${got.error} (${group.length} listing${group.length === 1 ? "" : "s"} unchecked)`);
+      const note = pageNote({ status: got.status, network: got.network });
+      byNote.set(note, (byNote.get(note) ?? 0) + group.length);
+      console.log(`  · ${new URL(url).hostname.replace(/^www\./, "")} — ${got.error} (${group.length} listing${group.length === 1 ? "" : "s"} ${note})`);
+      // THE NOTE IS RECORDED EVEN THOUGH THE TIMESTAMP IS NOT. They answer
+      // different questions — "when did we last read it" versus "what happened
+      // last time we tried" — and it is the second one that was missing. A
+      // blocked page must keep its null `source_checked_at` so it comes up
+      // again next run, and must still be able to say that it is blocked.
+      if (APPLY) await note_(note, group.map((r) => r.id));
       await new Promise((r) => setTimeout(r, PAUSE_MS));
       continue;
     }
+    const notes = new Map<string, string[]>();
     for (const row of group) {
       const check = checkTitleOnPage(row.title, got.text, { day: row.iso });
       tally[check.kind]++;
+      const note = pageNote({ status: 200, check });
+      byNote.set(note, (byNote.get(note) ?? 0) + 1);
+      notes.set(note, [...(notes.get(note) ?? []), row.id]);
       if (check.kind === "absent") {
         misses.push({ row, check });
         console.log(
@@ -178,6 +229,10 @@ async function main() {
       // time so they retry ahead of fresh pages but behind nothing else.
       await sql`update events set source_checked_at = now()
                 where id = any(${group.map((r) => r.id)}::uuid[])`;
+      // The note varies per LISTING on a shared page — one title can be present
+      // on it while another is absent — so these go one group per note, not one
+      // per page.
+      for (const [note, ids] of notes) await note_(note, ids);
     }
     if ((i + 1) % 25 === 0) console.log(`  … ${i + 1}/${urls.length} pages`);
     await new Promise((r) => setTimeout(r, PAUSE_MS));
@@ -205,6 +260,35 @@ async function main() {
       `present ${tally.present} · NOT ON SOURCE ${tally.absent} · unchecked ${tally.unchecked}` +
       (socketErrors > 0 ? ` · ${socketErrors} connection${socketErrors === 1 ? "" : "s"} dropped after the fact (survived)` : ""),
   );
+
+  // WHERE THE UNVERIFIED ONES WENT. Without this the run reported one number
+  // for four different problems, and the proportions had to be found by probing
+  // 97 hosts by hand — which is how "177 blocked" got reported when the real
+  // figure was 59, with 348 sitting on readable pages that are not dated
+  // indexes because the venue draws its calendar with JavaScript.
+  if (byNote.size > 0) {
+    const groups = new Map<string, number>();
+    for (const [note, n] of byNote) {
+      const cat = noteCategory(note);
+      groups.set(cat, (groups.get(cat) ?? 0) + n);
+    }
+    console.log("[sources] why each listing landed where it did:");
+    if (noteFailures > 0) {
+      console.log(
+        `             (${noteFailures} notes could not be stored — is the source_check_note ` +
+          `column migrated? the sweep itself was unaffected)`,
+      );
+    }
+    for (const [cat, n] of [...groups].sort((a, b) => b[1] - a[1])) {
+      const detail = [...byNote]
+        .filter(([note]) => noteCategory(note) === cat)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 4)
+        .map(([note, c]) => `${note.slice(cat.length + 1) || "—"} ${c}`)
+        .join(", ");
+      console.log(`             ${String(n).padStart(4)}  ${cat.padEnd(12)} ${detail}`);
+    }
+  }
   if (misses.length > 0) {
     console.log(
       APPLY

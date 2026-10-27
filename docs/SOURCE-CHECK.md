@@ -112,9 +112,10 @@ have failed safe — `unknown` alerts — but as an unexplained grey square rath
 than as the answer.
 
 The share of the calendar never checked is reported as a **fact and never drives
-the verdict**, because the ~177 listings behind hosts that refuse a script mean
-it can never reach zero, and an alarm that is permanently amber is one nobody
-reads.
+the verdict**, because it can never reach zero — 59 listings are blocked
+outright and 348 more sit on readable pages that are not dated indexes — and an
+alarm that is permanently amber is one nobody reads. The line **names its
+causes** rather than guessing at them; see below for why that matters.
 
 Cost: about 12 minutes and no model spend. The weekly job has run 19–44 minutes
 over the last five weeks against a 90-minute timeout, so there is room.
@@ -299,17 +300,64 @@ ceiling: if unreadable pages ever approached `--limit` they would crowd out
 every readable page and the sweep would stall silently. Comfortable at 41 of
 593; if that ratio climbs, stamp failures with a backdated time instead.
 
+## Four problems were wearing one name
+
+Every doubt returned `unchecked`, so "how much of the calendar is structurally
+unverifiable?" could not be answered from data. On 27 Oct 2026 it was answered
+wrongly in an operator's report — **"177 listings behind hosts that 403 a
+script"** — and then measured properly across 97 hosts:
+
+| cause | hosts | listings |
+|---|---|---|
+| **readable, but not a dated index** | 69 | **348** |
+| readable index, simply not swept yet | 12 | 61 |
+| **blocked** (401/403/429) | 12 | **59** |
+| dead link, HTTP error, thin page | 4 | 10 |
+
+Blocking is **a sixth of the problem**, and the dominant cause is JavaScript:
+`first-avenue.com`'s own venue page answers 200 with **zero** dated entries, as
+do Fine Line's and Chanhassen Dinner Theatres'. An afternoon spent on "blocked
+hosts" is an afternoon spent on the smallest bucket.
+
+So the sweep now records **why**, on every attempt, in
+`events.source_check_note` — `category:detail`, written even when the timestamp
+deliberately is not (`pageNote` in `lib/source-presence.ts`). The run prints the
+breakdown, and the Monday email's coverage line names its causes instead of
+guessing at them. The question is a query now.
+
+Two things were measured and then deliberately **not** built:
+
+- **A 429 retry.** `new.artsmia.org` answers 429 to every path including
+  `robots.txt` and never clears — 15 seconds, the apex domain, three paths, no
+  `Retry-After`. It is a block wearing a rate limit's number, so a backoff
+  there would have been dead code.
+- **Re-citing the aggregator-sourced rows** to the venue's own page. Of the 59
+  blocked, 29 cite an aggregator or an API rather than the organiser, and the
+  registry already holds an organiser URL for 27 of them — but every one of
+  those targets is blocked or JS-rendered, so the re-citation buys a more
+  honest citation and **no verification**. Worth doing as data hygiene, not as
+  a fix for this.
+
+## The decision this leaves open
+
+`minnesotaorchestra.org` (13 listings) and `guthrietheater.org` (9) **serve
+`robots.txt` happily and declare `Allow: /`** for `User-agent: *`; the Guthrie
+even advertises its sitemap there. Every actual path then answers 403, sitemap
+included. That is an overbroad edge rule contradicting the site's own published
+policy — which is a different thing from the stance below, and the call is
+Taren's: leave them, identify as a browser, or ask the organisations.
+
 ## Known limits, stated plainly
 
 - **Small organiser calendars are not checked.** The 50-entry bar excludes a
   parish with ten events. That is a miss, not a false accusation, and it is the
   right direction to err.
-- **JavaScript calendars are invisible.** If the events are drawn client-side we
-  read only the nav menu, and gate 1 refuses.
+- **JavaScript calendars are invisible**, and this is the single biggest limit —
+  348 listings, six times the blocked count. If the events are drawn
+  client-side we read only the nav menu and gate 1 refuses.
 - **Sites that block us return 403** and stay `unchecked`. The fetch identifies
   itself honestly; a site that would rather we did not read it gets that wish.
-  Roughly 60 of 677 pages refuse us, `guthrietheater.org` and
-  `bringmethenews.com` among them.
+  59 listings across 12 hosts, now countable rather than estimated.
 - **A dropped connection no longer kills the run.** The first full sweep died at
   page 580 of 677: a pooled HTTP/2 socket emitted `'error'` *after* its fetch had
   already settled, so no promise was left to reject and Node raised an uncaught

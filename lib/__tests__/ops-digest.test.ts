@@ -40,6 +40,7 @@ function healthy(overrides: Partial<OpsInputs> = {}): OpsInputs {
       newestIso: "2026-07-20T06:10:00Z",
       pagesSwept: 372, pagesTotal: 593, pagesExpected: 400,
       neverChecked: 41, listings: 902, runWindowHours: 24,
+      unverifiedBy: [{ category: "blocked", listings: 41 }],
     },
     engagement: {
       totals: { view: 412, ticket_click: 38, save: 21, calendar: 9 },
@@ -858,6 +859,7 @@ describe("Source check section — the alarm lands where it gets read", () => {
           newestIso: "2026-06-22T06:10:00Z", // 28 days before NOW
           pagesSwept: 0, pagesTotal: 593, pagesExpected: 400,
           neverChecked: 502, listings: 902, runWindowHours: 24,
+          unverifiedBy: [{ category: "not-an-index", listings: 348 }, { category: "blocked", listings: 59 }],
         },
       }),
     );
@@ -874,6 +876,7 @@ describe("Source check section — the alarm lands where it gets read", () => {
         newestIso: "2026-06-22T06:10:00Z",
         pagesSwept: 0, pagesTotal: 593, pagesExpected: 400,
         neverChecked: 502, listings: 902, runWindowHours: 24,
+        unverifiedBy: [{ category: "not-an-index", listings: 348 }],
       },
     });
     const before = composeOpsDigest(healthy(), NOW).subject;
@@ -903,6 +906,7 @@ describe("Source check section — the alarm lands where it gets read", () => {
           newestIso: null,
           pagesSwept: 0, pagesTotal: 0, pagesExpected: 0,
           neverChecked: 0, listings: 0, runWindowHours: 24,
+          unverifiedBy: [],
         },
       }),
     );
