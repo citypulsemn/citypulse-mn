@@ -215,28 +215,94 @@ npm run check-sources -- --host=armorymn.com
 Expect four listings at four distinct URLs instead of four sharing one, and
 `blocked:307` recorded against each — the honest note, not a confirmation.
 
-## Still open — the Wobbleween start time
+## The Wobbleween time — fixed, and it was wrong three ways
 
-A product call, deliberately not taken here. We list 21:00; the venue's own
-page says doors 6:00 and show 6:15, and our other three Armory listings carry
-the venue's show time. To move it, put this in a corrections file and run the
-same two commands:
+We listed it **9:00 PM – 2:00 AM, Oct 30 – 31**. The Armory's own page for the
+show says **"Friday, October 30, 2026 · Doors at 6:00 // Show at 6:15"**, 18+,
+and states no end time at all. Night 2's page says the same shape for Saturday.
+
+Where the wrong numbers came from, from the audit trail: this row cited
+`resources.onestowatch.com/armory-minneapolis-upcoming-shows/` until 5 Oct,
+when a source-upgrade pass repointed it at the venue. `onestowatch.com` is in
+`AGGREGATOR_HOSTS`. **Both** the 21:00 and the 02:00 came off that roundup —
+and it gave the archived Night 2 row the identical 21:00, while the venue says
+6:15 for that night too. One roundup, one wrong number, twice.
+
+Three fields, and the reasoning for each:
+
+- **start → `2026-10-30T18:15`.** The venue's show time, which is the
+  convention the other three Armory listings already follow.
+- **end → cleared.** CLAUDE.md: *"Never invent an event, a date, or an end
+  date."* The venue publishes none, and the 02:00 came from the same roundup as
+  the start it just disproved. A null end is a handled state —
+  `DEFAULT_DURATION_MS` (2h) covers the is-it-on-now logic.
+- **multi_day_end → cleared.** The Armory sells Night 1 and Night 2 as separate
+  ticketed shows. A Friday show is not an Oct 30 – 31 run.
+
+`verified: true`, legitimately: the evidence is the organiser's own page
+showing exactly these values. The day does not change, so `event_key` stayed
+`8b40652…` and there was no collision to check.
+
+### There was no way to fix the span
+
+`multi_day_end` was written by `collapse-multiday` and `upsert` and **nothing
+else** — not the Admin panel, not corrections. So "Oct 30 – 31" had been on a
+live listing for weeks with no operator fix short of raw SQL. It is a
+`Correction` field now: a day (`YYYY-MM-DD`) or null to un-collapse, written as
+`<day>T23:59` exactly as the collapse does. It is deliberately **not**
+verify-relevant — `lib/verify.ts` is never shown the span — so changing it
+leaves the stamp alone, and `verified: true` on a span-only change is refused
+the same way a pin-only one is.
+
+The repo's existing tripwire counted **two** `::text::timestamp` casts in that
+UPDATE, which is the guard against the postgres.js five-hour param shift. It
+now counts three and names all three columns, so the next timestamp column
+added without the cast fails loudly instead of shipping times five hours off.
+
+### Observed, after
+
+```
+db     start 2026-10-30 18:15 · end null · multi_day_end null · verified · key 8b40652…
+live   "6:15 PM" · "October 30, 2026" · Friday · no "9:00 PM", no "2:00 AM", no "Oct 30 – 31"
+```
+
+## Three things this leaves for you
+
+**1. Night 2 is not on the calendar.** It is archived — the collapse folded it
+into Night 1's span, and clearing that span does not bring it back. It is a
+real Saturday show at the Armory and we now list neither it nor a span hinting
+at it. The venue page gives the same shape, so the entry is ready:
 
 ```json
 {
-  "id": "d13a2f7f-7ade-484f-858d-913e6b26cc9f",
-  "why": "listed at 21:00; the venue's own page says doors 6:00, show 6:15, and our other three Armory listings carry the venue's show time",
-  "evidence": "https://armorymn.com/events/wobbleween-night-1/",
-  "source_url": "https://armorymn.com/events/wobbleween-night-1/",
-  "start": "2026-10-30T18:15",
+  "id": "6ced099c-51ab-4c13-bace-4c833b451f5a",
+  "why": "a separately ticketed second night, archived by the multi-day collapse; the venue sells it on its own page. Time from that page, not from the onestowatch roundup this row still cites.",
+  "evidence": "https://armorymn.com/events/wobbleween-night-2/",
+  "source_url": "https://armorymn.com/events/wobbleween-night-2/",
+  "start": "2026-10-31T18:15",
+  "end": null,
   "verified": true
 }
 ```
 
-`verified: true` is legitimate here and only here: the evidence *is* the
-organiser's own page showing exactly that value. Note the day does not change,
-so `event_key` is untouched and there is no collision to worry about.
+That corrects it but does **not** republish it — `status` is not a correctable
+field and `hide`/`archive` only go one way. Restoring is the Restore button in
+Admin → Events, or `update events set status = 'published'`. Putting a listing
+back on the calendar is a product call, so it is not taken here.
 
+**2. Tape B, 20 – 21 Nov, is the same shape.** Same venue, same fold: the
+published row spans two days and the archived sibling is titled "Tape B –
+Saturday Pass", which is the venue telling us they are sold separately. One
+correction away now that the field exists.
+
+**3. The fold itself.** 23 upcoming published listings carry a span. Most are
+true runs — *Beavers and Botanicals* over five days, *A Christmas Carol*, a
+comedy residency, weekend markets — and should stay. The question is the ones
+sold **per night**: Wobbleween, Tape B, and arguably the two-performance
+orchestra and opera programmes. `planCollapse` folds on a shared title prefix
+and consecutive days, which cannot see the difference between a run you buy one
+ticket for and two shows you buy two. Teaching it that is a product decision
+with 23 listings behind it, not a repair.
 ## Rollback
 
 ```bash

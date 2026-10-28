@@ -25,6 +25,7 @@ function row(overrides: Partial<CorrectionRow> = {}): CorrectionRow {
     source_url: "",
     start_local: "2026-10-23T20:00",
     end_local: "2026-10-23T23:00",
+    multi_day_end: null,
     lat: 44.948965,
     lng: -93.29675,
     status: "published",
@@ -253,6 +254,34 @@ describe("validateCorrection", () => {
     expect(validateCorrection(base({ archive: true }))).toBeNull();
   });
 
+  // 28 Oct 2026: nothing but collapse-multiday could write this column, so a
+  // Friday show that the collapse had folded read "Oct 30 – 31" with no
+  // operator fix available at all.
+  it("sets and clears a run span, and insists on a day", () => {
+    const r = row({ multi_day_end: "2026-10-24" });
+    // null is a real value here, not an omission: it un-collapses the run.
+    const cleared = planCorrection(r, base({ multi_day_end: null }));
+    expect(cleared.kind).toBe("edit");
+    if (cleared.kind === "edit") {
+      expect("multi_day_end" in cleared.fields).toBe(true);
+      expect(cleared.fields.multi_day_end).toBeNull();
+      // The span is not a field the verify pass is shown, so the stamp stays.
+      expect(cleared.affectsVerification).toBe(false);
+    }
+    expect(planCorrection(r, base({ multi_day_end: "2026-10-24" })).kind).toBe("nothing");
+    expect(validateCorrection(base({ multi_day_end: "2026-10-24T23:59" }))).toMatch(/counted in days/);
+    expect(validateCorrection(base({ start: "2026-10-30T18:15", multi_day_end: "2026-10-29" }))).toMatch(
+      /before the start day/,
+    );
+    expect(validateCorrection(base({ multi_day_end: null }))).toBeNull();
+  });
+
+  it("refuses verified:true on a span-only change, like a pin-only one", () => {
+    expect(
+      validateCorrection(base({ multi_day_end: null, verified: true, evidence: "https://armorymn.com/events/wobbleween-night-1/" })),
+    ).toMatch(/the verify pass cannot see/);
+  });
+
   it("holds a hide to the same rules, and refuses both levers at once", () => {
     expect(validateCorrection(base({ hide: true }))).toBeNull();
     expect(validateCorrection(base({ hide: true, source_url: "https://armorymn.com/events/jack-white/" }))).toMatch(/hide:true cannot be combined/);
@@ -478,8 +507,14 @@ describe("the script actually uses it — tripwire on scripts/apply-correction.t
     expect(update).not.toMatch(/\bf\.\w+\s*\?\?/);
   });
 
-  it("still casts both timestamps through ::text, or params shift five hours", () => {
+  // Three timestamps since 28 Oct 2026: start_at, end_at and multi_day_end.
+  // The count is the point — a new timestamp column added without the ::text
+  // cast is what shifts params five hours, so it has to fail loudly.
+  it("still casts every timestamp through ::text, or params shift five hours", () => {
     expect(update).toContain("::text::timestamp at time zone 'America/Chicago'");
-    expect(update.match(/::text::timestamp/g)?.length).toBe(2);
+    expect(update.match(/::text::timestamp/g)?.length).toBe(3);
+    for (const col of ["start_at", "end_at", "multi_day_end"]) {
+      expect(update, col).toMatch(new RegExp(col + "\\s*="));
+    }
   });
 });

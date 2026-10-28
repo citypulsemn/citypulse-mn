@@ -76,6 +76,7 @@ async function main() {
     select id::text as id, event_key, title, venue, city, address, source_url,
            to_char(start_at at time zone 'America/Chicago', 'YYYY-MM-DD"T"HH24:MI') as start_local,
            to_char(end_at   at time zone 'America/Chicago', 'YYYY-MM-DD"T"HH24:MI') as end_local,
+           to_char(multi_day_end at time zone 'America/Chicago', 'YYYY-MM-DD') as multi_day_end,
            lat::float as lat, lng::float as lng, status
     from events where id::text = any(${usable.map((c) => c.id)})
   `;
@@ -157,6 +158,9 @@ async function main() {
       // while the log and the audit row both reported the clear. See the note on
       // `nextValue` in lib/corrections.ts.
       const endLocal = nextValue(f, row, "end_local");
+      // The column holds a timestamp and an operator gives a DAY, so the apply
+      // appends T23:59 exactly as collapse-multiday does. Null un-collapses.
+      const spanDay = nextValue(f, row, "multi_day_end");
       await sql`
         update events set
           event_key  = ${plan.newKey ?? row.event_key},
@@ -173,6 +177,11 @@ async function main() {
             endLocal === null
               ? null
               : sql`(${endLocal as string}::text::timestamp at time zone 'America/Chicago')`
+          },
+          multi_day_end = ${
+            spanDay === null
+              ? null
+              : sql`(${`${spanDay as string}T23:59`}::text::timestamp at time zone 'America/Chicago')`
           },
           verified_at = ${stamp},
           updated_at  = now()

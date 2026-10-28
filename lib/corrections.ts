@@ -73,6 +73,22 @@ export interface Correction {
   start?: string;
   /** Chicago wall clock, or null to clear. */
   end?: string | null;
+  /**
+   * The last DAY of a multi-day run, `YYYY-MM-DD`, or null to un-collapse.
+   *
+   * Until 28 Oct 2026 nothing but `collapse-multiday` and `upsert` could write
+   * this column, so a wrong span had no operator fix at all — and one had been
+   * live for weeks: the Armory sells Wobbleween as two separately ticketed
+   * nights, the collapse folded them on their shared title prefix, and the
+   * listing read "Oct 30 – 31" for a Friday show. The column holds a timestamp;
+   * the apply writes `<day>T23:59` exactly as the collapse does, because the
+   * unit a run is counted in is the day.
+   *
+   * NOT verify-relevant: `lib/verify.ts` is never shown the span, so changing it
+   * leaves `verified_at` alone — and `verified: true` on a span-only change is
+   * refused, exactly like a pin-only one.
+   */
+  multi_day_end?: string | null;
   lat?: number;
   lng?: number;
   /**
@@ -101,6 +117,8 @@ export interface CorrectionRow {
   source_url: string;
   start_local: string;
   end_local: string | null;
+  /** The run's last day, `YYYY-MM-DD`, or null for a single-day event. */
+  multi_day_end: string | null;
   lat: number | null;
   lng: number | null;
   status: string;
@@ -153,6 +171,7 @@ export type CorrectionPlan =
 const VERIFY_RELEVANT = ["title", "venue", "city", "start_local", "end_local"] as const;
 
 const WALL = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/;
+const DAY = /^\d{4}-\d{2}-\d{2}$/;
 
 /** Problems an operator's correction file can have, in plain words. */
 export function validateCorrection(c: Correction): string | null {
@@ -163,7 +182,7 @@ export function validateCorrection(c: Correction): string | null {
   if (c.archive && c.hide) return "archive:true and hide:true are different outcomes — pick one";
   if (c.archive || c.hide) {
     const edits = (
-      ["title", "venue", "city", "address", "source_url", "start", "end", "lat", "lng"] as const
+      ["title", "venue", "city", "address", "source_url", "start", "end", "multi_day_end", "lat", "lng"] as const
     ).filter((k) => c[k] !== undefined);
     if (edits.length > 0) {
       const lever = c.archive ? "archive" : "hide";
@@ -217,6 +236,14 @@ export function validateCorrection(c: Correction): string | null {
   if (c.start !== undefined && !WALL.test(c.start)) return `start "${c.start}" is not YYYY-MM-DDTHH:MM`;
   if (c.end !== undefined && c.end !== null && !WALL.test(c.end)) return `end "${c.end}" is not YYYY-MM-DDTHH:MM`;
   if (c.start && c.end && c.end < c.start) return `end ${c.end} is before start ${c.start}`;
+  if (c.multi_day_end !== undefined && c.multi_day_end !== null) {
+    const span = String(c.multi_day_end).trim();
+    if (!DAY.test(span)) return `multi_day_end "${span.slice(0, 20)}" is not YYYY-MM-DD (a run is counted in days)`;
+    // A run ending before it starts is the shape a capped expansion leaves behind.
+    if (c.start && span < c.start.slice(0, 10)) {
+      return `multi_day_end ${span} is before the start day ${c.start.slice(0, 10)}`;
+    }
+  }
   // A venue move with no coordinates leaves the pin at the old room — a reader
   // sent to the wrong address is worse than a listing with the old venue name.
   if (c.venue !== undefined && (c.lat === undefined || c.lng === undefined)) {
@@ -226,7 +253,7 @@ export function validateCorrection(c: Correction): string | null {
   if (c.lat !== undefined && (c.lat < 43 || c.lat > 49.5)) return `lat ${c.lat} is outside Minnesota`;
   if (c.lng !== undefined && (c.lng < -97.5 || c.lng > -89)) return `lng ${c.lng} is outside Minnesota`;
   const touches = (
-    ["title", "venue", "city", "address", "source_url", "start", "end", "lat", "lng"] as const
+    ["title", "venue", "city", "address", "source_url", "start", "end", "multi_day_end", "lat", "lng"] as const
   ).some((k) => c[k] !== undefined);
   if (!touches) return "nothing to change";
   return null;
@@ -271,6 +298,7 @@ export function planCorrection(row: CorrectionRow, c: Correction): CorrectionPla
   put("source_url", c.source_url, row.source_url);
   put("start_local", c.start, row.start_local);
   put("end_local", c.end, row.end_local);
+  put("multi_day_end", c.multi_day_end, row.multi_day_end);
   put("lat", c.lat, row.lat);
   put("lng", c.lng, row.lng);
 
