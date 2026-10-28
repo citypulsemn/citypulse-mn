@@ -11,6 +11,7 @@ import {
   RUN_BUDGET_MS,
   VERDICTS,
   type RoutableEvent,
+  unprovenAlarm,
 } from "../verify";
 import { buildVerifyPrompt, buildResearchPrompt, buildVenueSweepPrompt } from "../agents/prompts";
 import type { EventRecord } from "../types";
@@ -777,5 +778,39 @@ describe("parseVerdictFile", () => {
     );
     expect(r.verdicts.map((v) => v.id)).toEqual(["e2"]);
     expect(r.rejected).toHaveLength(2);
+  });
+});
+
+describe("unprovenAlarm — the first scheduled run is the test, so it reports itself", () => {
+  // Shipped without a paid test batch (owner's call, 28 Oct 2026). If the model
+  // will not fill `saw`, every row comes back unproven and the run spends $8.55
+  // to verify nothing — which must not look like a quiet zero.
+  it("is loud and failing when nothing was confirmed", () => {
+    const a = unprovenAlarm(0, [{ verdict: "unproven" }, { verdict: "unproven" }]);
+    expect(a?.level).toBe("error");
+    expect(a?.message).toContain("NOTHING was confirmed");
+    expect(a?.message).toContain("saw");
+    // names where to read the fallback rather than leaving it to memory
+    expect(a?.message).toContain("DEPLOY-VERIFY-YEAR-GATE.md");
+  });
+
+  it("is a quiet warning when some confirmations did quote a date", () => {
+    const a = unprovenAlarm(7, [{ verdict: "unproven" }]);
+    expect(a?.level).toBe("warn");
+    expect(a?.message).toContain("1 confirmation");
+    expect(a?.message).toContain("7");
+  });
+
+  it("says nothing when no confirmation was withheld for that reason", () => {
+    expect(unprovenAlarm(0, [])).toBeNull();
+    expect(unprovenAlarm(0, [{ verdict: "wrong_year" }])).toBeNull();
+    expect(unprovenAlarm(0, [{ verdict: "weak_source" }, { verdict: "no_venue" }])).toBeNull();
+  });
+
+  // A run of nothing but wrong_year is a different story — the gate found real
+  // contradictions rather than an uncooperative model — and must not be
+  // reported as a prompt failure.
+  it("does not cry prompt failure when the finding is wrong_year", () => {
+    expect(unprovenAlarm(0, Array.from({ length: 5 }, () => ({ verdict: "wrong_year" })))).toBeNull();
   });
 });

@@ -147,6 +147,46 @@ export function confirmationDateProblem(
   return null;
 }
 
+/**
+ * The warning a finished run owes its operator, or null when it owes none.
+ *
+ * The year gate withholds a stamp when `confirmed` quotes no date. That is the
+ * safe direction — but if the model simply will not fill `saw`, EVERY row comes
+ * back unproven, the run costs its usual $8.55 and verifies nothing, and the
+ * only sign would be a quiet zero in the digest. Shipping without a paid test
+ * batch was the owner's call on 28 Oct 2026, which makes the first scheduled
+ * run the test — so the run has to report its own result.
+ *
+ * PURE, and called from BOTH summary paths. The paid loop and the `--from`
+ * file each have their own, and an alarm wired into one of them is an alarm
+ * that does not exist half the time — which is exactly how the first version
+ * of this was written and why it stayed silent on the path used to test it.
+ */
+export function unprovenAlarm(
+  confirmed: number,
+  flags: { verdict: string }[],
+): { level: "error" | "warn"; message: string } | null {
+  const unproven = flags.filter((f) => f.verdict === "unproven").length;
+  if (unproven === 0) return null;
+  if (confirmed === 0) {
+    return {
+      level: "error",
+      message:
+        `[verify] ⚠ NOTHING was confirmed and ${unproven} confirmation(s) were withheld ` +
+        'as "unproven" — the model is not filling "saw", the date it read off the page. ' +
+        `The gate is doing its job; the prompt is not. ` +
+        `See docs/deploy-history/DEPLOY-VERIFY-YEAR-GATE.md — the fallback is to flag ` +
+        `alongside the stamp instead of withholding it.`,
+    };
+  }
+  return {
+    level: "warn",
+    message:
+      `[verify] ${unproven} confirmation(s) withheld for quoting no date, against ` +
+      `${confirmed} that did quote one.`,
+  };
+}
+
 export interface VerifiableEvent {
   id: string;
   title: string;

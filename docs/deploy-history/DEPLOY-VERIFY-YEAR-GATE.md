@@ -108,26 +108,52 @@ confirmed 1, cancelled 0, flagged 3 — dry run, nothing written.
 The right-year row confirmed and picked up its pre-existing weak-source flag, so
 the new gate sits alongside the old ones rather than replacing them.
 
-## The risk, stated plainly
+## The risk, and the decision taken on it
 
 **If the model does not fill `saw`, the next scheduled run stamps nothing.**
-That is the conservative direction and it is visible immediately — every row
-comes back `UNPROVEN` instead of confirmed — but it would waste a run. The pass
-is this project's biggest API line at **$8.55 a run**, and `weekly-digest.yml`
-calls it with no dry-run.
+That is the conservative direction, but it would waste a run — this pass is the
+project's biggest API line at **$8.55**, and `weekly-digest.yml` calls it with
+no dry-run.
 
-So this wants one batch tested before the next schedule fires:
+One batch (`npm run verify -- --cap=8 --dry-run`, eight events, about 34p,
+nothing written) would have settled it in advance. **Offered and declined:**
+ship as is and let the first scheduled run be the test. That is a reasonable
+call — the failure mode is safe and recoverable — but it moves the whole
+question onto that run, so the run now has to report its own result instead of
+leaving a quiet zero in the digest.
 
-```bash
-npm run verify -- --cap=8 --dry-run
+`unprovenAlarm` (pure, in `lib/verify.ts`) decides what a finished run owes its
+operator:
+
+| what the run produced | what it says |
+|---|---|
+| no confirmations, some `unproven` | **error, and `exitCode = 1`** — names the cause, and points at this file for the fallback |
+| some of each | a one-line warning with both counts |
+| no `unproven` at all | nothing |
+| nothing but `wrong_year` | nothing — that is the gate finding real contradictions, not an uncooperative model |
+
+**The first version of that alarm was wired into one summary path and stayed
+silent on the other** — which is the path the free `--from` test uses, so the
+test said nothing and looked like a pass. Both paths call the shared pure
+function now. Verified on each:
+
+```
+five confirmations, none quoting a date:
+  confirmed 0, cancelled 0, flagged 5
+  ⚠ NOTHING was confirmed and 5 confirmation(s) were withheld as "unproven" …
+  exit=1
+
+one of each:
+  confirmed 1, cancelled 0, flagged 3
+  1 confirmation(s) withheld for quoting no date, against 1 that did quote one.
+  exit=0
 ```
 
-Eight events, one batch, about **34p**, nothing written. What to look for: every
-`confirmed` line carrying a `saw`, and no wall of `UNPROVEN`. If the model does
-comply, nothing else is needed. If it does not, the fallback is to flag
+So: watch the next scheduled verify run. A red workflow with that message means
+the gate held and the prompt did not, and the fallback is to flag `unproven`
 alongside the stamp instead of withholding it — weaker, but it keeps the pass
-earning its money while the prompt gets another pass.
-
+earning its money while the prompt gets another pass. The `wrong_year` withhold
+would stay either way.
 ## Deploy
 
 ```bash

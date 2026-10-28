@@ -36,6 +36,7 @@ import {
   selectForVerification,
   batchForVerification,
   routeVerdicts,
+  unprovenAlarm,
   parseVerdictFile,
   withinBudget,
   DEFAULT_CAP,
@@ -56,6 +57,17 @@ import type { EventStatus } from "../lib/types";
 import { recordRunSpend } from "../lib/model-spend";
 
 const arg = (n: string) => process.argv.find((a) => a.startsWith(`--${n}=`))?.slice(n.length + 3);
+
+/** Print the year gate's alarm and fail the run when it is the loud one. */
+function reportUnproven(alarm: ReturnType<typeof unprovenAlarm>): void {
+  if (!alarm) return;
+  if (alarm.level === "error") {
+    console.error(alarm.message);
+    process.exitCode = 1;
+    return;
+  }
+  console.warn(alarm.message);
+}
 
 const VALUE_FLAGS = ["from", "emit-queue", "skip-if-verified-recently"] as const;
 
@@ -267,6 +279,7 @@ async function main() {
       `\n[verify] confirmed ${routed.confirms.length}, cancelled ${routed.cancels.length}, ` +
         `flagged ${routed.flags.length}${dryRun ? " — dry run, nothing written." : " — applied and recorded."}`,
     );
+    reportUnproven(unprovenAlarm(routed.confirms.length, routed.flags));
 
     if (!dryRun && (routed.cancels.length > 0 || routed.confirms.length > 0)) {
       await revalidateAndReport(
@@ -374,6 +387,11 @@ async function main() {
     );
     process.exitCode = 1;
   }
+
+  // The year gate's own alarm. Shared with the --from path below, because an
+  // alarm wired into one summary is an alarm that does not exist half the time.
+  reportUnproven(unprovenAlarm(confirms.length, flags));
+
   if (!dryRun && adjudicated > 0) {
     await recordVerifyPass(process.env.CI ? "ci" : "local", {
       checked: checkedEvents,
