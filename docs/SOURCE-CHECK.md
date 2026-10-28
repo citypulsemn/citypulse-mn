@@ -478,6 +478,13 @@ Taren's: leave them, identify as a browser, or ask the organisations.
   prints a four-digit year; the title path, which confirmed 465 listings, has no
   such guard. Closing it properly means establishing a page's season span. It is
   the largest known hole in the check and it is NOT the blocked hosts.
+  **First measured live instance, 28 Oct 2026:** eight Toddler Music Lab
+  listings at Minnesota Children's Museum were the museum's autumn **2025**
+  four-week Tuesday series with the year bumped — same month, same day, same
+  10:30 start — and six of the eight carried a `verified_at` stamp. Their
+  source (`womenspress.com`, now in `AGGREGATOR_HOSTS`) had 404'd every page,
+  so nothing could read them at all. See
+  `docs/deploy-history/DEPLOY-RECITE-DEAD-SOURCES.md`.
 - **Small organiser calendars are not checked.** The 50-entry bar excludes a
   parish with ten events. That is a miss, not a false accusation, and it is the
   right direction to err.

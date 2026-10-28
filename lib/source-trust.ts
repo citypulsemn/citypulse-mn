@@ -79,6 +79,15 @@ export const AGGREGATOR_HOSTS: readonly string[] = [
   "twincitiesfamily.com",
   "westopolis.org",
   "wjon.com",
+  // Added 28 Oct 2026, and it cost eight listings to find. A monthly
+  // magazine running a community calendar, which published eight sessions of Minnesota
+  // Children's Museum's Toddler Music Lab — the museum's 2025
+  // four-week Tuesday series, re-dated into 2026 with the month and day
+  // kept. Eight rows came off womenspress.com, six of them stamped
+  // verified, and the magazine then 404'd every one of those pages so
+  // nothing could catch it. The museum's own pages still read 2025 and its
+  // 2026 calendar is empty on every one of those days.
+  "womenspress.com",
   "yahoo.com",
 ];
 

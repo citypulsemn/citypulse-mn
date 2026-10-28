@@ -68,6 +68,16 @@ describe("statusForNewEvent — the gate only ever holds back", () => {
     expect(statusForNewEvent("https://mnzoo.org/special-events/")).toBe("published");
   });
 
+  // 28 Oct 2026: a magazine's community calendar published the Children's
+  // Museum's 2025 Toddler Music Lab series into 2026, month and day kept,
+  // and the museum's own page for each session still reads 2025. Held as a
+  // draft, these eight never reach a reader unverified.
+  it("holds a magazine community calendar as draft", () => {
+    expect(
+      statusForNewEvent("https://www.womenspress.com/event/toddler-music-lab/2026-11-18/"),
+    ).toBe("draft");
+  });
+
   it("publishes when there is no source at all", () => {
     // A missing source is a different problem (and other guards cover it).
     // This gate must not start hiding events for a reason it isn't about.
