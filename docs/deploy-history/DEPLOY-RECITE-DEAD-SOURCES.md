@@ -208,10 +208,16 @@ not committed. Delete them once you have read them.
 
 **One thing left open, and it is pre-existing:** those four pages answer **200**
 with the not-found body, not 404. `notFound()` is called correctly in
-`app/event/[id]/page.tsx`, so this is a soft 404 on every unknown event id, not
-something this change introduced. It does not put the listing in front of a
-reader — the content is gone — but it does keep the URL looking alive to a
-crawler. Worth its own look.
+`app/event/[id]/page.tsx`, so this is a soft 404 on every unknown event id —
+a made-up UUID answers 200 too — and not something this change introduced.
+
+**Checked rather than assumed, and it is smaller than it first looked:** the
+not-found page carries `<meta name="robots" content="noindex"/>`, so a search
+engine is told not to index it. The content is gone and the URL is not being
+advertised. What is left is the status code itself being wrong, which costs
+crawl budget and misleads anything that keys on 404 rather than on the body.
+Worth its own look, at a lower priority than the first draft of this paragraph
+implied.
 
 Next sweep:
 
