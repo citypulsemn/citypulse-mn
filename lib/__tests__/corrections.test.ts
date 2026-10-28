@@ -85,6 +85,22 @@ describe("planCorrection", () => {
     expect(planCorrection(row({ status: "archived" }), base({ archive: true })).kind).toBe("nothing");
   });
 
+  // 28 Oct 2026: four fabricated listings were archived, dropped off every
+  // list, and went on serving their own event pages — getEvent filters
+  // `status <> 'draft'`, so only `draft` actually takes a page down.
+  it("hides, and says nothing when already hidden", () => {
+    expect(planCorrection(row(), base({ hide: true })).kind).toBe("hide");
+    expect(planCorrection(row({ status: "draft" }), base({ hide: true })).kind).toBe("nothing");
+    // An archived row is still showing its page, so hiding it is a real change.
+    expect(planCorrection(row({ status: "archived" }), base({ hide: true })).kind).toBe("hide");
+  });
+
+  it("labels a hide distinctly from an archive", () => {
+    const r = row();
+    expect(describePlan(planCorrection(r, base({ hide: true })), r)[0]).toContain("HIDE");
+    expect(describePlan(planCorrection(r, base({ archive: true })), r)[0]).toContain("ARCHIVE");
+  });
+
   it("reports only the fields that actually differ", () => {
     const r = row();
     const p = planCorrection(r, base({ city: r.city, start: "2026-10-23T19:00" }));
@@ -235,6 +251,12 @@ describe("validateCorrection", () => {
     expect(validateCorrection(base({ archive: true, start: "2026-10-23T19:00" }))).toMatch(/cannot be combined/);
     expect(validateCorrection(base({}))).toMatch(/nothing to change/);
     expect(validateCorrection(base({ archive: true }))).toBeNull();
+  });
+
+  it("holds a hide to the same rules, and refuses both levers at once", () => {
+    expect(validateCorrection(base({ hide: true }))).toBeNull();
+    expect(validateCorrection(base({ hide: true, source_url: "https://armorymn.com/events/jack-white/" }))).toMatch(/hide:true cannot be combined/);
+    expect(validateCorrection(base({ archive: true, hide: true }))).toMatch(/pick one/);
   });
 });
 
@@ -435,6 +457,14 @@ describe("the script actually uses it — tripwire on scripts/apply-correction.t
     expect(at).toBeGreaterThan(-1);
     expect(update).toContain("event_key  =");
     expect(update.length).toBeGreaterThan(200);
+  });
+
+  // The two levers must write DIFFERENT statuses. They did not exist as two
+  // levers until 28 Oct 2026, when `archive` was used on four fabrications and
+  // every one of them kept serving its event page.
+  it("archives to archived and hides to draft, never the same status", () => {
+    expect(src).toContain("set status = 'archived', updated_at = now()");
+    expect(src).toContain("set status = 'draft', updated_at = now()");
   });
 
   it("reads every column through nextValue, never through `?? row.`", () => {

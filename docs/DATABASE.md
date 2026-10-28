@@ -30,7 +30,7 @@ Standard Postgres. Works identically on **Supabase** or **Neon** (or any Postgre
 | `price` | text | display string (`"$45"`, `"$18–$120"`, `"Free"`) |
 | `price_tier` | text | `Free / $ / $$ / $$$` (CHECK) |
 | `ticket_url`, `description`, `image`, `source_url` | text | |
-| `status` | text | `draft / published / archived / cancelled` (CHECK) — **site serves only `published`** |
+| `status` | text | `draft / published / archived / cancelled` (CHECK) — every list, feed, digest and the sitemap serve only `published`, but **an event's own page serves everything except `draft`** (`getEvent` filters `status <> 'draft'`). See *Hide or restore* below: `draft` is the only status that takes a page down. |
 | `last_seen_at` | timestamptz | last pipeline run that re-found the event |
 | `created_at`, `updated_at` | timestamptz | `updated_at` auto-maintained by trigger |
 
@@ -92,6 +92,19 @@ update events set status = 'published' where id = '…';  -- bring it back
 ```
 
 Hiding sticks: the weekly pipeline never republishes an event you've moved to `draft`.
+
+**`archived` is not a hide, and 28 Oct 2026 is the day that cost something.**
+`archivePastEvents()` uses it for a show that is over, and the near-duplicate
+collapse uses it for the copy it drops — in both cases the event *existed*, so
+`getEvent` keeps serving its page on purpose and a link in an old digest still
+lands somewhere true. Four **fabricated** listings were archived that morning:
+they vanished from the calendar, the feeds and the sitemap, and all four went
+on rendering their own event pages, one of them for an event two hours away.
+
+So: **a thing that never happened goes to `draft`.** That is what the Hide
+button (`hideEvent`), the one-tap takedown in `/report-action`, and
+`hold-unverified-source.ts` all set, and what `hide: true` in a corrections
+file now sets. `archived` is for a thing that happened and is done.
 
 ## Reading directly
 

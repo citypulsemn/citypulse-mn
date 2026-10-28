@@ -38,6 +38,19 @@ export interface Correction {
   evidence?: string;
   /** Archive instead of editing — for a duplicate or a row that should go away. */
   archive?: boolean;
+  /**
+   * Hide instead of editing — the event page stops rendering.
+   *
+   * NOT a synonym for `archive`, and the difference is the whole point.
+   * `getEvent` filters `status <> 'draft'`, so an ARCHIVED row keeps its event
+   * page on purpose: something that really happened keeps the URL that went out
+   * in a digest or a share. A FABRICATION never happened, and 28 Oct 2026 is how
+   * that was learned — four re-dated 2025 sessions were archived, dropped off
+   * every list, and went on serving their own pages, one of them for that
+   * morning. `draft` is what `hideEvent` (lib/admin-actions.ts) and the one-tap
+   * takedown in `/report-action` both set, and one update puts it back.
+   */
+  hide?: boolean;
   title?: string;
   venue?: string;
   city?: string;
@@ -95,6 +108,7 @@ export interface CorrectionRow {
 
 export type CorrectionPlan =
   | { kind: "archive"; id: string; why: string; evidence?: string }
+  | { kind: "hide"; id: string; why: string; evidence?: string }
   | {
       kind: "edit";
       id: string;
@@ -144,11 +158,17 @@ const WALL = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/;
 export function validateCorrection(c: Correction): string | null {
   if (!c.id?.trim()) return "no id";
   if (!c.why?.trim()) return "no `why` — the audit row has to say why this changed";
-  if (c.archive) {
+  // They set different statuses, so a file asking for both is a file whose
+  // author has not decided which one they mean.
+  if (c.archive && c.hide) return "archive:true and hide:true are different outcomes — pick one";
+  if (c.archive || c.hide) {
     const edits = (
       ["title", "venue", "city", "address", "source_url", "start", "end", "lat", "lng"] as const
     ).filter((k) => c[k] !== undefined);
-    if (edits.length > 0) return `archive:true cannot be combined with edits (${edits.join(", ")})`;
+    if (edits.length > 0) {
+      const lever = c.archive ? "archive" : "hide";
+      return `${lever}:true cannot be combined with edits (${edits.join(", ")})`;
+    }
     return null;
   }
   // A stamp has to rest on something. `verified: true` without a cited page is
@@ -223,6 +243,12 @@ export function planCorrection(row: CorrectionRow, c: Correction): CorrectionPla
       return { kind: "nothing", id: c.id, why: c.why, note: "already archived" };
     }
     return { kind: "archive", id: c.id, why: c.why, evidence: c.evidence };
+  }
+  if (c.hide) {
+    if (row.status === "draft") {
+      return { kind: "nothing", id: c.id, why: c.why, note: "already hidden" };
+    }
+    return { kind: "hide", id: c.id, why: c.why, evidence: c.evidence };
   }
 
   const fields: Partial<Record<keyof CorrectionRow, string | number | null>> = {};
@@ -306,8 +332,9 @@ export function nextValue(
 export function describePlan(plan: CorrectionPlan, row: CorrectionRow): string[] {
   const head = `${row.title.slice(0, 54)} — ${row.start_local} @ ${row.venue.slice(0, 28)}`;
   if (plan.kind === "nothing") return [`· ${head}`, `    no change: ${plan.note}`];
-  if (plan.kind === "archive") {
-    return [`✗ ARCHIVE  ${head}`, `    ${plan.why}`, ...(plan.evidence ? [`    ${plan.evidence}`] : [])];
+  if (plan.kind === "archive" || plan.kind === "hide") {
+    const label = plan.kind === "archive" ? "✗ ARCHIVE " : "⊘ HIDE    ";
+    return [`${label} ${head}`, `    ${plan.why}`, ...(plan.evidence ? [`    ${plan.evidence}`] : [])];
   }
   return [
     `± EDIT     ${head}`,

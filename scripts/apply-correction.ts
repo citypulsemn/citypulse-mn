@@ -122,6 +122,11 @@ async function main() {
 
     if (plan.kind === "archive") {
       await sql`update events set status = 'archived', updated_at = now() where id::text = ${c.id}`;
+    } else if (plan.kind === "hide") {
+      // 'draft', not 'archived': an archived row still renders its own event page
+      // (getEvent filters `status <> 'draft'`), which is right for something that
+      // happened and wrong for something that never did. See Correction.hide.
+      await sql`update events set status = 'draft', updated_at = now() where id::text = ${c.id}`;
     } else {
       const f = plan.fields;
       // THREE OUTCOMES for verified_at, not two:
