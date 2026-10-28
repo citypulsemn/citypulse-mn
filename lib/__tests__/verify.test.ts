@@ -456,15 +456,24 @@ function re(overrides: Partial<RoutableEvent> = {}): RoutableEvent {
     title: "Jeremy Messersmith",
     venue: "First Avenue",
     city: "Minneapolis",
+    start: "2026-11-20T20:00",
     sourceUrl: "https://first-avenue.com/shows/",
     ticketUrl: "",
     ...overrides,
   };
 }
 
+/**
+ * What the agent must now copy off the page for a confirmation to stamp.
+ * Spelled out in every test below rather than defaulted, because the whole
+ * point of the 28 Oct 2026 gate is that a confirmation with no quoted date is
+ * not a confirmation.
+ */
+const SAW = "Friday, November 20, 2026";
+
 describe("routeVerdicts", () => {
   it("confirms a clean verdict against a primary source, with no flag", () => {
-    const r = routeVerdicts([{ id: "e1", verdict: "confirmed" }], [re()]);
+    const r = routeVerdicts([{ id: "e1", verdict: "confirmed", saw: SAW }], [re()]);
     expect(r.confirms).toEqual(["e1"]);
     expect(r.flags).toEqual([]);
     expect(r.cancels).toEqual([]);
@@ -491,7 +500,7 @@ describe("routeVerdicts", () => {
       ["", "Minneapolis"],
       ["Minneapolis", "Minneapolis"],
     ] as const) {
-      const r = routeVerdicts([{ id: "e1", verdict: "confirmed" }], [re({ venue, city })]);
+      const r = routeVerdicts([{ id: "e1", verdict: "confirmed", saw: SAW }], [re({ venue, city })]);
       expect(r.confirms, `${venue || "(empty)"} must not be confirmed`).toEqual([]);
       expect(r.flags[0].verdict).toBe("no_venue");
     }
@@ -502,7 +511,7 @@ describe("routeVerdicts", () => {
     // withholding the flag would launder the weak source clean. 113 of 140
     // weakly-sourced rows carried a stamp on 4 Oct 2026 with no flag.
     const r = routeVerdicts(
-      [{ id: "e1", verdict: "confirmed" }],
+      [{ id: "e1", verdict: "confirmed", saw: SAW }],
       [re({ sourceUrl: "https://www.minneapolis.org/calendar/thing/" })],
     );
     expect(r.confirms).toEqual(["e1"]);
@@ -517,7 +526,7 @@ describe("routeVerdicts", () => {
     // ticketmaster (37 rows), songkick (12) and bandsintown (8) sailed through.
     for (const host of ["ticketmaster.com", "songkick.com", "bandsintown.com"]) {
       const r = routeVerdicts(
-        [{ id: "e1", verdict: "confirmed" }],
+        [{ id: "e1", verdict: "confirmed", saw: SAW }],
         [re({ sourceUrl: `https://www.${host}/event/123` })],
       );
       expect(r.confirms, host).toEqual(["e1"]);
@@ -528,7 +537,7 @@ describe("routeVerdicts", () => {
 
   it("falls back to the ticket url when there is no source url", () => {
     const r = routeVerdicts(
-      [{ id: "e1", verdict: "confirmed" }],
+      [{ id: "e1", verdict: "confirmed", saw: SAW }],
       [re({ sourceUrl: "", ticketUrl: "https://www.songkick.com/concerts/1" })],
     );
     expect(r.flags[0].verdict).toBe("weak_source");
@@ -546,10 +555,79 @@ describe("routeVerdicts", () => {
   it("drops a verdict for an event it was not given", () => {
     // The file path validates ids before this, but routing must not invent a
     // row it cannot see either.
-    const r = routeVerdicts([{ id: "ghost", verdict: "confirmed" }], [re()]);
+    const r = routeVerdicts([{ id: "ghost", verdict: "confirmed", saw: SAW }], [re()]);
     expect(r.confirms).toEqual([]);
     expect(r.flags).toEqual([]);
     expect(r.lines).toEqual([]);
+  });
+
+  // ---- the year gate, 28 Oct 2026 ----
+  // Eight Toddler Music Lab listings were the museum's 2025 series with the
+  // year bumped, six of them stamped. The museum's own pages are still up and
+  // still read 2025, so every honest check of title, room, month and day
+  // agreed with us.
+  it("withholds the stamp when the page it read prints a different year", () => {
+    const r = routeVerdicts(
+      [
+        {
+          id: "e1",
+          verdict: "confirmed",
+          saw: "October 28, 2025 10:30 am - 11:30 am",
+        },
+      ],
+      [re({ start: "2026-10-28T10:30" })],
+    );
+    expect(r.confirms).toEqual([]);
+    expect(r.flags).toHaveLength(1);
+    expect(r.flags[0].verdict).toBe("wrong_year");
+    expect(r.flags[0].note).toContain("2025");
+    expect(r.flags[0].note).toContain("2026-10-28");
+  });
+
+  it("withholds the stamp when nothing was quoted at all", () => {
+    // The same shape `cancelled` has always had: show your work or it does not
+    // count. A gate that depends on the model volunteering proof is not a gate.
+    const r = routeVerdicts([{ id: "e1", verdict: "confirmed" }], [re()]);
+    expect(r.confirms).toEqual([]);
+    expect(r.flags[0].verdict).toBe("unproven");
+    expect(r.flags[0].note).toContain("without quoting");
+  });
+
+  it("withholds the stamp when the quoted date carries no year", () => {
+    // A page printing "Fri, Oct 28" cannot settle which October 28 it means,
+    // which is the exact ambiguity the fabrications lived in.
+    const r = routeVerdicts(
+      [{ id: "e1", verdict: "confirmed", saw: "Fri, Oct 28" }],
+      [re({ start: "2026-10-28T10:30" })],
+    );
+    expect(r.confirms).toEqual([]);
+    expect(r.flags[0].verdict).toBe("unproven");
+    expect(r.flags[0].note).toContain("no year");
+  });
+
+  it("accepts our year among several on the page", () => {
+    // A venue page often prints a season as well as the date.
+    const r = routeVerdicts(
+      [
+        {
+          id: "e1",
+          verdict: "confirmed",
+          saw: "2026-27 season · Friday, November 20, 2026",
+        },
+      ],
+      [re()],
+    );
+    expect(r.confirms).toEqual(["e1"]);
+  });
+
+  // The gate runs BEFORE the stamp and AFTER the venue gate, so a row with
+  // both problems reports the venue one — the order the existing gates use.
+  it("still reports an unknown venue ahead of the date problem", () => {
+    const r = routeVerdicts(
+      [{ id: "e1", verdict: "confirmed" }],
+      [re({ venue: "TBD", city: "Saint Paul" })],
+    );
+    expect(r.flags[0].verdict).toBe("no_venue");
   });
 
   it("routes a file's verdicts exactly as the paid loop would", () => {
@@ -561,8 +639,8 @@ describe("routeVerdicts", () => {
       re({ id: "c" }),
     ];
     const verdicts = [
-      { id: "a", verdict: "confirmed" as const },
-      { id: "b", verdict: "confirmed" as const },
+      { id: "a", verdict: "confirmed" as const, saw: SAW },
+      { id: "b", verdict: "confirmed" as const, saw: SAW },
       { id: "c", verdict: "sold_out" as const },
     ];
     const fromFile = parseVerdictFile(JSON.stringify(verdicts), new Set(["a", "b", "c"]));
@@ -622,7 +700,7 @@ describe("parseVerdictFile", () => {
       '[{"id":"e1","verdict":"confirmed"},{"id":"e1","verdict":"confirmed"}]',
       ids,
     );
-    expect(r.verdicts).toEqual([{ id: "e1", verdict: "confirmed", evidence: undefined, newStart: undefined }]);
+    expect(r.verdicts).toEqual([{ id: "e1", verdict: "confirmed", evidence: undefined, newStart: undefined, saw: undefined }]);
     expect(r.rejected[0].why).toMatch(/duplicate/);
   });
 
@@ -644,7 +722,7 @@ describe("parseVerdictFile", () => {
 
   it("trims whitespace a hand edit leaves behind", () => {
     const r = parseVerdictFile('[{"id":" e1 ","verdict":" confirmed "}]', ids);
-    expect(r.verdicts).toEqual([{ id: "e1", verdict: "confirmed", evidence: undefined, newStart: undefined }]);
+    expect(r.verdicts).toEqual([{ id: "e1", verdict: "confirmed", evidence: undefined, newStart: undefined, saw: undefined }]);
   });
 
   it("reads EVERY fenced block, not just the first", () => {

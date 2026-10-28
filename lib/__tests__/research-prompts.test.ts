@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { buildResearchPrompt, buildVenueSweepPrompt } from "../agents/prompts";
+import { buildResearchPrompt, buildVenueSweepPrompt, buildVerifyPrompt } from "../agents/prompts";
 
 /**
  * Guards for the pipeline's category research prompts. These are the lever that
@@ -91,5 +91,67 @@ describe("buildResearchPrompt — the venue rule (Sep 2026)", () => {
 
   it("still forbids the hollow TITLE — the rule it mirrors", () => {
     expect(p).toContain("IF YOU CANNOT NAME WHAT IS HAPPENING, OMIT THE EVENT");
+  });
+});
+
+/**
+ * buildVerifyPrompt had NO guard at all until 28 Oct 2026, which is awkward,
+ * because every rule in it was bought by an incident: the Marley roundup that
+ * named no event, the Baby Bugs resale inventory still selling a date the venue
+ * had moved, and now the museum series published a year late. A prompt rule is
+ * invisible once it is deleted — nothing fails, the pass just gets worse.
+ */
+describe("buildVerifyPrompt — the rules each incident bought", () => {
+  const p = buildVerifyPrompt([
+    {
+      id: "e1",
+      title: "Tape B",
+      venue: "The Armory",
+      city: "Minneapolis",
+      start: "2026-11-20T21:00",
+      sourceUrl: "https://www.concertarchives.org/venues/armory--5",
+      ticketUrl: "",
+    },
+  ]);
+
+  it("hands over the event, and asks the venue rather than the source", () => {
+    expect(p).toContain("Tape B @ The Armory");
+    expect(p).toContain("2026-11-20T21:00");
+    expect(p).toContain("concertarchives.org");
+    expect(p).toContain("START WITH THE VENUE'S OWN CALENDAR");
+  });
+
+  // Sep 2026, the Marley/Fillmore report: the cited roundup never mentioned
+  // the show and the pass confirmed it anyway.
+  it("says a source that does not name the event confirms nothing", () => {
+    expect(p).toContain("it confirms nothing");
+    expect(p).toContain("wrong_event");
+  });
+
+  // 15 Oct 2026, Baby Bugs: AXS, TickPick and SeatPick were all still selling
+  // a date First Avenue had moved to 2027.
+  it("says tickets still being on sale confirm nothing", () => {
+    expect(p.toLowerCase()).toContain("resale");
+    expect(p).toContain("confirms nothing");
+  });
+
+  // 28 Oct 2026, the Toddler Music Lab series: right title, right room, right
+  // month and day, one year early, six of eight stamped.
+  it("demands the printed date, year included, and names why", () => {
+    expect(p).toContain("CHECK THE YEAR");
+    expect(p).toContain("YEAR INCLUDED");
+    expect(p).toContain('"saw"');
+    expect(p).toContain("2025");
+    // the consequence stated to the agent, not just the request
+    expect(p).toContain("stamps nothing");
+    // and the two escape hatches it must use instead of confirming
+    expect(p).toContain("never prints a year");
+    expect(p).toContain("not_found");
+  });
+
+  it("shows saw in the output example, or the field never gets filled", () => {
+    const example = p.slice(p.lastIndexOf('[{"id"'));
+    expect(example).toContain('"saw"');
+    expect(example).toContain("2026");
   });
 });

@@ -32,7 +32,13 @@
 import { writeFileSync } from "node:fs";
 import { sql } from "../lib/db";
 import { verifyEventsBatch } from "../lib/agents/research-agent";
-import { actionFor, batchForVerification, withinBudget, type VerifiableEvent } from "../lib/verify";
+import {
+  actionFor,
+  batchForVerification,
+  confirmationDateProblem,
+  withinBudget,
+  type VerifiableEvent,
+} from "../lib/verify";
 import { feedVenues, feedHosts, isFeedStamped } from "../lib/verify-attribution";
 import { revalidateAndReport } from "../lib/revalidate-client";
 import { recordRunSpend } from "../lib/model-spend";
@@ -122,12 +128,22 @@ async function main() {
       const row = byId.get(v.id);
       if (!row) continue;
       const action = actionFor(v);
-      if (action.kind === "confirm") {
+      // A re-check that cannot name the year it read does not keep the stamp.
+      // This job only ever removes confidence, so the gate the main pass uses
+      // to withhold a stamp is the gate that clears one here.
+      const dateProblem =
+        action.kind === "confirm" ? confirmationDateProblem(v.saw, row.start) : null;
+      if (action.kind === "confirm" && !dateProblem) {
         keep.push(v.id);
         console.log(`[resweep]   ✓ still confirmed: ${row.title.slice(0, 46)}`);
       } else {
         const note = action.kind === "flag" ? action.note : `${v.verdict}${v.evidence ? ` — ${v.evidence}` : ""}`;
-        clear.push({ id: v.id, verdict: v.verdict, note });
+        const label = dateProblem
+          ? /\b20\d{2}\b/.test(v.saw ?? "")
+            ? "wrong_year"
+            : "unproven"
+          : v.verdict;
+        clear.push({ id: v.id, verdict: label, note: dateProblem ?? note });
         console.log(`[resweep]   ✗ ${v.verdict.toUpperCase()}: ${row.title.slice(0, 46)} @ ${row.venue.slice(0, 24)}`);
         console.log(`[resweep]     ${note.slice(0, 160)}`);
       }

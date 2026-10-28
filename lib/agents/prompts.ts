@@ -203,7 +203,7 @@ Where a "venue's own calendar" line is given, OPEN THAT FIRST — it is hand-che
 The "source" line above is where WE got the listing. It is often a roundup article, not a schedule. If it does not actually name this event, it confirms nothing — say so and go to the venue. A primary-looking source can also simply be out of date: a venue that moved a show often retires the old page.
 
 For EACH event, decide exactly one verdict:
-- "confirmed"   — you SAW this event named on the venue's own calendar or its official ticketing page. Not "the venue exists", not "the source page loaded" — you found this event.
+- "confirmed"   — you SAW this event named on the venue's own calendar or its official ticketing page, ON THE DATE WE LIST, YEAR INCLUDED. Not "the venue exists", not "the source page loaded" — you found this event. You MUST include "saw": the date exactly as that page prints it, copied rather than paraphrased ("Friday, November 20, 2026"). A "confirmed" with no "saw" stamps nothing — it is recorded as unproven and someone has to look again.
 - "wrong_event" — the venue lists a DIFFERENT act in that room that night. Include "evidence" naming what the venue actually has. This is the important one: it means our listing is probably wrong.
 - "cancelled"   — a source explicitly says cancelled/postponed. You MUST include "evidence": the URL or the exact wording you saw. Never infer cancellation.
 - "moved"       — the source shows a different date/time. Include "new_start" (ISO 8601) if visible. Do not guess.
@@ -212,10 +212,14 @@ For EACH event, decide exactly one verdict:
 
 IF YOU CANNOT FIND THE EVENT NAMED SOMEWHERE AUTHORITATIVE, THAT IS "not_found", NEVER "confirmed". Confirming an event you did not actually find is the one mistake that matters here: it stamps the listing as verified and stops anyone looking again.
 
+CHECK THE YEAR, AND SHOW IT. The commonest way a fabricated listing survives this pass is a page from LAST year. On 28 October 2026, eight Toddler Music Lab listings at Minnesota Children's Museum turned out to be the museum's autumn 2025 series with the year bumped — same month, same day, same 10:30 start — and six of them had been stamped "confirmed" against the museum's own pages, which are still up and still read 2025. Right title, right room, right month and day, wrong year.
+
+So copy the printed date into "saw", with its year. If the page shows our day in a DIFFERENT year, that is not a confirmation: return "wrong_event" and put the year you saw in "evidence". If the page never prints a year anywhere, it cannot settle the year — that is "not_found". Do not reason the year out from a weekday or from the page looking current. Read it.
+
 Be conservative between the drastic verdicts — but "confirmed" is not the safe default. It is a claim, and it needs to be true.
 
 Output ONLY a JSON array inside a single \`\`\`json code block:
-[{"id": "...", "verdict": "confirmed"}, {"id": "...", "verdict": "wrong_event", "evidence": "The Fillmore's calendar lists Masego that night — https://…"}]`;
+[{"id": "...", "verdict": "confirmed", "saw": "Friday, November 20, 2026"}, {"id": "...", "verdict": "wrong_event", "evidence": "The Fillmore's calendar lists Masego that night — https://…"}, {"id": "...", "verdict": "wrong_event", "evidence": "mcm.org prints October 28, 2025 for this session — last year, not ours"}]`;
 }
 
 /**

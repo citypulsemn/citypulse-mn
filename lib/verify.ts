@@ -48,6 +48,12 @@ export interface VerificationVerdict {
   evidence?: string;
   /** For `moved`: the new time the source shows (ISO), informational only. */
   newStart?: string;
+  /**
+   * Required for `confirmed`: the date AS THE PAGE PRINTS IT, copied rather
+   * than paraphrased — "Friday, November 20, 2026". See
+   * `confirmationDateProblem`.
+   */
+  saw?: string;
 }
 
 export type VerifyAction =
@@ -95,6 +101,50 @@ export function actionFor(v: VerificationVerdict): VerifyAction {
           : "venue appears to list something else that night (no evidence given)",
       };
   }
+}
+
+/**
+ * Why a `confirmed` verdict must not stamp — or null when it may.
+ *
+ * THE INCIDENT, 28 Oct 2026. Eight Toddler Music Lab listings at Minnesota
+ * Children's Museum were the museum's autumn 2025 four-week series with the
+ * year bumped: same month, same day, same 10:30 start. SIX CARRIED
+ * `verified_at`. The museum's own page for each session is still up and still
+ * reads 2025, so an agent told to "find what the venue says is in that room
+ * that night" finds the right title, in the right room, on the right month and
+ * day — and confirms. Neither the prompt nor this file had ever read the year.
+ *
+ * So `confirmed` shows its work now, the way `cancelled` always has: the date
+ * as the page printed it. Then the year is arithmetic rather than persuasion —
+ * a gate that depends on the model volunteering proof is not a gate, which is
+ * the lesson `cancelled` was already carrying.
+ *
+ * Three ways it fails, each withholding the stamp:
+ *   - nothing quoted   — a confirmation with no shown work
+ *   - no year in it    — a page that never prints the year cannot settle it
+ *   - the wrong year   — the live fabrication, caught
+ */
+export function confirmationDateProblem(
+  saw: string | undefined,
+  expectedStart: string,
+): string | null {
+  const quoted = (saw ?? "").trim();
+  if (!quoted) return "confirmed without quoting the date the page printed";
+  const years = [...quoted.matchAll(/\b(20\d{2})\b/g)].map((m) => m[1]);
+  const want = expectedStart.slice(0, 4);
+  if (years.length === 0) {
+    return (
+      `confirmed against "${quoted.slice(0, 60)}", which prints no year — ` +
+      "a page that does not say the year cannot settle it"
+    );
+  }
+  if (!years.includes(want)) {
+    return (
+      `the page prints ${years.join("/")} and we list ${expectedStart.slice(0, 10)} — ` +
+      "same day, wrong year, which is how a past event gets republished"
+    );
+  }
+  return null;
 }
 
 export interface VerifiableEvent {
@@ -257,6 +307,7 @@ export function parseVerdicts(text: string, validIds: Set<string>): Verification
       verdict,
       evidence: typeof o.evidence === "string" ? o.evidence : undefined,
       newStart: typeof o.new_start === "string" ? o.new_start : undefined,
+      saw: typeof o.saw === "string" ? o.saw : undefined,
     });
   }
   return out;
@@ -285,7 +336,9 @@ export interface RoutedVerdicts {
 /** The fields routing needs off an event. A superset of what the agent is sent. */
 export type RoutableEvent = Pick<
   VerifiableEvent,
-  "id" | "title" | "venue" | "city" | "sourceUrl" | "ticketUrl"
+  // `start` since 28 Oct 2026: the year gate below cannot compare what it
+  // cannot see, and the absence of this field is why nothing did.
+  "id" | "title" | "venue" | "city" | "start" | "sourceUrl" | "ticketUrl"
 >;
 
 /**
@@ -344,6 +397,19 @@ export function routeVerdicts(
       const why = unknownVenueReason(ev.venue, ev.city) ?? "venue unknown";
       out.lines.push(`[verify]   ⚑ NO-VENUE "${title}" — confirmed, but ${why}`);
       out.flags.push({ id: action.id, verdict: "no_venue", note: why });
+      continue;
+    }
+
+    // A confirmation has to show the date it read, and that date has to carry
+    // our year. See `confirmationDateProblem` for the eight listings that
+    // bought this gate. Withholds the stamp, like the venue gate above it.
+    const dateProblem = confirmationDateProblem(v.saw, ev.start);
+    if (dateProblem) {
+      const label = /\b20\d{2}\b/.test(v.saw ?? "") ? "wrong_year" : "unproven";
+      out.lines.push(
+        `[verify]   ⚑ ${label.toUpperCase()} "${title}" — ${dateProblem}`,
+      );
+      out.flags.push({ id: action.id, verdict: label, note: dateProblem });
       continue;
     }
 
@@ -522,6 +588,7 @@ export function parseVerdictFile(text: string, validIds: Set<string>): VerdictFi
           : typeof o.newStart === "string"
             ? o.newStart
             : undefined,
+      saw: typeof o.saw === "string" ? o.saw : undefined,
     });
   }
 
