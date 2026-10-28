@@ -153,39 +153,46 @@ verify pass had confirmed, and it is still open.
 
 Code pushed to `main` (Vercel auto-deploys). No schema change.
 
-The eight row changes were applied with `npm run correct`, in two passes
-because of the lever mistake above. Backups are in
-`DocumentsCityPulseMNackups`:
-`2026-10-28-recite-dead-sources-before.json` (all eight, pre-change) and
-`2026-10-28-recite-dead-sources-hide-before.json` (the four, as archived).
+Thirteen row changes, applied with `npm run correct` in five passes. Five
+passes rather than one because each later one came out of smoking the one
+before it — the lever mistake, then the Wobbleween span, then the same span at
+Tape B, then the two nights that clearing those spans had left listed nowhere.
+Every pass wrote its own backup; they are listed under **Rollback**.
 
 ```
-pass 1   8 applied, 0 refused, 0 unchanged        4 citations + 4 archives
-         site caches cleared (+8 event pages)
-pass 2   4 applied, 0 refused, 4 unchanged        the 4 archives -> hidden
-         site caches cleared (+4 event pages)
+pass 1   8 applied, 0 refused, 0 unchanged   4 citations repaired + 4 archived
+pass 2   4 applied, 0 refused, 4 unchanged   those 4 archives -> hidden (draft)
+pass 3   1 applied, 0 refused, 0 unchanged   Wobbleween N1 time, end, span
+pass 4   1 applied, 0 refused, 0 unchanged   Tape B N1 end, span, citation
+pass 5   2 applied, 0 refused, 0 unchanged   both second nights restored
+
+caches cleared on every pass: +8, +4, +1, +1, +2 event pages
 ```
 
 Read back from the database, not assumed:
 
 ```
-published  10-30 21:00  v=1  Wobbleween (Night 1)   armorymn.com/events/wobbleween-night-1/
+published  10-30 18:15  v=1  Wobbleween (Night 1)   armorymn.com/events/wobbleween-night-1/
+published  10-31 18:15  v=1  Wobbleween (Night 2)   armorymn.com/events/wobbleween-night-2/
 published  11-03 20:00  v=1  Orville Peck           armorymn.com/events/orville-peck/
 published  11-08 20:30  v=1  Jack White Live 2026   armorymn.com/events/jack-white/
+published  11-20 21:00  v=1  Tape B                 armorymn.com/events/tape-b-night-1/
+published  11-21 21:00  v=1  Tape B                 armorymn.com/events/tape-b-night-2/
 published  11-22 19:00  v=1  Sabaton                armorymn.com/events/sabaton/
 draft      10-28 10:30       Bounce & Boogie
 draft      11-03 10:30       Echo & Explore
 draft      11-18 10:30       Splish Splash
 draft      11-25 10:30       Bounce & Boogie
 
-source_checked_at   null on all four Armory rows (so the next sweep re-reads them)
-admin_audit         8 correction rows + 4 more, each carrying its why
-armory upcoming     4 listings across 4 distinct URLs (was 4 sharing 1)
+source_checked_at   null on every re-cited row (so the next sweep reads the new page)
+end_at / span       null on all six Armory rows that had an unattested one
+armory upcoming     6 listings across 6 distinct URLs (was 4 sharing 1)
 womenspress         0 published upcoming (was 4)
+admin_audit         one row per change, each carrying its own why
 ```
 
-`corrections.json` is a working file and is not committed. Delete it.
-
+The three `corrections*.json` files in the repo root are working files and are
+not committed. Delete them once you have read them.
 ## Verify — taken on the live site
 
 ```
@@ -266,49 +273,187 @@ db     start 2026-10-30 18:15 · end null · multi_day_end null · verified · k
 live   "6:15 PM" · "October 30, 2026" · Friday · no "9:00 PM", no "2:00 AM", no "Oct 30 – 31"
 ```
 
-## Three things this leaves for you
+## Tape B — the same fold, and the aggregators had the time right
 
-**1. Night 2 is not on the calendar.** It is archived — the collapse folded it
-into Night 1's span, and clearing that span does not bring it back. It is a
-real Saturday show at the Armory and we now list neither it nor a span hinting
-at it. The venue page gives the same shape, so the entry is ready:
+Four rows for one weekend, which is what two sources times two nights produces:
 
-```json
-{
-  "id": "6ced099c-51ab-4c13-bace-4c833b451f5a",
-  "why": "a separately ticketed second night, archived by the multi-day collapse; the venue sells it on its own page. Time from that page, not from the onestowatch roundup this row still cites.",
-  "evidence": "https://armorymn.com/events/wobbleween-night-2/",
-  "source_url": "https://armorymn.com/events/wobbleween-night-2/",
-  "start": "2026-10-31T18:15",
-  "end": null,
-  "verified": true
-}
+```
+archived   Fri 20 Nov 21:00   Tape B – Friday Pass     ticketmaster.com     verified
+PUBLISHED  Fri 20 Nov 21:00   Tape B      span → 21    concertarchives.org  verified
+archived   Sat 21 Nov 21:00   Tape B – Saturday Pass   ticketmaster.com     verified
+archived   Sat 21 Nov 21:00   Tape B                   concertarchives.org
 ```
 
-That corrects it but does **not** republish it — `status` is not a correctable
-field and `hide`/`archive` only go one way. Restoring is the Restore button in
-Admin → Events, or `update events set status = 'published'`. Putting a listing
-back on the calendar is a product call, so it is not taken here.
+The dedupe kept one and archived three; the collapse then gave the keeper a
+two-day span. **The venue's own pages settle it conclusively** — not by the
+dates but by the bills, which share no act at all:
 
-**2. Tape B, 20 – 21 Nov, is the same shape.** Same venue, same fold: the
-published row spans two days and the archived sibling is titled "Tape B –
-Saturday Pass", which is the venue telling us they are sold separately. One
-correction away now that the field exists.
+- **Night 1**, Friday 20 November 2026: *MERSIV, SAKA, FLY, STVSH + CLAYBROOK*
+- **Night 2**, Saturday 21 November 2026: *TROYBOI, TAIKI, NIGHLIGHT, WINK*
 
-**3. The fold itself.** 23 upcoming published listings carry a span. Most are
-true runs — *Beavers and Botanicals* over five days, *A Christmas Carol*, a
-comedy residency, weekend markets — and should stay. The question is the ones
-sold **per night**: Wobbleween, Tape B, and arguably the two-performance
-orchestra and opera programmes. `planCollapse` folds on a shared title prefix
-and consecutive days, which cannot see the difference between a run you buy one
-ticket for and two shows you buy two. Teaching it that is a product decision
-with 23 listings behind it, not a repair.
+Two different shows, sold separately, by the same headliner. Not a run.
+
+**And the time was already right.** Both pages read *"Doors at 9:00 // Show at
+9:00"*, so the 21:00 the aggregators supplied is correct and stays — worth
+stating, because the Wobbleween fix two sections up could read as a rule that
+aggregator times are always wrong. They are unattested, which is different.
+
+So three fields, not four:
+
+- **multi_day_end → cleared.** Different bills on different nights.
+- **end → cleared.** The venue publishes none; the 01:00 came from
+  `concertarchives.org`, the same page this row cited.
+- **source_url → `armorymn.com/events/tape-b-night-1/`**, off
+  `concertarchives.org`. A third-party concert archive is not the organiser.
+  This resets `source_checked_at`, so next week's sweep reads the new page.
+- **start → untouched at 21:00**, now resting on the organiser instead of an
+  archive site.
+
+### Observed, after
+
+```
+db     start 2026-11-20 21:00 · end null · multi_day_end null · verified
+       source_url armorymn.com/events/tape-b-night-1/
+live   "9 PM" · "November 20, 2026" · Friday · no "Nov 20 – 21" · links the venue page
+```
+
+That page also shows the other three Armory repairs in its sibling cards —
+Wobbleween 6:15 PM, Orville Peck 8 PM, Jack White 8:30 PM — which is the whole
+set visible in one fetch.
+
+### What is actually left here
+
+**Both nights are titled plain "Tape B"** while the venue distinguishes them.
+Left alone on purpose: `event_key` is `sha(title | venue | start day)`, so
+retitling moves the identity — and the next pipeline run would find "Tape B" at
+its source, compute the OLD key, match nothing, and insert a duplicate beside
+the renamed row. The dates already tell them apart for a reader. Worth doing
+once, deliberately, for both rows — not on the way past.
+
+**The ticket links point at aggregators.** `jambase.com/venue/the-armory-…` for
+Tape B and `livenation.com/venue/…/armory-events` for Wobbleween are each that
+site's generic page for the venue, not the show's tickets. `ticket_url` is not
+a `Correction` field, so that one needs Admin. Measured across the calendar
+while I was in here: of 632 upcoming published listings, **9** carry an
+aggregator ticket link and **none** a reseller — small, and not new.
+
+## Both second nights restored
+
+The collapse had archived each second night into its Night 1 span, so clearing
+those spans left two real Saturday shows listed nowhere. Both are back, with
+the venue's own numbers rather than the ones they were archived with:
+
+| | our start | the venue's page | citation was |
+|---|---|---|---|
+| Wobbleween Night 2 | **Sat 31 Oct, 18:15** (was 21:00) | "Saturday, October 31, 2026 · Show at 6:15" | `onestowatch.com` |
+| Tape B Night 2 | **Sat 21 Nov, 21:00** (unchanged) | "Saturday, November 21, 2026 · Doors at 9:00 // Show at 9:00" | `concertarchives.org` |
+
+Both ends cleared — neither venue publishes one — and both now cite the
+organiser's own page for that night, which resets `source_checked_at` so next
+week's sweep reads it.
+
+For Tape B there were **two** archived candidates for the Saturday. Kept
+`b439fe30`, titled plainly *Tape B*, over `9acaf562`, titled *Tape B – Saturday
+Pass* — a pass is a ticket type, not the name of a show. The other stays
+archived rather than deleted.
+
+All four nights now read the same way:
+
+```
+published  Fri 30 Oct 18:15  Wobbleween (Night 1)  armorymn.com/events/wobbleween-night-1/  verified
+published  Sat 31 Oct 18:15  Wobbleween (Night 2)  armorymn.com/events/wobbleween-night-2/  verified
+published  Fri 20 Nov 21:00  Tape B                armorymn.com/events/tape-b-night-1/      verified
+published  Sat 21 Nov 21:00  Tape B                armorymn.com/events/tape-b-night-2/      verified
+
+live   /event/6ced099c…  "6:15 PM" · "October 31, 2026"  · links the venue's night-2 page
+live   /event/b439fe30…  "9 PM"    · "November 21, 2026" · links the venue's night-2 page
+live   /day/2026-10-31 lists Wobbleween · /day/2026-11-21 lists Tape B
+```
+
+### The file could take a listing down two ways and put one back none
+
+`archive` and `hide` both existed; nothing restored. Admin has a Restore
+button, and `restore-drafted.ts` republishes — but only rows drafted by the
+wrong-event sweep, and it spends model money to re-derive a date the venue page
+had already given me. So **`publish: true`** is the third lever
+(`lib/corrections.ts`, `scripts/apply-correction.ts`).
+
+Two deliberate asymmetries with the takedown flags:
+
+- **It requires `evidence`.** It is the only lever that puts a listing in front
+  of a reader, so a row comes back because a page says the event is real, never
+  because someone remembered it. A takedown that is wrong is one click from
+  fixed; this direction is the one that can do harm.
+- **It may carry edits, and usually should.** A row was archived for a reason,
+  and restoring it without fixing what was wrong republishes the reason. Both
+  of these needed an invented end cleared and a citation moved off an
+  aggregator in the same pass.
+
+It writes `status` through the same `put`/`nextValue` path as every other
+column, so a restore shows up in the dry run, the audit patch and the backup
+like any other change — and re-running the file once the row is live reports
+`nothing`. The dry run labels it `↑ PUBLISH`, never `± EDIT`. The source
+tripwire now requires `status` to be read through `nextValue` too; proven to
+bite by deleting that line.
+## The fold will not do this again, and six rows still wear the old damage
+
+Earlier in this guide I wrote that `planCollapse` was unchanged and would fold
+the next pair the same way. **That was wrong, and reading the code is what
+corrected it.** `lib/multiday.ts` holds
+`PER_NIGHT = new Set(["sports", "music"])`: for those categories the interval
+end is forced to the start day, the gap is 0, and the parent-child prefix fold
+skips them outright. Music joined that set on **29 Sep 2026**, and the
+docstring names the five two-night stands that put it there — *jeremy
+messersmith, Sylvan Esso, The Suburbs, Angine de Poitrine, Phantom of the
+Opera* — with the same reasoning I had just reached from the Armory's lineups,
+and better proof: each pair carried two distinct `ticket_url`s.
+
+Confirmed rather than assumed. `npm run collapse -- --dry-run` after the
+restore proposes **four actions, none of them these** — all four are one
+unrelated recurring art-contest exhibit:
+
+```
+[collapse] 970 events, 4 action(s) (DRY RUN)
+[collapse] 4 run(s), 0 duplicate group(s), 0 fold(s), 16 row(s) archived
+```
+
+So Wobbleween and Tape B were **legacy** folds, written before the rule existed.
+The rule stopped new ones; nothing ever cleared the spans it had already
+written. **Six upcoming music rows still carry one**, and three of them are the
+exact shows named in that docstring:
+
+```
+31 Oct..01 Nov  Phantom of the Opera                              Fitzgerald Theater
+07 Nov..08 Nov  The Many Deaths of Laila Starr (Minnesota Opera)  Ordway Center
+10 Nov..11 Nov  Schubert Club Presents (Concert)                  Ordway Concert Hall
+10 Nov..11 Nov  Schubert Club International Artist Series: J E…   Ordway Center
+13 Nov..14 Nov  The Suburbs                                       Turf Club
+01 Dec..02 Dec  Angine de Poitrine                                First Avenue
+```
+
+Each shows a two-day run for what is almost certainly two separately ticketed
+performances, and each wants its second night checked against the organiser
+before anything is cleared or restored — the Turf Club and First Avenue pages
+read fine to a script, the Ordway's may not. The tool to do it exists as of
+today. Six rows, and the call is yours.
 ## Rollback
 
 ```bash
 git revert <sha> && git push origin HEAD:main
 ```
 
-For the data, `2026-10-28-recite-dead-sources-before.json` holds every prior
-value. The four hidden rows come back with one `status` update each — or the
-Restore button in Admin → Events, which is the same thing. Nothing was deleted.
+For the data, every pass wrote a backup to `Documents\CityPulseMN\backups\`,
+in the order they were applied:
+
+```
+2026-10-28-recite-dead-sources-before.json       all eight, before anything
+2026-10-28-recite-dead-sources-hide-before.json  the four fabrications, as archived
+2026-10-28-wobbleween-time-before.json           Night 1, at 21:00 with its span
+2026-10-28-tapeb-span-before.json                Tape B Night 1, with its span
+2026-10-28-second-nights-before.json             both second nights, as archived
+```
+
+Each holds the full prior row, so any one pass can be undone on its own.
+Nothing in this session was deleted: the four fabrications are drafts, the
+two superseded duplicates are archived, and `publish: true` or the Restore
+button in Admin → Events brings any of them back.

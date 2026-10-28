@@ -164,6 +164,7 @@ async function main() {
       await sql`
         update events set
           event_key  = ${plan.newKey ?? row.event_key},
+          status     = ${nextValue(f, row, "status")},
           title      = ${nextValue(f, row, "title")},
           venue      = ${nextValue(f, row, "venue")},
           city       = ${nextValue(f, row, "city")},

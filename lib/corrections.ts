@@ -51,6 +51,22 @@ export interface Correction {
    * takedown in `/report-action` both set, and one update puts it back.
    */
   hide?: boolean;
+  /**
+   * Put an archived or drafted row back on the calendar.
+   *
+   * The only lever here that puts a listing IN FRONT OF A READER, so it is the
+   * only one that demands `evidence`: a row comes back because a page says the
+   * event is real, never because someone remembered it. It is also the only
+   * takedown-shaped flag that MAY carry edits, and usually should — a row was
+   * archived for a reason, and restoring it without fixing what was wrong
+   * republishes the reason. Both second nights restored on 28 Oct 2026 needed
+   * their invented end cleared and their citation moved off an aggregator in
+   * the same breath.
+   *
+   * Writes `status = 'published'`, so it travels through `fields` like any
+   * other column and shows up in the log, the audit row and the backup.
+   */
+  publish?: boolean;
   title?: string;
   venue?: string;
   city?: string;
@@ -180,6 +196,15 @@ export function validateCorrection(c: Correction): string | null {
   // They set different statuses, so a file asking for both is a file whose
   // author has not decided which one they mean.
   if (c.archive && c.hide) return "archive:true and hide:true are different outcomes — pick one";
+  if (c.publish && (c.archive || c.hide)) {
+    return "publish:true cannot be combined with a takedown — pick one direction";
+  }
+  // The asymmetry is deliberate. A takedown is safe when it is wrong and
+  // reversible in one click; putting a listing back in front of readers is the
+  // direction that can do harm, so it has to cite the page that says it is real.
+  if (c.publish && !(c.evidence ?? "").trim()) {
+    return "publish:true needs `evidence` — a row goes back on the calendar because a page says the event is real";
+  }
   if (c.archive || c.hide) {
     const edits = (
       ["title", "venue", "city", "address", "source_url", "start", "end", "multi_day_end", "lat", "lng"] as const
@@ -255,7 +280,7 @@ export function validateCorrection(c: Correction): string | null {
   const touches = (
     ["title", "venue", "city", "address", "source_url", "start", "end", "multi_day_end", "lat", "lng"] as const
   ).some((k) => c[k] !== undefined);
-  if (!touches) return "nothing to change";
+  if (!touches && !c.publish) return "nothing to change";
   return null;
 }
 
@@ -299,6 +324,10 @@ export function planCorrection(row: CorrectionRow, c: Correction): CorrectionPla
   put("start_local", c.start, row.start_local);
   put("end_local", c.end, row.end_local);
   put("multi_day_end", c.multi_day_end, row.multi_day_end);
+  // `status` goes through the same `put`, so a restore appears in the log, the
+  // audit patch and the backup exactly like any other changed column — and
+  // re-running the file is a no-op once the row is published ("nothing").
+  if (c.publish) put("status", "published", row.status);
   put("lat", c.lat, row.lat);
   put("lng", c.lng, row.lng);
 
@@ -364,8 +393,9 @@ export function describePlan(plan: CorrectionPlan, row: CorrectionRow): string[]
     const label = plan.kind === "archive" ? "✗ ARCHIVE " : "⊘ HIDE    ";
     return [`${label} ${head}`, `    ${plan.why}`, ...(plan.evidence ? [`    ${plan.evidence}`] : [])];
   }
+  const label = "status" in plan.fields ? "↑ PUBLISH  " : "± EDIT     ";
   return [
-    `± EDIT     ${head}`,
+    `${label}${head}`,
     ...plan.changed.map((c) => `    ${c}`),
     ...(plan.newKey ? [`    event_key: ${row.event_key} → ${plan.newKey}  (identity changed)`] : []),
     `    ${plan.why}`,

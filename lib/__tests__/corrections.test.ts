@@ -96,6 +96,34 @@ describe("planCorrection", () => {
     expect(planCorrection(row({ status: "archived" }), base({ hide: true })).kind).toBe("hide");
   });
 
+  // 28 Oct 2026: the file could take a listing down two ways and put one back
+  // none, so the two second nights the multi-day collapse had archived could
+  // only be restored by hand in Admin.
+  it("restores an archived row, carrying the fixes it needs in the same pass", () => {
+    const r = row({ status: "archived" });
+    const p = planCorrection(
+      r,
+      base({ publish: true, evidence: "https://armorymn.com/events/wobbleween-night-2/", end: null }),
+    );
+    expect(p.kind).toBe("edit");
+    if (p.kind !== "edit") return;
+    expect(p.fields.status).toBe("published");
+    expect(p.fields.end_local).toBeNull();
+    expect(p.changed.join(" ")).toContain("archived → published");
+  });
+
+  it("says nothing when the row is already published", () => {
+    expect(
+      planCorrection(row(), base({ publish: true, evidence: "https://armorymn.com/events/wobbleween-night-2/" })).kind,
+    ).toBe("nothing");
+  });
+
+  it("labels a restore unmistakably — it is the one lever that reaches readers", () => {
+    const r = row({ status: "archived" });
+    const out = describePlan(planCorrection(r, base({ publish: true, evidence: "https://armorymn.com/events/wobbleween-night-2/" })), r);
+    expect(out[0]).toContain("PUBLISH");
+  });
+
   it("labels a hide distinctly from an archive", () => {
     const r = row();
     expect(describePlan(planCorrection(r, base({ hide: true })), r)[0]).toContain("HIDE");
@@ -280,6 +308,21 @@ describe("validateCorrection", () => {
     expect(
       validateCorrection(base({ multi_day_end: null, verified: true, evidence: "https://armorymn.com/events/wobbleween-night-1/" })),
     ).toMatch(/the verify pass cannot see/);
+  });
+
+  it("will not restore a listing without the page that says it is real", () => {
+    expect(validateCorrection(base({ publish: true }))).toMatch(/needs `evidence`/);
+    expect(validateCorrection(base({ publish: true, evidence: "https://armorymn.com/events/wobbleween-night-2/" }))).toBeNull();
+    // A restore may carry edits — that is the point, see Correction.publish.
+    expect(
+      validateCorrection(base({ publish: true, evidence: "https://armorymn.com/events/wobbleween-night-2/", end: null, source_url: "https://armorymn.com/events/wobbleween-night-2/" })),
+    ).toBeNull();
+    expect(validateCorrection(base({ publish: true, hide: true, evidence: "https://armorymn.com/events/wobbleween-night-2/" }))).toMatch(
+      /pick one direction/,
+    );
+    expect(validateCorrection(base({ publish: true, archive: true, evidence: "https://armorymn.com/events/wobbleween-night-2/" }))).toMatch(
+      /pick one direction/,
+    );
   });
 
   it("holds a hide to the same rules, and refuses both levers at once", () => {
@@ -497,7 +540,7 @@ describe("the script actually uses it — tripwire on scripts/apply-correction.t
   });
 
   it("reads every column through nextValue, never through `?? row.`", () => {
-    for (const col of ["title", "venue", "city", "address", "source_url", "lat", "lng"]) {
+    for (const col of ["title", "venue", "city", "address", "source_url", "lat", "lng", "status"]) {
       expect(update, col).toContain(`nextValue(f, row, "${col}")`);
     }
     // The shape that could not tell "clear this" from "not mentioned":
