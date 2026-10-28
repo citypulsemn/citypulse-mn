@@ -1,6 +1,6 @@
 import { requireSql } from "./db";
 import type { DbEventInput } from "./types";
-import { planCollapse } from "./multiday";
+import { planCollapse, staleSpanIds } from "./multiday";
 import { displayPrice } from "./price-quality";
 import { isResaleSource } from "./source-trust";
 import { findIncomingDuplicates, type CalendarRow } from "./contradictions";
@@ -329,6 +329,8 @@ export async function collapseMultiDayRuns(): Promise<{
   collapsed: number; merged: number; folded: number;
   /** Rows the plan wanted to archive, and rows the write actually changed. */
   plannedArchives: number; archivedRows: number;
+  /** Spans removed because the per-night rule would never have written them. */
+  spansCleared: number;
 }> {
   const sql = requireSql();
 
@@ -346,7 +348,19 @@ export async function collapseMultiDayRuns(): Promise<{
     order by start_at asc
   `;
 
-  const actions = planCollapse(rows.map((r) => ({ ...r, endDay: r.end_day })));
+  const planRows = rows.map((r) => ({ ...r, endDay: r.end_day }));
+  const actions = planCollapse(planRows);
+
+  // Reconcile before applying: a span the rules refuse is one the planner
+  // already ignores, so the only thing it still affects is what the site
+  // renders. Clearing it here means the next change to PER_NIGHT heals itself
+  // on the following weekly run instead of waiting for someone to notice.
+  const stale = staleSpanIds(planRows);
+  let spansCleared = 0;
+  if (stale.length > 0) {
+    const res = await sql`update events set multi_day_end = null where id::text = any(${stale})`;
+    spansCleared = res.count;
+  }
   let collapsed = 0;
   let merged = 0;
   let folded = 0;
@@ -391,7 +405,7 @@ export async function collapseMultiDayRuns(): Promise<{
     );
   }
 
-  return { collapsed, merged, folded, plannedArchives, archivedRows };
+  return { collapsed, merged, folded, plannedArchives, archivedRows, spansCleared };
 }
 
 /** Stamp events as source-verified just now (roadmap 4.5). */

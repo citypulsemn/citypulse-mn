@@ -360,6 +360,30 @@ export function planCollapse(rows: CollapseRow[]): CollapseAction[] {
   return actions;
 }
 
+/**
+ * Ids whose STORED span the current rules would never have written.
+ *
+ * PER_NIGHT is enforced at write time only, and the set has grown twice:
+ * sports from the start, music on 29 Sep 2026. Each time it grows, every span
+ * already stored in the newly-added category becomes a fold the planner would
+ * now refuse to make — and nothing reconciled them.
+ *
+ * planCollapse ALREADY disbelieves those spans: the perNight guard above
+ * treats such a row as a single-day interval whatever multi_day_end says. The
+ * site does not. It reads multi_day_end directly, so a two-night stand went on
+ * rendering as one two-day event, and the second night's own card showed up
+ * beside it on day two. Measured 28 Oct 2026: six music rows, still live 29
+ * days after the rule changed.
+ *
+ * So the collapse pass heals the data instead of only declining to worsen it.
+ * Nothing else writes multi_day_end, which is what makes a clear durable.
+ */
+export function staleSpanIds(rows: CollapseRow[]): string[] {
+  return rows
+    .filter((r) => PER_NIGHT.has(r.category ?? "") && (r.endDay ?? "") > dayOf(r.start))
+    .map((r) => r.id);
+}
+
 // ── Display ───────────────────────────────────────────────────────────────
 
 type Spannable = Pick<EventRecord, "start" | "multiDayEnd"> & { end?: string };

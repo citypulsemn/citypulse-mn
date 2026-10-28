@@ -259,6 +259,12 @@ async function main() {
       `[pipeline] multi-day: collapsed ${runs.collapsed} run(s), merged ${runs.merged} duplicate(s), folded ${runs.folded} sub-event group(s)`,
     );
   }
+  if (runs.spansCleared > 0) {
+    console.log(
+      `[pipeline] multi-day: cleared ${runs.spansCleared} span(s) on per-night rows — ` +
+        "a stand or a game never spans days, so the span was written under an older rule",
+    );
+  }
 
   // R2.1 — rate-limit counters idle 2+ days are dead weight; sweep weekly.
   const pruned = await pruneRateEvents();

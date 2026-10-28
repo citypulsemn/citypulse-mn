@@ -5,6 +5,7 @@ import {
   groupRuns,
   collapsibleClusters,
   planCollapse,
+  staleSpanIds,
   isMultiDay,
   multiDayLabel,
   runLength,
@@ -486,5 +487,80 @@ describe("two-night stands are not runs", () => {
       night(`f${i}`, "Nicollet Island Winter Market", `2026-12-${d}T10:00`, "family"),
     );
     expect(planCollapse(rows).filter((x) => x.kind === "run")).toHaveLength(1);
+  });
+});
+
+describe("staleSpanIds — the spans the rules refuse but nothing removed", () => {
+  const row = (o: Partial<CollapseRow> & { id: string }): CollapseRow => ({
+    title: "Event",
+    city: "Minneapolis",
+    category: "festival",
+    start: "2026-11-13T20:00",
+    endDay: null,
+    ...o,
+  });
+
+  it("finds the six that were live on 28 Oct 2026", () => {
+    // All six upcoming ones were music rows whose span predates music joining
+    // PER_NIGHT on 29 Sep 2026. Each rendered a two-night stand as one
+    // two-day event, and on FIVE of the six the span's last day already had
+    // its own published card, so day two showed the same show twice.
+    expect(
+      staleSpanIds([
+        row({ id: "suburbs", title: "The Suburbs", category: "music", start: "2026-11-13T20:00", endDay: "2026-11-14" }),
+        row({ id: "angine", title: "Angine de Poitrine", category: "music", start: "2026-12-01T20:00", endDay: "2026-12-02" }),
+      ]),
+    ).toEqual(["suburbs", "angine"]);
+  });
+
+  it("clears the July sports class too, not just music", () => {
+    // 14 sports rows carried spans from the pre-reclassify collapse era. The
+    // guard inside planCollapse stopped them absorbing real games; the spans
+    // themselves were removed by hand, because there was no lever.
+    expect(
+      staleSpanIds([
+        row({ id: "saints", title: "St. Paul Saints vs. Louisville Bats", category: "sports", start: "2026-08-04T19:05", endDay: "2026-08-10" }),
+      ]),
+    ).toEqual(["saints"]);
+  });
+
+  it("leaves a genuine multi-day run alone — the whole point of the category split", () => {
+    expect(
+      staleSpanIds([
+        row({ id: "renfest", title: "Minnesota Renaissance Festival", category: "festival", start: "2026-08-22T09:00", endDay: "2026-10-04" }),
+        row({ id: "beavers", title: "Beavers and Botanicals", category: "family", start: "2026-10-14T10:00", endDay: "2026-10-18" }),
+      ]),
+    ).toEqual([]);
+  });
+
+  it("is silent on rows with nothing to clear, including the same-day boundary", () => {
+    expect(staleSpanIds([])).toEqual([]);
+    expect(staleSpanIds([row({ id: "a", category: "music" })])).toEqual([]);
+    // endDay ON the start day is not a span: spanEnd() returns null for it, so
+    // the site renders nothing wrong and there is nothing to undo.
+    expect(staleSpanIds([row({ id: "b", category: "music", endDay: "2026-11-13" })])).toEqual([]);
+    // An endDay BEFORE the start is corrupt, but spanEnd() ignores it too, so
+    // it is not this function's business — clearing it would be a silent edit
+    // to a row no reader sees wrongly.
+    expect(staleSpanIds([row({ id: "c", category: "music", endDay: "2026-11-01" })])).toEqual([]);
+    expect(staleSpanIds([row({ id: "d", category: undefined, endDay: "2026-11-14" })])).toEqual([]);
+  });
+
+  // THE INVARIANT, and the reason this function exists at all: the set of
+  // categories that REFUSE to write a span must be exactly the set whose
+  // stored spans get cleared. They were not the same for 29 days, and the
+  // difference was visible on the live calendar. Driven through the public API
+  // so adding a category to PER_NIGHT cannot move one half without the other.
+  it("clears a span for exactly those categories that refuse to make one", () => {
+    for (const category of ["music", "sports", "festival", "family", "arts", "food"]) {
+      const consecutive = planCollapse([
+        row({ id: "d1", category, start: "2026-11-13T20:00" }),
+        row({ id: "d2", category, start: "2026-11-14T20:00" }),
+      ]);
+      const wouldWriteASpan = consecutive.some((a) => a.setEnd !== null);
+      const clearsASpan =
+        staleSpanIds([row({ id: "x", category, endDay: "2026-11-14" })]).length > 0;
+      expect(clearsASpan, `category "${category}"`).toBe(!wouldWriteASpan);
+    }
   });
 });

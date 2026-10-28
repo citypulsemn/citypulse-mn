@@ -19,7 +19,7 @@
  */
 import { sql } from "../lib/db";
 import { revalidateAndReport } from "../lib/revalidate-client";
-import { planCollapse } from "../lib/multiday";
+import { planCollapse, staleSpanIds } from "../lib/multiday";
 
 async function main() {
   const dryRun = process.argv.includes("--dry-run");
@@ -36,8 +36,16 @@ async function main() {
     order by start_at asc
   `;
 
-  const actions = planCollapse(rows.map((r) => ({ ...r, endDay: r.end_day })));
-  console.log(`[collapse] ${rows.length} events, ${actions.length} action(s)${dryRun ? " (DRY RUN)" : ""}\n`);
+  const planRows = rows.map((r) => ({ ...r, endDay: r.end_day }));
+  const actions = planCollapse(planRows);
+  // Spans the rules refuse to write but nothing ever removed. Reported with
+  // the actions because clearing one changes what a reader sees on day two.
+  const stale = staleSpanIds(planRows);
+  console.log(
+    `[collapse] ${rows.length} events, ${actions.length} action(s)` +
+      `${stale.length > 0 ? `, ${stale.length} stale span(s)` : ""}` +
+      `${dryRun ? " (DRY RUN)" : ""}\n`,
+  );
 
   let collapsed = 0;
   let merged = 0;
@@ -72,13 +80,27 @@ async function main() {
     }
   }
 
+  let spansCleared = 0;
+  for (const id of stale) {
+    const row = rows.find((r) => r.id === id)!;
+    console.log(`  CLEAR  "${row.title}" ${row.start.slice(0, 10)} — drop the span to ${row.end_day}`);
+  }
+  if (stale.length > 0 && !dryRun) {
+    const res = await sql`update events set multi_day_end = null where id::text = any(${stale})`;
+    spansCleared = res.count;
+  }
+
   console.log(
-    `\n[collapse] ${collapsed} run(s), ${merged} duplicate group(s), ${folded} fold(s), ${archived} row(s) archived`,
+    `\n[collapse] ${collapsed} run(s), ${merged} duplicate group(s), ${folded} fold(s), ${archived} row(s) archived` +
+      `${stale.length > 0 ? `, ${dryRun ? stale.length : spansCleared} stale span(s) cleared` : ""}`,
   );
   console.log(`[collapse] ${rows.length} → ${rows.length - archived} events`);
   if (dryRun) console.log("\n[collapse] dry run — nothing written. Re-run without --dry-run to apply.");
-  else if (archived > 0 || collapsed > 0) {
-    await revalidateAndReport("collapse", `${collapsed} run(s) collapsed, ${archived} row(s) archived`);
+  else if (archived > 0 || collapsed > 0 || spansCleared > 0) {
+    await revalidateAndReport(
+      "collapse",
+      `${collapsed} run(s) collapsed, ${archived} row(s) archived, ${spansCleared} stale span(s) cleared`,
+    );
   }
 
   await sql.end({ timeout: 5 });
