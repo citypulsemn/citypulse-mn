@@ -205,6 +205,8 @@ export interface OpsInputs {
     placeholderTitles: number;
     /** A few formatted conflict lines, worst first, for the email body. */
     examples: string[];
+    /** A few formatted duplicate lines. The only report these ever get. */
+    dupExamples: string[];
     /** A few placeholder titles, so the line is actionable rather than a count. */
     titleExamples: string[];
   };
@@ -663,8 +665,18 @@ export function buildSections(inputs: OpsInputs, now: Date = new Date()): OpsSec
   // here that needs no outside source, which is why it exists — five categories
   // have none. A CONFLICT alerts (two different things in one room at one time
   // means the site is publishing something false); duplicates and placeholder
-  // venues are reported without alerting, because they are untidy rather than
-  // untrue.
+  // venues are reported without alerting.
+  //
+  // A DUPLICATE NOW ALERTS TOO, and the old reason for not alerting — "untidy
+  // rather than untrue" — was wrong. When BOTH rows of a duplicate pair are live,
+  // each one blocks the other's weekly re-find: withoutLiveDuplicates excludes
+  // an incoming row from comparison with ITSELF by event_key, but not with its
+  // twin, and findIncomingDuplicates then refuses the arrival
+  // (lib/upsert.ts withoutLiveDuplicates, lib/contradictions.ts pass 1). So a
+  // cancellation or a time change on either row can never reach the site.
+  // Measured 29 Oct 2026: two live rows in exactly that state, one pair at the
+  // Minnesota Children's Museum on 1 Nov, last re-found 19 and 26 October.
+  // That is untrue, not untidy, and it was the quietest line in the email.
   {
     let lines: string[];
     let alert = false;
@@ -673,7 +685,8 @@ export function buildSections(inputs: OpsInputs, now: Date = new Date()): OpsSec
       alert = true;
     } else {
       const {
-        conflicts, duplicates, placeholderVenues, placeholderTitles, examples, titleExamples,
+        conflicts, duplicates, placeholderVenues, placeholderTitles,
+        examples, dupExamples, titleExamples,
       } = inputs.contradictions;
       if (conflicts === 0 && duplicates === 0 && placeholderVenues === 0 && placeholderTitles === 0) {
         lines = ["the calendar does not contradict itself anywhere"];
@@ -687,7 +700,12 @@ export function buildSections(inputs: OpsInputs, now: Date = new Date()): OpsSec
           alert = true;
         }
         if (duplicates > 0) {
-          lines.push(`${duplicates} probable duplicate${duplicates === 1 ? "" : "s"} — same event listed twice`);
+          lines.push(
+            `${duplicates} probable duplicate${duplicates === 1 ? "" : "s"} — same event listed twice, ` +
+              "and while both are live neither can be updated",
+          );
+          lines.push(...dupExamples.map((e) => `    ${e}`));
+          alert = true;
         }
         if (placeholderTitles > 0) {
           lines.push(

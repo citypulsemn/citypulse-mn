@@ -188,8 +188,21 @@ found seven listings instead of twenty-one.
   and folding would hide it. That cost more than it saved: a verified show at
   `"Turf Club (St Paul)"` never met its duplicate at `"Turf Club"`, and
   `"Drake (with NAV)"` and `"Young Thug with NAV"` sat at the Armory on the same
-  night under two spellings with nothing to notice them. The fragmentation is now
-  reported directly as `venueSpellings` instead. `roomKey()` strips a trailing
+  night under two spellings with nothing to notice them.
+
+  `venueSpellings` is computed from the same grouping, but it is NOT a report of
+  fragmentation and this page used to say it was. Two things are wrong with that:
+  `lib/ops-inputs.ts` drops the field, so it reaches no email and no panel; and
+  because it groups BY `roomKey`, it can only ever list spellings that ALREADY
+  fold. The drift that matters is the near-miss that does not fold yet — which is
+  exactly what hid five published rows for a two-performance recital at the Ordway
+  until 29 Oct 2026. Measured that day, post-fold, it names 9 rooms and every one
+  of them is a room where folding is working correctly. Seeing unfolded drift means
+  grouping on something other than the key, and the pin is measured unfit for it:
+  196 of 868 pins carry 2+ addresses, 181 of 1,010 roomKeys sit on 2+ pins, and a
+  pin-only fold wrongly merges 24 real published pairs to catch 6.
+
+  `roomKey()` strips a trailing
   parenthetical ONLY when it is a city — `"First Avenue & 7th St Entry
   (7th St Entry)"` ends in one too, and there it names the other ROOM.
 - **It changes nothing.** It is an instrument. Every finding names both listings

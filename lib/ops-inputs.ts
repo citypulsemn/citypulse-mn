@@ -210,7 +210,7 @@ export async function gatherOpsInputs(): Promise<OpsInputs> {
     "contradictions",
     {
       conflicts: 0, duplicates: 0, placeholderVenues: 0, placeholderTitles: 0,
-      examples: [] as string[], titleExamples: [] as string[],
+      examples: [] as string[], dupExamples: [] as string[], titleExamples: [] as string[],
     },
     async () => {
       if (!sql) throw new Error("no database connection");
@@ -227,6 +227,11 @@ export async function gatherOpsInputs(): Promise<OpsInputs> {
         placeholderVenues: report.placeholderVenues.length,
         placeholderTitles: titles.length,
         examples: report.conflicts.slice(0, 5).map(formatFinding),
+        // Named, not just counted. A duplicate pair that is both rows LIVE is the
+        // one the write gate skips as "the panel's problem"
+        // (lib/contradictions.ts findIncomingDuplicates pass 1), so this line is
+        // the only place it is ever reported.
+        dupExamples: report.duplicates.slice(0, 5).map(formatFinding),
         titleExamples: titles.slice(0, 4).map((t) => `${t.day} · ${t.venue}: "${t.title}"`),
       };
     },

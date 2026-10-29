@@ -154,8 +154,43 @@ const norm = (s: string) => foldTitle(s).replace(/\s+/g, " ").trim();
 const CITY_SUFFIX =
   /\s*\((?:st\.?\s*paul|saint\s*paul|minneapolis|mpls|minnesota|mn)\)\s*$/i;
 
+/**
+ * Spellings that name the SAME ROOM and survive both canonicalizeVenue and the
+ * city strip: a building name restated in front of, or behind, the room name.
+ * Keys and values are roomKey OUTPUT (already normalized, no punctuation).
+ *
+ * ATTESTED, not inferred. ordway.org's own events index prints the venue line
+ * for each show as "Ordway Concert Hall" or "Ordway Music Theater" and
+ * distinguishes the two room by room (read 29 Oct 2026). The long forms are an
+ * agent's restatement of building + room, not a third and fourth room. Folding
+ * on the identical pin would have been the tempting shortcut and is the exact
+ * reasoning this project treats as dangerous: measured, a pin-only fold wrongly
+ * merges 24 real published pairs to catch 6, and 22 of those 24 are one
+ * building — First Avenue's mainroom against the 7th St Entry.
+ *
+ * WHY HERE AND NOT IN VENUE_ALIASES. That table feeds event_key. Adding these
+ * four there re-keys 12 Ordway rows, and 7 of the new keys already belong to
+ * another row, so the correction path would refuse them. The Xcel Energy Center
+ * fold came out clean only because it shipped with a hand re-key of all 36 live
+ * rows in the same session. roomKey touches no key: 0 of 5,084 event_keys move.
+ *
+ * WHAT IS DELIBERATELY ABSENT: the bare "ordway center for the performing arts"
+ * (4 rows). It names no room — and it is an exact key in CONCURRENT_VENUES, so
+ * folding either hall into it would suppress every finding at the building
+ * instead of surfacing them. The two halls must stay apart for the same reason
+ * the Entry must stay out of the mainroom: a 7:30 show in each is normal.
+ */
+export const ROOM_ALIASES: Record<string, string> = {
+  "ordway center for the performing arts concert hall": "ordway concert hall",
+  "ordway center for the performing arts music theater": "ordway music theater",
+  "ordway music theater at ordway center for the performing arts": "ordway music theater",
+  // The British -re, one row, and the Ordway spells it -er.
+  "ordway music theatre": "ordway music theater",
+};
+
 export function roomKey(venue: string): string {
-  return canonicalizeVenue(venue.replace(CITY_SUFFIX, ""));
+  const k = canonicalizeVenue(venue.replace(CITY_SUFFIX, ""));
+  return ROOM_ALIASES[k] ?? k;
 }
 
 /** Words that carry no identity, so they must not make two titles look alike. */

@@ -3,6 +3,8 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import {
   findContradictions,
+  roomKey,
+  ROOM_ALIASES,
   findIncomingDuplicates,
   looksLikeSameEvent,
   formatFinding,
@@ -12,6 +14,8 @@ import {
   findPlaceholderTitles,
   type CalendarRow,
 } from "../contradictions";
+import { computeEventKey } from "../event-key";
+import { canonicalizeVenue } from "../canonicalize";
 
 /**
  * Cases taken from the real calendar on 22 Aug 2026, plus the September 2026
@@ -542,5 +546,133 @@ describe("the eight pairs that were live while the panel said zero", () => {
       at("b", "Late Night Dance Party", "Turf Club", "2026-10-10T22:00"),
     ]);
     expect(r.conflicts).toHaveLength(0);
+  });
+});
+
+// roomKey had NO tests before 29 Oct 2026, which is awkward for the function
+// that keys venue_coords (one pin per room) and groups every comparison both
+// the self-check and the write gate make.
+describe("roomKey — one room is one venue, and two rooms are never one", () => {
+  const CONCERT = [
+    "Ordway Concert Hall",
+    "Ordway Concert Hall (St Paul)",
+    "Ordway Center for the Performing Arts – Concert Hall",
+  ];
+  const MUSIC = [
+    "Ordway Music Theater",
+    "Ordway Center for the Performing Arts – Music Theater",
+    "Ordway Music Theater at Ordway Center for the Performing Arts",
+    "Ordway Music Theatre", // the British -re; the Ordway itself spells it -er
+  ];
+
+  it("folds every spelling of a hall onto that hall", () => {
+    expect(new Set(CONCERT.map(roomKey)).size).toBe(1);
+    expect(new Set(MUSIC.map(roomKey)).size).toBe(1);
+    expect(roomKey(CONCERT[0])).toBe("ordway concert hall");
+    expect(roomKey(MUSIC[0])).toBe("ordway music theater");
+  });
+
+  // THE BOUNDARY, and the test that fails if anyone ever tidies the four entries
+  // into one. The Ordway runs two halls at 345 Washington Street on one pin —
+  // the Music Theater and the Concert Hall — named separately show by show on
+  // ordway.org's own index. A 7:30 performance in each is an ordinary Tuesday,
+  // so merging them would archive real events.
+  it("never folds the Music Theater into the Concert Hall, long forms included", () => {
+    for (const c of CONCERT) for (const m of MUSIC) expect(roomKey(c)).not.toBe(roomKey(m));
+  });
+
+  // The bare building name is deliberately absent from ROOM_ALIASES: it names no
+  // room, AND it is an exact key in CONCURRENT_VENUES, so folding a hall into it
+  // would SUPPRESS every finding at the Ordway instead of surfacing them.
+  it("leaves the bare building name alone, because folding into it would silence the building", () => {
+    const bare = "Ordway Center for the Performing Arts";
+    expect(roomKey(bare)).toBe("ordway center for the performing arts");
+    expect(roomKey(bare)).not.toBe(roomKey(CONCERT[0]));
+    expect(roomKey(bare)).not.toBe(roomKey(MUSIC[0]));
+    expect(CONCURRENT_VENUES[roomKey(bare)]).toBeTruthy();
+    expect(Object.values(ROOM_ALIASES)).not.toContain(roomKey(bare));
+  });
+
+  // The controls this fold must not disturb. Every string here is real in
+  // production. "First Avenue & 7th St Entry (7th St Entry)" is why roomKey
+  // strips only CITY parentheticals: there the parenthetical names the OTHER
+  // room, and folding it would turn every Entry show into a phantom.
+  it("keeps the rooms that were already apart apart", () => {
+    const apart = [
+      "First Avenue & 7th St Entry",
+      "First Avenue & 7th St Entry (7th St Entry)",
+      "First Avenue & 7th St Entry (First Avenue Mainroom)",
+      "Guthrie Theater – Wurtele Thrust Stage",
+      "Guthrie Theater – McGuire Proscenium Stage",
+      "Guthrie Theater – Target Lounge",
+    ];
+    expect(new Set(apart.map(roomKey)).size).toBe(apart.length);
+  });
+
+  it("still folds a city suffix, and still folds nothing it was not told to", () => {
+    expect(roomKey("Turf Club (St Paul)")).toBe(roomKey("Turf Club"));
+    // Two spellings of one Guthrie stage already folded without an alias entry,
+    // because normalizeKeyPart strips the dash and the parentheses alike.
+    expect(roomKey("Guthrie Theater (Wurtele Thrust Stage)")).toBe(
+      roomKey("Guthrie Theater – Wurtele Thrust Stage"),
+    );
+    expect(roomKey("")).toBe("");
+    expect(roomKey("Some Room Nobody Has Aliased")).toBe("some room nobody has aliased");
+  });
+
+  // THE RE-KEY GUARD. ROOM_ALIASES lives here and NOT in VENUE_ALIASES because
+  // that table feeds computeEventKey, which is stored on every row and unique
+  // repo-wide. Moving these four entries there re-keys 12 Ordway rows, and 7 of
+  // the new keys already belong to another row, so apply-correction would refuse
+  // them. The Xcel Energy Center fold only came out clean because it shipped
+  // with a hand re-key of all 36 live rows in the same session. These hashes are
+  // fixtured from before the fold: if one moves, the fold has leaked into the key.
+  it("moves no event_key — the fold is identity for comparison, not for storage", () => {
+    const FIXED: [string, string][] = [
+      ["Ordway Concert Hall", "1b045e5de4be40dda4eda9df53e38080"],
+      ["Ordway Music Theater", "5e07cee2c27638ce91dc10ab2df5825a"],
+      ["Ordway Concert Hall (St Paul)", "6d05a16a04bfeea0d2a04d90a97ee2e5"],
+      ["Ordway Center for the Performing Arts – Concert Hall", "f1d20533d9b225767d6d15cd41f1d286"],
+      ["Ordway Center for the Performing Arts – Music Theater", "355f7e6920f536f9dd731377dc778a73"],
+      ["Ordway Center for the Performing Arts", "c3bdc9fafa2cb171567f6966245f005f"],
+      ["Ordway Music Theater at Ordway Center for the Performing Arts", "1e29bb7b192c14898cfc5f56ffe504fd"],
+      ["Ordway Music Theatre", "436185774c1ce87b9f1819553426a515"],
+    ];
+    for (const [venue, key] of FIXED)
+      expect(computeEventKey("Recital", venue, "2026-11-10T19:30"), venue).toBe(key);
+    // Eight spellings, eight distinct keys: nothing has been merged in storage.
+    expect(
+      new Set(FIXED.map(([v]) => computeEventKey("Recital", v, "2026-11-10T19:30"))).size,
+    ).toBe(8);
+    // And canonicalizeVenue, which feeds that key, still returns the UNFOLDED
+    // value for every alias key and every alias value.
+    for (const k of Object.keys(ROOM_ALIASES)) expect(canonicalizeVenue(k), k).toBe(k);
+    for (const v of Object.values(ROOM_ALIASES)) expect(canonicalizeVenue(v), v).toBe(v);
+  });
+
+  // WHAT THIS FOLD DOES NOT REACH, recorded so the next reader does not assume
+  // the worked example is solved. The Nov 11 Ehnes pair already shared a room
+  // before the fold — both rows carry the (St Paul) spelling — and it is still
+  // not a duplicate, because the titles open on the same three words and the
+  // series guard reads a shared prefix as evidence of a SERIES. It IS reported,
+  // but as a CONFLICT — "two different events in one room" — which is the
+  // opposite diagnosis of the truth. Venue identity was never this pair's problem.
+  it("does not reach a pair whose titles differ too much, and says so", () => {
+    const at = (title: string): CalendarRow => ({
+      id: title,
+      venue: "Ordway Concert Hall (St Paul)",
+      title,
+      category: "music",
+      verified: true,
+      start: "2026-11-11T10:30",
+    });
+    const rows = [
+      at("James Ehnes, violin & Andrew Armstrong, piano"),
+      at("James Ehnes, violin — Schubert Club International Artist Series"),
+    ];
+    expect(new Set(rows.map((r) => roomKey(r.venue))).size).toBe(1);
+    const report = findContradictions(rows);
+    expect(report.duplicates).toHaveLength(0);
+    expect(report.conflicts).toHaveLength(1);
   });
 });

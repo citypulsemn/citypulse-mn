@@ -54,7 +54,7 @@ function healthy(overrides: Partial<OpsInputs> = {}): OpsInputs {
     lastDigestDaysAgo: 4, // healthy: Thursday send, Monday report
     feeds: { clicks7: 9, top: [{ label: "venue-first-avenue", count: 5 }, { label: "live-music", count: 3 }] },
     queue: { submissions: 0, reports: 0, oldestReportDays: null, musicReview: 0, verifyFlags: 0, verifyFlagExamples: [] },
-    contradictions: { conflicts: 0, duplicates: 0, placeholderVenues: 0, placeholderTitles: 0, examples: [], titleExamples: [] },
+    contradictions: { conflicts: 0, duplicates: 0, placeholderVenues: 0, placeholderTitles: 0, examples: [], dupExamples: [], titleExamples: [] },
     sitemapUrls: 121,
     prevSitemapUrls: 118,
     search: null, // default: not wired → manual GSC line (today's state)
@@ -640,7 +640,7 @@ describe("Self-check — where the calendar contradicts itself", () => {
   const selfOf = (c: Partial<OpsInputs["contradictions"]>) =>
     buildSections(
       healthy({
-        contradictions: { conflicts: 0, duplicates: 0, placeholderVenues: 0, placeholderTitles: 0, examples: [], titleExamples: [], ...c },
+        contradictions: { conflicts: 0, duplicates: 0, placeholderVenues: 0, placeholderTitles: 0, examples: [], dupExamples: [], titleExamples: [], ...c },
       }),
     ).find((s) => s.title === "Self-check")!;
 
@@ -666,10 +666,24 @@ describe("Self-check — where the calendar contradicts itself", () => {
     expect(s.lines.join(" ")).toContain("21 listings whose TITLE names no event");
     expect(s.lines.join(" ")).toContain("Turf Club Show (Sep 3)");
   });
-  it("duplicates and placeholder venues report WITHOUT alerting — untidy, not untrue", () => {
-    const s = selfOf({ duplicates: 26, placeholderVenues: 6 });
-    expect(s.alert).toBe(false);
+  // REPLACES "duplicates report WITHOUT alerting — untidy, not untrue".
+  // Measured 29 Oct 2026: that stance was wrong. While BOTH rows of a duplicate
+  // pair are live, each blocks the other's weekly re-find — withoutLiveDuplicates
+  // excludes an incoming row from comparison with itself by event_key but not
+  // with its twin — so neither row can receive a cancellation or a time change.
+  // Two live rows were in that state when this test was written.
+  it("a duplicate ALERTS, because while both rows are live neither can update", () => {
+    const s = selfOf({ duplicates: 26, dupExamples: ["Nov 1 · Minnesota Children's Museum: A vs B"] });
+    expect(s.alert).toBe(true);
     expect(s.lines.join(" ")).toContain("26 probable duplicates");
+    expect(s.lines.join(" ")).toContain("neither can be updated");
+    // named, not just counted: this line is the only report such a pair gets
+    expect(s.lines.join(" ")).toContain("Minnesota Children's Museum");
+  });
+
+  it("a placeholder venue still reports without alerting", () => {
+    const s = selfOf({ placeholderVenues: 6 });
+    expect(s.alert).toBe(false);
     expect(s.lines.join(" ")).toContain("6 listings whose venue names no place");
   });
 
