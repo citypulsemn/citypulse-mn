@@ -33,7 +33,7 @@ describe("getEngagement resilience", () => {
 });
 
 /**
- * Same contract for the two ticket-click reports (Monetization B1). These feed
+ * Same contract for the vendor and venue reports (Monetization B1/C1). These feed
  * the panel Taren reads before emailing a venue, so a failing query must leave
  * the rest of /admin/stats standing — and must leave it EMPTY rather than
  * partial, because a partial click count quoted to a business is worse than no
@@ -47,11 +47,11 @@ describe("ticket-click reports resilience", () => {
     );
     vi.doMock("../db", () => ({ sql: throwingSql }));
     vi.resetModules();
-    const { getTicketClicksByVendor, getTicketClicksByVenue } = await import("../stats");
+    const { getTicketClicksByVendor, getVenueStats } = await import("../stats");
 
     const spy = vi.spyOn(console, "error").mockImplementation(() => {});
     expect(await getTicketClicksByVendor(30)).toEqual([]);
-    expect(await getTicketClicksByVenue(30)).toEqual([]);
+    expect(await getVenueStats(30)).toEqual([]);
     expect(spy).toHaveBeenCalledTimes(2); // both logged, neither swallowed
     spy.mockRestore();
     vi.doUnmock("../db");
@@ -61,9 +61,9 @@ describe("ticket-click reports resilience", () => {
   it("returns [] with no database configured at all", async () => {
     vi.doMock("../db", () => ({ sql: null }));
     vi.resetModules();
-    const { getTicketClicksByVenue } = await import("../stats");
+    const { getVenueStats } = await import("../stats");
 
-    expect(await getTicketClicksByVenue(30)).toEqual([]);
+    expect(await getVenueStats(30)).toEqual([]);
     vi.doUnmock("../db");
     vi.resetModules();
   });

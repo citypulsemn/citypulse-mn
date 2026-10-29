@@ -293,7 +293,7 @@ and says so rather than quietly proceeding.
 
 | | Item | Why now |
 |---|---|---|
-| **O1** | **Email the ten operators in finding 2** [10] | The only pitch that does not need the audience to grow. Wait for B1 so it is a screenshot, not a SQL query |
+| **O1** | **Email the ten operators in finding 2** [10] | The only pitch that does not need the audience to grow. B1 made it a table; C1 made it a link they can open themselves. Mint from /admin/stats |
 | **O2** | **Ask one seasonal operator for a sponsored collection** [16] | Mechanism built (`25e16f7`). Halloween is ending — the orchards, haunts and Restaurant Week publisher are the warm list |
 | **O3** | **Open a payment destination** (Stripe payment link or Ko-fi) | Unblocks B2. No integration needed, just an account and a URL |
 | **O4** | **Decide P1 and P2** | P1 is a secret paste. P2 is a product call |
@@ -390,7 +390,7 @@ were never examined and may fit better than journalism funders.
 
 ## Lane C — the unlock (M)
 
-### C1 — Venue dashboard  [9]
+### C1 — Venue dashboard  [9]  ✅ SHIPPED
 **Why:** turns O1 from ten hand-written emails into something that keeps working,
 and is the proof-of-value that sells vectors 1, 2 and 16. Nothing else in the
 document creates a reason for a business to open a page of ours every month.
@@ -404,6 +404,26 @@ are signed with the dev fallback and production rejects them as expired
 (`docs/HANDOFF.md`). Test the token logic in unit tests, not by clicking a link.
 **Watch:** the dashboard must never imply we can move their ranking.
 **Size** M · **Depends** B1 (the query), P2 (the gate) · **Return** $0 direct.
+**Shipped** 29 Oct 2026 — `deploy-history/DEPLOY-VENUE-REPORT.md`. Built on the
+assumption that the P2 split is adopted, stated rather than hidden: **P2 is still
+unanswered, and the gate wording in ROADMAP-v6.md still reads 500 subscribers.**
+That is a doc edit only Taren can make.
+
+**One spec decision was wrong and is corrected here.** This spec said "keyed on
+venue slug". Measured against 30 days of live stats: 381 venue strings earned
+views or clicks and **only 82 are registry venues**. Nine of the top ten click
+earners are *not* in the registry — Ferguson's Orchard, Trail of Terror, Scream
+Town, Pryes Brewing, Battle Creek Rec Center, Bar Meteor, county fairgrounds. A
+registry-keyed dashboard would have covered the arenas, which carry the listings
+and almost none of the clicks. That is finding 1's mistake in a second costume.
+The key is now the registry slug **when there is one** and the slugified venue
+name otherwise, so **326 businesses** are reportable instead of 48.
+
+**It also fixed a number B1 was getting wrong.** The per-string table split one
+business across its spellings: Three Rivers Park District read 39 clicks across
+four strings and is really **42**; Minnesota Zoo read 32 and is **34**. Merging
+happens *before* the top-25 cut, so nothing is lost to the slice. Quoting a
+fragment to a buyer understated us.
 
 ### C2 — Enhanced venue profile  [12]
 Presentation only — logo, photos, links. **Never placement.** The principle line
@@ -429,7 +449,9 @@ return any item in the shipped ledger has delivered.
 
 1. ~~**B1**~~ ✅ **shipped** 29 Oct. Then Taren sends the ten emails (**O1, still open**).
 2. ~~**B2 + B3**~~ ✅ **shipped** 29 Oct. B2 is dark until O3 produces a payment URL.
-3. **C1** — a full session, and the first one that needs P2 answered. **Next.**
+3. ~~**C1**~~ ✅ **shipped** 29 Oct, under the assumed P2 split. **P2 is still
+   unanswered.** The reports work either way; what is unresolved is whether the
+   venue-side lane is formally open.
 
 4. ~~**B4 + B5**~~ ✅ **shipped** 29 Oct. Lane B is complete.
 
@@ -453,6 +475,7 @@ reorders this queue — a real buyer outranks anything written here.
 | R2.1 Newsletter sponsor slot | `cc5c248` | one labeled slot, dark when unsold |
 | R2.2 Featured-placement framework | `25e16f7`, `a921110` | labeled, capped, never reorders organic |
 | G1.2 SEO compounding | ongoing | 569 Places; search is now 47% of visits |
+| C1 Venue reports | *this session* | a signed, read-only page per business. Keyed on 326 businesses, not the 48-room registry — and the merge corrected click totals B1 was splitting across spellings |
 
 **What the ledger says about the method:** two of the five shipped items paid off by
 *correcting a number* rather than earning one — M0.2 deleted a fictional engagement

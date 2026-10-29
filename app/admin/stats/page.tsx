@@ -1,5 +1,8 @@
 import { getContentStats } from "@/lib/admin";
-import { getEngagement, getTicketClicksByVendor, getTicketClicksByVenue, ctr } from "@/lib/stats";
+import { getEngagement, getTicketClicksByVendor, getVenueStats, ctr } from "@/lib/stats";
+import { aggregateVenueStats } from "@/lib/venue-report";
+import { venueReportUrl, venueReportSecret } from "@/lib/venue-token";
+import { SITE_URL } from "@/lib/seo/site";
 import { getSubscriberStats, getSubscribersBySource } from "@/lib/subscribe";
 import { CATEGORIES } from "@/lib/categories";
 import type { CategoryKey } from "@/lib/types";
@@ -18,7 +21,11 @@ export default async function AdminStatsPage({
   const subSources = await getSubscribersBySource();
   const eng = await getEngagement(days);
   const vendors = await getTicketClicksByVendor(days);
-  const venues = await getTicketClicksByVenue(days);
+  // Merged into businesses BEFORE the top-25 slice — four spellings of one
+  // park district must sum before anything is cut, or the table understates
+  // the venue it is there to help you pitch (lib/venue-report.ts).
+  const venues = aggregateVenueStats(await getVenueStats(days)).slice(0, 25);
+  const venueSecret = venueReportSecret();
 
   return (
     <>
@@ -145,23 +152,39 @@ export default async function AdminStatsPage({
 
       {venues.length > 0 && (
         <>
-          <h3 className="admin-h3">Ticket clicks by venue — last {days} days</h3>
+          <h3 className="admin-h3">Venues — views and ticket clicks, last {days} days</h3>
           <div className="admin-note">
             Which businesses we actually send buyers to (B1) — the number to lead with
             when you email a venue. It disagrees with listing counts on purpose: the host
             carrying the most listings sits near the bottom of this table. Listings are
             supply, this is demand, and this is the one to quote.
+            Spellings are merged into one row per business, so a venue whose listings
+            name four different rooms shows its real total. <strong>Report</strong> is a
+            90-day magic link you can paste into an email — it shows that venue only,
+            read-only, no login.
           </div>
           <div className="cov-scroll">
             <table className="cov-table">
               <thead>
-                <tr><th>Venue</th><th>Ticket clicks</th></tr>
+                <tr><th>Venue</th><th>Views</th><th>Ticket clicks</th><th>CTR</th><th>Link</th></tr>
               </thead>
               <tbody>
                 {venues.map((v) => (
-                  <tr key={v.venue}>
-                    <td>{v.venue}</td>
+                  <tr key={v.key}>
+                    <td>
+                      {v.registry ? <a href={`/venues/${v.key}`}>{v.name}</a> : v.name}
+                      {v.spellings.length > 1 && (
+                        <span className="admin-dim"> · {v.spellings.length} spellings</span>
+                      )}
+                    </td>
+                    <td>{v.views}</td>
                     <td>{v.clicks}</td>
+                    <td>{ctr(v.views, v.clicks)}%</td>
+                    <td>
+                      <a href={venueReportUrl(SITE_URL, v.key, venueSecret)} target="_blank" rel="noopener noreferrer">
+                        Report ↗
+                      </a>
+                    </td>
                   </tr>
                 ))}
               </tbody>

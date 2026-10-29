@@ -268,42 +268,53 @@ export async function getTicketClicksByVendor(days: number): Promise<VendorClick
   }
 }
 
-export interface VenueClicks {
+export interface VenueStatRow {
+  /** The raw, free-text venue string as it is stored on the events. */
   venue: string;
+  views: number;
   clicks: number;
 }
 
 /**
- * Ticket clicks grouped by the VENUE we sent them to (Monetization B1) — the
- * sibling of `getTicketClicksByVendor` on the axis that matters for a
- * conversation with a venue: "you got N buyers from us last month".
+ * Views and ticket clicks per venue string over the last `days` (Monetization
+ * B1, widened for C1). The sibling of `getTicketClicksByVendor` on the axis
+ * that matters for a conversation with a business: "you got N buyers from us
+ * last month".
  *
  * Why both exist: they disagree, and the disagreement is the point. Grouping by
  * destination host answers "which ticketing platform", which is the affiliate
- * question. Grouping by venue answers "which business do we send traffic to",
- * which is the only pitch we have. Ordered by listings, or by host, the top of
- * the list is a venue that took 14 clicks in 30 days — supply is not demand
- * (ROADMAP-MONETIZATION.md finding 2). Never-break contract: [] on any failure.
+ * question, and that one is closed at 1.9% of clicks. Grouping by venue answers
+ * "which business do we send traffic to", which is the only pitch we have.
+ *
+ * NO LIMIT, on purpose. These rows are raw spellings, and `aggregateVenueStats`
+ * (lib/venue-report.ts) merges them into businesses afterwards. A `limit 25`
+ * here would truncate BEFORE the merge, so a venue whose clicks are split over
+ * four spellings could lose part of its own total to the cutoff. Measured live:
+ * 381 rows over 30 days, merging to 326 businesses. Callers wanting a top-25
+ * slice it after the merge.
+ *
+ * Never-break contract: [] on any failure (ENGINEERING rule 1). Empty rather
+ * than partial — a partial click count quoted to a business is worse than none.
  */
-export async function getTicketClicksByVenue(days: number): Promise<VenueClicks[]> {
+export async function getVenueStats(days: number): Promise<VenueStatRow[]> {
   if (!sql) return [];
   try {
     const window = Math.max(1, Math.min(days, 90));
-    return await sql<VenueClicks[]>`
+    return await sql<VenueStatRow[]>`
       select
         e.venue as venue,
-        sum(s.count)::int as clicks
+        coalesce(sum(s.count) filter (where s.action = 'view'), 0)::int as views,
+        coalesce(sum(s.count) filter (where s.action = 'ticket_click'), 0)::int as clicks
       from event_stats s
       join events e on e.id = s.event_id
-      where s.action = 'ticket_click'
+      where s.action in ('view', 'ticket_click')
         and coalesce(e.venue, '') <> ''
         and s.day >= (now() at time zone 'America/Chicago')::date - (${window - 1})::int
       group by e.venue
-      order by clicks desc
-      limit 25
+      order by clicks desc, views desc
     `;
   } catch (err) {
-    console.error("[stats] getTicketClicksByVenue failed (returning empty):", err);
+    console.error("[stats] getVenueStats failed (returning empty):", err);
     return [];
   }
 }
