@@ -18,6 +18,7 @@ import {
 } from "@/lib/venue-pages";
 import { neighborhoodOf } from "@/lib/neighborhoods";
 import { matchCitySlug } from "@/lib/cities";
+import { officialCalendars } from "@/lib/venue-sources";
 import { isUpcoming } from "@/lib/dates";
 import { SITE_URL } from "@/lib/seo/site";
 import { jsonLdSafe } from "@/lib/seo/event-jsonld";
@@ -84,6 +85,13 @@ export default async function VenuePage({
   const directions = directionsUrl(coords, v.name, v.city);
   const parking = parkingUrl(coords, v.name, v.city);
 
+  // C2: the room's own schedule page, from the hand-curated VENUE_CALENDARS.
+  // Derived from the UPCOMING listings rather than all history, so a page only
+  // offers a calendar for a room it is currently showing events for. Renders
+  // nothing at all when nobody has curated one — 33 of the 47 venue pages, and
+  // an empty box asking to be filled is the placeholder rule 6 forbids.
+  const calendars = officialCalendars(upcoming);
+
   const placeJsonLd: Record<string, unknown> = {
     "@context": "https://schema.org",
     "@type": "Place",
@@ -138,6 +146,22 @@ export default async function VenuePage({
             height={400}
             loading="lazy"
           />
+        )}
+
+        {calendars.length > 0 && (
+          <p className="feed-subscribe">
+            {calendars.length === 1
+              ? "Schedule straight from the venue: "
+              : "Each room posts its own schedule: "}
+            {calendars.map((c, i) => (
+              <span key={c.url}>
+                {i > 0 && " · "}
+                <a href={c.url} target="_blank" rel="noopener noreferrer">
+                  {calendars.length === 1 ? "Official calendar" : c.label} ↗
+                </a>
+              </span>
+            ))}
+          </p>
         )}
 
         {upcoming.length === 0 ? (

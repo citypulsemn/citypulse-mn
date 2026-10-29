@@ -425,9 +425,47 @@ four strings and is really **42**; Minnesota Zoo read 32 and is **34**. Merging
 happens *before* the top-25 cut, so nothing is lost to the slice. Quoting a
 fragment to a buyer understated us.
 
-### C2 — Enhanced venue profile  [12]
+### C2 — Enhanced venue profile  [12]  ◐ LINKS SHIPPED, rest is an owner call
 Presentation only — logo, photos, links. **Never placement.** The principle line
 above is the whole spec. **Size** M · **Depends** C1.
+
+**Links shipped** 29 Oct 2026 — `deploy-history/DEPLOY-VENUE-OFFICIAL-CALENDARS.md`.
+`officialCalendars()` in [lib/venue-sources.ts](../lib/venue-sources.ts) surfaces
+the hand-curated `VENUE_CALENDARS` table to readers: **14 of 47 venue pages**
+show the room's own schedule link, 33 render nothing. The table already existed
+and every URL in it had been opened by a person; its only consumer was the
+verify agent, so this is a second return on an asset already paid for.
+
+**The principle got an instrument.** The venue page passes `officialCalendars`
+the same array it is about to render, so a `.sort()` inside would reshuffle a
+venue's public schedule. The parameter is `readonly` and a test freezes the
+input. Two traps were found and avoided: never write a venue image into
+`EventRecord.image` (`scoreEvent` gives +1 for an http image and that score
+orders the Thursday email), and never track the calendar link (the beacon only
+accepts event UUIDs, so counting it would mean firing `ticket_click`, inflating
+the number C1 quotes and moving `/trending`).
+
+**Photos: recommend dropping from C2 entirely.** What a venue emails is artist
+press shots and crowd photos — licensed to them for their own promotion, which
+the shipped terms and FOR_PARTNERS say we cannot redistribute, and crowd photos
+are identifiable people with no consent chain. A venue-controlled URL is also
+reviewed once and mutable forever. And `app/privacy/page.tsx` states "We don't
+accept file uploads", a sentence a test pins as PRESENT rather than TRUE — so an
+upload form would ship a lying privacy page with a green suite.
+
+**Logo: buildable, needs one answer.** Only safe shape is venue emails it →
+Taren reviews → committed to `public/venues/`. No hotlinking, no uploads. Needs
+willingness to commit image files, plus one sentence in `/for-venues` recording
+that supplying a logo authorises display. **No such permission is recorded
+anywhere today** — the terms' submission warranty covers "any text you include"
+only.
+
+**The bigger question, raised by C1 and unanswered.** Nine of the top ten
+businesses by ticket clicks have **no `/venues/` page at all** — Ferguson's
+Orchard (47), Trail of Terror (41), Bar Meteor (39), Pryes (29), Scream Town
+(27). The venues with pages are the ones with listings; the businesses with
+demand have neither a page nor a slot to enhance. **Giving the earners a page**
+may be the real C2, and it is a supply decision, not a presentation one.
 
 ## Lane D — real money, later (L)
 

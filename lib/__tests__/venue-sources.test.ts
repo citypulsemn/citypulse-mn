@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { VENUE_CALENDARS, canonicalSourceFor } from "../venue-sources";
+import { VENUE_CALENDARS, canonicalSourceFor, officialCalendars } from "../venue-sources";
 import { isAggregatorSource, isNonScheduleSource, isResaleSource } from "../source-trust";
 import { roomKey } from "../contradictions";
 
@@ -59,5 +59,92 @@ describe("VENUE_CALENDARS", () => {
     for (const [room, url] of Object.entries(VENUE_CALENDARS)) {
       expect(url, room).toMatch(/^https:\/\/[a-z0-9.-]+\.[a-z]{2,}\//i);
     }
+  });
+});
+
+/**
+ * C2 — the official-calendar row on a venue page.
+ *
+ * The table above was already guarded; what is new is handing it to a reader,
+ * so these tests cover the grouping and the one principle C2 has: presentation
+ * only, never placement.
+ */
+describe("officialCalendars", () => {
+  const ev = (venue: string) => ({ venue });
+
+  it("is honestly empty rather than guessing", () => {
+    expect(officialCalendars([])).toEqual([]);
+    expect(officialCalendars([ev("Some Bar Nobody Listed")])).toEqual([]);
+    expect(officialCalendars([ev("")])).toEqual([]);
+  });
+
+  it("gives one entry per room, with its listing count", () => {
+    const out = officialCalendars([ev("Turf Club"), ev("Turf Club"), ev("Turf Club (St Paul)")]);
+    expect(out).toHaveLength(1);
+    expect(out[0].url).toBe("https://first-avenue.com/venue/turf-club/");
+    expect(out[0].listings).toBe(3);
+    // Label is the most common spelling, not the last one seen.
+    expect(out[0].label).toBe("Turf Club");
+  });
+
+  it("keeps two rooms apart on a page that shows both", () => {
+    // /venues/first-avenue carries Mainroom AND 7th St Entry events, and First
+    // Avenue publishes a separate calendar per room. Collapsing them would send
+    // an Entry ticket-buyer to the wrong schedule.
+    const out = officialCalendars([
+      ev("7th St Entry"),
+      ev("7th St Entry"),
+      ev("7th St Entry"),
+      ev("First Avenue"),
+    ]);
+    expect(out).toHaveLength(2);
+    expect(out.map((c) => c.url)).toEqual([
+      "https://first-avenue.com/venue/7th-st-entry/",
+      "https://first-avenue.com/venue/first-avenue/",
+    ]);
+    // Most-listed room first, so the busier calendar leads.
+    expect(out[0].listings).toBe(3);
+    expect(out[1].listings).toBe(1);
+  });
+
+  it("drops the uncurated rooms and keeps the rest", () => {
+    const out = officialCalendars([
+      ev("Palace Theatre"),
+      ev("Some Bar Nobody Listed"),
+      ev("Another Unlisted Room"),
+    ]);
+    expect(out).toHaveLength(1);
+    expect(out[0].url).toBe("https://first-avenue.com/venue/palace-theatre/");
+    expect(out[0].listings).toBe(1);
+  });
+
+  it("is deterministic when two rooms are tied", () => {
+    const a = officialCalendars([ev("Turf Club"), ev("Palace Theatre")]);
+    const b = officialCalendars([ev("Palace Theatre"), ev("Turf Club")]);
+    expect(a).toEqual(b);
+  });
+
+  /**
+   * THE NEVER-PLACEMENT INSTRUMENT. The venue page hands this the very array it
+   * is about to render, already sorted by start time. A `.sort()` or a `.pop()`
+   * in here would reorder a venue's public schedule from a function whose whole
+   * job is decoration — C2's principle broken in the most literal way the
+   * codebase allows. A frozen input makes the attempt throw.
+   */
+  it("never mutates or reorders the listings it is given", () => {
+    const input = Object.freeze([ev("First Avenue"), ev("7th St Entry"), ev("First Avenue")]);
+    const before = input.map((e) => e.venue);
+    expect(() => officialCalendars(input)).not.toThrow();
+    expect(input.map((e) => e.venue)).toEqual(before);
+    expect(before).toEqual(["First Avenue", "7th St Entry", "First Avenue"]);
+  });
+
+  it("returns the same rows whether or not a room has a calendar", () => {
+    // Stated the other way round: adding a curated calendar for a room changes
+    // what the page SAYS and nothing about which events it holds or their order.
+    const listings = [ev("Palace Theatre"), ev("Some Bar Nobody Listed")];
+    const order = listings.map((e) => e.venue);
+    officialCalendars(listings);
+    expect(listings.map((e) => e.venue)).toEqual(order);
   });
 });

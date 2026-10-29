@@ -1,4 +1,5 @@
 import { roomKey } from "./contradictions";
+import type { EventRecord } from "./types";
 
 /**
  * Where each room publishes its own schedule.
@@ -108,4 +109,63 @@ export const VENUE_CALENDARS: Record<string, string> = {
 export function canonicalSourceFor(venue: string): string | null {
   if (!venue) return null;
   return VENUE_CALENDARS[roomKey(venue)] ?? null;
+}
+
+export interface OfficialCalendar {
+  /** The room as our own listings spell it. Only needed to tell two apart. */
+  label: string;
+  url: string;
+  /** How many of the given listings belong to this room. */
+  listings: number;
+}
+
+/**
+ * The official calendars behind a set of listings, most-listed room first
+ * (Monetization C2).
+ *
+ * WHY THIS IS THE READER-FACING RETURN ON A TABLE THAT ALREADY EXISTS. Every
+ * URL in VENUE_CALENDARS was opened by a person, and the test above holds each
+ * one to not being a reseller, an aggregator or a social page. Until now the
+ * only consumer was `buildVerifyPrompt` — the table was doing real work for the
+ * verify agent and none for the reader who searched "turf club schedule" and
+ * would rather have the room's own page than an AXS resale listing. This hands
+ * the reader the same curated answer the agent gets.
+ *
+ * ONE ROOM PER URL, NOT ONE PER SPELLING. A venue page can legitimately cover
+ * several rooms — /venues/first-avenue carries both First Avenue and 7th St
+ * Entry events, and First Avenue gives each room its own calendar page — so
+ * grouping is by URL and the label is the room's most common spelling among
+ * these listings. On a page with one calendar the label is redundant with the
+ * heading and the caller should ignore it.
+ *
+ * IT MUST NOT TOUCH THE ORDER OF ITS INPUT. The venue page passes the same
+ * already-sorted array it is about to render, so a `.sort()` in here would
+ * silently reshuffle a venue's schedule — presentation becoming placement in
+ * the most literal way available. The parameter is `readonly` to make that a
+ * compile error and a test holds the line as well (ENGINEERING rule 6's
+ * neighbour: C2's one principle is "presentation only, never placement", and a
+ * principle with no instrument is a claim in a deploy guide).
+ */
+export function officialCalendars(
+  events: readonly Pick<EventRecord, "venue">[],
+): OfficialCalendar[] {
+  const spellingsByUrl = new Map<string, Map<string, number>>();
+
+  for (const e of events) {
+    const url = canonicalSourceFor(e.venue);
+    if (!url) continue; // no curated calendar for this room — say nothing
+    const spellings = spellingsByUrl.get(url) ?? new Map<string, number>();
+    spellings.set(e.venue, (spellings.get(e.venue) ?? 0) + 1);
+    spellingsByUrl.set(url, spellings);
+  }
+
+  return [...spellingsByUrl.entries()]
+    .map(([url, spellings]) => {
+      const ranked = [...spellings.entries()].sort(
+        (a, b) => b[1] - a[1] || a[0].localeCompare(b[0]),
+      );
+      const listings = ranked.reduce((n, [, count]) => n + count, 0);
+      return { label: ranked[0][0], url, listings };
+    })
+    .sort((a, b) => b.listings - a.listings || a.label.localeCompare(b.label));
 }
