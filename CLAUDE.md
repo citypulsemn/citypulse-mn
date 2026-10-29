@@ -13,7 +13,9 @@ Read this first, every session. It is the contract for how work happens on this 
 - Next.js 15 App Router + React 19 + TypeScript, deployed on **Vercel** (auto-deploys on push to `main`)
 - **Supabase** Postgres (schema in `db/schema.sql`, idempotent and additive — never destructive)
 - Mapbox static maps · Resend email · GitHub Actions for the weekly pipeline and ops digest
-- Vitest for tests (`npm test`), 2,290+ and rising
+- Vitest for tests (`npm test`), **2,869 in 144 files** (29 Oct 2026). If you see
+  a number near 10,000, `vitest.config.ts` has stopped excluding
+  `.claude/worktrees/` and the suite is counting itself four times.
 
 **Scripts:** `dev` · `build` · `test` · `lint` · `pipeline` (weekly research) · `digest` (subscriber email) · `ops-digest` (operator email; `-- --dry-run` is safe) · `inbox` (check pending submissions and reports, then email; `-- --dry-run` is safe) · `verify` · `collapse` · `reclassify`
 

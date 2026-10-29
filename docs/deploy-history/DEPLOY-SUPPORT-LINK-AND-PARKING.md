@@ -89,7 +89,11 @@ block stays last.
 ## Quality gate
 
 - `npx tsc --noEmit` — clean
-- `npm test` — **552 files, 9,970 tests** (was 9,958; +12)
+- `npm test` — passing. **Correction, 29 Oct:** this originally read "552 files,
+  9,970 tests". `npm test` was running three `.claude/worktrees/` copies of the
+  suite alongside this one, so the count was inflated roughly fourfold. The real
+  figure is **144 files, 2,869 tests**, and the 12 tests this item added are
+  real. Fixed in `vitest.config.ts`; see `DEPLOY-FOR-PARTNERS-AND-GRANT-PACK.md`.
 - `npm run build` — clean, 610 static pages
 - `npm audit` — **0 vulnerabilities**
 - Smoked both surfaces in the browser (below)

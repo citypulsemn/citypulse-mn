@@ -72,7 +72,11 @@ the vendor block. No empty table, no placeholder.
 ## Quality gate
 
 - `npx tsc --noEmit` — clean
-- `npm test` — **552 files, 9,958 tests, all passing** (CLAUDE.md still says 2,290+; it is well out of date)
+- `npm test` — passing. **Correction, 29 Oct:** this guide originally read
+  "552 files, 9,958 tests" and that number was wrong. `npm test` had no vitest
+  config and was running three `.claude/worktrees/` copies of the suite as well
+  as this one. The real figure for this repo is **144 files, 2,869 tests**. Fixed
+  in `vitest.config.ts`; see `DEPLOY-FOR-PARTNERS-AND-GRANT-PACK.md`.
 - `npm run build` — clean
 - `npm audit` — **0 vulnerabilities**
 - Smoked the shipped function against production data (below)

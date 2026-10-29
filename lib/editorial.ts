@@ -146,6 +146,44 @@ export const FOR_VENUES = {
 };
 
 /**
+ * /for-partners (Monetization B4) — the calendar feed, offered to the people who
+ * would republish a slice of it: hotel concierges, newsrooms, chambers,
+ * neighborhood associations, libraries.
+ *
+ * Every line here was written against what the code actually does, and several
+ * were written against what it does NOT. The things this page must never say,
+ * each one checked:
+ *
+ *  - No JSON or REST API. `/feeds/<slug>` emits text/calendar only, and roadmap
+ *    6.2 is parked. (`/api/events` exists but is undocumented, unversioned and
+ *    robots-disallowed — it is not a published partner surface and must not be
+ *    offered as one.)
+ *  - No embeddable widget. There is no CORS header anywhere, so a cross-origin
+ *    browser fetch fails. Calendar clients and server-side consumers only.
+ *  - No accuracy, verification or completeness guarantee. The terms say as-is,
+ *    in plain words, and two fabrications reached live listings in 2026.
+ *  - No SLA, uptime, slug stability or deprecation promise. None of those exist.
+ *  - No redistribution of organiser content. Descriptions, images and logos
+ *    belong to the organisers; we cannot license what we do not own.
+ *  - No cancellation notices. A cancelled event leaves the feed silently.
+ *
+ * Plain strings, edit freely — but the five `limits` lines are load-bearing
+ * rather than decorative. Softening them turns an honest offer into a promise
+ * the system cannot keep.
+ */
+export const FOR_PARTNERS = {
+  tagline: "Put the Twin Cities calendar on your own screen. Free, by subscription, with your name on the source.",
+  what: "Every slice of the calendar is a subscribable iCalendar feed. Paste a URL into Apple Calendar, Google Calendar, Outlook, or anything else that reads .ics, and the events keep arriving — no key, no account, no sign-up for you to manage. A front desk can keep this weekend on a screen; a newsroom can pull one neighborhood into its own tooling.",
+  shapes: "The URL is citypulsemn.com/feeds/ plus a slug. Seven categories (music, sports, family, arts, food, festival, unique), eight collections like free-this-week and date-night, forty-seven venues as venue-first-avenue and the like, sixteen neighborhoods, and this-weekend. Seventy-nine in all.",
+  limits: "What arrives: title, start and end, venue and address, a link back, and a short description. What does not: ticket prices, ticket links, images, coordinates, category tags. The window is a rolling thirty days, so this is a what's-on feed and not a season planner — and this-weekend carries at most three days. Descriptions are clipped to about 180 characters. Long-running exhibitions show up as one multi-month block, because that is honestly what they are. Updates take up to a couple of hours to propagate, and a cancelled event simply stops appearing — there is no cancellation notice, so do not wire this to anything that announces changes on its own.",
+  honesty: "The listings are researched by machine, checked against sources on a rotation, and corrected when an error surfaces — including twice in 2026 when listings reached the site for events that were not real, one caught by a reader and one by our own sweep. Not every listing has been verified, and the feed carries no field telling you which ones have. If you are republishing to the public, treat it the way you would any wire you do not control: good enough to show, not good enough to swear to.",
+  terms: "Use it, free. Credit City Pulse MN visibly where the events appear and link back to citypulsemn.com. The event details themselves belong to the organisers and venues, not to us, so we cannot hand you rights over their words or images. What we ask in return is the obvious thing: don't republish the whole calendar as your own, and don't strip the attribution.",
+  cost: "There is no charge today and nothing to sign. If this ever becomes something we charge for, anyone already using it hears from us first, and nothing switches off without warning.",
+  stability: "Said plainly: this is one person's project, there is no uptime guarantee, no support contract, and no promise that a slug will exist forever. Treat the feed as a convenience you can lose, not a dependency you can't.",
+  contact: "Want a slice that isn't listed — a suburb, a category, a room — or want your venue's events out of the feed entirely? Say so and we'll sort it. No turnaround promise, but a person reads every one.",
+};
+
+/**
  * "Been there" — the place checklist (Places P5). Plain strings, edit freely.
  * `button` is THE word: it's on every check on every place, the filter chips,
  * and the /saved section, so renaming it here renames it everywhere at once

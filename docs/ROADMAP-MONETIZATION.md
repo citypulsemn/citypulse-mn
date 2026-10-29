@@ -354,7 +354,7 @@ where SpotHero inventory surfaces anyway. Reader value, no revenue. The $5–20
 line was a forecast of a thing that turned out not to be buildable, and is
 corrected rather than left standing.
 
-### B4 — Partner one-pager for the feed  [13]
+### B4 — Partner one-pager for the feed  [13]  ✅ SHIPPED
 **Why:** vector 13 is the second-highest value in the document and the thing it
 needs is not code — the iCal/JSON feeds already ship (`app/feeds/[slug]`, 6.1).
 What is missing is a page a hotel, chamber or newsroom can read and act on.
@@ -362,8 +362,15 @@ What is missing is a page a hotel, chamber or newsroom can read and act on.
 `/for-partners`: what the feed contains, how it is verified, the attribution terms,
 who to contact. Copy, in the voice rules — no brochure sentences.
 **Size** S · **Depends** nothing · **Return** unblocks a $100–500/mo conversation.
+**Shipped** 29 Oct 2026 as `/for-partners` —
+`deploy-history/DEPLOY-FOR-PARTNERS-AND-GRANT-PACK.md`. The research found that
+most of what this spec assumed we could offer, we cannot: no JSON/REST API
+(6.2 parked), **no CORS header anywhere so vector 14's embeddable widget is
+blocked outright**, no accuracy guarantee (the terms disclaim it), no
+redistribution rights over organiser content, and 18 of the 79 feed slugs are
+empty in a given window. The page states the limits as the offer.
 
-### B5 — Grant evidence pack  [32]
+### B5 — Grant evidence pack  [32]  ✅ SHIPPED
 **Why:** the largest absolute figure in the document and the only one that does not
 need the audience to grow. A docs file, not a feature.
 **Design:** assemble what already exists into one readable piece — the verification
@@ -372,6 +379,14 @@ the live numbers above, and the two fabrication incidents *with what we built in
 response*. For a grant reader those incidents are evidence of method, not
 embarrassment. Name the funders to approach; do not draft the application.
 **Size** S · **Depends** nothing · **Return** $2k–15k, one-time, slow.
+**Shipped** 29 Oct 2026 as `docs/GRANT-EVIDENCE.md`. Three blockers it surfaced,
+all owner decisions: **no 501(c)(3) and no fiscal sponsorship**, which gates most
+funders; **the total running cost has never been added up** (only model spend is
+ledgered), so there is no budget line to put in an application; and the funder
+research could confirm almost nothing from a primary source, so that section is
+leads-to-verify rather than a target list. The cheapest unblocked step is one
+email to LION about scope eligibility. Minnesota **arts and heritage** funders
+were never examined and may fit better than journalism funders.
 
 ## Lane C — the unlock (M)
 
@@ -416,8 +431,12 @@ return any item in the shipped ledger has delivered.
 2. ~~**B2 + B3**~~ ✅ **shipped** 29 Oct. B2 is dark until O3 produces a payment URL.
 3. **C1** — a full session, and the first one that needs P2 answered. **Next.**
 
-Remaining in lane B: **B4** (partner one-pager) and **B5** (grant evidence pack),
-both still S, both unblocked, neither dependent on C1.
+4. ~~**B4 + B5**~~ ✅ **shipped** 29 Oct. Lane B is complete.
+
+**Lane B is done.** What is left is lane O (owner) and lane C (the venue
+dashboard). Note for vector 14: the embeddable widget is **blocked**, not merely
+unbuilt — there is no CORS header anywhere, so a cross-origin browser fetch of
+the feed fails. That is a real build, not a config line.
 
 Re-read the gate tracker before session 4. If O1 produces a reply, that reply
 reorders this queue — a real buyer outranks anything written here.
