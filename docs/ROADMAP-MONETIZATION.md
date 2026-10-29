@@ -155,7 +155,7 @@ M a session · L multi-session or ongoing sales.
 | # | Vector | $ now | Disr. | Effort |
 |---|---|---|---|---|
 | 4 | **Supporter / tip link** — one line in the footer and the digest, no popup | $0–30/mo | 0 | S |
-| 5 | **Parking affiliate** (SpotHero ~2.4% via Rakuten/FlexOffers) on venue pages | $5–20/mo | **0 — genuinely useful** | S |
+| 5 | ~~**Parking affiliate** (SpotHero)~~ → **shipped as a Google Maps parking link**, B3 | **$0** (no documented deep link to tag) | **0 — genuinely useful** | S ✅ |
 | 6 | **Restaurant reservations** (OpenTable/Resy) — "dinner before the show" | $5–25/mo | 0–1 | M |
 | 7 | **Experiences affiliate** (Viator/GetYourGuide) on the 569 Places pages | $10–40/mo | 1 | M |
 | 8 | **Hotel affiliate** on big-draw events | $0–20/mo | 1 | M |
@@ -321,7 +321,7 @@ is the resilience contract in `lib/__tests__/stats-resilience.test.ts` (returns
 table renders above the vendor one, which gained a sentence recording that the
 affiliate question measured 1.9% and is closed. **O1 is now unblocked.**
 
-### B2 — The supporter link  [4]
+### B2 — The supporter link  [4]  ✅ SHIPPED (dark until O3)
 **Why:** the reader-funded story is worth starting early and costs nothing to run.
 **Design:** an external payment URL (O3) — **no** Stripe API, no webhook, no table,
 no amounts in code. One line in [components/SiteFooter.tsx](../components/SiteFooter.tsx)
@@ -331,8 +331,11 @@ the plain-text footer — the plain-text one is the half that gets forgotten).
 A `/support` page only if the payment host's own page reads badly.
 **Tests:** the footer copy if it becomes config; otherwise visual.
 **Size** S · **Depends** O3 · **Return** $0–30/mo.
+**Shipped** 29 Oct 2026 — `deploy-history/DEPLOY-SUPPORT-LINK-AND-PARKING.md`.
+`SUPPORT` in `lib/editorial.ts` is null, so it renders nowhere; set the object
+when the payment page exists and both surfaces light up together.
 
-### B3 — "Parking near here" on venue pages  [5]
+### B3 — "Parking near here" on venue pages  [5]  ✅ SHIPPED (earns $0)
 **Why:** useful to a reader on the night, with or without a commission — which is
 why it survives the disruption veto that kills the rest of category D.
 **Design:** a link on `app/venues/[slug]` built from `venue_coords`. **Verify the
@@ -342,7 +345,14 @@ be deep-linked honestly, fall back to a venue-name search, and if that reads bad
 coords. Any affiliate id later goes in `AFFILIATE` in `lib/outbound.ts`, which
 already exists for exactly this — it just stays empty for ticket hosts.
 **Tests:** golden tests on the URL builder (coords → URL, missing coords → null).
-**Size** S · **Depends** nothing · **Return** $5–20/mo once tagged, reader value now.
+**Size** S · **Depends** nothing · **Return** ~~$5–20/mo once tagged~~ → **$0**.
+**Shipped** 29 Oct 2026 — `deploy-history/DEPLOY-SUPPORT-LINK-AND-PARKING.md`.
+SpotHero publishes no documented lat/lng deep link, so per this spec's own
+instruction the item was not built on a guessed URL. It ships as a Google Maps
+parking search — the pattern the Directions link beside it already used, and
+where SpotHero inventory surfaces anyway. Reader value, no revenue. The $5–20
+line was a forecast of a thing that turned out not to be buildable, and is
+corrected rather than left standing.
 
 ### B4 — Partner one-pager for the feed  [13]
 **Why:** vector 13 is the second-highest value in the document and the thing it
@@ -402,9 +412,12 @@ return any item in the shipped ledger has delivered.
 
 ## The first three sessions
 
-1. **B1** — half a session. Then Taren sends the ten emails.
-2. **B2 + B3** — one session together if O3 has landed; they touch nothing in common.
-3. **C1** — a full session, and the first one that needs P2 answered.
+1. ~~**B1**~~ ✅ **shipped** 29 Oct. Then Taren sends the ten emails (**O1, still open**).
+2. ~~**B2 + B3**~~ ✅ **shipped** 29 Oct. B2 is dark until O3 produces a payment URL.
+3. **C1** — a full session, and the first one that needs P2 answered. **Next.**
+
+Remaining in lane B: **B4** (partner one-pager) and **B5** (grant evidence pack),
+both still S, both unblocked, neither dependent on C1.
 
 Re-read the gate tracker before session 4. If O1 produces a reply, that reply
 reorders this queue — a real buyer outranks anything written here.

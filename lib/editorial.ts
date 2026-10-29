@@ -192,3 +192,32 @@ export const CARD_COPY = {
   captionCurated:
     "Five {plural} from our list this week. {places} Which ones have you been to? More at citypulsemn.com/places",
 };
+
+export interface SupportLink {
+  /** The payment page's own URL. Stripe payment link, Ko-fi, Buy Me a Coffee — whatever the host gives us. */
+  url: string;
+  /** The footer link text. Short. */
+  label: string;
+  /** One line in the weekly email, above the unsubscribe block. */
+  digestLine: string;
+}
+
+/**
+ * READER SUPPORT LINK (Monetization B2).
+ *
+ * null ⇒ the link renders NOWHERE — no footer item, no line in the email. Same
+ * contract as DIGEST_SPONSOR: honest emptiness, no "coming soon", no dead link
+ * to a page that does not exist yet. Set it when the payment page is live.
+ *
+ * We never take a card detail ourselves. `url` points at the payment host and
+ * that is the whole integration — no API, no webhook, no table, nothing to
+ * reconcile. One ask, in the footer, where someone who already scrolled that
+ * far will find it. Never a band, never a popup (no dark patterns).
+ *
+ *   export const SUPPORT: SupportLink | null = {
+ *     url: "https://buy.stripe.com/xxxxxxxx",
+ *     label: "Support the site",
+ *     digestLine: "This email is free and carries no ads. If it's worth something to you, you can chip in.",
+ *   };
+ */
+export const SUPPORT: SupportLink | null = null;

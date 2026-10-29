@@ -4,6 +4,7 @@ import { DOW, MONTHS, timeLabel, evDate, dkey } from "./dates";
 import { chiDayKey } from "./clock";
 import { CATEGORIES } from "./categories";
 import { KIND_META, type Place } from "./places";
+import { SUPPORT, type SupportLink } from "./editorial";
 import type { EventRecord } from "./types";
 
 /**
@@ -40,6 +41,9 @@ export interface DigestOptions {
   /** ROADMAP R2.1 — the newsletter sponsor. Omit ⇒ use the module DIGEST_SPONSOR
    *  (null by default = no slot). Pass null explicitly to force no sponsor. */
   sponsor?: DigestSponsor | null;
+  /** MONETIZATION B2 — the reader support link. Omit ⇒ use the module SUPPORT
+   *  (null by default = no line). Pass null explicitly to force none. */
+  support?: SupportLink | null;
   /** ROADMAP v6 1.3 — the week's featured Place (`placeOfTheWeek(now)`). Absent/
    *  null ⇒ the section renders nothing. Same for every recipient. */
   placeOfWeek?: Place | null;
@@ -225,17 +229,21 @@ export interface DigestSponsor {
  */
 export const DIGEST_SPONSOR: DigestSponsor | null = null;
 
-/** Append digest-campaign UTM params to a sponsor's own URL (attribution for them). */
-function sponsorUrl(url: string): string {
+/**
+ * Append digest UTM params to an outbound URL. One definition, two campaigns —
+ * a sponsor's own URL (attribution for them) and the support link (so we can
+ * tell an email click from a site-footer click).
+ */
+function campaignUrl(url: string, campaign: string): string {
   const sep = url.includes("?") ? "&" : "?";
-  return `${url}${sep}utm_source=email&utm_medium=digest&utm_campaign=sponsor`;
+  return `${url}${sep}utm_source=email&utm_medium=digest&utm_campaign=${campaign}`;
 }
 
 /** The sponsor band as an email table row. "" when there is no sponsor. Pure. */
 export function sponsorSlotHtml(sponsor: DigestSponsor | null): string {
   if (!sponsor) return "";
   const name = sponsor.url
-    ? `<a href="${sponsorUrl(sponsor.url)}" style="color:${CREAM};text-decoration:none;">${esc(sponsor.name)} &rarr;</a>`
+    ? `<a href="${campaignUrl(sponsor.url, "sponsor")}" style="color:${CREAM};text-decoration:none;">${esc(sponsor.name)} &rarr;</a>`
     : esc(sponsor.name);
   const tag = sponsor.tagline
     ? `<div style="font:400 13px/1.5 Arial,Helvetica,sans-serif;color:${CREAM_DIM};margin-top:3px;">${esc(sponsor.tagline)}</div>`
@@ -256,8 +264,27 @@ export function sponsorSlotText(sponsor: DigestSponsor | null): string {
   if (!sponsor) return "";
   const lines = [`PRESENTED BY: ${sponsor.name}`];
   if (sponsor.tagline) lines.push(`  ${sponsor.tagline}`);
-  if (sponsor.url) lines.push(`  ${sponsorUrl(sponsor.url)}`);
+  if (sponsor.url) lines.push(`  ${campaignUrl(sponsor.url, "sponsor")}`);
   return lines.join("\n");
+}
+
+/**
+ * READER SUPPORT LINE (Monetization B2). "" when unset — no row, no spacing,
+ * nothing (honest emptiness). One line, phrased as an offer and never as a
+ * guilt trip, above the legal footer rather than mixed into it.
+ */
+export function supportLineHtml(support: SupportLink | null): string {
+  if (!support) return "";
+  return `
+        <tr><td style="padding:0 24px 18px;">
+          <div style="font:400 13px/1.6 Arial,Helvetica,sans-serif;color:${CREAM_DIM};">${esc(support.digestLine)} <a href="${campaignUrl(support.url, "support")}" style="color:${GOLD};text-decoration:underline;">${esc(support.label)} &rarr;</a></div>
+        </td></tr>`;
+}
+
+/** The support line for the plain-text part. "" when unset. Pure. */
+export function supportLineText(support: SupportLink | null): string {
+  if (!support) return "";
+  return `${support.digestLine} ${campaignUrl(support.url, "support")}`;
 }
 
 // ── Place of the week (Roadmap v6 1.3 — the evergreen Places bridge) ──────────
@@ -362,6 +389,8 @@ export function renderDigestEmail(opts: DigestOptions): DigestData {
   const { events, weekLabel, unsubscribeUrl, siteUrl, postalAddress } = opts;
   // R2.1 — default to the module sponsor; a caller may pass null to force none.
   const sponsor = opts.sponsor === undefined ? DIGEST_SPONSOR : opts.sponsor;
+  // B2 — same contract for the support link.
+  const support = opts.support === undefined ? SUPPORT : opts.support;
   const saved = opts.savedThisWeek ?? [];
   const top = events[0];
   const subject =
@@ -432,7 +461,7 @@ export function renderDigestEmail(opts: DigestOptions): DigestData {
         </td></tr>
         <tr><td style="padding:0 24px 22px;">
           <div style="font:400 13px/1.6 Arial,Helvetica,sans-serif;color:${CREAM_DIM};">Enjoying this? Forward it to a friend — or send them <a href="${siteUrl}/this-week?utm_source=email&utm_medium=forward" style="color:${GOLD};text-decoration:underline;">citypulsemn.com/this-week</a> to get their own.</div>
-        </td></tr>
+        </td></tr>${supportLineHtml(support)}
         <tr><td style="padding:18px 24px 26px;border-top:1px solid rgba(201,169,97,0.2);">
           <div style="font:400 12px/1.6 Arial,Helvetica,sans-serif;color:#7c8398;">
             You're getting this because you subscribed at citypulsemn.com.<br>
@@ -483,6 +512,7 @@ export function renderDigestEmail(opts: DigestOptions): DigestData {
     ...(placeText ? [placeText, ""] : []),
     `See everything: ${siteUrl}`,
     `Enjoying this? Forward it to a friend — or send them ${siteUrl}/this-week to get their own.`,
+    ...(supportLineText(support) ? ["", supportLineText(support)] : []),
     "",
     `Unsubscribe: ${unsubscribeUrl}`,
     senderFooterLine(postalAddress),

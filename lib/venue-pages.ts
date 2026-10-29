@@ -167,3 +167,37 @@ export function staticMapUrl(lat: number, lng: number, token: string): string {
   // screen — the pin stays in the middle on desktop and phone alike.
   return `https://api.mapbox.com/styles/v1/mapbox/dark-v11/static/${pin}/${lng},${centerLat},${MAP_ZOOM},0/1280x400@2x?access_token=${encodeURIComponent(token)}`;
 }
+
+/** Google's documented universal Maps-search URL. Same base for both links below. */
+const MAPS_SEARCH = "https://www.google.com/maps/search/?api=1&query=";
+
+type Coords = { lat: number; lng: number } | null;
+
+/**
+ * Directions to the room. Coords when the calendar knows them, the venue's own
+ * name otherwise — a name search still lands a reader in the right place, which
+ * is why there is no honest-empty case here.
+ */
+export function directionsUrl(coords: Coords, name: string, city: string): string {
+  return coords
+    ? `${MAPS_SEARCH}${coords.lat},${coords.lng}`
+    : `${MAPS_SEARCH}${encodeURIComponent(`${name} ${city} MN`)}`;
+}
+
+/**
+ * Parking near the room (Monetization B3).
+ *
+ * Google Maps rather than a parking vendor, deliberately. The roadmap costed
+ * this as a SpotHero affiliate link worth $5–20/month; SpotHero publishes no
+ * documented lat/lng deep-link format, and the spec said to cut the item rather
+ * than ship a guessed URL. Google's search URL is documented, is already the
+ * pattern this page uses for directions, works without an app install — and
+ * SpotHero's own inventory appears inside Google's parking results anyway, so a
+ * reader who wants to reserve a spot still can. **This earns nothing.** It is
+ * here because it is useful at 7pm on a Friday.
+ */
+export function parkingUrl(coords: Coords, name: string, city: string): string {
+  return coords
+    ? `${MAPS_SEARCH}${encodeURIComponent(`parking near ${coords.lat},${coords.lng}`)}`
+    : `${MAPS_SEARCH}${encodeURIComponent(`parking near ${name} ${city} MN`)}`;
+}

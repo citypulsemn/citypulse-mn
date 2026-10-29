@@ -6,6 +6,8 @@ import {
   sponsorSlotHtml,
   sponsorSlotText,
   DIGEST_SPONSOR,
+  supportLineHtml,
+  supportLineText,
   selectMostSaved,
   MOST_SAVED_MIN,
   placeOfWeekHtml,
@@ -13,6 +15,7 @@ import {
   mostSavedHtml,
   mostSavedText,
 } from "../digest";
+import { SUPPORT } from "../editorial";
 import { makeUnsubToken, verifyUnsubToken, unsubscribeUrl } from "../unsubscribe-token";
 import type { Place } from "../places";
 import type { EventRecord } from "../types";
@@ -326,5 +329,67 @@ describe("newsletter sponsor slot (R2.1)", () => {
     expect(html).toContain("Bar &amp; &lt;Grill&gt;");
     expect(html).not.toContain("<Grill>");
     expect(html).not.toContain("<b>eat</b>");
+  });
+});
+
+describe("reader support line (B2)", () => {
+  const events = [ev({ id: "a", title: "Trampled by Turtles" })];
+  const base = {
+    events,
+    weekLabel: "July 13 – 19",
+    unsubscribeUrl: "#",
+    siteUrl: "https://citypulsemn.com",
+  };
+  const support = {
+    url: "https://buy.stripe.com/test",
+    label: "Support the site",
+    digestLine: "This email is free and carries no ads.",
+  };
+
+  it("ships dark — no payment page configured, no line anywhere", () => {
+    expect(SUPPORT).toBeNull();
+    const out = renderDigestEmail(base); // no support passed ⇒ module default (null)
+    expect(out.html).not.toContain("Support the site");
+    expect(out.html).not.toContain("utm_campaign=support");
+    expect(out.text).not.toContain("Support the site");
+  });
+
+  it("null renders an empty string, not an empty row (honest emptiness)", () => {
+    expect(supportLineHtml(null)).toBe("");
+    expect(supportLineText(null)).toBe("");
+  });
+
+  it("renders the line, the label and a support-campaign UTM", () => {
+    const out = renderDigestEmail({ ...base, support });
+    expect(out.html).toContain("This email is free and carries no ads.");
+    expect(out.html).toContain("Support the site");
+    expect(out.html).toContain(
+      "https://buy.stripe.com/test?utm_source=email&utm_medium=digest&utm_campaign=support",
+    );
+    expect(out.text).toContain("This email is free and carries no ads.");
+    expect(out.text).toContain("utm_campaign=support");
+  });
+
+  it("does not disturb the plain-text footer when unset", () => {
+    const off = renderDigestEmail(base).text.split("\n");
+    const on = renderDigestEmail({ ...base, support }).text.split("\n");
+    // The support line adds exactly two lines (a blank and the line itself);
+    // the unsubscribe block stays last either way.
+    expect(on.length).toBe(off.length + 2);
+    expect(off[off.length - 2]).toContain("Unsubscribe:");
+    expect(on[on.length - 2]).toContain("Unsubscribe:");
+  });
+
+  it("appends UTM correctly when the payment url already has a query", () => {
+    expect(supportLineText({ ...support, url: "https://ko-fi.com/x?a=1" })).toContain(
+      "https://ko-fi.com/x?a=1&utm_source=email&utm_medium=digest&utm_campaign=support",
+    );
+  });
+
+  it("escapes HTML in the configured copy", () => {
+    const html = supportLineHtml({ ...support, label: "Chip <in>", digestLine: "Free & no ads." });
+    expect(html).toContain("Chip &lt;in&gt;");
+    expect(html).toContain("Free &amp; no ads.");
+    expect(html).not.toContain("<in>");
   });
 });

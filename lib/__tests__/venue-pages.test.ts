@@ -8,6 +8,8 @@ import {
   dominantCoords,
   dominantAddress,
   staticMapUrl,
+  directionsUrl,
+  parkingUrl,
 } from "../venue-pages";
 import { VENUES } from "../venues";
 
@@ -106,5 +108,48 @@ describe("dominantCoords / dominantAddress — the mode is the building", () => 
     const centerLat = Number(center![2]);
     expect(centerLat).toBeGreaterThan(44.9784 + 0.0004);
     expect(centerLat).toBeLessThan(44.9784 + 0.0012);
+  });
+});
+
+describe("directionsUrl / parkingUrl (B3)", () => {
+  const coords = { lat: 44.9784, lng: -93.2762 };
+
+  it("directions with coords are byte-identical to the inline URL this replaced", () => {
+    expect(directionsUrl(coords, "First Avenue", "Minneapolis")).toBe(
+      "https://www.google.com/maps/search/?api=1&query=44.9784,-93.2762",
+    );
+  });
+
+  it("directions fall back to a name search when the calendar has no pin", () => {
+    expect(directionsUrl(null, "Turf Club", "St Paul")).toBe(
+      "https://www.google.com/maps/search/?api=1&query=Turf%20Club%20St%20Paul%20MN",
+    );
+  });
+
+  it("parking searches near the coords", () => {
+    expect(parkingUrl(coords, "First Avenue", "Minneapolis")).toBe(
+      "https://www.google.com/maps/search/?api=1&query=parking%20near%2044.9784%2C-93.2762",
+    );
+  });
+
+  it("parking falls back to the venue name too", () => {
+    expect(parkingUrl(null, "Turf Club", "St Paul")).toBe(
+      "https://www.google.com/maps/search/?api=1&query=parking%20near%20Turf%20Club%20St%20Paul%20MN",
+    );
+  });
+
+  it("encodes names that would otherwise break the query string", () => {
+    const url = parkingUrl(null, "Bryant-Lake Bowl & Theater", "Minneapolis");
+    expect(url).toContain("%26"); // the ampersand cannot escape into a new param
+    expect(url).not.toContain("&query=parking near");
+    expect(url.split("&").length).toBe(2); // only api=1 and query=
+  });
+
+  it("both links point at google maps and nowhere else — this earns nothing", () => {
+    for (const url of [directionsUrl(coords, "X", "Y"), parkingUrl(coords, "X", "Y")]) {
+      expect(url.startsWith("https://www.google.com/maps/search/?api=1&query=")).toBe(true);
+      expect(url).not.toContain("spothero");
+      expect(url).not.toContain("utm_");
+    }
   });
 });

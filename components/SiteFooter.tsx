@@ -1,4 +1,5 @@
 import { SubscribeForm } from "./SubscribeForm";
+import { SUPPORT } from "@/lib/editorial";
 
 export function SiteFooter({ source = "site" }: { source?: string }) {
   return (
@@ -38,6 +39,13 @@ export function SiteFooter({ source = "site" }: { source?: string }) {
         <a href="/privacy">Privacy</a>
         <span aria-hidden="true">·</span>
         <a href="/terms">Terms</a>
+        {/* B2 — renders nothing until a payment page exists (lib/editorial.ts SUPPORT). */}
+        {SUPPORT && (
+          <>
+            <span aria-hidden="true">·</span>
+            <a href={SUPPORT.url} target="_blank" rel="noopener noreferrer">{SUPPORT.label}</a>
+          </>
+        )}
       </div>
       <div className="sf-brand">City Pulse MN · the pulse of the Twin Cities</div>
     </footer>

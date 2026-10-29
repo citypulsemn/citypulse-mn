@@ -13,6 +13,8 @@ import {
   dominantCoords,
   dominantAddress,
   staticMapUrl,
+  directionsUrl,
+  parkingUrl,
 } from "@/lib/venue-pages";
 import { neighborhoodOf } from "@/lib/neighborhoods";
 import { matchCitySlug } from "@/lib/cities";
@@ -79,9 +81,8 @@ export default async function VenuePage({
   const nbhd = coords ? neighborhoodOf(coords.lat, coords.lng) : null;
   const mapToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
   const mapUrl = coords && mapToken ? staticMapUrl(coords.lat, coords.lng, mapToken) : null;
-  const directions = coords
-    ? `https://www.google.com/maps/search/?api=1&query=${coords.lat},${coords.lng}`
-    : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${v.name} ${v.city} MN`)}`;
+  const directions = directionsUrl(coords, v.name, v.city);
+  const parking = parkingUrl(coords, v.name, v.city);
 
   const placeJsonLd: Record<string, unknown> = {
     "@context": "https://schema.org",
@@ -122,6 +123,8 @@ export default async function VenuePage({
             )}
             {" · "}
             <a href={directions} target="_blank" rel="noopener noreferrer">Directions ↗</a>
+            {" · "}
+            <a href={parking} target="_blank" rel="noopener noreferrer">Parking ↗</a>
           </div>
           {VENUE_INTROS[v.slug] && <p className="page-intro">{VENUE_INTROS[v.slug]}</p>}
         </div>
