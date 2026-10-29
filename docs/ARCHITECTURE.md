@@ -48,7 +48,7 @@ The website deploy never imports the agent or orchestration code, so the site's 
 ```
 app/                      Website (Next.js App Router)
   page.tsx                Server Component — calls getEvents(), renders the explorer
-  api/events/route.ts     JSON endpoint (read)
+  api/events/route.ts     JSON read — operator convenience, capped, NOT a public API
 components/                Calendar, Map, filters, detail panels
 lib/
   events.ts               READ boundary — Postgres → EventRecord (sample fallback)

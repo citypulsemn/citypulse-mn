@@ -164,12 +164,9 @@ that is not real.
 
 ## Left for later, named rather than silently dropped
 
-- **`GET /api/events` is live, unauthenticated and uncapped**, returning the
-  entire published table as JSON. It is undocumented and robots-disallowed, but
-  robots is advisory. Given this project's history of database-egress and compute
-  overages, that endpoint is worth a decision — cap it, cache it harder, or
-  remove it. **Not touched here:** changing a live public endpoint is a product
-  call, not a copy edit.
+- ~~**`GET /api/events` is live, unauthenticated and uncapped**~~ — **done the
+  same day**, once Taren called it: capped to 20 with real cache headers,
+  542,226 bytes → 15,131. See `DEPLOY-API-EVENTS-CAP.md`.
 - **`venue-sever-s` and `venue-xcel-energy-center`** — one mangled, one renamed.
   Both are public URLs, so fixing them is a redirect question, not a rename.
 - **The 18 empty feeds.** Expected for a quiet month in a small room, but worth

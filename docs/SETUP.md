@@ -61,8 +61,12 @@ To **hide** any event, open the **Supabase Table Editor** → `events`, and flip
 Verify quickly:
 
 ```bash
-curl http://localhost:3000/api/events     # should return YOUR events, not the 30 samples
+curl -s http://localhost:3000/api/events | head -c 120   # read "count" — yours, not 30 samples
 ```
+
+`count` is the full published total; the body itself carries only the first 20
+events. It was uncapped until 29 Oct 2026, when it was measured at 542KB a
+call — see `lib/api-events.ts` for why that mattered.
 
 ## 7. Automate the weekly run (5 min)
 
