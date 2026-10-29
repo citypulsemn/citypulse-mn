@@ -261,26 +261,153 @@ affiliate and solo sends fall off the bottom.
 **By feasibility this week:** 10 (ten emails, zero code) → 4 (tip link, one line)
 → 16 and 1 (built, need a buyer) → 9 (a session) → 32 (an application).
 
-## Recommended sequence
+---
 
-1. **Vector 10 — email the ten operators in finding 2.** Manual, no code, true, and
-   the only pitch here that does not depend on the audience getting bigger. Lead
-   with the click count we actually sent them.
-2. **Vector 9 — the venue dashboard**, which turns that email into something
-   self-serve and is the proof-of-value that sells 1, 2 and 16.
-3. **Vector 16 — sell one seasonal sponsored collection.** The mechanism is built;
-   finding 2 says the seasonal campaign is the unit people want.
-4. **Vector 32 — one grant application.** Worth more than every passive vector in
-   this document combined for the next twelve months.
-5. **Vector 4 — the supporter link.** One line, zero disruption, establishes the
-   reader-funded story early.
-6. **Vectors 5–7** when a Places or venue page is being touched anyway.
-7. **Everything in E and F** stays closed. **Vector 3/19 stays dormant** — the
-   report it produced is what told us to stop.
+# The build queue
 
-**Blocked on Taren:** the gate split in finding 3. Steps 1–3 are inside the
-venue-side tier, and under the current single gate they are formally closed until
-500 subscribers.
+Quick wins first. Two lanes run in parallel: the **owner lane** (sales, accounts,
+decisions — no code, Taren's) and the **build lane** (one item per session, the
+working agreement in CLAUDE.md). Vector numbers in brackets point back to the map.
+
+**How this is ordered.** Effort is the primary sort, because every $ figure above
+is small and uncertain at this size — so the cheapest *true* thing wins before the
+cleverest. Disruption is a **veto, not a weight**: a vector scoring 2 or 3 does not
+get in at any value. Value breaks ties among the cheap. And an item that *unblocks*
+another outranks its own return, which is why B1 — worth $0 by itself — goes first.
+
+## Hard prerequisites
+
+**P1 — `DIGEST_POSTAL_ADDRESS` is unset.** Every weekly send goes out without the
+physical address CAN-SPAM requires and stamps `NO POSTAL ADDRESS IN FOOTER` in its
+own record (`docs/HANDOFF.md` open item 1). **Nothing may be sold into the
+newsletter until this is set** — not vector 2, not 26. One GitHub Actions secret,
+and the plumbing is already fixed. This is the cheapest blocker on the page and it
+gates the only revenue surface that is fully built.
+
+**P2 — the gate split** (finding 3). B1, C1, C2 and all of lane D sit inside the
+proposed venue-side tier. Under the current single gate they are formally closed
+until 500 subscribers. Taren's call; the queue below assumes the split is adopted
+and says so rather than quietly proceeding.
+
+## Lane O — owner, zero build, available now
+
+| | Item | Why now |
+|---|---|---|
+| **O1** | **Email the ten operators in finding 2** [10] | The only pitch that does not need the audience to grow. Wait for B1 so it is a screenshot, not a SQL query |
+| **O2** | **Ask one seasonal operator for a sponsored collection** [16] | Mechanism built (`25e16f7`). Halloween is ending — the orchards, haunts and Restaurant Week publisher are the warm list |
+| **O3** | **Open a payment destination** (Stripe payment link or Ko-fi) | Unblocks B2. No integration needed, just an account and a URL |
+| **O4** | **Decide P1 and P2** | P1 is a secret paste. P2 is a product call |
+
+## Lane B — quick builds (all S, all disruption 0)
+
+### B1 — Ticket clicks by venue on `/admin/stats`  ✅ SHIPPED
+**Why:** O1 is the highest-value action available and today it needs a hand-written
+SQL join to answer "how many buyers did we send you?". `getTicketClicksByVendor`
+already answers it by *host*, which is the wrong axis for an email to a venue —
+and finding 1 is the standing proof that the wrong axis sends you after the wrong
+party. Worth $0 directly; it is first because it unblocks the thing worth the most.
+**Design:** `getTicketClicksByVenue(days)` in [lib/stats.ts](../lib/stats.ts),
+mirroring `getTicketClicksByVendor` exactly — same 1–90 day clamp, same
+`America/Chicago` date window, same never-break contract (`[]` on any failure,
+ENGINEERING rule 1), grouped on `events.venue` instead of the URL host.
+**Build:** the function + a second table in
+[app/admin/stats/page.tsx](../app/admin/stats/page.tsx) beside the existing
+"Ticket clicks by vendor" block.
+**Tests:** no pure logic to golden-test — say so rather than invent one. The check
+is the resilience contract in `lib/__tests__/stats-resilience.test.ts` (returns
+`[]` with no database) plus a smoke of the page.
+**Size** S · **Depends** nothing · **Return** $0, unblocks O1.
+**Shipped** 29 Oct 2026 — `deploy-history/DEPLOY-CLICKS-BY-VENUE.md`. The venue
+table renders above the vendor one, which gained a sentence recording that the
+affiliate question measured 1.9% and is closed. **O1 is now unblocked.**
+
+### B2 — The supporter link  [4]
+**Why:** the reader-funded story is worth starting early and costs nothing to run.
+**Design:** an external payment URL (O3) — **no** Stripe API, no webhook, no table,
+no amounts in code. One line in [components/SiteFooter.tsx](../components/SiteFooter.tsx)
+beside "Submit an event", and one in the digest footer in
+[lib/digest.ts](../lib/digest.ts) next to the unsubscribe line (both the HTML and
+the plain-text footer — the plain-text one is the half that gets forgotten).
+A `/support` page only if the payment host's own page reads badly.
+**Tests:** the footer copy if it becomes config; otherwise visual.
+**Size** S · **Depends** O3 · **Return** $0–30/mo.
+
+### B3 — "Parking near here" on venue pages  [5]
+**Why:** useful to a reader on the night, with or without a commission — which is
+why it survives the disruption veto that kills the rest of category D.
+**Design:** a link on `app/venues/[slug]` built from `venue_coords`. **Verify the
+deep-link shape first** (a lat/lng search URL that actually resolves); if it cannot
+be deep-linked honestly, fall back to a venue-name search, and if that reads badly,
+**cut the item** rather than ship a guessed URL. Honest-empty when the venue has no
+coords. Any affiliate id later goes in `AFFILIATE` in `lib/outbound.ts`, which
+already exists for exactly this — it just stays empty for ticket hosts.
+**Tests:** golden tests on the URL builder (coords → URL, missing coords → null).
+**Size** S · **Depends** nothing · **Return** $5–20/mo once tagged, reader value now.
+
+### B4 — Partner one-pager for the feed  [13]
+**Why:** vector 13 is the second-highest value in the document and the thing it
+needs is not code — the iCal/JSON feeds already ship (`app/feeds/[slug]`, 6.1).
+What is missing is a page a hotel, chamber or newsroom can read and act on.
+**Design:** a section on [/for-venues](../app/for-venues/page.tsx) or a sibling
+`/for-partners`: what the feed contains, how it is verified, the attribution terms,
+who to contact. Copy, in the voice rules — no brochure sentences.
+**Size** S · **Depends** nothing · **Return** unblocks a $100–500/mo conversation.
+
+### B5 — Grant evidence pack  [32]
+**Why:** the largest absolute figure in the document and the only one that does not
+need the audience to grow. A docs file, not a feature.
+**Design:** assemble what already exists into one readable piece — the verification
+discipline (`docs/VERIFICATION.md`, `docs/REPORT-CHECKS.md`), the coverage method,
+the live numbers above, and the two fabrication incidents *with what we built in
+response*. For a grant reader those incidents are evidence of method, not
+embarrassment. Name the funders to approach; do not draft the application.
+**Size** S · **Depends** nothing · **Return** $2k–15k, one-time, slow.
+
+## Lane C — the unlock (M)
+
+### C1 — Venue dashboard  [9]
+**Why:** turns O1 from ten hand-written emails into something that keeps working,
+and is the proof-of-value that sells vectors 1, 2 and 16. Nothing else in the
+document creates a reason for a business to open a page of ours every month.
+**Design:** magic-link, no login, no account. Do not invent signing — four modules
+already establish the pattern (`lib/unsubscribe-token.ts`, `report-token.ts`,
+`restore-token.ts`, `confirm-token.ts`, all HMAC over an `envOr` secret with a dev
+fallback); add `lib/venue-token.ts` in the same shape, keyed on venue slug. Shows
+that venue's listings, views and ticket clicks over 30/90 days. Read-only in v1.
+**Gotcha:** `.env.local` carries no `UNSUBSCRIBE_SECRET`, so links minted locally
+are signed with the dev fallback and production rejects them as expired
+(`docs/HANDOFF.md`). Test the token logic in unit tests, not by clicking a link.
+**Watch:** the dashboard must never imply we can move their ranking.
+**Size** M · **Depends** B1 (the query), P2 (the gate) · **Return** $0 direct.
+
+### C2 — Enhanced venue profile  [12]
+Presentation only — logo, photos, links. **Never placement.** The principle line
+above is the whole spec. **Size** M · **Depends** C1.
+
+## Lane D — real money, later (L)
+
+**D1** self-serve promote-your-event with Stripe [11] · **D2** data/feed licensing
+once B4 produces a conversation [13] · **D3** syndication with mspmag.com, to whom
+we already send 565 clicks a month [15] · **D4** CVB and tourism budgets [18].
+All gated on P2 and on at least one completed sale from lane O — we do not build
+checkout for a hypothesis.
+
+## Lane E — closed, on purpose
+
+Display ads [23, 24], solo email sends [26], ticket affiliate [3, 19, 20], Groupon
+and Amazon [21, 22], membership and paid newsletters [27, 28]. Each is closed by a
+measured number or by the disruption veto, not by taste. **The affiliate seam stays
+dormant** — the report it produced is what told us to stop, which is the best
+return any item in the shipped ledger has delivered.
+
+## The first three sessions
+
+1. **B1** — half a session. Then Taren sends the ten emails.
+2. **B2 + B3** — one session together if O3 has landed; they touch nothing in common.
+3. **C1** — a full session, and the first one that needs P2 answered.
+
+Re-read the gate tracker before session 4. If O1 produces a reply, that reply
+reorders this queue — a real buyer outranks anything written here.
 
 ---
 

@@ -1,5 +1,5 @@
 import { getContentStats } from "@/lib/admin";
-import { getEngagement, getTicketClicksByVendor, ctr } from "@/lib/stats";
+import { getEngagement, getTicketClicksByVendor, getTicketClicksByVenue, ctr } from "@/lib/stats";
 import { getSubscriberStats, getSubscribersBySource } from "@/lib/subscribe";
 import { CATEGORIES } from "@/lib/categories";
 import type { CategoryKey } from "@/lib/types";
@@ -18,6 +18,7 @@ export default async function AdminStatsPage({
   const subSources = await getSubscribersBySource();
   const eng = await getEngagement(days);
   const vendors = await getTicketClicksByVendor(days);
+  const venues = await getTicketClicksByVenue(days);
 
   return (
     <>
@@ -142,6 +143,33 @@ export default async function AdminStatsPage({
         </div>
       </div>
 
+      {venues.length > 0 && (
+        <>
+          <h3 className="admin-h3">Ticket clicks by venue — last {days} days</h3>
+          <div className="admin-note">
+            Which businesses we actually send buyers to (B1) — the number to lead with
+            when you email a venue. It disagrees with listing counts on purpose: the host
+            carrying the most listings sits near the bottom of this table. Listings are
+            supply, this is demand, and this is the one to quote.
+          </div>
+          <div className="cov-scroll">
+            <table className="cov-table">
+              <thead>
+                <tr><th>Venue</th><th>Ticket clicks</th></tr>
+              </thead>
+              <tbody>
+                {venues.map((v) => (
+                  <tr key={v.venue}>
+                    <td>{v.venue}</td>
+                    <td>{v.clicks}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
+      )}
+
       {vendors.length > 0 && (
         <>
           <h3 className="admin-h3">Ticket clicks by vendor — last {days} days</h3>
@@ -149,6 +177,8 @@ export default async function AdminStatsPage({
             Where high-intent clicks actually land (M0.1). This is the signal for which
             affiliate programs are worth joining — most demand tends to be the non-affiliate
             long tail (venue box offices, festivals), not Ticketmaster/SeatGeek.
+            Measured Oct 2026 that was 1.9% of clicks, so the seam stays dormant; this
+            table is now the tripwire that would reopen the question.
           </div>
           <div className="cov-scroll">
             <table className="cov-table">

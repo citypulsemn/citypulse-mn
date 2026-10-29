@@ -268,6 +268,46 @@ export async function getTicketClicksByVendor(days: number): Promise<VendorClick
   }
 }
 
+export interface VenueClicks {
+  venue: string;
+  clicks: number;
+}
+
+/**
+ * Ticket clicks grouped by the VENUE we sent them to (Monetization B1) — the
+ * sibling of `getTicketClicksByVendor` on the axis that matters for a
+ * conversation with a venue: "you got N buyers from us last month".
+ *
+ * Why both exist: they disagree, and the disagreement is the point. Grouping by
+ * destination host answers "which ticketing platform", which is the affiliate
+ * question. Grouping by venue answers "which business do we send traffic to",
+ * which is the only pitch we have. Ordered by listings, or by host, the top of
+ * the list is a venue that took 14 clicks in 30 days — supply is not demand
+ * (ROADMAP-MONETIZATION.md finding 2). Never-break contract: [] on any failure.
+ */
+export async function getTicketClicksByVenue(days: number): Promise<VenueClicks[]> {
+  if (!sql) return [];
+  try {
+    const window = Math.max(1, Math.min(days, 90));
+    return await sql<VenueClicks[]>`
+      select
+        e.venue as venue,
+        sum(s.count)::int as clicks
+      from event_stats s
+      join events e on e.id = s.event_id
+      where s.action = 'ticket_click'
+        and coalesce(e.venue, '') <> ''
+        and s.day >= (now() at time zone 'America/Chicago')::date - (${window - 1})::int
+      group by e.venue
+      order by clicks desc
+      limit 25
+    `;
+  } catch (err) {
+    console.error("[stats] getTicketClicksByVenue failed (returning empty):", err);
+    return [];
+  }
+}
+
 /**
  * Count one arrival by its referring host. Same contract as `recordStat`:
  * fire-and-forget, never throws, analytics must never break the page.
