@@ -1204,7 +1204,7 @@ a.daycard { text-decoration: none; }
 .feed-subscribe a:hover { color: var(--gold); border-bottom-color: var(--gold); }
 .feed-copy { font: inherit; font-size: 12px; color: var(--cream-dim); background: none; border: 1px solid var(--line); border-radius: 7px; padding: 3px 10px; cursor: pointer; transition: color 0.15s, border-color 0.15s; }
 .feed-copy:hover { color: var(--gold); border-color: var(--gold); }
-.forv-section { margin-top: 26px; max-width: 640px; }
+.forv-section { margin: 26px auto 0; max-width: 640px; }
 .more-at { margin: 30px 0 8px; padding-top: 18px; border-top: 1px solid var(--line); }
 .more-at-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 10px; }
 .more-at-title { font-family: var(--font-oswald); font-weight: 600; font-size: 17px; letter-spacing: 0.03em; margin: 0; color: var(--gold); }
@@ -1349,7 +1349,7 @@ a.daycard { text-decoration: none; }
    so it stays readable on a wide screen, and headings get real space — these
    are pages someone reads to find one answer, so the scan matters more than
    the density. */
-.legal-body { max-width: 68ch; margin: 28px 0 40px; color: var(--cream-dim); font-size: 15px; line-height: 1.65; }
+.legal-body { max-width: 68ch; margin: 28px auto 40px; color: var(--cream-dim); font-size: 15px; line-height: 1.65; }
 .legal-body h2 { color: var(--cream); font-size: 19px; margin: 34px 0 10px; letter-spacing: 0.01em; }
 .legal-body h3 { color: var(--cream); font-size: 15.5px; margin: 22px 0 6px; font-weight: 600; }
 .legal-body p { margin: 0 0 12px; }
