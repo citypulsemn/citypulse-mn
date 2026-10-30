@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 
 /**
@@ -32,28 +32,40 @@ describe("error boundary (the data-blip case)", () => {
   });
 });
 
-describe("loading skeletons (perceived speed)", () => {
-  it("leaf server pages have loading fallbacks using the shared skeletons", () => {
-    // event = card shape; the list-shaped pages share ListSkeleton.
-    expect(read("app/event/[id]/loading.tsx")).toContain("CardSkeleton");
-    for (const seg of ["day/[date]", "venues", "collections"]) {
-      expect(existsSync(join(ROOT, "app", ...seg.split("/"), "loading.tsx")), `${seg} loading`).toBe(true);
-      expect(read(`app/${seg}/loading.tsx`)).toContain("ListSkeleton");
-    }
+describe("no route-level loading.tsx (the soft-404 rule, 30 Oct 2026)", () => {
+  it("has none anywhere under app/", () => {
+    // A loading.tsx wraps its segment AND every child segment in <Suspense>, so
+    // React resolves the shell with the fallback and Next flushes the response —
+    // status 200 — before the page's own notFound() has run. app-render.js is the
+    // only place a notFound() becomes a status code, and by then the headers are
+    // gone. The page still swaps in the not-found UI, so it LOOKS right; only the
+    // status code and the position of the robots meta give it away.
+    //
+    // Measured 30 Oct 2026 on a production build against the real database. With
+    // the four files present: /event/<unknown-uuid>, /venues/zzz-not-real,
+    // /collections/zzz-not-real and /day/not-a-date all answered 200. With them
+    // gone: all four answer 404, and the noindex meta moves from the body into
+    // the head where a crawler is guaranteed to read it.
+    //
+    // This subsumes the older "NO root loading.tsx" tripwire, which existed
+    // because a root one stuck over the homepage's client explorer (UX2, Jul).
+    // Same file, a second and worse failure, so the rule is now simply: none.
+    const walk = (dir: string): string[] =>
+      readdirSync(dir, { withFileTypes: true }).flatMap((e) =>
+        e.isDirectory()
+          ? walk(join(dir, e.name))
+          : e.name === "loading.tsx"
+            ? [join(dir, e.name).slice(ROOT.length + 1)]
+            : [],
+      );
+    expect(walk(join(ROOT, "app"))).toEqual([]);
   });
+});
 
-  it("there is NO root loading.tsx — it sticks over the homepage's client explorer", () => {
-    expect(existsSync(join(ROOT, "app", "loading.tsx"))).toBe(false);
-  });
-
-  it("the skeleton shell is aria-busy and carries an SR 'Loading' label", () => {
-    const src = read("components/Skeletons.tsx");
-    expect(src).toContain('aria-busy="true"');
-    expect(src).toContain("sr-only");
-    expect(src).toContain("Loading");
-  });
-
-  it("shimmer + sr-only styles exist (and shimmer respects reduced-motion via the global reset)", () => {
+describe("skeleton styles (still used by the admin panels and the explorer)", () => {
+  it("shimmer + sr-only styles exist and respect reduced-motion", () => {
+    // components/Skeletons.tsx went with the loading.tsx files, but .skel is still
+    // worn by app/admin/growth, app/admin/ops and components/EventsExplorer.
     const css = read("app/globals.css");
     expect(css).toContain(".skel {");
     expect(css).toContain("@keyframes skel-shimmer");

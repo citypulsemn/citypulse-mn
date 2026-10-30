@@ -14,7 +14,7 @@ Roadmap 6.1 — the first Growth-phase surface. `/venues/first-avenue`: every up
 
 Header (name, address, neighborhood chip via 5.5, directions link) · Mapbox **Static Images** map (a plain `<img>` — zero JS on an SEO page; gracefully absent without token/coords) · upcoming events soonest-first, multi-day aware · Place JSON-LD with geo + postal address · `"{Name} — Schedule & Upcoming Events"` metadata with canonical.
 
-**On-demand ISR, no generateStaticParams** — the recorded rule from the 5.5 build incident. `/venues` index prerenders (one query, like the homepage); the 47 slug pages render on first visit, cached 1 hour.
+**No generateStaticParams** — the recorded rule from the 5.5 build incident. `/venues` index prerenders (one query, like the homepage). The 47 slug pages were described here as "on-demand ISR, cached 1 hour" — **they are not cached at all.** Measured 30 Oct 2026: every request renders fresh with `Cache-Control: no-store`, because a route with no `generateStaticParams` never enters the prerender manifest and its `revalidate` export is inert. The database cost is still contained (`getEvents` is `unstable_cache`'d); the function invocation is not. See [DEPLOY-SOFT-404.md](deploy-history/DEPLOY-SOFT-404.md).
 
 ## Reach
 

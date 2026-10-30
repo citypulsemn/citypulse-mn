@@ -18,8 +18,13 @@ export const revalidate = 3600; // 1 hr — structural page; content changes wee
 // workers, which stampeded the database connection pool on Vercel: every page
 // waited past the 60-second prerender limit, retries piled on more load, and
 // the build died (Jul 15). On-demand ISR renders each district on its first
-// visit and caches it for 5 minutes — identical behavior for users, zero
-// database dependency at build time.
+// visit — zero database dependency at build time.
+//
+// It does NOT then cache it. With no generateStaticParams at all the route never
+// enters the prerender manifest, so it builds as ƒ and the `revalidate` above is
+// inert. The build-time half of this comment is right and was worth the
+// incident; the "and caches it" half was never true. Measured 30 Oct 2026; see
+// docs/deploy-history/DEPLOY-SOFT-404.md.
 
 export async function generateMetadata({
   params,

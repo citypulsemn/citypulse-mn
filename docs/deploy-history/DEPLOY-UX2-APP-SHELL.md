@@ -3,6 +3,17 @@
 *August 2026. UX roadmap item 2. The site had none of the three App-Router
 boundary files, so failure modes fell through to bare, branding-less defaults.*
 
+> **Correction, 30 Oct 2026 — the loading skeletons are gone, and this guide is
+> why they had to go.** The four `loading.tsx` files below, and
+> `components/Skeletons.tsx` with them, were deleted. A `loading.tsx` wraps its
+> segment in `<Suspense>`, so Next flushes the response with status **200**
+> before the page's own `notFound()` runs. The result: the branded not-found
+> page this very guide shipped *to protect shared and emailed links* was being
+> served as a 200 on `/event/[id]`, `/venues/[slug]`, `/collections/[slug]` and
+> `/day/[date]`. The not-found boundary and the error boundary are untouched and
+> still doing their job. See
+> [DEPLOY-SOFT-404.md](DEPLOY-SOFT-404.md).
+
 ## What shipped
 
 - **[app/not-found.tsx](../../app/not-found.tsx)** — a branded 404 with the

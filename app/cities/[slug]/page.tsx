@@ -11,7 +11,12 @@ import { isUpcoming } from "@/lib/dates";
 export const revalidate = 3600; // 1 hr — structural page; content changes weekly, admin edits bust it (lib/admin-actions).
 
 // NO generateStaticParams — the recorded rule (5.5 build incident): build-time
-// prerenders of DB-backed pages stampede the connection pool. On-demand ISR.
+// prerenders of DB-backed pages stampede the connection pool.
+//
+// NOT on-demand ISR, despite what this comment used to say. With no
+// generateStaticParams at all the route never enters the prerender manifest, so
+// it builds as ƒ and the `revalidate` above is inert — every view renders fresh.
+// Measured 30 Oct 2026; see docs/deploy-history/DEPLOY-SOFT-404.md.
 
 export async function generateMetadata({
   params,

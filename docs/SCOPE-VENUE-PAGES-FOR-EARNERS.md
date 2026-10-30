@@ -209,9 +209,10 @@ The four fabricated archived rows are down. The takedown lever is **`draft`, not
 first, verified after.
 
 It surfaced one thing worth its own item: **`/event/[id]` answers 200 for an
-event that does not exist**, as do `/venues/[slug]` and `/day/[date]`. Soft
-404s, pre-existing, on exactly the three ISR routes. So a taken-down fabrication
-keeps a URL a search engine can hold on to.
+event that does not exist**, as do `/venues/[slug]`, `/collections/[slug]` and
+`/day/<malformed>`. Fixed 30 Oct —
+[DEPLOY-SOFT-404.md](deploy-history/DEPLOY-SOFT-404.md). The cause was a
+`loading.tsx` in scope, not ISR as first written here.
 
 ## 9. Known-stale facts corrected while scoping
 

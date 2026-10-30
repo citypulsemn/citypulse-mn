@@ -40,8 +40,10 @@ Add the three missing App-Router boundaries, all with navy/gold chrome + an
 escape link: `app/not-found.tsx` (a shared/emailed link to an archived event
 currently dumps users on a bare white 404 — this breaks the flagship share
 feature), `app/error.tsx` (a data blip currently kills the whole page), and
-`loading.tsx` skeletons for the high-traffic segments (root, day, event, venues,
-collections).
+~~`loading.tsx` skeletons for the high-traffic segments (root, day, event,
+venues, collections).~~ **Shipped Aug 2026, removed 30 Oct 2026** — a
+`loading.tsx` makes `notFound()` answer 200 instead of 404 for its whole
+segment. See [DEPLOY-SOFT-404.md](deploy-history/DEPLOY-SOFT-404.md).
 *Evidence: cross-cutting #1,#2,#3. New files mirroring `app/offline/page.tsx`.*
 
 ### UX3 — Save from anywhere + a home for saves (M) · strategic unlock

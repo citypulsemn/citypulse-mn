@@ -273,22 +273,25 @@ ids appears in `sitemap.xml`. Screenshot taken of the MEA row's URL.
 ## What this surfaced, and did not fix
 
 **`/event/[id]` answers 200 for an event that does not exist.** A soft 404:
-`notFound()` is called, the right page renders, the status code is wrong, so a
-search engine can keep a dead URL indexed. Not caused by this change — a UUID
-that has never existed behaves identically. Measured across route families:
+`notFound()` is called, the right page renders, the status code is wrong. Not
+caused by this change — a UUID that has never existed behaves identically.
 
-| path | status |
-|---|---|
-| `/event/<uuid that never existed>` | **200** |
-| `/venues/not-a-real-venue-xyz` | **200** |
-| `/day/1999-01-01` | **200** |
-| `/places/park/not-a-real-place-xyz` | 404 |
-| `/totally-made-up-path` | 404 |
+**Two corrections to what this section first said**, both found by the
+investigation the next day and recorded here because the wrong version was
+pushed:
 
-The two correct ones are the routes with no `revalidate` window; the three soft
-404s are the ISR routes. That is the shape of the bug and the start of the next
-investigation. It matters here because a taken-down fabrication keeps a URL that
-answers 200, and the September fabrication was found by a reader who searched.
+- **The cause is not ISR.** I wrote that the soft 404s were "the ISR routes".
+  They are the routes with a `loading.tsx` in scope. `/cities/[slug]` is
+  dynamic and answers 404 correctly; `/collections/[slug]` is statically
+  generated and soft-404s. A `loading.tsx` wraps its segment in `<Suspense>`,
+  so the response is flushed with 200 before `notFound()` runs.
+- **It was not letting search engines index the dead URL.** Next already emits
+  `<meta name="robots" content="noindex">` on a soft 404 — the same directive
+  the hard 404 carries. The real defect is that it lands in the *body* rather
+  than the *head*, where a crawler is guaranteed to read it. A weaker version
+  of the problem than the one I described.
+
+Fixed 30 Oct — see [DEPLOY-SOFT-404.md](DEPLOY-SOFT-404.md).
 
 **Two live listings from the same dead roundup, left alone on purpose.** Both at
 Minnesota Children's Museum, both `published`, both running 23 May 2026 →

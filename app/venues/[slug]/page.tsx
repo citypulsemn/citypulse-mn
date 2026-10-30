@@ -27,7 +27,16 @@ export const revalidate = 3600; // 1 hr — structural page; content changes wee
 
 // NO generateStaticParams — the recorded rule from the 5.5 build incident:
 // build-time prerenders of DB-backed pages stampede the connection pool.
-// On-demand ISR: first visit renders, cached 5 minutes.
+//
+// BUT READ THIS BEFORE TRUSTING THE LINE ABOVE. Without generateStaticParams at
+// all, Next never puts this route in the prerender manifest, so it builds as ƒ
+// and the `revalidate` above never takes effect. Measured 30 Oct 2026: three
+// consecutive GETs of /venues/first-avenue each returned X-Vercel-Cache: MISS
+// and Cache-Control: no-store. This page renders fresh on every single view.
+// The DB cost is still contained — getEvents is unstable_cache'd in lib/events —
+// but the function invocation is not. See docs/deploy-history/DEPLOY-SOFT-404.md;
+// turning the cache on is a decision, not a typo fix, because a 1-hour TTL on a
+// daily-crawled long tail is the shape that caused the Aug 2026 CPU overage.
 
 export async function generateMetadata({
   params,
