@@ -129,7 +129,7 @@ so it is Taren's, not a code decision:**
 |---|---|---|---|
 | Coverage floors green | all categories ≥ floor, 8 wks | read the ops tiles — left unquoted here rather than guessed | — |
 | Pipeline healthy | green weekly | tripwire calm, 0 pending inbox | ✅ |
-| GSC impressions trending up | up, 8 wks | search = 47% of visits and growing; indexed count still manual (F2.4 parked) | ◐ partial |
+| GSC impressions trending up | up, 8 wks | **75,951 impr / 1,196 clicks / 1.57% CTR, 28d to 30 Oct** — first complete measurement; the prior figures were a top-50 slice. 89% of impressions are event pages | ◐ partial — one window, no trend yet |
 | Subscribers | ≥ 500 | **47** | ❌ binding for the newsletter tier |
 | **Ticket clicks / month** | **≥ 1,000 (proposed)** | **1,444** | ✅ **met — gates the venue tier if the split is adopted** |
 
@@ -467,12 +467,38 @@ the top earners have no published events at all. Archived events do not rescue
 the seasonal case — four fabricated rows sat in `archived` serving live pages
 until the 30 Oct takedown, the archive carries no trust flag, and
 `app/sitemap.ts:66-68` already rules that a page of past events is an empty
-page. And the premise is untested:
-**no GSC figure for the `/venues` bucket has ever been recorded**, though
-`scripts/gsc-report.ts` already buckets it. Recommendation: run the GSC report
-(ten minutes, can close the item), then promote Walker Art Center and Chanhassen
-Dinner Theatres into `lib/venues.ts` — the only two earners with year-round
-supply — and measure two rows instead of building 286 pages.
+page. And the premise was untested — no GSC figure for the `/venues` bucket had
+ever been recorded.
+
+**MEASURED 30 Oct 2026. Both halves are closed.** Full working in
+[SCOPE-VENUE-PAGES-FOR-EARNERS.md §10](SCOPE-VENUE-PAGES-FOR-EARNERS.md). The
+28-day figure for `/venues` is **2,701 impressions and 5 clicks (0.185% CTR)**,
+and the sum was hiding the answer: `/venues/armory` alone is **79.8%** of it, and
+**only 2 of the 35 ranking venue URLs earned a single click** — armory (4) and
+can-can-wonderland (1). Thirteen slugs earned no impressions at all; First Avenue
+got 2 impressions and no clicks. **So the 286-page build is closed.**
+
+**The two-row Step B is closed too, for a reason the scoping did not anticipate.**
+Walker Art Center measures **1 branded impression** in 28 days — the earlier "no
+signal" was a print-limit artefact, now fetched at 2,000 rows and genuinely
+measured. Chanhassen Dinner Theatres has real demand, **569 impressions and 47
+clicks at 8.3%** — but it has **no venue page**, so that demand is already being
+won by event pages at position 1.0. Meanwhile the one venue page we own for a
+comparable branded room, the Armory, converts the same kind of demand at **0.3%
+from position 8.1**. A Chanhassen venue page is at least as likely to intercept a
+position-1 event page as to add anything.
+
+**What the measurement did NOT say.** "The venue pages earn nothing" is false.
+Resolving that against Google alone was the error: venue pages produced **6 of
+the 48 subscribers (12.5%)** and are the **largest feed-subscribe source** — per
+URL, 4.3× better than event pages. On the flagship axis they are the best
+converter on the site. They get that traffic internally, from `MoreAtVenue`, which
+is exactly what the 286 candidates would not have. Protect the ones with traffic;
+do not clone them.
+
+**Cheapest live item this turned up:** `app/sitemap.ts:83-88` advertises all 47
+venue slugs at priority 0.7 with no supply or future-event test, unlike the city
+block twenty lines above. Thirteen of them are empty. A 3-line filter.
 
 **The original framing, kept because it is still true.** Nine of the top ten
 businesses by ticket clicks have **no `/venues/` page at all** — Ferguson's
