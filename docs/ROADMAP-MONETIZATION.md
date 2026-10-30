@@ -417,7 +417,7 @@ Town, Pryes Brewing, Battle Creek Rec Center, Bar Meteor, county fairgrounds. A
 registry-keyed dashboard would have covered the arenas, which carry the listings
 and almost none of the clicks. That is finding 1's mistake in a second costume.
 The key is now the registry slug **when there is one** and the slugified venue
-name otherwise, so **326 businesses** are reportable instead of 48.
+name otherwise, so **326 businesses** are reportable instead of 47.
 
 **It also fixed a number B1 was getting wrong.** The per-string table split one
 business across its spellings: Three Rivers Park District read 39 clicks across
@@ -460,7 +460,21 @@ that supplying a logo authorises display. **No such permission is recorded
 anywhere today** — the terms' submission warranty covers "any text you include"
 only.
 
-**The bigger question, raised by C1 and unanswered.** Nine of the top ten
+**The bigger question — now scoped: `docs/SCOPE-VENUE-PAGES-FOR-EARNERS.md`.**
+Scoped 29 Oct and the answer is *not from click data*. Clicks measure the past:
+at >=30 clicks/30d all five candidates have zero upcoming listings, and six of
+the top earners have no published events at all. Archived events do not rescue
+the seasonal case — four fabricated rows sat in `archived` serving live pages
+until the 30 Oct takedown, the archive carries no trust flag, and
+`app/sitemap.ts:66-68` already rules that a page of past events is an empty
+page. And the premise is untested:
+**no GSC figure for the `/venues` bucket has ever been recorded**, though
+`scripts/gsc-report.ts` already buckets it. Recommendation: run the GSC report
+(ten minutes, can close the item), then promote Walker Art Center and Chanhassen
+Dinner Theatres into `lib/venues.ts` — the only two earners with year-round
+supply — and measure two rows instead of building 286 pages.
+
+**The original framing, kept because it is still true.** Nine of the top ten
 businesses by ticket clicks have **no `/venues/` page at all** — Ferguson's
 Orchard (47), Trail of Terror (41), Bar Meteor (39), Pryes (29), Scream Town
 (27). The venues with pages are the ones with listings; the businesses with

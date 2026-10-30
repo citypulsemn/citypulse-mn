@@ -9,7 +9,7 @@ import { matchVenueSlug, slugifyVenue, venuePageBySlug } from "./venue-pages";
  * This module turns per-venue-string stat rows into one row per BUSINESS.
  *
  * WHY THE KEY IS NOT THE REGISTRY SLUG, which is what the roadmap spec said.
- * The registry (lib/venues.ts) is pipeline config — the ~48 rooms the weekly
+ * The registry (lib/venues.ts) is pipeline config — the 47 rooms the weekly
  * sweep visits. Measured against 30 days of live stats, 381 distinct venue
  * strings earned views or clicks and only 82 of them are registry venues. Nine
  * of the top ten click earners are NOT in the registry: Ferguson's Orchard,

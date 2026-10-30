@@ -14,7 +14,7 @@ Roadmap 6.1 — the first Growth-phase surface. `/venues/first-avenue`: every up
 
 Header (name, address, neighborhood chip via 5.5, directions link) · Mapbox **Static Images** map (a plain `<img>` — zero JS on an SEO page; gracefully absent without token/coords) · upcoming events soonest-first, multi-day aware · Place JSON-LD with geo + postal address · `"{Name} — Schedule & Upcoming Events"` metadata with canonical.
 
-**On-demand ISR, no generateStaticParams** — the recorded rule from the 5.5 build incident. `/venues` index prerenders (one query, like the homepage); the 42 slug pages render on first visit, cached 5 minutes.
+**On-demand ISR, no generateStaticParams** — the recorded rule from the 5.5 build incident. `/venues` index prerenders (one query, like the homepage); the 47 slug pages render on first visit, cached 1 hour.
 
 ## Reach
 

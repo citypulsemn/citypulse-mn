@@ -184,11 +184,14 @@ contradicts its year.
 - **`pageCoversDate` still matches month and day only.** The source check has
   the same hole from the other side, documented in `docs/SOURCE-CHECK.md`.
   Closing it means establishing a page's season span.
-- **The six stamps already on the museum series' siblings.** Those four rows are
+- **The six stamps already on the museum series' siblings.** Those rows are
   drafts now, so they are out of the pass's window entirely. The general cleanup
   tool is `resweep-verified`, which as of today clears a stamp whose re-check
   cannot name its year — but it spends model money per row, so it is a decision
   rather than a chore.
+- ~~**Those four rows are drafts now.**~~ **Only four of the eight were.** See
+  the postscript below — the other four were archived, and an archived row keeps
+  serving its event page.
 
 ## Rollback
 
@@ -199,3 +202,108 @@ git revert <sha> && git push origin HEAD:main
 Nothing to undo in the database. Reverting restores the old prompt and the old
 routing, and any `wrong_year` / `unproven` flags already written stay as a
 record — they are audit rows, not state.
+
+---
+
+# Postscript — 30 Oct 2026: the other four
+
+**Data change only. No code shipped. Four listings taken down.**
+
+The 28 Oct takedown reached four of the eight rows. The other four had already
+been archived by the pipeline, and **an archived row goes on serving its own
+event page** — `getEvent` filters `status <> 'draft'`, not `<> 'archived'`.
+Deliberately so: something that really happened keeps the URL that went out in a
+digest. A fabrication never happened, so it is the wrong shelf.
+
+Measured before the change, all four live at HTTP 200 on the public site:
+
+```
+archived  Wed 2026-10-07 10:30  Toddler Music Lab: Echo & Explore               verified 21 Sep
+archived  Wed 2026-10-14 10:30  Toddler Music Lab: Funky Soundscapes            verified 12 Oct
+archived  Sat 2026-10-17 10:30  Toddler Music Lab: Funky Soundscapes (MEA …)    verified 21 Sep
+archived  Wed 2026-10-21 10:30  Toddler Music Lab: Splish Splash Water Perc…    verified 15 Oct
+```
+
+## One page settles all eight
+
+The 28 Oct corrections cited a different museum page per row. There is a single
+page that settles the whole series — the museum's own announcement, posted
+**2 Oct 2025**, which prints the weekday beside every date:
+
+> Tues. Oct. 7 — Echo & Explore · Tues. Oct. 14 — Funky Soundscapes ·
+> **Fri. Oct. 17 (special MEA session)** — Funky Soundscapes ·
+> Tues. Oct. 21 — Splish Splash Water Percussion · Tues. Oct. 28 — Bounce &
+> Boogie · Tues. Nov. 4 · Tues. Nov. 11 · Tues. Nov. 18 · Tues. Nov. 25
+
+<https://mcm.org/new-toddler-music-lab-series-in-sprouts-this-fall/>
+
+Nine sessions, all 10:30–11:30 in the Sprouts gallery. Our eight rows are eight
+of those nine with the year bumped. **The weekday is the tell, and it needs no
+source at all**: 7, 14 and 21 October were Tuesdays in 2025 and are Wednesdays
+in 2026. The MEA session is the clearest — the museum wrote *Fri.* Oct. 17, and
+our row put it on a **Saturday**, when MEA break is a Thursday and Friday.
+
+Worth recording for the next occurrence: a series announcement that prints
+weekdays is a better citation than a per-session page, because the contradiction
+is arithmetic rather than a reading.
+
+## The source
+
+All eight cited `womenspress.com/organizer/minnesota-childrens-museum/` — a
+third-party organiser roundup that **now returns 404**. Measured across the
+archive: of 4,098 archived rows, exactly **one** cites an `/organizer/`-shaped
+page. This was a localised failure, not a class sitting in the archive.
+
+## Applied
+
+```bash
+npm run correct -- --from=corrections-toddler-archived.json \
+  --apply --backup=…/backups/2026-10-30-toddler-archived-hide-before.json
+```
+
+`hide: true`, not `archive` — the lever the `Correction.hide` docstring was
+written for, four days after it was written. 4 applied, 0 refused, four
+`admin_audit` rows, and the revalidation channel reported `↻ site caches cleared
+(+4 event page(s))`.
+
+**Verified after:** all eight Toddler Music Lab rows read `draft`; the four URLs
+render *"We couldn't find that"* with no trace of the listing; none of the four
+ids appears in `sitemap.xml`. Screenshot taken of the MEA row's URL.
+
+## What this surfaced, and did not fix
+
+**`/event/[id]` answers 200 for an event that does not exist.** A soft 404:
+`notFound()` is called, the right page renders, the status code is wrong, so a
+search engine can keep a dead URL indexed. Not caused by this change — a UUID
+that has never existed behaves identically. Measured across route families:
+
+| path | status |
+|---|---|
+| `/event/<uuid that never existed>` | **200** |
+| `/venues/not-a-real-venue-xyz` | **200** |
+| `/day/1999-01-01` | **200** |
+| `/places/park/not-a-real-place-xyz` | 404 |
+| `/totally-made-up-path` | 404 |
+
+The two correct ones are the routes with no `revalidate` window; the three soft
+404s are the ISR routes. That is the shape of the bug and the start of the next
+investigation. It matters here because a taken-down fabrication keeps a URL that
+answers 200, and the September fabrication was found by a reader who searched.
+
+**Two live listings from the same dead roundup, left alone on purpose.** Both at
+Minnesota Children's Museum, both `published`, both running 23 May 2026 →
+10 Jan 2027, neither ever verified, neither source-checked:
+
+- `Monsters on Summer Vacation (Special Exhibit)`
+- `Beach Monster Exhibit`
+
+The exhibit is **real** — the museum announced it on 8 May 2026 — but it is
+called *Monsters on Vacation*, and the museum's page runs one exhibit, not two.
+`Beach Monster Exhibit` looks like a roundup writer's paraphrase ("friendly
+monsters are taking their beach vacation") promoted to a title, i.e. a duplicate
+of a real exhibit under an invented name. The 10 Jan 2027 end date is attested
+nowhere I could find.
+
+Not touched, because every available move is a product call on a live, real
+listing: which title wins, whether the end date stands, which row is archived.
+Taking down a real exhibit to tidy a duplicate is the wrong direction of error.
