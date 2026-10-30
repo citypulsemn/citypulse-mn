@@ -34,9 +34,55 @@ describe("hardening — a configured-DB read failure must NOT cache sample/empty
 
   it("list reads cap description to a preview (egress); the detail page keeps full text", () => {
     // description is ~half the getEvents payload — the 3 list reads (readAllPublished,
-    // readEventsForDay, getEventsByIds) truncate it; getEvent (detail page) does not.
+    // readEventsForDay, getEventsByIds) truncate it; readEvent (detail page) does not.
     expect((src.match(/left\(description, 179\) \|\| '…'/g) ?? []).length).toBe(3);
-    expect(src).toContain("ticket_url, description, image"); // getEvent — the one full read
+    expect(src).toContain("ticket_url, description, image"); // readEvent — the one full read
+  });
+});
+
+/**
+ * THE FALSE 404 (30 Oct 2026). `getEvent` caught every error and returned null,
+ * and the event page reads null as "no such event" and calls notFound(). So a
+ * Supabase blip told every reader — and Google, via the noindex on
+ * app/not-found.tsx — that a live listing had been archived. Same shape as the
+ * soft-404 fix in e09defa, from the other direction: there the page could not
+ * say "gone" when it meant it, here it said "gone" when it had no idea.
+ *
+ * The contract now: `readEvent` throws (a blip is a 500, the honest "we don't
+ * know"), `getEvent` keeps the catch for aux paths where a blank beats a break.
+ */
+describe("the event page must not turn a DB failure into a 404", () => {
+  const src = readFileSync(join(__dirname, "..", "events.ts"), "utf8");
+  const page = readFileSync(
+    join(__dirname, "..", "..", "app", "event", "[id]", "page.tsx"),
+    "utf8",
+  );
+
+  it("readEvent has no catch — a read failure propagates", () => {
+    const body = src.slice(src.indexOf("export async function readEvent"), src.indexOf("export async function getEvent"));
+    expect(body).toContain("readEvent");
+    expect(body).not.toContain("catch");
+  });
+
+  it("getEvent keeps its catch, for the aux paths that need it", () => {
+    expect(src).toMatch(/export async function getEvent[\s\S]*?catch[\s\S]*?return null/);
+  });
+
+  it("the event page reads through readEvent, in BOTH the page and its metadata", () => {
+    expect((page.match(/await readEvent\(id\)/g) ?? []).length).toBe(2);
+    expect(page).not.toMatch(/await getEvent\(/);
+  });
+
+  it("the aux paths still use the forgiving read (rule 1)", () => {
+    for (const p of [
+      ["app", "event", "[id]", "opengraph-image.tsx"],
+      ["app", "event", "[id]", "calendar", "route.ts"],
+      ["app", "content", "card", "[id]", "route.tsx"],
+      ["app", "report", "page.tsx"],
+    ]) {
+      const aux = readFileSync(join(__dirname, "..", "..", ...p), "utf8");
+      expect(aux, p.join("/")).toMatch(/getEvent\(/);
+    }
   });
 });
 

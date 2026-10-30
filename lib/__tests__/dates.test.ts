@@ -141,7 +141,13 @@ describe("isFocus", () => {
 });
 
 describe("isUpcoming (UX9 span-aware index/detail predicate)", () => {
-  const NOWD = new Date("2026-08-06T15:00:00");
+  // EXPLICIT Z, deliberately. This was `new Date("2026-08-06T15:00:00")` — a
+  // naive parse, so it meant 15:00 Chicago on a Chicago laptop and 15:00 UTC on
+  // CI. isUpcoming did the same naive parse on the other side of its compare,
+  // so the two errors cancelled and the suite stayed green over a bug that only
+  // existed in production (ENGINEERING rule 3). Both sides are pinned now:
+  // 20:00Z in August is 15:00 Chicago, which is what every case below assumes.
+  const NOWD = new Date("2026-08-06T20:00:00Z");
   const mk = (over: Partial<EventRecord>): EventRecord => ({ ...sampleEvents[0], ...over });
 
   it("an end-carried span counts on its CLOSING day (the vanishing-slice bug)", () => {
@@ -174,6 +180,35 @@ describe("isUpcoming (UX9 span-aware index/detail predicate)", () => {
   it("an invalid start is never upcoming", () => {
     const ev = mk({ start: "not-a-date", end: "", multiDayEnd: null });
     expect(isUpcoming(ev, NOWD)).toBe(false);
+  });
+
+  // THE EVENING CUTOFF (rule 10, fixed 30 Oct 2026). isUpcoming compared a naive
+  // Chicago wall string against a real instant, so on Vercel — a UTC server —
+  // "23:59" meant 18:59 Chicago and tonight's show left /venues, /cities,
+  // /neighborhoods and their three indexes at 7 PM. These instants are pinned
+  // with Z so they mean the same thing on a Chicago laptop and on CI; in August
+  // Chicago is UTC-5.
+  describe("the evening cutoff", () => {
+    const tonight = mk({ start: "2026-08-06T19:00", end: "2026-08-06T22:00", multiDayEnd: null });
+
+    it("a 7pm show is still upcoming at 7:30pm Chicago, while it is happening", () => {
+      expect(isUpcoming(tonight, new Date("2026-08-07T00:30:00Z"))).toBe(true);
+    });
+
+    it("…and at 10pm Chicago, the hour the old code had already hidden it", () => {
+      expect(isUpcoming(tonight, new Date("2026-08-07T03:00:00Z"))).toBe(true);
+    });
+
+    it("…and is gone once the Chicago day is over, not when UTC's is", () => {
+      // 00:30 Chicago on the 7th. The event's last day was the 6th.
+      expect(isUpcoming(tonight, new Date("2026-08-07T05:30:00Z"))).toBe(false);
+    });
+
+    it("holds in winter too, when the offset is UTC-6", () => {
+      const janShow = mk({ start: "2026-01-15T19:00", end: "2026-01-15T22:00", multiDayEnd: null });
+      expect(isUpcoming(janShow, new Date("2026-01-16T04:00:00Z"))).toBe(true); // 22:00 Chicago
+      expect(isUpcoming(janShow, new Date("2026-01-16T06:30:00Z"))).toBe(false); // 00:30 Chicago
+    });
   });
 });
 

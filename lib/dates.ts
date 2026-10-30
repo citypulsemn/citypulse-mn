@@ -1,4 +1,5 @@
 import type { EventRecord, CategoryKey, RangeKey, ViewState } from "./types";
+import { chiWallClock } from "./clock";
 
 export const MONTHS = [
   "January", "February", "March", "April", "May", "June",
@@ -226,11 +227,21 @@ export function daysSpanned(ev: EventRecord): string[] {
  * makes the count and the list agree by construction.
  */
 export function isUpcoming(ev: EventRecord, now: Date): boolean {
-  const startMs = new Date(ev.start).getTime();
-  if (Number.isNaN(startMs)) return false;
+  // Validity only. `new Date` here never meets a real instant, so it is not the
+  // rule-10 comparison that used to live two lines below it.
+  if (Number.isNaN(new Date(ev.start).getTime())) return false;
   const lastDay = daysSpanned(ev).at(-1)!; // always ≥ 1 entry (the start day)
-  const endMs = new Date(`${lastDay}T23:59`).getTime();
-  return Math.max(startMs, endMs) >= now.getTime();
+  // RULE 10 — WALLS TO WALLS (fixed 30 Oct 2026). This used to be
+  // `new Date(\`${lastDay}T23:59\`).getTime() >= now.getTime()`. That parses a
+  // naive Chicago wall string in the SERVER's zone, which on Vercel is UTC, so
+  // "23:59" meant 18:59 Chicago. Every event vanished from /venues, /cities,
+  // /neighborhoods and their three indexes five hours early — at 7 PM, which is
+  // doors, on a site people open to decide where to go tonight.
+  // lib/related.ts:24 carries the same note about the same bug, fixed there in
+  // R1.3 and missed here. Both sides are naive Chicago strings now, so this is
+  // a lexicographic compare inside one frame. The old Math.max was redundant:
+  // lastDay is derived from the start day, so its 23:59 is never earlier.
+  return `${lastDay}T23:59` >= chiWallClock(now);
 }
 
 /**

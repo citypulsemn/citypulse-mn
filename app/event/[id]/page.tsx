@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { getEvent, getEvents, getEventsForDay } from "@/lib/events";
+import { readEvent, getEvents, getEventsForDay } from "@/lib/events";
 import { MoreAtVenue } from "@/components/MoreAtVenue";
 import { EventDetailBody } from "@/components/EventDetailBody";
 import { StatBeacon } from "@/components/StatBeacon";
@@ -19,9 +19,13 @@ import {
   longDate,
 } from "@/lib/event-view";
 
-// 1 hr — a single event's data barely changes and admin edits bust it immediately;
-// the old 5-min window let a crawler sweep of ~950 event pages force ~950 single-row
-// getEvent() DB reads every 5 min (a big egress slice). 1 hr cuts that ~12×.
+// INERT — kept only so that removing it stays a deliberate act. With no
+// generateStaticParams this route never enters Next's prerender manifest, so it
+// builds as ƒ and this export has no runtime effect: measured 30 Oct 2026,
+// every request renders fresh with Cache-Control: no-store. The comment that
+// used to sit here claimed the 1-hour window cut single-row reads ~12×. It
+// never did. Turning caching on was measured and declined the same day —
+// docs/CACHING.md has the numbers and the one thing that would reopen it.
 export const revalidate = 3600;
 
 export async function generateMetadata({
@@ -30,7 +34,7 @@ export async function generateMetadata({
   params: Promise<{ id: string }>;
 }): Promise<Metadata> {
   const { id } = await params;
-  const event = await getEvent(id);
+  const event = await readEvent(id);
   if (!event) return { title: "Event not found — City Pulse MN" };
 
   const title = `${event.title} — ${event.venue} | City Pulse MN`;
@@ -63,7 +67,7 @@ export default async function EventPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const event = await getEvent(id);
+  const event = await readEvent(id);
   if (!event) notFound();
 
   // UX1 — the cancelled/time-state banner and the dead-event action gating now

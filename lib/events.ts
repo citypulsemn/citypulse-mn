@@ -142,30 +142,55 @@ async function readAllPublished(): Promise<EventRecord[]> {
 }
 
 /**
- * A single event by id for its shareable page. Returns published, archived, or
- * cancelled events (so old links degrade gracefully); returns null for drafts
- * (hidden) and unknown ids (→ 404). Falls back to sample data with no DB.
+ * A single event by id, for a caller that must tell "no such event" apart from
+ * "the database did not answer". Returns published, archived or cancelled
+ * events (so old links degrade gracefully) and null for drafts and unknown ids.
+ * **Throws on a read failure** — the `read*` half of this file's convention.
+ *
+ * Split out 30 Oct 2026. `getEvent` caught every error and returned null, and
+ * its own docstring defined null as "drafts (hidden) and unknown ids (→ 404)".
+ * So a transient Supabase blip was routed through the "this does not exist"
+ * contract: `app/event/[id]/page.tsx` called notFound(), and `app/not-found.tsx`
+ * told the reader the event "may have ended and been archived" while asking
+ * Google to de-index the URL — with `robots: { index: false, follow: false }`.
+ * A real listing, declared gone and withdrawn from search, because a query
+ * timed out. The page now uses this reader and lets a failure be a 500, which
+ * is the honest "we don't know".
  */
-export async function getEvent(id: string): Promise<EventRecord | null> {
+export async function readEvent(id: string): Promise<EventRecord | null> {
   if (!sql) {
     const ev = sampleEvents.find((e) => e.id === id);
     return ev && isPublicStatus(ev.status) ? ev : null;
   }
+  const rows = await sql<Row[]>`
+    select
+      id::text                                                            as id,
+      title, category, venue, address, city, lat, lng,
+      to_char(start_at at time zone 'America/Chicago', 'YYYY-MM-DD"T"HH24:MI') as start,
+      to_char(end_at   at time zone 'America/Chicago', 'YYYY-MM-DD"T"HH24:MI') as end,
+      price, price_tier, ticket_url, description, image, source_url, status,
+    to_char(multi_day_end at time zone 'America/Chicago', 'YYYY-MM-DD"T"HH24:MI') as multi_day_end,
+    all_day
+    from events
+    where id::text = ${id} and status <> 'draft'
+    limit 1
+  `;
+  return rows.length ? rowToEvent(rows[0]) : null;
+}
+
+/**
+ * The forgiving read, for callers where a missing event and a broken query
+ * should look the same because the alternative is worse than a blank: the OG
+ * image (never a broken share card), the .ics route, the fabrication-report
+ * form, the content card. ENGINEERING rule 1 — an aux path must not take down
+ * the thing it decorates.
+ *
+ * **The event PAGE must not use this**, or a blip becomes a false 404. Use
+ * `readEvent` there. Pinned by a test.
+ */
+export async function getEvent(id: string): Promise<EventRecord | null> {
   try {
-    const rows = await sql<Row[]>`
-      select
-        id::text                                                            as id,
-        title, category, venue, address, city, lat, lng,
-        to_char(start_at at time zone 'America/Chicago', 'YYYY-MM-DD"T"HH24:MI') as start,
-        to_char(end_at   at time zone 'America/Chicago', 'YYYY-MM-DD"T"HH24:MI') as end,
-        price, price_tier, ticket_url, description, image, source_url, status,
-      to_char(multi_day_end at time zone 'America/Chicago', 'YYYY-MM-DD"T"HH24:MI') as multi_day_end,
-      all_day
-      from events
-      where id::text = ${id} and status <> 'draft'
-      limit 1
-    `;
-    return rows.length ? rowToEvent(rows[0]) : null;
+    return await readEvent(id);
   } catch (err) {
     console.error("[events] getEvent failed:", err);
     return null;
