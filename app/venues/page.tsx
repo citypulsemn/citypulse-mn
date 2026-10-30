@@ -2,8 +2,7 @@ import type { Metadata } from "next";
 import { TopBar } from "@/components/TopBar";
 import { SiteFooter } from "@/components/SiteFooter";
 import { getEvents } from "@/lib/events";
-import { isUpcoming } from "@/lib/dates";
-import { VENUE_PAGES, matchVenueSlug } from "@/lib/venue-pages";
+import { VENUE_PAGES, upcomingCountsByVenue } from "@/lib/venue-pages";
 
 export const revalidate = 3600; // 1 hr — structural page; content changes weekly, admin edits bust it (lib/admin-actions).
 
@@ -24,14 +23,10 @@ export const metadata: Metadata = {
 export default async function VenuesPage() {
   const events = await getEvents();
   const now = new Date();
-  const counts = new Map<string, number>();
-  for (const e of events) {
-    if (e.status !== "published") continue;
-    // UX9 — span-aware, shared with the detail page (see lib/dates isUpcoming).
-    if (!isUpcoming(e, now)) continue;
-    const slug = matchVenueSlug(e.venue);
-    if (slug) counts.set(slug, (counts.get(slug) ?? 0) + 1);
-  }
+  // Shared with the sitemap, which omits the quiet ones entirely (30 Oct 2026).
+  // One definition, so the index cannot call a room quiet while the sitemap
+  // advertises it.
+  const counts = upcomingCountsByVenue(events, now);
 
   const active = VENUE_PAGES.filter((v) => (counts.get(v.slug) ?? 0) > 0);
   const quiet = VENUE_PAGES.filter((v) => (counts.get(v.slug) ?? 0) === 0);

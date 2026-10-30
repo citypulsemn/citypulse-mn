@@ -1,5 +1,6 @@
 import { VENUES } from "./venues";
 import type { EventRecord } from "./types";
+import { isUpcoming } from "./dates";
 
 /**
  * VENUE PAGES (roadmap 6.1) — a page layer over the 4.2 venue registry.
@@ -105,6 +106,51 @@ export function matchVenueSlug(venueString: string): string | null {
   const n = normalizeVenueName(venueString);
   if (!n) return null;
   return BY_ALIAS.get(n) ?? null;
+}
+
+/**
+ * Upcoming events per venue slug — THE one definition of "does this venue page
+ * have anything on it right now".
+ *
+ * This logic already existed, inline, in app/venues/page.tsx, where it decides
+ * which rooms are `active` and which are `quiet`. It is here so the sitemap can
+ * ask the same question and get the same answer by construction. That is the
+ * whole point: the /venues index and the sitemap disagreeing about whether a
+ * page is empty is the exact divergence `isUpcoming`'s own docstring was written
+ * about, where the index and the detail page had drifted apart.
+ *
+ * `events` is expected to be the published set; the status guard is kept because
+ * it was in the original and costs nothing.
+ */
+export function upcomingCountsByVenue(events: EventRecord[], now: Date): Map<string, number> {
+  const counts = new Map<string, number>();
+  for (const e of events) {
+    if (e.status !== "published") continue;
+    // span-aware and Chicago-wall-clock correct — see lib/dates isUpcoming.
+    if (!isUpcoming(e, now)) continue;
+    const slug = matchVenueSlug(e.venue);
+    if (slug) counts.set(slug, (counts.get(slug) ?? 0) + 1);
+  }
+  return counts;
+}
+
+/**
+ * The venue pages that have at least one upcoming event.
+ *
+ * Used by the sitemap (30 Oct 2026). Measured cause: the sitemap was listing all
+ * 47 slugs unconditionally at priority 0.7 — a HIGHER priority than the city
+ * pages twenty lines above, which have had this exact supply test since 6.2 with
+ * the comment "empty pages are spam, not SEO". The first GSC read of the
+ * /venues bucket found 13 of them earning zero impressions while being
+ * advertised daily; see docs/SCOPE-VENUE-PAGES-FOR-EARNERS.md §10.
+ *
+ * The page itself still renders and is still reachable — this only stops us
+ * *advertising* an empty one. Honest emptiness (rule 6) applies to what we tell
+ * a crawler too.
+ */
+export function venuePagesWithUpcoming(events: EventRecord[], now: Date): VenuePage[] {
+  const counts = upcomingCountsByVenue(events, now);
+  return VENUE_PAGES.filter((v) => (counts.get(v.slug) ?? 0) > 0);
 }
 
 /**
