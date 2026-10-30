@@ -41,10 +41,23 @@ function printRows(title: string, rows: GscRow[], keyWidth: number, top: number)
   }
 }
 
+/**
+ * This was 50, which quietly made the section summary below a top-50 ARTEFACT
+ * rather than a measurement: any section whose pages all rank outside the top 50
+ * summed to zero and read as "no demand". That is the difference between a
+ * number and a floor, and the /venues question (SCOPE-VENUE-PAGES-FOR-EARNERS)
+ * is exactly the case it would have got wrong — 48 venue URLs against 763 event
+ * and 586 places URLs would never have cleared a top-50 cut.
+ * The sitemap carries 1,578 URLs, so this limit now exceeds the whole site and
+ * the sums are complete. GSC returns only pages with >=1 impression, so if the
+ * cap is ever reached the sums are a floor again — flagged in the header below.
+ */
+const PAGE_ROWS = 2000;
+
 async function main() {
   const [queries, pages] = await Promise.all([
     getSearchAnalyticsByDimension("query", DAYS, new Date(), 25),
-    getSearchAnalyticsByDimension("page", DAYS, new Date(), 50),
+    getSearchAnalyticsByDimension("page", DAYS, new Date(), PAGE_ROWS),
   ]);
 
   if (queries.length === 0 && pages.length === 0) {
@@ -55,20 +68,30 @@ async function main() {
   printRows("TOP QUERIES", queries, 40, 20);
   printRows("TOP PAGES", pages, 46, 20);
 
-  // The key signal: impressions grouped by section.
-  const byBucket = new Map<string, { impr: number; clicks: number }>();
+  // The key signal: impressions grouped by section. `pages` counts how many URLs
+  // in the section earned AT LEAST ONE impression, which is the honest-emptiness
+  // instrument (rule 6): a section reading "0 impr / 0 pages" is invisible to
+  // search, while "0 impr / 12 pages" would be a different fact entirely. The
+  // section total alone cannot tell those apart, and a product decision about
+  // whether to build more pages of a given kind turns on which one it is.
+  const byBucket = new Map<string, { impr: number; clicks: number; pages: number }>();
   for (const p of pages) {
     const b = bucket(p.key);
-    const acc = byBucket.get(b) ?? { impr: 0, clicks: 0 };
+    const acc = byBucket.get(b) ?? { impr: 0, clicks: 0, pages: 0 };
     acc.impr += p.impressions;
     acc.clicks += p.clicks;
+    acc.pages += 1;
     byBucket.set(b, acc);
   }
   const totalImpr = [...byBucket.values()].reduce((s, v) => s + v.impr, 0) || 1;
-  console.log(`\n## IMPRESSIONS BY SECTION (discovery vs transactional, from the top ${pages.length} pages)`);
+  const capped = pages.length >= PAGE_ROWS;
+  console.log(
+    `\n## IMPRESSIONS BY SECTION (${pages.length} page(s) with >=1 impression, ${DAYS}d` +
+      `${capped ? ` — AT THE ${PAGE_ROWS}-ROW CAP, so every sum below is a FLOOR` : ", complete — not a top-N slice"})`,
+  );
   const sorted = [...byBucket.entries()].sort((a, b) => b[1].impr - a[1].impr);
   for (const [b, v] of sorted) {
-    console.log(`${pad(b, 30)}  ${String(v.impr).padStart(6)} impr (${pct(v.impr / totalImpr)})  ${String(v.clicks).padStart(4)} clicks`);
+    console.log(`${pad(b, 30)}  ${String(v.impr).padStart(6)} impr (${pct(v.impr / totalImpr)})  ${String(v.clicks).padStart(4)} clicks  ${String(v.pages).padStart(4)} page(s)`);
   }
   // Indexation check (URL Inspection API): is /places even indexed? And are the
   // discovery shop-windows (/this-week[end]) indexed? Answers whether Places'
@@ -88,6 +111,13 @@ async function main() {
     "/places/park/afton-state-park",
     "/places/dog-park/alimagnet-dog-park",
     "/this-week", "/this-weekend",
+    // VENUES (added 30 Oct 2026 for SCOPE-VENUE-PAGES-FOR-EARNERS). The section
+    // summary says whether these pages get demand; this says whether Google has
+    // them at all. Those are different answers with opposite consequences — "not
+    // indexed" is a fixable blocker, "indexed and ignored" closes the item — and
+    // the scope doc was about to recommend building ~286 more of these pages
+    // without knowing which it was. Three real slugs from the live sitemap.
+    "/venues", "/venues/first-avenue", "/venues/armory", "/venues/palace-theatre",
   ];
   const idx = await inspectUrls(INDEX_PATHS, new Date());
   if (idx.length > 0) {
