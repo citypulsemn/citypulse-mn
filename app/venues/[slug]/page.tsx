@@ -194,7 +194,7 @@ export default async function VenuePage({
           sub={`The week’s best Twin Cities events, including what’s coming to ${v.name}, every Thursday.`}
         />
 
-        <SiteFooter source={`venue-${v.slug}`} />
+        <SiteFooter source={`venue-${v.slug}`} subscribe={false} />
       </main>
     </>
   );

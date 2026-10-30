@@ -245,7 +245,7 @@ export default async function PlaceDetailPage({
           </nav>
         )}
 
-        <SiteFooter source="places" />
+        <SiteFooter source="places" subscribe={false} />
       </main>
     </>
   );

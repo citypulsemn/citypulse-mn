@@ -132,7 +132,7 @@ export default async function DayPage({
           sub="One email every Thursday — the week's best across Minneapolis & St. Paul, hand-picked. Free, no spam, unsubscribe anytime."
         />
 
-        <SiteFooter source="day" />
+        <SiteFooter source="day" subscribe={false} />
       </main>
     </>
   );

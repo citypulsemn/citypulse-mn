@@ -158,7 +158,7 @@ export default async function EventPage({
           </a>
         </nav>
 
-        <SiteFooter source="event" />
+        <SiteFooter source="event" subscribe={false} />
       </main>
     </>
   );

@@ -104,7 +104,8 @@ export default async function ThisWeekendPage() {
           ))
         )}
 
-        <SiteFooter source="this-weekend" />
+        {/* The band only renders when the weekend has events. */}
+        <SiteFooter source="this-weekend" subscribe={total === 0} />
       </main>
     </>
   );

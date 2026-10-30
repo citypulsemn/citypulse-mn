@@ -42,9 +42,11 @@ function maxWidthBlock(maxWidth: number, needle: string): string {
 }
 
 describe("the footer cannot push the page sideways", () => {
-  it("the link row wraps", () => {
-    // Not scoped to a media query: it overflowed at 700px too.
-    expect(css).toMatch(/\.site-footer-links \{[^}]*flex-wrap: wrap/);
+  it("the link columns reflow instead of overflowing", () => {
+    // Not scoped to a media query: the old one-line row overflowed at 700px too.
+    // Since Oct 2026 the links are grouped columns; auto-fit drops a column
+    // rather than letting the grid outgrow its container.
+    expect(css).toMatch(/\.site-footer-links \{[^}]*grid-template-columns: repeat\(auto-fit, minmax\(/);
   });
 
   it("footer flex children can shrink below their min-content", () => {

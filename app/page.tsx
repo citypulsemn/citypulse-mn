@@ -47,7 +47,7 @@ export default async function Home() {
         sub="Skip the scroll — one email a week with the concerts, games, and weekend plans worth your time, chosen from everything here. Free, unsubscribe anytime."
       />
       <CollectionsStrip />
-      <SiteFooter source="home" />
+      <SiteFooter source="home" subscribe={false} />
     </>
   );
 }

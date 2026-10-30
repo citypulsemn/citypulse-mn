@@ -113,7 +113,7 @@ export default async function ThisWeekPage() {
           </>
         )}
 
-        <SiteFooter source="this-week" />
+        <SiteFooter source="this-week" subscribe={false} />
       </main>
     </>
   );

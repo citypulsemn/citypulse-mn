@@ -783,8 +783,10 @@ a.daycard { text-decoration: none; }
 
 /* ---------- Site footer + email capture (roadmap 2.2) ---------- */
 .site-footer { border-top: 1px solid var(--line); margin-top: 48px; padding: 34px max(16px, env(safe-area-inset-left)) calc(28px + env(safe-area-inset-bottom)); background: linear-gradient(180deg, rgba(255,255,255,0.015), transparent); }
-.site-footer-inner { max-width: 900px; margin: 0 auto; display: flex; gap: 22px 40px; align-items: center; justify-content: space-between; flex-wrap: wrap; }
-.sf-pitch { flex: 1 1 280px; text-align: left; /* the legacy global `footer { text-align:center }` rule was stair-stepping the wrapped description */ }
+/* Pitch and form sit together in the middle; `space-between` pushed them to
+   opposite edges of the 900px column with a gap the eye had to jump. */
+.site-footer-inner { max-width: 900px; margin: 0 auto; display: flex; gap: 22px 40px; align-items: center; justify-content: center; flex-wrap: wrap; }
+.sf-pitch { flex: 0 1 auto; text-align: left; /* the legacy global `footer { text-align:center }` rule was stair-stepping the wrapped description */ }
 .sf-title { font-family: var(--font-oswald); font-weight: 600; font-size: 22px; letter-spacing: 0.01em; }
 .sf-sub { color: var(--cream-dim); font-size: 13.5px; margin-top: 5px; max-width: 42ch; }
 .sf-brand { max-width: 900px; margin: 26px auto 0; text-align: center; color: var(--cream-dim); font-size: 12px; letter-spacing: 0.04em; }
@@ -814,12 +816,8 @@ a.daycard { text-decoration: none; }
   .site-footer-inner .sf-pitch,
   .site-footer-inner .subscribe-form { flex: 0 0 auto; }
 
-  /* Once the links wrap onto three or four lines, the "·" separators stop
-     reading as separators — one lands at the start of a line as often as not.
-     The row gap does that job on a phone, so drop them and give the links more
-     room to be tapped apart from each other. */
-  .site-footer-links { gap: 12px 18px; }
-  .site-footer-links span { display: none; }
+  /* Taller rows so the links can be tapped apart from each other. */
+  .sf-col { gap: 14px; }
 
   /* A flex item stretches to its container's width, but never below its own
      MIN-CONTENT — so at 320px the pitch and the form stayed 335px wide inside a
@@ -923,10 +921,15 @@ a.daycard { text-decoration: none; }
    overflowed the viewport, and because overflow-x is visible the excess became
    HORIZONTAL PAGE SCROLL — on a phone the entire site panned right into empty
    navy. It is a footer: vertical space is the cheap thing here, so it wraps. */
-.site-footer-links { display: flex; flex-wrap: wrap; gap: 8px 10px; justify-content: center; margin-top: 14px; font-size: 13px; }
+/* auto-fit + a 140px floor: three columns on a desktop, one on a phone, and the
+   grid can never be wider than its container (the Aug 2026 sideways-scroll bug). */
+.site-footer-links { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 22px 40px; max-width: 900px; margin: 30px auto 0; padding-top: 24px; border-top: 1px solid var(--line); text-align: left; font-size: 13px; }
+/* No subscribe block above (the page has its own band): no divider needed. */
+.site-footer > .site-footer-links:first-child { margin-top: 0; padding-top: 0; border-top: 0; }
+.sf-col { display: flex; flex-direction: column; gap: 9px; }
+.sf-col-title { font-family: var(--font-oswald); font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--cream-dim); }
 .site-footer-links a { color: var(--gold); text-decoration: none; }
 .site-footer-links a:hover { text-decoration: underline; }
-.site-footer-links span { color: var(--cream-dim); }
 
 /* Admin submissions */
 .sub-card { border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px; margin-bottom: 14px; background: var(--navy-800); }
