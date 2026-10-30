@@ -213,3 +213,41 @@ describe("the indexation check's timeout budget", () => {
     expect(count * inspectMs).toBeLessThan(jobMs - 90_000);
   });
 });
+
+/**
+ * THE CONFIDENT ZERO REPORT (30 Oct 2026). The readers return [] both for "no
+ * data" and for "the read failed" — correct for /admin/growth and the ops email,
+ * which need a number or an honest blank. A report that draws CONCLUSIONS cannot
+ * live with that ambiguity. The re-run that afternoon hit "[gsc] page report
+ * failed: TypeError: fetch failed", and the report then stated, in the same
+ * format as a real result, that 47 of 47 venue slugs earned zero impressions and
+ * that the section sums were "complete" — forty minutes after the same query had
+ * returned 1,801 rows with /venues/armory 4th on the site.
+ *
+ * Rule 6: an unread dimension is reported as unread, and the run exits non-zero
+ * so it cannot be mistaken for a site with no search traffic.
+ */
+describe("gsc-report must not turn an unread dimension into a finding", () => {
+  const src = readFileSync(join(__dirname, "..", "..", "scripts", "gsc-report.ts"), "utf8");
+
+  it("both dimensions go through the unreadable() check", () => {
+    expect(src).toMatch(/const noQueries = unreadable\("query", queries\)/);
+    expect(src).toMatch(/const noPages = unreadable\("page", pages\)/);
+  });
+
+  it("every page-derived block is guarded by !noPages", () => {
+    // Adjacency, not "some if( appears earlier" — the first version of this test
+    // found the PRECEDING block's guard and passed with the venues guard deleted.
+    expect(src).toMatch(/if \(!noPages\) \{\s*\n\s*const byBucket/);
+    expect(src).toMatch(/if \(!noPages\) \{\s*\n\s*const venueRows/);
+    expect(src).toMatch(/if \(!noQueries\) \{\s*\n\s*const stem/);
+  });
+
+  it("an incomplete run exits non-zero", () => {
+    expect(src).toMatch(/if \(noQueries \|\| noPages\)[\s\S]{0,400}process\.exit\(1\)/);
+  });
+
+  it("the two big reads are serial, not concurrent (the fetch-failed cause)", () => {
+    expect(src).not.toMatch(/Promise\.all\(\[\s*getSearchAnalyticsByDimension/);
+  });
+});
