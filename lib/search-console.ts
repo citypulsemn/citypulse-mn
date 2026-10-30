@@ -169,11 +169,15 @@ export async function inspectUrls(paths: string[], now: Date = new Date()): Prom
   for (const path of paths) {
     const url = resolveInspectionUrl(path, base);
     try {
-      const res = await gscFetch("https://searchconsole.googleapis.com/v1/urlInspection/index:inspect", {
-        method: "POST",
-        headers: { authorization: `Bearer ${token}`, "content-type": "application/json" },
-        body: JSON.stringify({ inspectionUrl: url, siteUrl: property }),
-      });
+      const res = await gscFetch(
+        "https://searchconsole.googleapis.com/v1/urlInspection/index:inspect",
+        {
+          method: "POST",
+          headers: { authorization: `Bearer ${token}`, "content-type": "application/json" },
+          body: JSON.stringify({ inspectionUrl: url, siteUrl: property }),
+        },
+        GSC_INSPECT_TIMEOUT_MS,
+      );
       if (!res.ok) {
         out.push({ url, verdict: "ERROR", coverageState: `HTTP ${res.status}: ${(await res.text()).slice(0, 120)}`, lastCrawlTime: null });
         continue;
@@ -236,8 +240,31 @@ interface ServiceAccount {
  */
 const GSC_TIMEOUT_MS = 6_000;
 
-function gscFetch(url: string, init: RequestInit): Promise<Response> {
-  return fetch(url, { ...init, signal: AbortSignal.timeout(GSC_TIMEOUT_MS) });
+/**
+ * URL Inspection gets a longer ceiling than everything above, because that
+ * endpoint is materially slower than searchAnalytics and 6s is too tight for it.
+ *
+ * Measured: the 30 Oct 2026 report lost ALL 16 inspections to TimeoutError —
+ * including the same 12 URLs that had every one succeed on 10 Sep, eleven days
+ * before the 6s ceiling existed. So the indexation half of that report had been
+ * dead for 39 days, and nothing could have noticed: the never-break contract
+ * turned each failure into an honest ERROR row rather than a crash, and the only
+ * consumer is a workflow run by hand.
+ *
+ * This does NOT re-open the 504 the ceiling above was added to fix. inspectUrls
+ * has exactly one non-test caller — scripts/gsc-report.ts, manual, from Actions.
+ * It is never awaited inside a page render. /admin/growth and the Monday ops
+ * email reach Google only through the analytics readers, which keep the 6s cap
+ * AND their own outer deadlines (growth's answeredWithin, ops-inputs' GSC_BUDGET_MS).
+ *
+ * Kept at 15s on purpose: inspectUrls is serial, so the worst case is
+ * paths.length × this, and the gsc-report job must finish inside its
+ * timeout-minutes. 16 × 15s = 240s, which is why that job is now 10 minutes.
+ */
+const GSC_INSPECT_TIMEOUT_MS = 15_000;
+
+function gscFetch(url: string, init: RequestInit, timeoutMs = GSC_TIMEOUT_MS): Promise<Response> {
+  return fetch(url, { ...init, signal: AbortSignal.timeout(timeoutMs) });
 }
 
 async function getAccessToken(sa: ServiceAccount, nowSec: number): Promise<string> {

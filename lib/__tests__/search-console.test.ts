@@ -1,4 +1,6 @@
 import { describe, it, expect, afterEach } from "vitest";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import {
   parseSearchAnalytics,
   parseAnalyticsRows,
@@ -162,5 +164,52 @@ describe("getSearchImpressions — safe before the service account is wired", ()
   it("malformed key → null (never-break: a bad secret can't crash the digest)", async () => {
     process.env.GSC_SERVICE_ACCOUNT_JSON = "{not json";
     expect(await getSearchImpressions(7)).toBeNull();
+  });
+});
+
+/**
+ * THE DEAD INDEXATION CHECK (30 Oct 2026). 9ee3014 wrapped every Google call in
+ * AbortSignal.timeout(6s) to stop /admin/growth answering 504. Correct for a page
+ * render; too tight for URL Inspection, which is the slower endpoint. The next
+ * run of the report — 39 days later, because it is manual — lost all 16
+ * inspections to TimeoutError, including 12 that had passed unbounded on 10 Sep.
+ * Nothing alerted: the never-break contract made each one an honest ERROR row.
+ *
+ * These pin the split and, more usefully, the BUDGET. inspectUrls is serial, so
+ * the worst case is INDEX_PATHS.length x the per-call ceiling, and that has to
+ * fit inside the workflow's timeout-minutes. The failure mode this catches is
+ * someone adding a dozen URLs to INDEX_PATHS and silently killing the job again.
+ */
+describe("the indexation check's timeout budget", () => {
+  const lib = readFileSync(join(__dirname, "..", "search-console.ts"), "utf8");
+  const script = readFileSync(join(__dirname, "..", "..", "scripts", "gsc-report.ts"), "utf8");
+  const wf = readFileSync(join(__dirname, "..", "..", ".github", "workflows", "gsc-report.yml"), "utf8");
+
+  const num = (s: string) => Number(s.replace(/_/g, ""));
+  const inspectMs = num(lib.match(/GSC_INSPECT_TIMEOUT_MS = ([\d_]+)/)![1]);
+  const pageMs = num(lib.match(/GSC_TIMEOUT_MS = ([\d_]+)/)![1]);
+
+  it("URL Inspection gets a longer ceiling than the page-render one", () => {
+    expect(inspectMs).toBeGreaterThan(pageMs);
+    // and it is actually threaded into the inspect call, not just declared
+    expect(lib).toMatch(/urlInspection\/index:inspect[\s\S]{0,400}GSC_INSPECT_TIMEOUT_MS/);
+  });
+
+  it("the analytics readers keep the 6s page ceiling (the 504 fix stands)", () => {
+    const analytics = lib.slice(
+      lib.indexOf("export async function getSearchAnalyticsByDimension"),
+      lib.indexOf("export interface IndexStatus"),
+    );
+    expect(analytics).toContain("gscFetch(");
+    expect(analytics).not.toContain("GSC_INSPECT_TIMEOUT_MS");
+  });
+
+  it("worst-case serial inspection fits inside the job's timeout-minutes", () => {
+    const paths = script.match(/const INDEX_PATHS = \[([\s\S]*?)\];/)![1];
+    const count = (paths.match(/"\//g) ?? []).length;
+    expect(count).toBeGreaterThan(0);
+    const jobMs = num(wf.match(/timeout-minutes: (\d+)/)![1]) * 60_000;
+    // leave room for checkout + npm ci + the two analytics calls
+    expect(count * inspectMs).toBeLessThan(jobMs - 90_000);
   });
 });
