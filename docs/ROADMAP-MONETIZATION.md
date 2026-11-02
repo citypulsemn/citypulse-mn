@@ -295,7 +295,7 @@ and says so rather than quietly proceeding.
 |---|---|---|
 | **O1** | **Email the ten operators in finding 2** [10] | The only pitch that does not need the audience to grow. B1 made it a table; C1 made it a link they can open themselves. Mint from /admin/stats |
 | **O2** | **Ask one seasonal operator for a sponsored collection** [16] | Mechanism built (`25e16f7`). Halloween is ending — the orchards, haunts and Restaurant Week publisher are the warm list |
-| **O3** | **Open a payment destination** (Stripe payment link or Ko-fi) | Unblocks B2. No integration needed, just an account and a URL |
+| ~~**O3**~~ | ~~**Open a payment destination**~~ ✅ **DONE 2 Nov 2026** — live Stripe Payment Link, pay-what-you-want | B2 is live on the site footer. No API key, no integration, just the URL |
 | **O4** | **Decide P1 and P2** | P1 is a secret paste. P2 is a product call |
 
 ## Lane B — quick builds (all S, all disruption 0)
@@ -321,7 +321,7 @@ is the resilience contract in `lib/__tests__/stats-resilience.test.ts` (returns
 table renders above the vendor one, which gained a sentence recording that the
 affiliate question measured 1.9% and is closed. **O1 is now unblocked.**
 
-### B2 — The supporter link  [4]  ✅ SHIPPED (dark until O3)
+### B2 — The supporter link  [4]  ✅ LIVE 2 Nov 2026 (site footer; email held by P1)
 **Why:** the reader-funded story is worth starting early and costs nothing to run.
 **Design:** an external payment URL (O3) — **no** Stripe API, no webhook, no table,
 no amounts in code. One line in [components/SiteFooter.tsx](../components/SiteFooter.tsx)
@@ -526,7 +526,11 @@ return any item in the shipped ledger has delivered.
 ## The first three sessions
 
 1. ~~**B1**~~ ✅ **shipped** 29 Oct. Then Taren sends the ten emails (**O1, still open**).
-2. ~~**B2 + B3**~~ ✅ **shipped** 29 Oct. B2 is dark until O3 produces a payment URL.
+2. ~~**B2 + B3**~~ ✅ **shipped** 29 Oct; **B2 went live 2 Nov** when O3 produced a URL.
+   The footer link is live. The DIGEST LINE IS NOT: `DIGEST_POSTAL_ADDRESS` is still
+   unset, and `digestSupport()` withholds a money ask from an email whose footer has
+   no physical address — P1, now enforced in code rather than prose. Setting the
+   secret turns the email line on by itself, with no deploy.
 3. ~~**C1**~~ ✅ **shipped** 29 Oct, under the assumed P2 split. **P2 is still
    unanswered.** The reports work either way; what is unresolved is whether the
    venue-side lane is formally open.

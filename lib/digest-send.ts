@@ -1,7 +1,7 @@
 import { getEventsUncached } from "./events";
 import { getSubscribedRecipients } from "./subscribe";
 import { sql } from "./db";
-import { splitDigestEvents, renderDigestEmail, digestWeekLabel, selectMostSaved, missingPostalAddress } from "./digest";
+import { splitDigestEvents, renderDigestEmail, digestWeekLabel, selectMostSaved, missingPostalAddress, digestSupport } from "./digest";
 import { selectSavedUpcoming, categoryAffinity, personalizePicks } from "./digest-personal";
 import { getSavedEvents } from "./saved";
 import { getMostSavedCounts } from "./stats";
@@ -139,6 +139,8 @@ export async function sendWeeklyDigest(opts: { dryRun?: boolean } = {}): Promise
       unsubscribeUrl: unsub,
       siteUrl,
       postalAddress,
+      // P1 — no physical address in the footer means no money ask in the email.
+      support: digestSupport(postalAddress),
       savedThisWeek,
       placeOfWeek,
       mostSaved,

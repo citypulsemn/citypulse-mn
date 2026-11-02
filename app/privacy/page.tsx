@@ -31,7 +31,7 @@ export const metadata: Metadata = {
 // Not exported: an App Router page may only export a fixed set of names
 // (default, metadata, revalidate…), and anything else fails the build's
 // generated type check. lib/__tests__/legal-pages.test.ts reads it from source.
-const LAST_UPDATED = "11 September 2026";
+const LAST_UPDATED = "2 November 2026";
 
 export default function PrivacyPage() {
   return (
@@ -114,7 +114,12 @@ export default function PrivacyPage() {
               pixel, no Google Ads tag.
             </li>
             <li>We don&rsquo;t accept file uploads, so we&rsquo;re not holding any.</li>
-            <li>We don&rsquo;t ask for or store payment details. Everything here is free.</li>
+            <li>
+              We don&rsquo;t ask for or store payment details. Reading the site and the
+              email is free. If you use the &ldquo;Support the site&rdquo; link in the
+              footer, it opens a payment page hosted by <strong>Stripe</strong> &mdash;
+              you enter your card there, not here, and we never see or store it.
+            </li>
             <li>
               We don&rsquo;t knowingly collect anything from children under 13. If you think we
               have, write to us and we&rsquo;ll delete it.
@@ -140,6 +145,11 @@ export default function PrivacyPage() {
             </li>
             <li>
               <strong>Mapbox</strong> &mdash; the map images on event and place pages.
+            </li>
+            <li>
+              <strong>Stripe</strong> &mdash; hosts the payment page behind the
+              &ldquo;Support the site&rdquo; link in the footer. They take the card; we
+              never receive it. You only reach them if you choose to.
             </li>
             <li>
               <strong>Anthropic</strong> &mdash; the AI used to research listings (see below).

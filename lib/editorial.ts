@@ -258,4 +258,9 @@ export interface SupportLink {
  *     digestLine: "This email is free and carries no ads. If it's worth something to you, you can chip in.",
  *   };
  */
-export const SUPPORT: SupportLink | null = null;
+export const SUPPORT: SupportLink | null = {
+  url: "https://buy.stripe.com/cNi28k5n0aP1cWFfVBcwg00",
+  label: "Support the site",
+  digestLine:
+    "This site and the email are free and carry no ads. If it's worth something to you, you can chip in.",
+};

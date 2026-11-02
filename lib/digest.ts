@@ -546,3 +546,24 @@ export function senderFooterLine(postalAddress?: string | null): string {
 export function missingPostalAddress(postalAddress?: string | null): boolean {
   return String(postalAddress ?? "").trim() === "";
 }
+
+/**
+ * P1 — which support link the WEEKLY EMAIL may carry.
+ *
+ * Asking for money makes the email unambiguously commercial, and CAN-SPAM wants
+ * a real physical address in the footer of a commercial message. The roadmap
+ * states the rule as "nothing may be sold into the newsletter until
+ * DIGEST_POSTAL_ADDRESS is set", so this encodes the rule instead of leaving it
+ * in a doc: no address in the footer means no money ask in the email, whatever
+ * SUPPORT says.
+ *
+ * The SITE footer is deliberately NOT governed by this — a link on a web page
+ * raises no CAN-SPAM question. Setting the secret turns the email line on by
+ * itself, with no code change to remember.
+ */
+export function digestSupport(
+  postalAddress?: string | null,
+  support: SupportLink | null = SUPPORT,
+): SupportLink | null {
+  return missingPostalAddress(postalAddress) ? null : support;
+}

@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
+import { SUPPORT } from "../editorial";
 
 /**
  * A privacy policy is a set of factual claims about the code. These pin the
@@ -128,6 +129,20 @@ describe("the privacy policy matches what the code collects", () => {
     );
     expect(privacy).toMatch(/don&rsquo;t accept file uploads/i);
     expect(privacy).toMatch(/don&rsquo;t ask for or store payment details/i);
+  });
+
+  it("names the payment host whenever the footer links to one", () => {
+    // An implication, and live right now because SUPPORT is set. The bullet
+    // above only greps our own sentence back out of the page, so it stayed
+    // green while the footer quietly started handing readers to a payment
+    // host the page did not name. Found by a review sweep, not by the gate.
+    if (SUPPORT === null) return;
+    const host = new URL(SUPPORT.url).hostname;
+    const brand = host.split(".").slice(-2)[0];
+    expect(
+      privacy.toLowerCase(),
+      `the footer links readers to ${host} — the privacy page must name it`,
+    ).toContain(brand);
   });
 
   it("discloses the AI, and does not oversell it", () => {

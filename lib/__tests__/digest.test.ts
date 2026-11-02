@@ -8,6 +8,7 @@ import {
   DIGEST_SPONSOR,
   supportLineHtml,
   supportLineText,
+  digestSupport,
   selectMostSaved,
   MOST_SAVED_MIN,
   placeOfWeekHtml,
@@ -346,12 +347,27 @@ describe("reader support line (B2)", () => {
     digestLine: "This email is free and carries no ads.",
   };
 
-  it("ships dark — no payment page configured, no line anywhere", () => {
-    expect(SUPPORT).toBeNull();
-    const out = renderDigestEmail(base); // no support passed ⇒ module default (null)
+  it("renders nothing anywhere when support is null", () => {
+    // Explicit null, NOT the module default. This test used to assert
+    // `SUPPORT === null`, which turned the gate red the day B2 was
+    // legitimately switched on — a failing build on a correct change.
+    const out = renderDigestEmail({ ...base, support: null });
     expect(out.html).not.toContain("Support the site");
     expect(out.html).not.toContain("utm_campaign=support");
     expect(out.text).not.toContain("Support the site");
+  });
+
+  it("omitting the key renders exactly what the module default renders", () => {
+    // THE WHOLE OBJECT, not .text. The first version of this test compared the
+    // plain-text part only, which left the HTML support slot (lib/digest.ts:464)
+    // with no coverage at all on the module-default path: a defect that dropped
+    // or injected the support row in the HTML while the text stayed correct
+    // passed the entire suite. Three independent review passes found it
+    // separately. The two slots sit 50 lines apart in one long template, and
+    // 77a7c1f was already "one of two render paths wired differently".
+    expect(renderDigestEmail(base)).toEqual(
+      renderDigestEmail({ ...base, support: SUPPORT }),
+    );
   });
 
   it("null renders an empty string, not an empty row (honest emptiness)", () => {
@@ -370,8 +386,8 @@ describe("reader support line (B2)", () => {
     expect(out.text).toContain("utm_campaign=support");
   });
 
-  it("does not disturb the plain-text footer when unset", () => {
-    const off = renderDigestEmail(base).text.split("\n");
+  it("adds exactly two plain-text lines, unsubscribe block still last", () => {
+    const off = renderDigestEmail({ ...base, support: null }).text.split("\n");
     const on = renderDigestEmail({ ...base, support }).text.split("\n");
     // The support line adds exactly two lines (a blank and the line itself);
     // the unsubscribe block stays last either way.
@@ -391,5 +407,64 @@ describe("reader support line (B2)", () => {
     expect(html).toContain("Chip &lt;in&gt;");
     expect(html).toContain("Free &amp; no ads.");
     expect(html).not.toContain("<in>");
+  });
+});
+
+/**
+ * P1 — THE EMAIL MAY NOT ASK FOR MONEY WITHOUT A POSTAL ADDRESS.
+ *
+ * Measured on 2 Nov 2026: the last weekly-digest run logged
+ * `DIGEST_POSTAL_ADDRESS:` empty, so the footer carries no physical address
+ * while SUPPORT is live. Asking for money in that email is the thing the
+ * roadmap's P1 rule forbids, so the send path routes through digestSupport and
+ * this block pins it. The SITE footer is deliberately out of scope here.
+ */
+describe("digestSupport (P1) — a money ask needs a postal address", () => {
+  const link = {
+    url: "https://buy.stripe.com/x",
+    label: "Support the site",
+    digestLine: "Free, no ads.",
+  };
+  const ADDR = "PO Box 1, Minneapolis MN 55401";
+  const mail = (over: Partial<Parameters<typeof renderDigestEmail>[0]>) =>
+    renderDigestEmail({
+      events: [ev({ id: "a", title: "Trampled by Turtles" })],
+      weekLabel: "July 13 – 19",
+      unsubscribeUrl: "#",
+      siteUrl: "https://citypulsemn.com",
+      ...over,
+    });
+
+  it("withholds the link when there is no address — null, empty, blank or absent", () => {
+    expect(digestSupport(undefined, link)).toBeNull();
+    expect(digestSupport(null, link)).toBeNull();
+    expect(digestSupport("", link)).toBeNull();
+    expect(digestSupport("   ", link)).toBeNull();
+  });
+
+  it("passes the link through once an address is set", () => {
+    expect(digestSupport(ADDR, link)).toBe(link);
+  });
+
+  it("never invents a link — a null config stays null even with an address", () => {
+    expect(digestSupport(ADDR, null)).toBeNull();
+  });
+
+  it("the rendered email carries no money ask while the address is missing", () => {
+    const out = mail({ support: digestSupport("", link) });
+    expect(out.html).not.toContain("utm_campaign=support");
+    expect(out.text).not.toContain("Free, no ads.");
+  });
+
+  it("and carries it once the address is set", () => {
+    const out = mail({ postalAddress: ADDR, support: digestSupport(ADDR, link) });
+    expect(out.html).toContain("utm_campaign=support");
+    expect(out.text).toContain("Free, no ads.");
+  });
+
+  it("defaults to the module SUPPORT when no link is passed", () => {
+    // The send path calls digestSupport(postalAddress) with one argument.
+    expect(digestSupport("", undefined)).toBeNull();
+    expect(digestSupport(ADDR)).toBe(SUPPORT);
   });
 });
