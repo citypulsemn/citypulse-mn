@@ -55,3 +55,24 @@ export function outboundTicketUrl(raw: string, config: Record<string, AffiliateT
   }
   return u.toString();
 }
+
+/**
+ * Append campaign params to a link WE place: the weekly email's sponsor and
+ * support links, and the site footer's support link.
+ *
+ * A plain append, NOT the URL round-trip `outboundTicketUrl` uses above, and
+ * deliberately so. This replaced a private copy in lib/digest.ts whose output
+ * ships in live email, and `new URL().toString()` normalizes — it will add a
+ * trailing slash to a bare origin and re-encode reserved characters. Identical
+ * bytes out were worth more than symmetry with its neighbour.
+ *
+ * Why it moved here (2 Nov 2026): the footer's support link was going out
+ * UNTAGGED while DEPLOY-SUPPORT-LINK-AND-PARKING.md claimed the UTM scheme
+ * "lets us tell an email click from a site-footer click". It did not — both
+ * tagged links were utm_medium=digest, and the footer carried no tag at all,
+ * so a footer click was identifiable only by the absence of one. Pure.
+ */
+export function campaignUrl(url: string, source: string, medium: string, campaign: string): string {
+  const sep = url.includes("?") ? "&" : "?";
+  return `${url}${sep}utm_source=${source}&utm_medium=${medium}&utm_campaign=${campaign}`;
+}

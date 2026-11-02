@@ -39,6 +39,14 @@ writer drifted apart in September, so: one definition, two campaigns —
 `utm_campaign=sponsor` and `utm_campaign=support`, which also lets us tell an
 email click from a site-footer click without any extra instrumentation.
 
+> **Correction, 2 Nov 2026.** That last clause was false when written. Both
+> tagged links carried `utm_medium=digest`, because `campaignUrl` was private to
+> `lib/digest.ts` and hard-coded the email source; `components/SiteFooter.tsx`
+> used the bare URL. So the two campaigns told a *sponsor* click from a *support*
+> click, both in email — a footer click was identifiable only by the absence of a
+> tag. Fixed by moving `campaignUrl` to `lib/outbound.ts` with source and medium
+> as arguments; see `DEPLOY-DEAD-TRIPWIRE-AND-UNTAGGED-FOOTER.md`.
+
 ## B3 — parking on venue pages, and why it earns nothing
 
 The roadmap costed this as a SpotHero affiliate link worth $5–20/month, with an

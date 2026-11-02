@@ -1,5 +1,6 @@
 import { SubscribeForm } from "./SubscribeForm";
 import { SUPPORT } from "@/lib/editorial";
+import { campaignUrl } from "@/lib/outbound";
 
 /**
  * `subscribe={false}` on any page that already renders a SubscribeBand: the
@@ -48,7 +49,13 @@ export function SiteFooter({ source = "site", subscribe = true }: { source?: str
           <a href="/terms">Terms</a>
           {/* B2 — renders nothing until a payment page exists (lib/editorial.ts SUPPORT). */}
           {SUPPORT && (
-            <a href={SUPPORT.url} target="_blank" rel="noopener noreferrer">{SUPPORT.label}</a>
+            <a
+              href={campaignUrl(SUPPORT.url, "site", "footer", "support")}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              {SUPPORT.label}
+            </a>
           )}
         </div>
       </nav>

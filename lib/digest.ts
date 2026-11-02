@@ -5,6 +5,7 @@ import { chiDayKey } from "./clock";
 import { CATEGORIES } from "./categories";
 import { KIND_META, type Place } from "./places";
 import { SUPPORT, type SupportLink } from "./editorial";
+import { campaignUrl as tagCampaign } from "./outbound";
 import type { EventRecord } from "./types";
 
 /**
@@ -235,8 +236,7 @@ export const DIGEST_SPONSOR: DigestSponsor | null = null;
  * tell an email click from a site-footer click).
  */
 function campaignUrl(url: string, campaign: string): string {
-  const sep = url.includes("?") ? "&" : "?";
-  return `${url}${sep}utm_source=email&utm_medium=digest&utm_campaign=${campaign}`;
+  return tagCampaign(url, "email", "digest", campaign);
 }
 
 /** The sponsor band as an email table row. "" when there is no sponsor. Pure. */

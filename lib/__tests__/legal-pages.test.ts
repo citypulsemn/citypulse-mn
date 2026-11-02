@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 
 /**
@@ -12,6 +12,20 @@ const read = (p: string) => readFileSync(join(ROOT, p), "utf8");
 const privacy = read("app/privacy/page.tsx");
 const terms = read("app/terms/page.tsx");
 const schema = read("db/schema.sql");
+
+/**
+ * Every source file we actually ship, so that a claim ABOUT the code can be
+ * checked AGAINST the code rather than against the page restating itself.
+ * __tests__ is excluded on purpose: a fixture naming a card field is not a
+ * payment flow, and a test that trips on its own neighbours gets deleted.
+ */
+const appSource = ["app", "components", "lib"]
+  .flatMap((d) =>
+    readdirSync(join(ROOT, d), { recursive: true, encoding: "utf8" })
+      .filter((f) => /\.tsx?$/.test(f) && !f.includes("__tests__"))
+      .map((f) => read(join(d, f))),
+  )
+  .join("\n");
 
 describe("the privacy policy matches what the code collects", () => {
   it("names every table that holds a person's email", () => {
@@ -56,8 +70,62 @@ describe("the privacy policy matches what the code collects", () => {
   it("the 'no uploads' and 'no payments' claims are still true", () => {
     // These are load-bearing: they are why several whole categories of
     // obligation don't apply. If either becomes false, the page must change.
-    const appSrc = ["app", "lib"].map((d) => d).join();
-    expect(appSrc).toBeTruthy();
+    //
+    // THIS TEST WAS DEAD FOR ITS WHOLE LIFE. It read:
+    //     const appSrc = ["app", "lib"].map((d) => d).join();
+    //     expect(appSrc).toBeTruthy();
+    // which builds the string "app,lib" and asserts it is truthy. Always true,
+    // reading no source at all — so the one test named for catching a payment
+    // flow could not see one. Found 2 Nov 2026 while costing the B2 support
+    // link, which is to say one commit before a payment link was due to land.
+    //
+    // WHY THE PAYMENT CHECK READS package.json AND NOT THE SOURCE: B2 puts a
+    // payment host's URL (buy.stripe.com/...) in lib/editorial.ts, and that is
+    // NOT a payment flow — we link out and never see a card, so the privacy
+    // claim stays strictly true. Grepping source for "stripe" would go red the
+    // day that link ships, which would teach everyone to delete the test. The
+    // claim is about PROCESSING, and processing a card means pulling in an SDK.
+    // The dependency list is the narrower signal and the truer one.
+    //
+    // The quote anchors each name to the START of a package key, which matters:
+    // "@braintree/sanitize-url" is a common mermaid dependency and not a
+    // payment SDK, so a bare `braintree` match would accuse the wrong thing.
+    // But the anchor is also why the SCOPED forms must be listed explicitly —
+    // in "@paypal/react-paypal-js" the character after the quote is `@`, so
+    // `"paypal` never occurs. Caught 2 Nov 2026 by a review pass: the first
+    // version of this list spelled out `@stripe/` and no other scope, so the
+    // four SDKs below all escaped it while the test sat green. Modern JS
+    // payment SDKs ship scoped, and the mutation test that "proved" this
+    // assertion only ever tried the unscoped `stripe`.
+    //
+    // A scope entry can over-fire (see sanitize-url above). That is the right
+    // direction to be wrong in: a wrong accusation costs one glance at a loud
+    // message, a miss costs the privacy page its truth.
+    const pkg = read("package.json");
+    for (const sdk of [
+      "stripe", "@stripe/",
+      "braintree", "@braintree/",
+      "square", "@square/",
+      "paypal", "@paypal/",
+      "adyen", "@adyen/",
+    ]) {
+      expect(pkg, `${sdk} is a dependency now — does the privacy page still hold?`)
+        .not.toContain(`"${sdk}`);
+    }
+    expect(appSource, "a file input means we accept uploads").not.toMatch(
+      /<input[^>]*type=["']file["']/i,
+    );
+    expect(appSource, "multipart handling means we accept uploads").not.toMatch(
+      /multipart\/form-data/i,
+    );
+    expect(appSource, "a card field means we ask for payment details").not.toMatch(
+      // No TRAILING \b: PayPal's own hosted-field components are <CVVField />
+      // and <NumberField />, and /\bcvv\b/ cannot match "CVVField". An
+      // iframe-based SDK leaves no card markup in our source at all, which is
+      // why the dependency list above is the load-bearing half and this is the
+      // belt.
+      /\b(cardNumber|card_?number|cvc|cvv)/i,
+    );
     expect(privacy).toMatch(/don&rsquo;t accept file uploads/i);
     expect(privacy).toMatch(/don&rsquo;t ask for or store payment details/i);
   });
