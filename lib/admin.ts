@@ -1,5 +1,6 @@
 import { headers } from "next/headers";
 import { sql } from "./db";
+import { openVerifyFlagIds } from "./verify-flags";
 import { sampleEvents } from "./sample-events";
 import { searchEvents } from "./search";
 import { parseBasicAuth, safeEqual } from "./admin-auth";
@@ -139,6 +140,14 @@ export async function getAdminEvents(opts: {
     return list.slice(0, limit);
   }
 
+  // "flagged" is not a status column — it is the verify pass's open-flag
+  // predicate, which lives in lib/verify-flags.ts so this screen and the Monday
+  // email's count cannot drift. Two round trips on a nine-row table, in exchange
+  // for one definition.
+  const flaggedOnly = status === "flagged";
+  const flaggedIds = flaggedOnly ? await openVerifyFlagIds() : [];
+  if (flaggedOnly && flaggedIds.length === 0) return [];
+
   const like = `%${q}%`;
   const rows = await sql<AdminRow[]>`
     select
@@ -148,9 +157,9 @@ export async function getAdminEvents(opts: {
       price, price_tier, ticket_url, description, image, source_url, status,
       to_char(created_at at time zone 'America/Chicago', 'Mon DD, HH24:MI') as created_label
     from events
-    where ${status ? sql`status = ${status}` : sql`true`}
+    where ${flaggedOnly ? sql`id = any(${flaggedIds}::uuid[])` : status ? sql`status = ${status}` : sql`true`}
       and ${q ? sql`(title ilike ${like} or venue ilike ${like} or city ilike ${like})` : sql`true`}
-    order by created_at desc
+    order by ${flaggedOnly ? sql`start_at asc` : sql`created_at desc`}
     limit ${limit}
   `;
   return rows.map(adminRowToEvent);

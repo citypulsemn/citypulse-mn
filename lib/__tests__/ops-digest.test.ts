@@ -411,6 +411,51 @@ describe("the Jobs section — a red run cannot hide behind a green row", () => 
   });
 });
 
+describe("the paths the Monday email tells the operator to open", () => {
+  const { readFileSync: rf, existsSync } = require("node:fs") as typeof import("node:fs");
+  const { join } = require("node:path") as typeof import("node:path");
+  const root = join(__dirname, "..", "..");
+  const src = rf(join(root, "lib", "ops-digest.ts"), "utf8");
+
+  it("every admin path the digest prints resolves to a real route", () => {
+    // "→ /admin/events" was printed from 26 Aug to 3 Nov 2026 and that route has
+    // never existed: middleware asked for the admin password first, so the
+    // operator paid it and landed on the PUBLIC reader 404. The paths are plain
+    // text, not anchors, so nothing about them was ever exercised — which is
+    // precisely why they need a test rather than a click.
+    const paths = [...src.matchAll(/→ (\/admin[A-Za-z0-9/?=_-]*)/g)].map((m) => m[1]);
+    expect(paths.length, "the queue section should still print paths").toBeGreaterThan(2);
+    for (const p of paths) {
+      const route = p.split("?")[0].replace(/\/$/, "");
+      const dir = route === "/admin" ? join(root, "app", "admin") : join(root, "app", ...route.split("/").filter(Boolean));
+      expect(existsSync(join(dir, "page.tsx")), `${p} → no page at app${route}/page.tsx`).toBe(true);
+    }
+  });
+
+  it("the flagged queue points at the filter that shows exactly those rows", () => {
+    expect(src).toContain("the verify pass flagged, still live → /admin?status=flagged");
+    expect(src).not.toContain("/admin/events");
+    // …and the screen offers that filter value.
+    const page = rf(join(root, "app", "admin", "page.tsx"), "utf8");
+    expect(page).toContain('value="flagged"');
+  });
+
+  it("the open-flag predicate has ONE definition, and the gather uses it", () => {
+    // The digest computed it inline and /admin would have needed a second copy.
+    // A hand-written query over the same table on 3 Nov returned 164, then 25,
+    // against the digest's 33 — the clause everyone drops is that a flag raised
+    // AFTER a stamp is still open.
+    const gather = rf(join(root, "lib", "ops-inputs.ts"), "utf8");
+    const admin = rf(join(root, "lib", "admin.ts"), "utf8");
+    const shared = rf(join(root, "lib", "verify-flags.ts"), "utf8");
+    expect(gather).toContain("openVerifyFlags()");
+    expect(admin).toContain("openVerifyFlagIds()");
+    expect(gather).not.toContain("a.action = 'verify_flag'");
+    expect(admin).not.toContain("a.action = 'verify_flag'");
+    expect(shared).toContain("a.at > e.verified_at");
+  });
+});
+
 describe("composeOpsDigest — the healthy week", () => {
   const { subject, html, text } = composeOpsDigest(healthy(), NOW);
   it("subject is green with the Chicago date", () => {
@@ -925,7 +970,7 @@ describe("Queue — the backstop that keeps a report from sitting unseen", () =>
 
   it("counts music listings a venue calendar disagrees with", () => {
     const q = queueOf({ musicReview: 1 });
-    expect(q.lines.join(" ")).toContain("1 music listing a venue calendar disagrees with → /admin/events");
+    expect(q.lines.join(" ")).toContain("1 music listing a venue calendar disagrees with → /admin");
     expect(q.alert).toBe(false); // a queue is not an emergency
   });
 

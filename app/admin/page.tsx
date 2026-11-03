@@ -19,6 +19,10 @@ export default async function AdminEventsPage({
         <input name="q" defaultValue={q} placeholder="Search title, venue, city…" aria-label="Search events" />
         <select name="status" defaultValue={status} aria-label="Filter by status">
           <option value="all">All statuses</option>
+          {/* Not a status — the verify pass's open flags, soonest first. This is
+              where the Monday email's "N listings the verify pass flagged" line
+              points, and it pointed at a route that never existed until 3 Nov. */}
+          <option value="flagged">⚠ Flagged by the verify pass</option>
           <option value="published">Published</option>
           <option value="draft">Hidden (draft)</option>
           <option value="cancelled">Cancelled</option>

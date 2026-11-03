@@ -24,6 +24,7 @@ import { actionsConfigured, getActionsHealth, type WorkflowHealth } from "./acti
 import { withDeadline } from "./vendor-health";
 import { getSourceSweepHealth } from "./source-sweep";
 import { getPendingSubmissionCount } from "./submissions";
+import { openVerifyFlags } from "./verify-flags";
 import { getPendingReportCount, getOldestPendingReportDays, getPendingReportsWithChecks } from "./event-reports";
 import { formatCheckLine, type CheckVerdict } from "./report-check";
 import { reportActionUrl, reportActionSecret } from "./report-token";
@@ -177,29 +178,12 @@ export async function gatherOpsInputs(): Promise<OpsInputs> {
           and e.status = 'published'
           and e.verified_at is null
           and e.start_at >= now()`;
-      // Listings the freshness pass flagged that are STILL LIVE and still
-      // unverified. Same self-clearing shape as the music-review count above:
-      // the flag is an append-only audit row, so "open" has to be computed from
-      // the listing's current state. `wrong_event` first — the venue's own
-      // calendar contradicting us is the strongest negative the pass produces.
-      const flagged = await sql<{ verdict: string; title: string; venue: string; day: string }[]>`
-        select distinct on (e.id)
-               coalesce(a.patch->>'verdict', 'flag') as verdict,
-               e.title, e.venue,
-               to_char(e.start_at at time zone 'America/Chicago', 'Mon DD') as day
-        from admin_audit a
-        join events e on e.id = a.event_id
-        where a.action = 'verify_flag'
-          and e.status = 'published'
-          -- A flag raised AFTER the stamp used to vanish, because "open" was
-          -- defined as unverified. That is the most dangerous flag there is:
-          -- something re-checked a confirmed listing and disagreed, and the
-          -- stamp swallowed the disagreement.
-          and (e.verified_at is null or a.at > e.verified_at)
-          and e.start_at >= now()
-        order by e.id, a.at desc`;
-      const rank = (v: string) => (v === "wrong_event" ? 0 : v === "cancelled" ? 1 : 2);
-      const sorted = flagged.slice().sort((x, y) => rank(x.verdict) - rank(y.verdict));
+      // Listings the freshness pass flagged that are STILL LIVE. The predicate
+      // moved to lib/verify-flags.ts on 3 Nov 2026 so this count and the
+      // `/admin?status=flagged` screen cannot disagree — a hand-written query
+      // over the same table that day returned 164, then 25, against this 33,
+      // because "open" also covers a flag raised AFTER a stamp.
+      const sorted = await openVerifyFlags();
 
       return {
         submissions: await getPendingSubmissionCount(),

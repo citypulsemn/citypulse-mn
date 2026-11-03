@@ -814,6 +814,15 @@ export function buildSections(inputs: OpsInputs, now: Date = new Date()): OpsSec
     out.push({ title: "Feeds", lines, alert });
   }
 
+  // Every path printed here is plain TEXT, not an anchor — section `lines` are
+  // escaped, and that is the convention all four queue lines share. So a wrong
+  // path is not a broken link, it is a wrong instruction, and nothing exercises
+  // it. From 26 Aug to 3 Nov 2026 two of these lines named an /admin route that
+  // has never existed: middleware asked for the admin password first, so the
+  // operator paid it and landed on the PUBLIC reader 404. A test now resolves
+  // every path printed here against app/**/page.tsx — it reads this file, so
+  // do not write a dead route into a comment either.
+  //
   // 9 — Queue: what's waiting on a person. An empty queue is the NORMAL state,
   // so a zero here is never an alert (that would destroy the subject-line alert
   // signal every quiet week). The one thing that IS an alert: a report left
@@ -844,12 +853,12 @@ export function buildSections(inputs: OpsInputs, now: Date = new Date()): OpsSec
         }
         if (inputs.queue.musicReview > 0) {
           lines.push(
-            `${inputs.queue.musicReview} music listing${inputs.queue.musicReview === 1 ? "" : "s"} a venue calendar disagrees with → /admin/events`,
+            `${inputs.queue.musicReview} music listing${inputs.queue.musicReview === 1 ? "" : "s"} a venue calendar disagrees with → /admin`,
           );
         }
         if (inputs.queue.verifyFlags > 0) {
           lines.push(
-            `${inputs.queue.verifyFlags} listing${inputs.queue.verifyFlags === 1 ? "" : "s"} the verify pass flagged, still live → /admin/events`,
+            `${inputs.queue.verifyFlags} listing${inputs.queue.verifyFlags === 1 ? "" : "s"} the verify pass flagged, still live → /admin?status=flagged`,
           );
           for (const ex of inputs.queue.verifyFlagExamples) lines.push(`    ${ex}`);
           // An alert, because these are listings our own pass doubts that are
