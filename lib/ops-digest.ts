@@ -1,6 +1,7 @@
 import type { Engagement } from "./stats";
 import { judgeSourceSweep, type SourceSweepHealth } from "./vendor-health";
 import type { SearchStats } from "./search-console";
+import { judgeActions, type WorkflowHealth } from "./actions-health";
 import { esc } from "./digest";
 import { EMAIL_HEAD } from "./email-head";
 
@@ -238,6 +239,11 @@ export interface OpsInputs {
    *  itself. Null until the service account is wired → the manual GSC line. */
   search: SearchStats | null;
   prevSearchImpressions: number | null;
+  /** Each watched workflow's recent run conclusions — the one instrument a
+   *  failing STEP cannot fake, because it is the run's own verdict rather than
+   *  a row the step writes. Null means no GitHub token in this environment
+   *  (`/admin/ops` on Vercel), which is "not reported", not a failure. */
+  actions: WorkflowHealth[] | null;
   /** Sections that failed to gather: section key -> reason. Aux reads carry
    *  their own keys (R2.3: `engagement_prev`, `digest_note`, `index_prev`) so
    *  a failed read of LAST week's numbers degrades to "first report" / an
@@ -576,6 +582,25 @@ export function buildSections(inputs: OpsInputs, now: Date = new Date()): OpsSec
       }
     }
     out.push({ title: "Pipeline", lines, alert });
+  }
+
+  // 1b — Jobs. The run's own conclusion. Four October Mondays the Weekly
+  // Research workflow went red while `pipeline_runs.ok` said true, because the
+  // pipeline STEP succeeded and a later one died — taking the source check with
+  // it for three weeks. A table written by a step cannot report the step that
+  // never ran; the run's conclusion can. See lib/actions-health.ts.
+  {
+    let lines: string[];
+    let alert = false;
+    if (err("actions")) {
+      lines = unavailable(err("actions"));
+      alert = true;
+    } else {
+      const v = judgeActions(inputs.actions);
+      lines = v.lines;
+      alert = v.alert;
+    }
+    out.push({ title: "Jobs", lines, alert });
   }
 
   // 2 — Coverage

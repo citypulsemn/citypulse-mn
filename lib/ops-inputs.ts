@@ -20,6 +20,7 @@ import { getTrendingEvents } from "./trending";
 import { getDigestSends, getDaysSinceLastDigest } from "./digest-send";
 import { getFeedAdoption } from "./feed-stats";
 import { getSearchImpressions } from "./search-console";
+import { actionsConfigured, getActionsHealth, type WorkflowHealth } from "./actions-health";
 import { withDeadline } from "./vendor-health";
 import { getSourceSweepHealth } from "./source-sweep";
 import { getPendingSubmissionCount } from "./submissions";
@@ -30,6 +31,9 @@ import { findContradictions, findPlaceholderTitles, formatFinding, type Calendar
 
 /** How long the Monday numbers will wait on Google before shrugging. */
 const GSC_BUDGET_MS = 5_000;
+
+/** Same courtesy for GitHub: four parallel reads, then give up and say so. */
+const ACTIONS_BUDGET_MS = 5_000;
 
 /**
  * The stored totals of the last run old enough to be a week-ago baseline.
@@ -336,12 +340,31 @@ export async function gatherOpsInputs(): Promise<OpsInputs> {
     (await prevRunTotals())?.search_impressions ?? null,
   );
 
+  // The run's own conclusion. A timeout must NOT degrade to null: null is the
+  // defined "no token configured" state (Vercel), which is quiet by design, and
+  // a silent GitHub outage wearing that costume is the exact failure this
+  // section exists to end. So the configured check happens first, and a timeout
+  // throws into `errors` → "unavailable" + alert, like any other section.
+  const actions = await wrap<WorkflowHealth[] | null>("actions", null, async () => {
+    if (!actionsConfigured()) return null;
+    // Tagged rather than a bare null fallback: withDeadline's fallback has to be
+    // the same type as the promise, and null already means "not configured".
+    const got = await withDeadline<{ read: true; health: WorkflowHealth[] | null } | { read: false }>(
+      getActionsHealth().then((health) => ({ read: true as const, health })),
+      ACTIONS_BUDGET_MS,
+      { read: false },
+    );
+    if (!got.read) throw new Error("GitHub Actions read timed out");
+    return got.health;
+  });
+
   // Is the weekly fabrication check alive? Null on a failed read, which the
   // section renders "unavailable" and alerts on — never a quiet green. This is
   // the column that sat frozen at 28 Sep for four weeks while nothing read it.
   const sourceSweep = await wrap("source_sweep", null, () => getSourceSweepHealth());
 
   return {
+    actions,
     prevSeries,
     pipeline,
     prevPipeline,

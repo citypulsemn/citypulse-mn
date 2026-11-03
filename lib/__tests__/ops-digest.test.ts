@@ -51,6 +51,7 @@ function healthy(overrides: Partial<OpsInputs> = {}): OpsInputs {
     // Empty by default: declineReason is silent without history, so no existing
     // case changes. The slide/cliff cases pass their own series.
     prevSeries: [],
+    actions: null, // default: not reported, which is quiet by design
     trending: { count: 6, top: ["Aquatennial Fireworks", "Trampled by Turtles", "Como Family Day"] },
     subscribers: { total: 84, delta7: 6 },
     lastDigestNote: "84 sent, 17 personalized",
@@ -359,6 +360,54 @@ describe("a falling number now raises a flag (3 Nov 2026)", () => {
     expect(eng.lines.join("\n")).toContain("views 412");
     expect(idx.lines.join("\n")).toContain("121 URLs in the live sitemap");
     expect(eng.lines.join("\n")).not.toContain("has fallen");
+  });
+});
+
+describe("the Jobs section — a red run cannot hide behind a green row", () => {
+  // Oct 5/12/19/26: "Weekly Event Research" FAILED while pipeline_runs.ok was
+  // true, because the pipeline step succeeded and a later one died. The digest
+  // read the row, not the run, and reported the pipeline healthy on four red
+  // Mondays while the source check sat at 0 pages for three weeks.
+  const failed = [
+    {
+      label: "weekly research",
+      file: "weekly-research.yml",
+      recent: [{ conclusion: "failure", at: "2026-10-26T12:06:59Z", url: "https://x/40320064353" }],
+    },
+  ];
+
+  it("alerts, and the alert reaches the subject line", () => {
+    const { subject, text } = composeOpsDigest(healthy({ actions: failed }), NOW);
+    expect(text).toContain("weekly research — LAST RUN FAILURE");
+    expect(subject).toContain("alert");
+  });
+
+  it("the section sits right after Pipeline, so a dead job is read first", () => {
+    const titles = buildSections(healthy()).map((x) => x.title);
+    expect(titles[0]).toBe("Pipeline");
+    expect(titles[1]).toBe("Jobs");
+  });
+
+  it("green rows and a red run disagree, and the red run wins", () => {
+    // The exact October shape: every database-backed section healthy.
+    const sections = buildSections(healthy({ actions: failed }));
+    expect(sections.find((x) => x.title === "Pipeline")!.alert).toBe(false);
+    expect(sections.find((x) => x.title === "Jobs")!.alert).toBe(true);
+  });
+
+  it("no token is quiet — /admin/ops renders on Vercel and never has one", () => {
+    const jobs = buildSections(healthy())!.find((x) => x.title === "Jobs")!;
+    expect(jobs.alert).toBe(false);
+    expect(jobs.lines.join("\n")).toContain("no GitHub token in this environment");
+  });
+
+  it("a FAILED read is unavailable and alerts — never the quiet not-configured line", () => {
+    const jobs = buildSections(
+      healthy({ actions: null, errors: { actions: "GitHub Actions read timed out" } }),
+    ).find((x) => x.title === "Jobs")!;
+    expect(jobs.alert).toBe(true);
+    expect(jobs.lines.join("\n")).toContain("section unavailable: GitHub Actions read timed out");
+    expect(jobs.lines.join("\n")).not.toContain("no GitHub token");
   });
 });
 
@@ -680,6 +729,15 @@ describe("R2.3 — gather-side tripwires (gatherer source)", () => {
   it("engagement goes through wrap with the STRICT read (failure-zeros can't pose as data)", () => {
     expect(src).toContain('wrap("engagement", emptyEngagement, () => getEngagementStrict(7))');
     expect(src).not.toContain("await getEngagement(7)");
+  });
+
+  it("a timed-out Actions read THROWS rather than posing as 'not configured'", () => {
+    // null is the defined "no token" state and is deliberately quiet. A GitHub
+    // outage wearing that costume is the exact blindness this section ends, so
+    // the configured check runs BEFORE the deadline and a timeout throws.
+    expect(src).toContain("if (!actionsConfigured()) return null;");
+    expect(src).toContain('throw new Error("GitHub Actions read timed out")');
+    expect(src).not.toContain("withDeadline(getActionsHealth(), ACTIONS_BUDGET_MS, null)");
   });
 
   it("the decline history is its own aux read, so a failure costs one line", () => {

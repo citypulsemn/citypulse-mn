@@ -14,6 +14,13 @@ on:
         type: boolean
         default: false
 
+# The Jobs section reads other workflows' run conclusions, which needs
+# `actions: read`. Naming a permissions block REPLACES the default grants, so
+# `contents: read` is spelled out too or actions/checkout loses access.
+permissions:
+  contents: read
+  actions: read
+
 concurrency:
   group: ops-digest
   cancel-in-progress: false
@@ -48,3 +55,9 @@ jobs:
           # secret in GitHub is the ONLY step to go live. GSC_PROPERTY defaults
           # to sc-domain:citypulsemn.com; set it only to override.
           GSC_SERVICE_ACCOUNT_JSON: ${{ secrets.GSC_SERVICE_ACCOUNT_JSON }}
+          # The Jobs section: the run's own conclusion per watched workflow, the
+          # one instrument a failing STEP cannot fake. Absent (locally, on
+          # Vercel) the section reads "not reported here" and does NOT alert —
+          # the same contract GSC has for a missing key.
+          GITHUB_TOKEN: ${{ github.token }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
