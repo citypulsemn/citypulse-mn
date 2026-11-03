@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { composeOpsDigest, judgeVerification, buildSections, parseStoredTotals, pickBaseline, wowLabel, deltaTag, isStampede, stampedeReason, recentBaseline, PIPELINE_STAMPEDE, STALE_REPORT_DAYS, DIGEST_STALE_DAYS, BASELINE_MIN_AGE_HOURS, type OpsInputs, type PipelineRow } from "../ops-digest";
+import { composeOpsDigest, judgeVerification, buildSections, parseStoredTotals, pickBaseline, baselineSeries, declineReason, wowLabel, deltaTag, isStampede, stampedeReason, recentBaseline, PIPELINE_STAMPEDE, STALE_REPORT_DAYS, DIGEST_STALE_DAYS, BASELINE_MIN_AGE_HOURS, DECLINE, BASELINE_READ_ROWS, type OpsInputs, type PipelineRow } from "../ops-digest";
 
 const NOW = new Date("2026-07-20T15:30:00Z"); // a Monday, 10:30am Chicago
 
@@ -48,6 +48,9 @@ function healthy(overrides: Partial<OpsInputs> = {}): OpsInputs {
       top: [{ title: "Aquatennial Fireworks" } as never],
     },
     prevTotals: { view: 350, ticket_click: 40, save: 21, calendar: 0 },
+    // Empty by default: declineReason is silent without history, so no existing
+    // case changes. The slide/cliff cases pass their own series.
+    prevSeries: [],
     trending: { count: 6, top: ["Aquatennial Fireworks", "Trampled by Turtles", "Como Family Day"] },
     subscribers: { total: 84, delta7: 6 },
     lastDigestNote: "84 sent, 17 personalized",
@@ -164,6 +167,198 @@ describe("pickBaseline — a baseline must be old enough to mean last week", () 
     expect(wowLabel(1409, base.sitemap_urls)).toBe("-7% WoW");
     expect(wowLabel(13672, base.search_impressions)).toBe("-35% WoW");
     expect(wowLabel(569, base.view)).toBe("-56% WoW");
+  });
+});
+
+// The real stored series, newest-first, read out of ops_digest_runs on 3 Nov
+// 2026. Every threshold in DECLINE was calibrated against these, so they are the
+// production strings of this feature — invented numbers would prove nothing.
+const REAL = {
+  view: [569, 1294, 1031, 992, 2274, 918, 1769, 1410, 1536, 487, 559, 600, 142, 197, 272, 68, 7],
+  ticket_click: [122, 403, 402, 196, 313, 219, 262, 240, 316, 118, 148, 99, 40, 26, 46, 15, 3],
+  sitemap: [1409, 1508, 1495, 1601, 1665, 1752, 1832, 1989, 2242, 2185, 2095, 1213, 1282, 1041, 908],
+  impressions: [13672, 20954, 19233, 15968, 20890, 25505, 31824, 34760, 29056, 6296, 5798, 5070],
+};
+
+describe("baselineSeries — the whole usable history, not just its head", () => {
+  const row = (ageHours: number, totals: unknown) => ({ age_seconds: ageHours * 3600, totals });
+
+  it("returns every usable row, newest-first, skipping the too-new and the unreadable", () => {
+    const rows = [
+      row(6, { view: 1 }), // today's own send
+      row(24 * 7, { view: 2 }),
+      row(24 * 14, "not json"), // unreadable: skipped, not fatal
+      row(24 * 21, { view: 4 }),
+    ];
+    expect(baselineSeries(rows)).toEqual([{ view: 2 }, { view: 4 }]);
+  });
+
+  it("pickBaseline is exactly its first entry — one definition, two readers", () => {
+    const rows = [row(6, { view: 1 }), row(24 * 7, { view: 2 }), row(24 * 14, { view: 3 })];
+    expect(pickBaseline(rows)).toEqual(baselineSeries(rows)[0]);
+    expect(baselineSeries([row(6, { view: 1 })])).toEqual([]);
+    expect(pickBaseline([row(6, { view: 1 })])).toBeNull();
+  });
+});
+
+describe("declineReason — when a falling number becomes a problem", () => {
+  it("says nothing about a healthy or rising series", () => {
+    expect(declineReason("views", [500, 480, 460, 470, 450])).toBeNull();
+    expect(declineReason("views", [900, 500, 400, 300, 200])).toBeNull(); // rising
+  });
+
+  it("honest silence with nothing to compare: first run, empty, one number", () => {
+    expect(declineReason("views", [])).toBeNull();
+    expect(declineReason("views", [412])).toBeNull();
+    expect(declineReason("views", [412, null, 300, 200, 100])).toBeNull();
+  });
+
+  it("the cliff fires and points at the instrument first", () => {
+    const why = declineReason("views", [10, 500])!;
+    expect(why).toContain("views fell 98% in one week");
+    expect(why).toContain("500 → 10");
+    expect(why).toContain("check the instrument before the business");
+  });
+
+  it("the cliff boundary: -80% fires, -79% does not", () => {
+    expect(declineReason("views", [20, 100])).toContain("fell 80%");
+    expect(declineReason("views", [21, 100])).toBeNull();
+    expect(DECLINE.cliffPct).toBe(-80);
+  });
+
+  it("the slide fires at four consecutive down weeks and names the span", () => {
+    expect(declineReason("the sitemap", [100, 200, 300, 400, 500])).toBe(
+      "the sitemap has fallen 4 weeks running, 500 → 100 (-80%)",
+    );
+  });
+
+  it("the slide boundary: three consecutive down weeks is still silence", () => {
+    expect(declineReason("the sitemap", [100, 200, 300, 400])).toBeNull();
+    expect(DECLINE.slideWeeks).toBe(4);
+  });
+
+  it("a flat week or a bounce breaks the streak — a streak means consecutive", () => {
+    expect(declineReason("x", [100, 200, 200, 300, 400, 500])).toBeNull(); // flat
+    expect(declineReason("x", [100, 200, 150, 300, 400, 500])).toBeNull(); // bounce
+  });
+
+  it("reads up to a gap, never across it", () => {
+    // Declines sit either side of the hole; neither run is 4 long on its own.
+    expect(declineReason("x", [100, 200, 300, undefined, 400, 500, 600])).toBeNull();
+  });
+
+  it("never divides by zero or invents a percentage from one", () => {
+    expect(declineReason("x", [0, 0])).toBeNull();
+    expect(declineReason("x", [5, 0])).toBeNull();
+    // A series that reaches 0 is a -100% week, so the cliff claims it before the
+    // slide can — which is the right answer: a number at zero is an instrument
+    // to check, not a trend to read.
+    expect(declineReason("x", [0, 100, 200, 300, 400])).toContain("fell 100% in one week");
+  });
+
+  it("the window rule is opt-in, because it cannot be applied to a seasonal number", () => {
+    const sitemap = REAL.sitemap.slice(0, 9);
+    expect(declineReason("the sitemap", sitemap)).toBeNull(); // no window: the streak is 1
+    expect(declineReason("the sitemap", sitemap, { window: true })).toBe(
+      "the sitemap is down 37% over 8 weeks, 2242 → 1409",
+    );
+  });
+
+  it("the gather reads enough rows to actually feed the window rule", () => {
+    // A limit of exactly windowWeeks starves it: today's own send is excluded as
+    // too new, so the read comes back one short and the rule written for the
+    // sitemap decline never fires. Headroom for a day of re-runs on top.
+    expect(BASELINE_READ_ROWS).toBeGreaterThan(DECLINE.windowWeeks + 1);
+  });
+
+  it("the window rule needs a full window and says nothing without one", () => {
+    expect(declineReason("x", REAL.sitemap.slice(0, 8), { window: true })).toBeNull();
+    expect(DECLINE.windowWeeks).toBe(8);
+    expect(DECLINE.windowPct).toBe(-25);
+  });
+
+  it("the most acute finding wins: a cliff outranks a slide", () => {
+    expect(declineReason("x", [1, 100, 200, 300, 400, 500])).toContain("in one week");
+  });
+
+  // ─── the calibration itself, against the production series ───
+  it("CALIBRATION: the noisy pair stays silent across the whole stored history", () => {
+    // Views and ticket clicks swing ±150% with the calendar. Every window of the
+    // real history must read silent under the Engagement rules, or the alarm
+    // trains its one reader to ignore it.
+    for (const key of ["view", "ticket_click"] as const) {
+      const full = REAL[key];
+      for (let i = 0; i < full.length - 1; i++) {
+        expect(declineReason(key, full.slice(i)), key + " at offset " + i).toBeNull();
+      }
+    }
+  });
+
+  it("CALIBRATION: the same rules would have raised the sitemap on the 5 Oct send", () => {
+    // 5 Oct is offset 4 in the series: the 4th consecutive decline.
+    expect(declineReason("the sitemap", REAL.sitemap.slice(4))).toBe(
+      "the sitemap has fallen 4 weeks running, 2242 → 1665 (-26%)",
+    );
+    // …and by 19 Oct the streak had run to six.
+    expect(declineReason("the sitemap", REAL.sitemap.slice(2))).toContain("fallen 6 weeks running");
+  });
+
+  it("CALIBRATION: applying the window rule to views would fire today on seasonality", () => {
+    // The reason `window` is opt-in rather than always-on. This is the Halloween
+    // calendar emptying, not a defect, and it must never reach the operator.
+    expect(declineReason("views", REAL.view, { window: true })).toContain("down 63% over 8 weeks");
+    expect(declineReason("views", REAL.view)).toBeNull();
+  });
+});
+
+describe("a falling number now raises a flag (3 Nov 2026)", () => {
+  it("Engagement alerts and names the metric when views slide four weeks", () => {
+    const sections = buildSections(
+      healthy({
+        engagement: { totals: { view: 100, ticket_click: 38, save: 2, calendar: 1 }, daily: [], top: [] },
+        prevSeries: [{ view: 200 }, { view: 300 }, { view: 400 }, { view: 500 }],
+      }),
+    );
+    const eng = sections.find((s) => s.title === "Engagement (7d)")!;
+    expect(eng.alert).toBe(true);
+    expect(eng.lines.join("\n")).toContain("views has fallen 4 weeks running, 500 → 100");
+    // ticket clicks have no history in this fixture — silence, not a guess.
+    expect(eng.lines.join("\n")).not.toContain("ticket clicks has fallen");
+  });
+
+  it("Index surface alerts on the real decline that went unseen for eight weeks", () => {
+    const sections = buildSections(
+      healthy({
+        sitemapUrls: 1409,
+        prevSeries: REAL.sitemap.slice(1, 9).map((n) => ({ sitemap_urls: n })),
+      }),
+    );
+    const idx = sections.find((s) => s.title === "Index surface")!;
+    expect(idx.alert).toBe(true);
+    expect(idx.lines.join("\n")).toContain("the sitemap is down 37% over 8 weeks, 2242 → 1409");
+  });
+
+  it("a healthy week still raises nothing in either section", () => {
+    const sections = buildSections(healthy());
+    for (const title of ["Engagement (7d)", "Index surface"]) {
+      const sec = sections.find((s) => s.title === title)!;
+      expect(sec.alert, title).toBe(false);
+      expect(sec.lines.join("\n"), title).not.toContain("has fallen");
+      expect(sec.lines.join("\n"), title).not.toContain("is down");
+    }
+  });
+
+  it("a failed history read costs the trend line only — every number still reports", () => {
+    const sections = buildSections(
+      healthy({ prevSeries: [], errors: { baseline_series: "db down" } }),
+    );
+    const eng = sections.find((s) => s.title === "Engagement (7d)")!;
+    const idx = sections.find((s) => s.title === "Index surface")!;
+    expect(eng.alert).toBe(false);
+    expect(idx.alert).toBe(false);
+    expect(eng.lines.join("\n")).toContain("views 412");
+    expect(idx.lines.join("\n")).toContain("121 URLs in the live sitemap");
+    expect(eng.lines.join("\n")).not.toContain("has fallen");
   });
 });
 
@@ -487,6 +682,11 @@ describe("R2.3 — gather-side tripwires (gatherer source)", () => {
     expect(src).not.toContain("await getEngagement(7)");
   });
 
+  it("the decline history is its own aux read, so a failure costs one line", () => {
+    expect(src).toContain('wrap<Record<string, number>[]>("baseline_series", [], prevRunSeries)');
+    expect(src).toContain("baselineSeries(await baselineRows())");
+  });
+
   it("all three WoW baselines come through the ONE age-guarded read", () => {
     // Three byte-identical copies of `select totals ... limit 1` is how the
     // engagement, sitemap and GSC baselines each came to compare today against
@@ -494,7 +694,7 @@ describe("R2.3 — gather-side tripwires (gatherer source)", () => {
     expect(src).not.toContain("select totals from ops_digest_runs order by sent_at desc limit 1");
     expect(src).toContain("async function prevRunTotals()");
     expect(src.split("prevRunTotals()").length - 1).toBe(4); // 1 declaration + 3 callers
-    expect(src).toContain("pickBaseline(rows)");
+    expect(src).toContain("pickBaseline(await baselineRows())");
   });
 
   it("aux reads carry their own keys — no more collisions with real sections", () => {

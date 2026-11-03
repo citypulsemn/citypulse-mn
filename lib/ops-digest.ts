@@ -150,6 +150,11 @@ export interface OpsInputs {
   sourceSweep: SourceSweepHealth | null;
   engagement: Engagement;
   prevTotals: Engagement["totals"] | null; // last ops_digest_runs row, or null on first run
+  /** Newest-first stored run totals, oldest usable baseline last — the history
+   *  `declineReason` judges. Element 0 is LAST week; this run's live numbers are
+   *  passed separately. Empty on a first run or a failed read, which is silence
+   *  rather than a fabricated trend. */
+  prevSeries: Record<string, number>[];
   trending: { count: number; top: string[] };
   subscribers: {
     total: number;
@@ -365,14 +370,135 @@ export type BaselineRow = { age_seconds: number; totals: unknown };
  * Null is the honest answer, not a defect — wowLabel renders it "first report"
  * and the sections add "last baseline unreadable".
  */
+export function baselineSeries(
+  rows: readonly BaselineRow[],
+  minAgeSeconds: number = BASELINE_MIN_AGE_HOURS * 3600,
+): Record<string, number>[] {
+  const out: Record<string, number>[] = [];
+  for (const row of rows) {
+    if (!Number.isFinite(row.age_seconds) || row.age_seconds < minAgeSeconds) continue;
+    const totals = parseStoredTotals(row.totals);
+    if (totals) out.push(totals);
+  }
+  return out;
+}
+
+/** The newest usable baseline — `baselineSeries`' first entry. See above. */
 export function pickBaseline(
   rows: readonly BaselineRow[],
   minAgeSeconds: number = BASELINE_MIN_AGE_HOURS * 3600,
 ): Record<string, number> | null {
-  for (const row of rows) {
-    if (!Number.isFinite(row.age_seconds) || row.age_seconds < minAgeSeconds) continue;
-    const totals = parseStoredTotals(row.totals);
-    if (totals) return totals;
+  return baselineSeries(rows, minAgeSeconds)[0] ?? null;
+}
+
+/**
+ * When a falling number stops being a bad week and starts being a problem.
+ *
+ * **Calibrated against the 16 weeks of stored runs, not chosen.** The guard
+ * shipped on 3 Nov 2026 made the WoW figures honest; nothing escalated them, so
+ * views could read -55% in black text. A plain WoW threshold is the obvious fix
+ * and it is the wrong one, in both directions:
+ *
+ *   - At -50% it would have fired 3 times in 16 weeks on views and ticket
+ *     clicks, every one of them seasonal (a Halloween ramp, a one-week
+ *     Restaurant Week listing). An alarm that cries wolf gets ignored, and this
+ *     email has one reader.
+ *   - It would have stayed SILENT through the whole decline that prompted it.
+ *     The sitemap fell 2,242 → 1,409 URLs between 7 Sep and 2 Nov and never
+ *     once dropped more than 11% in a single week.
+ *
+ * So two rules, each measured:
+ *
+ * `cliffPct` **-80%**: fires 0 times in the whole stored history across all four
+ * metrics (steepest real weekly drops: views -56%, ticket clicks -70%, sitemap
+ * -11%, impressions -35%). A fall that steep is an instrument dying, not a
+ * quiet week — which is why its wording points at the instrument first.
+ *
+ * `slideWeeks` **4**: views have never fallen more than 2 weeks running and
+ * ticket clicks never more than 1, in 16 weeks — so four consecutive declines
+ * cannot be noise on those. The sitemap ran 6 down weeks (7 Sep → 19 Oct) and
+ * impressions 4 (14 Sep → 12 Oct), so this rule would have raised the sitemap
+ * on the 5 Oct send — five weeks before anyone noticed by hand.
+ *
+ * `windowWeeks`/`windowPct` **8 weeks, -25%**, and OPT-IN — the `window` option,
+ * which only the Index surface passes. A streak resets on one good week: the
+ * sitemap's 6-week slide was broken by a single +1% week on 26 Oct, so on 2 Nov
+ * the streak rule read 1 while the surface was still down 37% from 7 Sep. The
+ * cumulative rule catches that. It is opt-in because it CANNOT be applied to
+ * views or ticket clicks: measured over the same history it fires on those
+ * today at -63% and -61%, which is the Halloween calendar emptying, not a
+ * defect. Our own published surface has no such excuse — a sitemap that loses a
+ * quarter of its URLs in two months is a supply problem in any season. On the
+ * structural pair it fires 3 of 7 readable weeks (sitemap) and 1 of 4
+ * (impressions), every one of them real.
+ */
+export const DECLINE = {
+  /** One week this steep: suspect the instrument before the business. */
+  cliffPct: -80,
+  /** Consecutive down weeks that make a trend rather than seasonality. */
+  slideWeeks: 4,
+  /** Opt-in cumulative rule, for structural surfaces only. */
+  windowWeeks: 8,
+  windowPct: -25,
+} as const;
+
+/**
+ * How many stored rows the gather must read to feed every rule above.
+ *
+ * The window rule needs `windowWeeks + 1` USABLE rows, and usable excludes
+ * today's own send (too new for BASELINE_MIN_AGE_HOURS) plus any row whose
+ * totals do not parse. A `limit` of exactly the window silently starves it: on
+ * 3 Nov a read of 8 returned 7 usable rows, one short, and the sitemap's -37%
+ * would have gone unreported by the very rule written for it. Derived rather
+ * than typed so raising `windowWeeks` cannot reintroduce that.
+ */
+export const BASELINE_READ_ROWS = DECLINE.windowWeeks + 8;
+
+/**
+ * Why `label` looks like it is falling, or null. Pure.
+ *
+ * `series` is newest-first and element 0 is THIS run's live number, so the
+ * caller passes `[live, ...storedWeeks]`. Reading stops at the first value that
+ * is not a finite number: a gap in the history is not a decline, and judging
+ * past it would compare across a hole. Fewer than two readable numbers is
+ * silence, which is also what a first run and a failed baseline read produce.
+ *
+ * `window` adds the cumulative rule, and belongs only to surfaces we publish
+ * ourselves — see DECLINE. The most acute finding wins: a cliff outranks a
+ * slide, a slide outranks a two-month drift.
+ */
+export function declineReason(
+  label: string,
+  series: readonly (number | null | undefined)[],
+  opts: { window?: boolean } = {},
+): string | null {
+  const nums: number[] = [];
+  for (const v of series) {
+    if (typeof v !== "number" || !Number.isFinite(v)) break;
+    nums.push(v);
+  }
+  if (nums.length < 2) return null;
+  const pct = (cur: number, prev: number): number | null =>
+    prev === 0 ? null : Math.round(((cur - prev) / prev) * 100);
+
+  const week = pct(nums[0], nums[1]);
+  if (week !== null && week <= DECLINE.cliffPct) {
+    return `${label} fell ${Math.abs(week)}% in one week (${nums[1]} → ${nums[0]}) — check the instrument before the business`;
+  }
+
+  let down = 0;
+  while (down + 1 < nums.length && nums[down] < nums[down + 1]) down++;
+  if (down >= DECLINE.slideWeeks) {
+    const total = pct(nums[0], nums[down]);
+    return `${label} has fallen ${down} weeks running, ${nums[down]} → ${nums[0]}${total === null ? "" : ` (${total}%)`}`;
+  }
+
+  if (opts.window && nums.length > DECLINE.windowWeeks) {
+    const then = nums[DECLINE.windowWeeks];
+    const over = pct(nums[0], then);
+    if (over !== null && over <= DECLINE.windowPct) {
+      return `${label} is down ${Math.abs(over)}% over ${DECLINE.windowWeeks} weeks, ${then} → ${nums[0]}`;
+    }
   }
   return null;
 }
@@ -518,6 +644,17 @@ export function buildSections(inputs: OpsInputs, now: Date = new Date()): OpsSec
       ];
       const top = inputs.engagement.top[0];
       if (top) lines.push(`most viewed: ${top.title}`);
+      // The WoW numbers became honest on 3 Nov 2026 and still escalated
+      // nothing, so a halved week printed in black. Neither of these has ever
+      // fallen 4 weeks running in the stored history — see DECLINE.
+      const falling = [
+        declineReason("views", [t.view, ...inputs.prevSeries.map((p) => p.view)]),
+        declineReason("ticket clicks", [t.ticket_click, ...inputs.prevSeries.map((p) => p.ticket_click)]),
+      ].filter((r): r is string => r !== null);
+      if (falling.length > 0) {
+        lines.push(...falling);
+        alert = true;
+      }
       if (err("engagement_prev")) lines.push("(last baseline unreadable — WoW shown as first report)");
     }
     out.push({ title: "Engagement (7d)", lines, alert });
@@ -567,6 +704,26 @@ export function buildSections(inputs: OpsInputs, now: Date = new Date()): OpsSec
         );
       } else {
         lines.push("demand side: check GSC Pages + Performance for indexed count & impressions");
+      }
+      // The slide rule exists for this section: the sitemap lost 37% of its
+      // URLs over eight weeks without one week ever dropping more than 11%.
+      const falling = [
+        declineReason(
+          "the sitemap",
+          [inputs.sitemapUrls, ...inputs.prevSeries.map((p) => p.sitemap_urls)],
+          { window: true },
+        ),
+        inputs.search
+          ? declineReason(
+              "GSC impressions",
+              [inputs.search.impressions, ...inputs.prevSeries.map((p) => p.search_impressions)],
+              { window: true },
+            )
+          : null,
+      ].filter((r): r is string => r !== null);
+      if (falling.length > 0) {
+        lines.push(...falling);
+        alert = true;
       }
       if (err("index_prev")) lines.push("(last count unreadable — WoW shown as first report)");
     }

@@ -9,6 +9,7 @@ function base(sub: Partial<OpsInputs["subscribers"]>): OpsInputs {
     coverageHealthy: true,
     coverageAlerts: ["ok"],
     verify: { verified7: 0, neverVerifiedUpcoming: 0 },
+    prevSeries: [],
     // A healthy sweep: that Monday morning, 372 of the 400 pages it was
     // allowed. The 41 never-checked are the hosts that refuse a script, which
     // is a fact in the report and deliberately not part of the verdict.

@@ -13,7 +13,7 @@
  * a 500. `errors` carries the reasons. Nothing in here may throw.
  */
 import { sql } from "./db";
-import { composeOpsDigest, pickBaseline, PIPELINE_STAMPEDE, type BaselineRow, type OpsInputs, type PipelineRow } from "./ops-digest";
+import { composeOpsDigest, baselineSeries, pickBaseline, BASELINE_READ_ROWS, PIPELINE_STAMPEDE, type BaselineRow, type OpsInputs, type PipelineRow } from "./ops-digest";
 import { assessCoverage, formatCoverageAlerts } from "./coverage";
 import { getEngagementStrict, type Engagement } from "./stats";
 import { getTrendingEvents } from "./trending";
@@ -41,16 +41,33 @@ const GSC_BUDGET_MS = 5_000;
  * rather than a single hoisted read.
  *
  * The database computes the age, so there is no timestamp parameter to get
- * wrong. `limit 8` looks past a full day of re-runs at the weekly cadence; if
- * every row it returns is too new, `pickBaseline` says null and the sections
- * print "first report" instead of comparing today against this morning.
+ * wrong. BASELINE_READ_ROWS looks past a full day of re-runs and still feeds
+ * the decline window; if every row it returns is too new, `pickBaseline` says
+ * null and the sections print "first report" instead of comparing today
+ * against this morning.
  */
-async function prevRunTotals(): Promise<Record<string, number> | null> {
+async function baselineRows(): Promise<BaselineRow[]> {
   if (!sql) throw new Error("no database connection");
   const rows = await sql<BaselineRow[]>`
     select extract(epoch from (now() - sent_at))::float8 as age_seconds, totals
-    from ops_digest_runs order by sent_at desc limit 8`;
-  return pickBaseline(rows);
+    from ops_digest_runs order by sent_at desc limit ${BASELINE_READ_ROWS}`;
+  return [...rows];
+}
+
+async function prevRunTotals(): Promise<Record<string, number> | null> {
+  return pickBaseline(await baselineRows());
+}
+
+/**
+ * The whole usable history, newest-first, for `declineReason`.
+ *
+ * Its own `wrap` key, like every other aux read: if this one fails, the two
+ * sections lose their trend line and keep every number they were already
+ * reporting. `declineReason` is silent on an empty series, so the degradation
+ * needs no special case.
+ */
+async function prevRunSeries(): Promise<Record<string, number>[]> {
+  return baselineSeries(await baselineRows());
 }
 
 export async function gatherOpsInputs(): Promise<OpsInputs> {
@@ -119,6 +136,8 @@ export async function gatherOpsInputs(): Promise<OpsInputs> {
   const prevTotals = await wrap<OpsInputs["prevTotals"]>("engagement_prev", null, async () =>
     ((await prevRunTotals()) as OpsInputs["prevTotals"]) ?? null,
   );
+
+  const prevSeries = await wrap<Record<string, number>[]>("baseline_series", [], prevRunSeries);
 
   const trending = await wrap("trending", { count: 0, top: [] as string[] }, async () => {
     const ranked = await getTrendingEvents();
@@ -323,6 +342,7 @@ export async function gatherOpsInputs(): Promise<OpsInputs> {
   const sourceSweep = await wrap("source_sweep", null, () => getSourceSweepHealth());
 
   return {
+    prevSeries,
     pipeline,
     prevPipeline,
     recentPipeline,
