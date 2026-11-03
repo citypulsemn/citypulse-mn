@@ -321,6 +321,62 @@ export function parseStoredTotals(raw: unknown): Record<string, number> | null {
   return value as Record<string, number>;
 }
 
+/**
+ * How old a stored run must be before it may serve as the week-over-week
+ * baseline.
+ *
+ * The baseline means "what we reported LAST week", and `ops_digest_runs` gains a
+ * row on every real send. The Monday job writes its row at ~09:01, so any later
+ * read that day — a `--dry-run`, a second Actions run, or a load of
+ * `/admin/ops`, which shares this gather — used to pick that row up and compare
+ * today against a few hours ago.
+ *
+ * Measured 2 Nov 2026: the digest printed "views 581 (+2% WoW)" and "1409 URLs
+ * (±0%)" while over the real week the sitemap had fallen 1,508 → 1,409 and GSC
+ * impressions 20,954 → 13,672. The instrument did not grey out — it printed a
+ * confident near-zero delta across a 37% decline in indexed surface, which is
+ * the failure this project keeps paying for: a partial measurement must not
+ * render as a pass.
+ *
+ * Three days is past any same-day or next-day re-run, well short of the 7-day
+ * cadence, and the same number STALE_REPORT_DAYS already uses. A send that
+ * genuinely lands 2 days after another skips it and compares against the week
+ * before — a couple of days stale, but honest, which "WoW" cannot be against a
+ * 2-day-old row.
+ */
+export const BASELINE_MIN_AGE_HOURS = 72;
+
+/** A stored run offered as a WoW baseline: how old it is, and what it recorded. */
+export type BaselineRow = { age_seconds: number; totals: unknown };
+
+/**
+ * The newest stored run old enough to be last week's baseline, or null.
+ *
+ * Pure, and the SINGLE definition of the rule: the three aux reads in
+ * `lib/ops-inputs.ts` — engagement totals, sitemap URLs, GSC impressions — all
+ * come through here. Three copies of one query is exactly how those three
+ * baselines came to report the same lie independently.
+ *
+ * `rows` must be newest-first. A row old enough but whose totals do not parse is
+ * SKIPPED in favour of an older good one rather than ending the search: the
+ * double-stringified rows parseStoredTotals describes would otherwise pin the
+ * report to "first report" forever.
+ *
+ * Null is the honest answer, not a defect — wowLabel renders it "first report"
+ * and the sections add "last baseline unreadable".
+ */
+export function pickBaseline(
+  rows: readonly BaselineRow[],
+  minAgeSeconds: number = BASELINE_MIN_AGE_HOURS * 3600,
+): Record<string, number> | null {
+  for (const row of rows) {
+    if (!Number.isFinite(row.age_seconds) || row.age_seconds < minAgeSeconds) continue;
+    const totals = parseStoredTotals(row.totals);
+    if (totals) return totals;
+  }
+  return null;
+}
+
 /** "+18%" / "-7%" / "±0%" / "first report" for week-over-week deltas. */
 export function wowLabel(current: number, prev: number | null): string {
   if (prev === null) return "first report";

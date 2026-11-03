@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { composeOpsDigest, judgeVerification, buildSections, parseStoredTotals, wowLabel, deltaTag, isStampede, stampedeReason, recentBaseline, PIPELINE_STAMPEDE, STALE_REPORT_DAYS, DIGEST_STALE_DAYS, type OpsInputs, type PipelineRow } from "../ops-digest";
+import { composeOpsDigest, judgeVerification, buildSections, parseStoredTotals, pickBaseline, wowLabel, deltaTag, isStampede, stampedeReason, recentBaseline, PIPELINE_STAMPEDE, STALE_REPORT_DAYS, DIGEST_STALE_DAYS, BASELINE_MIN_AGE_HOURS, type OpsInputs, type PipelineRow } from "../ops-digest";
 
 const NOW = new Date("2026-07-20T15:30:00Z"); // a Monday, 10:30am Chicago
 
@@ -95,6 +95,75 @@ describe("wowLabel — week-over-week math", () => {
   it("prev of zero: 'new' when activity appears, ±0% when both zero", () => {
     expect(wowLabel(9, 0)).toBe("new");
     expect(wowLabel(0, 0)).toBe("±0%");
+  });
+});
+
+describe("pickBaseline — a baseline must be old enough to mean last week", () => {
+  const FLOOR = BASELINE_MIN_AGE_HOURS * 3600;
+  const hours = (h: number) => h * 3600;
+  const row = (ageSeconds: number, totals: unknown) => ({ age_seconds: ageSeconds, totals });
+
+  it("takes the newest row that is old enough", () => {
+    expect(
+      pickBaseline([row(hours(24 * 8), { view: 10 }), row(hours(24 * 15), { view: 99 })]),
+    ).toEqual({ view: 10 });
+  });
+
+  it("THE BUG: skips this morning's own row and uses last week's", () => {
+    // ops_digest_runs gains a row on every real send. Monday's job writes at
+    // ~09:01, so a dry run or an /admin/ops load later that day used to compare
+    // today against a few hours ago and call it week-over-week.
+    const todays = row(hours(6), { view: 569, sitemap_urls: 1409 });
+    const lastWeek = row(hours(24 * 7), { view: 1294, sitemap_urls: 1508 });
+    expect(pickBaseline([todays, lastWeek])).toEqual({ view: 1294, sitemap_urls: 1508 });
+  });
+
+  it("looks past a whole day of re-runs", () => {
+    const rows = [row(hours(1), { view: 1 }), row(hours(5), { view: 2 }), row(hours(9), { view: 3 }), row(hours(24 * 7), { view: 4 })];
+    expect(pickBaseline(rows)).toEqual({ view: 4 });
+  });
+
+  it("the boundary is inclusive at the floor and exclusive one second under", () => {
+    expect(pickBaseline([row(FLOOR, { view: 7 })])).toEqual({ view: 7 });
+    expect(pickBaseline([row(FLOOR - 1, { view: 7 })])).toBeNull();
+  });
+
+  it("honest emptiness: no rows, and no row old enough, both read null", () => {
+    expect(pickBaseline([])).toBeNull();
+    expect(pickBaseline([row(hours(2), { view: 569 })])).toBeNull();
+    // null is what wowLabel renders "first report" — never a fabricated 0% delta.
+    expect(wowLabel(569, null)).toBe("first report");
+  });
+
+  it("skips an old-enough row whose totals do not parse, for an older good one", () => {
+    // The double-stringified rows parseStoredTotals describes used to pin the
+    // report to "first report" forever; ending the search on one repeats that.
+    const rows = [row(hours(24 * 7), "not json"), row(hours(24 * 14), { view: 42 })];
+    expect(pickBaseline(rows)).toEqual({ view: 42 });
+  });
+
+  it("accepts the double-stringified shape directly, as parseStoredTotals does", () => {
+    expect(pickBaseline([row(hours(24 * 7), '{"view":7,"sitemap_urls":121}')])).toEqual({
+      view: 7,
+      sitemap_urls: 121,
+    });
+  });
+
+  it("ignores a non-finite age rather than trusting it", () => {
+    expect(pickBaseline([row(Number.NaN, { view: 1 }), row(hours(24 * 7), { view: 2 })])).toEqual({ view: 2 });
+    expect(pickBaseline([row(Number.NaN, { view: 1 })])).toBeNull();
+  });
+
+  it("regression, with the production rows: the 2 Nov deltas stop reading flat", () => {
+    // The real stored rows. Before the guard the 09:01 row was its own baseline
+    // and the digest printed "1409 URLs (±0%)" and "views 581 (+2% WoW)".
+    const nov2 = row(hours(6.3), { view: 569, ticket_click: 122, save: 1, sitemap_urls: 1409, search_impressions: 13672 });
+    const oct26 = row(hours(24 * 7), { view: 1294, ticket_click: 403, save: 6, sitemap_urls: 1508, search_impressions: 20954 });
+    const base = pickBaseline([nov2, oct26])!;
+    expect(base.sitemap_urls).toBe(1508);
+    expect(wowLabel(1409, base.sitemap_urls)).toBe("-7% WoW");
+    expect(wowLabel(13672, base.search_impressions)).toBe("-35% WoW");
+    expect(wowLabel(569, base.view)).toBe("-56% WoW");
   });
 });
 
@@ -416,6 +485,16 @@ describe("R2.3 — gather-side tripwires (gatherer source)", () => {
   it("engagement goes through wrap with the STRICT read (failure-zeros can't pose as data)", () => {
     expect(src).toContain('wrap("engagement", emptyEngagement, () => getEngagementStrict(7))');
     expect(src).not.toContain("await getEngagement(7)");
+  });
+
+  it("all three WoW baselines come through the ONE age-guarded read", () => {
+    // Three byte-identical copies of `select totals ... limit 1` is how the
+    // engagement, sitemap and GSC baselines each came to compare today against
+    // this morning. One definition, three callers, each keeping its own key.
+    expect(src).not.toContain("select totals from ops_digest_runs order by sent_at desc limit 1");
+    expect(src).toContain("async function prevRunTotals()");
+    expect(src.split("prevRunTotals()").length - 1).toBe(4); // 1 declaration + 3 callers
+    expect(src).toContain("pickBaseline(rows)");
   });
 
   it("aux reads carry their own keys — no more collisions with real sections", () => {

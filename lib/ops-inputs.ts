@@ -13,7 +13,7 @@
  * a 500. `errors` carries the reasons. Nothing in here may throw.
  */
 import { sql } from "./db";
-import { composeOpsDigest, parseStoredTotals, PIPELINE_STAMPEDE, type OpsInputs, type PipelineRow } from "./ops-digest";
+import { composeOpsDigest, pickBaseline, PIPELINE_STAMPEDE, type BaselineRow, type OpsInputs, type PipelineRow } from "./ops-digest";
 import { assessCoverage, formatCoverageAlerts } from "./coverage";
 import { getEngagementStrict, type Engagement } from "./stats";
 import { getTrendingEvents } from "./trending";
@@ -30,6 +30,28 @@ import { findContradictions, findPlaceholderTitles, formatFinding, type Calendar
 
 /** How long the Monday numbers will wait on Google before shrugging. */
 const GSC_BUDGET_MS = 5_000;
+
+/**
+ * The stored totals of the last run old enough to be a week-ago baseline.
+ *
+ * One query, one rule (`pickBaseline` / `BASELINE_MIN_AGE_HOURS`), three
+ * callers: the engagement, sitemap and GSC-impression baselines below. Each
+ * caller keeps its OWN `wrap` key, so one failure still degrades only its own
+ * line — that is the R2.3 contract, and it is why this is a shared function
+ * rather than a single hoisted read.
+ *
+ * The database computes the age, so there is no timestamp parameter to get
+ * wrong. `limit 8` looks past a full day of re-runs at the weekly cadence; if
+ * every row it returns is too new, `pickBaseline` says null and the sections
+ * print "first report" instead of comparing today against this morning.
+ */
+async function prevRunTotals(): Promise<Record<string, number> | null> {
+  if (!sql) throw new Error("no database connection");
+  const rows = await sql<BaselineRow[]>`
+    select extract(epoch from (now() - sent_at))::float8 as age_seconds, totals
+    from ops_digest_runs order by sent_at desc limit 8`;
+  return pickBaseline(rows);
+}
 
 export async function gatherOpsInputs(): Promise<OpsInputs> {
   const errors: Record<string, string> = {};
@@ -94,12 +116,9 @@ export async function gatherOpsInputs(): Promise<OpsInputs> {
   // "subscribers" / "index" with the main sections, so a failed read of LAST
   // week's numbers rendered THIS week's perfectly good section "unavailable".
   // Aux failures degrade instead: null → "first report" / an omitted line.
-  const prevTotals = await wrap<OpsInputs["prevTotals"]>("engagement_prev", null, async () => {
-    if (!sql) throw new Error("no database connection");
-    const rows = await sql<{ totals: unknown }[]>`
-      select totals from ops_digest_runs order by sent_at desc limit 1`;
-    return (parseStoredTotals(rows[0]?.totals) as OpsInputs["prevTotals"]) ?? null;
-  });
+  const prevTotals = await wrap<OpsInputs["prevTotals"]>("engagement_prev", null, async () =>
+    ((await prevRunTotals()) as OpsInputs["prevTotals"]) ?? null,
+  );
 
   const trending = await wrap("trending", { count: 0, top: [] as string[] }, async () => {
     const ranked = await getTrendingEvents();
@@ -273,12 +292,9 @@ export async function gatherOpsInputs(): Promise<OpsInputs> {
     return (xml.match(/<loc>/g) ?? []).length;
   });
 
-  const prevSitemapUrls = await wrap<number | null>("index_prev", null, async () => {
-    if (!sql) throw new Error("no database connection");
-    const rows = await sql<{ totals: unknown }[]>`
-      select totals from ops_digest_runs order by sent_at desc limit 1`;
-    return parseStoredTotals(rows[0]?.totals)?.sitemap_urls ?? null;
-  });
+  const prevSitemapUrls = await wrap<number | null>("index_prev", null, async () =>
+    (await prevRunTotals())?.sitemap_urls ?? null,
+  );
 
   // F2.4 — GSC impressions. getSearchImpressions returns null (→ manual line)
   // when the service account isn't configured, so this is safe pre-wire.
@@ -297,12 +313,9 @@ export async function gatherOpsInputs(): Promise<OpsInputs> {
   const search = await wrap("search", null, () =>
     withDeadline(getSearchImpressions(7), GSC_BUDGET_MS, null),
   );
-  const prevSearchImpressions = await wrap<number | null>("search_prev", null, async () => {
-    if (!sql) throw new Error("no database connection");
-    const rows = await sql<{ totals: unknown }[]>`
-      select totals from ops_digest_runs order by sent_at desc limit 1`;
-    return parseStoredTotals(rows[0]?.totals)?.search_impressions ?? null;
-  });
+  const prevSearchImpressions = await wrap<number | null>("search_prev", null, async () =>
+    (await prevRunTotals())?.search_impressions ?? null,
+  );
 
   // Is the weekly fabrication check alive? Null on a failed read, which the
   // section renders "unavailable" and alerts on — never a quiet green. This is
