@@ -85,6 +85,18 @@ export const CLASH_WINDOW_MINUTES = 4 * 60;
  * This list SUPPRESSES findings, so it stays short and every entry earns its
  * place. Skipped pairs are counted and reported rather than silently dropped —
  * an allowlist that hides its own effect is how a check quietly stops working.
+ *
+ * **KEYS ARE `roomKey` OUTPUT**, which is what the grouping uses, so one entry
+ * covers every spelling of a room that roomKey folds together — "Ordway Concert
+ * Hall", "Ordway Concert Hall (St Paul)" and "Ordway Center for the Performing
+ * Arts – Concert Hall" are one key. A test asserts every key here is a roomKey
+ * fixpoint; it was added because two entries carried hyphens and therefore could
+ * never match anything under either normalizer.
+ *
+ * Suppressing a finding is the ONLY thing an entry here does — it cannot block a
+ * write, unlike ROOM_ALIASES, which feeds the grouping itself and so reaches the
+ * write-time dedupe gate. That asymmetry is why adding a spelling here is cheap
+ * and adding one there is not.
  */
 export const CONCURRENT_VENUES: Record<string, string> = {
   // Campuses: general admission runs alongside specific programming all day.
@@ -111,14 +123,37 @@ export const CONCURRENT_VENUES: Record<string, string> = {
   "elm creek park reserve": "park reserve — several programme areas",
   "hyland lake park reserve": "park reserve — several programme areas",
   "carver park reserve": "park reserve — several programme areas",
-  "crow-hassan park reserve": "park reserve — several programme areas",
-  "murphy-hanrehan park reserve": "park reserve — several programme areas",
+  // These two carried hyphens until 3 Nov 2026 and so could never fire: norm()
+  // turns a hyphen into a space and roomKey deletes it, so neither "crow-hassan
+  // park reserve" nor "murphy-hanrehan park reserve" was reachable from any
+  // venue string. Spelled as roomKey actually returns them.
+  "crowhassan park reserve": "park reserve — several programme areas",
+  "murphyhanrehan park reserve": "park reserve — several programme areas",
   "cleary lake regional park": "regional park — several programme areas",
   // Rooms that book an early show and a late one on the same night.
   // Matching is EXACT, so a venue string that names a specific room needs its
   // own entry. That is deliberate: "Guthrie Theater" is a three-stage complex,
   // but "Guthrie Theater – Wurtele Thrust Stage" is one room, and two shows in
   // it at 1 PM is a real finding we must not suppress.
+  // "ordway concert hall" is DELIBERATELY ABSENT, and the reason is worth
+  // keeping. The 17 Nov 2026 pair that prompted this change — two real
+  // performances of Gravity and Other Myths at 10:00 and 12:00 — is reported as
+  // a DUPLICATE, and an entry here only ever suppresses a CONFLICT (see the skip
+  // below, which was moved after the duplicate test on 29 Sep precisely because
+  // it had been swallowing both). So the entry would not silence that report.
+  // What it WOULD do is suppress a genuine same-minute clash in a single hall,
+  // where two different concerts at one time is physically impossible and so is
+  // exactly the signal worth keeping — the five-row Ehnes cluster archived on
+  // 3 Nov 2026 sat in this room. The Ordway CENTRE is exempt below, correctly:
+  // that is a multi-room complex. One hall is not.
+  // Bryant Lake Bowl programmes a 7pm show and a 9:30pm show most nights — the
+  // same shape as Icehouse and Berlin below. Three keys because roomKey does NOT
+  // fold these spellings together (the hyphen in "Bryant-Lake" survives as a
+  // deleted character, giving "bryantlake"), and folding them in ROOM_ALIASES
+  // would reach the write-time dedupe gate, which this does not.
+  "bryant lake bowl theater": "early show and a late one most nights",
+  "bryantlake bowl theater": "early show and a late one most nights",
+  "bryant lake bowl": "early show and a late one most nights",
   "berlin": "early set, late set and an open jam most nights",
   "berlin minneapolis": "early set, late set and an open jam most nights",
   "icehouse": "early and late sets",
@@ -349,10 +384,19 @@ export function findContradictions(rows: CalendarRow[]): ContradictionReport {
 
   for (const [key, list] of groups) {
     if (list.length < 2) continue;
+    // The group key IS `roomKey|day`, so the exemption is looked up on the very
+    // string the grouping used. Until 3 Nov 2026 this read CONCURRENT_VENUES
+    // with norm(list[0].venue) instead, which is a different normalizer — it
+    // turns punctuation into a space where roomKey deletes it, and it does not
+    // strip the city suffix. So the allowlist was keyed on a raw spelling while
+    // the grouping was keyed on a room, and an exemption only fired when the
+    // group's FIRST row happened to carry the one spelling that had an entry.
+    // Bryant Lake Bowl alone carries eight spellings in the data.
+    const room = key.slice(0, key.lastIndexOf("|"));
     const day = key.slice(key.lastIndexOf("|") + 1);
     // Display the spelling the listings actually carry, not the folded key.
     const venue = list[0].venue;
-    const concurrent = CONCURRENT_VENUES[norm(venue)];
+    const concurrent = CONCURRENT_VENUES[room];
 
     const sorted = [...list].sort((x, y) => x.start.localeCompare(y.start));
     for (let i = 0; i < sorted.length; i++) {

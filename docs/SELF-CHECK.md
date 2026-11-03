@@ -68,10 +68,28 @@ programming is the point. Every entry carries a written reason — a test enforc
 that — and **skipped pairs are counted and reported**, never silently dropped. An
 allowlist that hides its own effect is how a check quietly stops working.
 
-Matching is **exact**, which is why `"Berlin"` and `"Berlin (Minneapolis)"` are
-both listed. That is deliberate: `"Guthrie Theater"` is a three-stage complex, but
+Keys are **`roomKey` output** — the same string the grouping uses, read off the
+group's own key, so the two cannot drift. One entry therefore covers every
+spelling `roomKey` folds together: `"Berlin"` and `"Berlin (Minneapolis)"` are one
+key, because the city suffix is stripped. Until 3 Nov 2026 the lookup used a
+DIFFERENT normalizer (`norm`, which keeps the city suffix and turns punctuation
+into a space where `roomKey` deletes it), so an exemption fired only when a
+group's first row happened to carry the one spelling that had an entry — and two
+entries with hyphens in their keys, `crow-hassan` and `murphy-hanrehan`, had been
+unreachable from any venue string since the day they were added. A test now
+asserts every key is a `roomKey` fixpoint.
+
+Matching is still **exact within a room**, and that is deliberate:
+`"Guthrie Theater"` is a three-stage complex, but
 `"Guthrie Theater – Wurtele Thrust Stage"` is one room, and two performances in it
-at 1 PM is a real finding that must not be suppressed by a prefix match.
+at 1 PM is a real finding that must not be suppressed by a prefix match. For the
+same reason `"ordway concert hall"` is deliberately NOT an entry while the Ordway
+**Centre** is: one hall cannot hold two different concerts at one minute.
+
+An entry here only ever suppresses a **conflict** — never a duplicate, and never
+a write. `ROOM_ALIASES`, which folds spellings inside `roomKey`, reaches the
+grouping and therefore the write-time dedupe gate in `lib/upsert.ts`, so adding a
+spelling there is a much bigger decision than adding one here.
 
 ## Acting on the duplicates
 

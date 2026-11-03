@@ -219,6 +219,98 @@ describe("venues that really do run several things at once", () => {
     expect(r.skipped[0].pairs).toBe(1);
   });
 
+  it("every allowlist key is a roomKey fixpoint — or it can never match", () => {
+    // The lookup is CONCURRENT_VENUES[roomKey], so a key that roomKey would
+    // rewrite is unreachable. Two were: "crow-hassan park reserve" and
+    // "murphy-hanrehan park reserve" carried hyphens, which roomKey deletes and
+    // the old norm() turned into a space, so neither matched under EITHER
+    // normalizer. They had been inert since the day they were added.
+    for (const key of Object.keys(CONCURRENT_VENUES)) {
+      expect(roomKey(key), `"${key}" is not reachable — roomKey gives "${roomKey(key)}"`).toBe(key);
+    }
+  });
+
+  it("the park reserves with hyphenated names are reachable now", () => {
+    expect(CONCURRENT_VENUES[roomKey("Crow-Hassan Park Reserve")]).toBeTruthy();
+    expect(CONCURRENT_VENUES[roomKey("Murphy-Hanrehan Park Reserve")]).toBeTruthy();
+  });
+
+  it("a city suffix no longer costs a venue its exemption", () => {
+    // THE BUG. The allowlist was read with norm(venue), which keeps the city
+    // suffix, while the grouping used roomKey, which strips it. So
+    // "Walker Art Center" was exempt and "Walker Art Center (Minneapolis)" —
+    // the same campus, a spelling the data carries for other venues — was not.
+    const r = findContradictions([
+      row("a", "Walker Art Center (Minneapolis)", "2026-11-12T10:00", "Abbas Akhavan: Variations on a Garden", "arts"),
+      row("b", "Walker Art Center (Minneapolis)", "2026-11-12T10:00", "Walker Design Triennial: Beyond Matter", "arts"),
+    ]);
+    expect(r.conflicts).toEqual([]);
+    expect(r.skipped[0].pairs).toBe(1);
+  });
+
+  it("the exemption no longer depends on which spelling sorts first", () => {
+    // One group, two spellings of one room. Under the old rule the allowlist was
+    // read from list[0].venue, so the same two listings were exempt or not
+    // depending on insertion order. Both orders must now be exempt.
+    const spellings = ["Mall of America", "Mall of America (Minneapolis)"];
+    for (const [first, second] of [spellings, [...spellings].reverse()]) {
+      const r = findContradictions([
+        row("a", first, "2026-11-26T10:00", "The Santa Experience", "family"),
+        row("b", second, "2026-11-26T10:00", "Festival of Trees", "family"),
+      ]);
+      expect(r.conflicts, `first spelling: ${first}`).toEqual([]);
+    }
+  });
+
+  it("Bryant Lake Bowl's early and late shows stop being a clash", () => {
+    // The real 27 Nov 2026 double bill, from the venue's own page: the cabaret
+    // at 7:00 PM and the puppet show at 9:30 PM. Reported as a clash until this
+    // change because no spelling of the room had an entry.
+    const r = findContradictions([
+      row("a", "Bryant Lake Bowl & Theater", "2026-11-27T19:00", "A Very Carey Christmas Cabaret", "arts"),
+      row("b", "Bryant Lake Bowl & Theater", "2026-11-27T21:30", "That Felt Good – Weekly Puppet Variety Show", "arts"),
+    ]);
+    expect(r.conflicts).toEqual([]);
+    expect(r.skipped[0].pairs).toBe(1);
+  });
+
+  it("…through the hyphen spelling too, which roomKey does NOT fold", () => {
+    // "Bryant-Lake Bowl" normalizes to "bryantlake" (roomKey deletes the hyphen)
+    // and is a separate key on purpose: folding it in ROOM_ALIASES would reach
+    // the grouping, and therefore the write-time dedupe gate, which an entry
+    // here cannot.
+    const r = findContradictions([
+      row("a", "Bryant-Lake Bowl & Theater", "2026-11-06T19:00", "I Probably Shouldn't Tell You This", "arts"),
+      row("b", "Bryant-Lake Bowl & Theater", "2026-11-06T21:30", "That Felt Good", "arts"),
+    ]);
+    expect(r.conflicts).toEqual([]);
+  });
+
+  it("an exempt venue still reports a DUPLICATE — the 29 Sep protection holds", () => {
+    // The skip covers conflicts only. It used to run before the duplicate test
+    // and swallowed both, which is how three live duplicate pairs sat at the
+    // Walker and Como while the panel reported zero.
+    const r = findContradictions([
+      row("a", "Bryant Lake Bowl & Theater", "2026-11-27T19:00", "A Very Carey Christmas Cabaret", "arts"),
+      row("b", "Bryant Lake Bowl & Theater", "2026-11-27T19:00", "A Very Carey Christmas Cabaret", "arts"),
+    ]);
+    expect(r.duplicates).toHaveLength(1);
+  });
+
+  it("one hall is NOT a concurrent venue, however many shows it runs in a day", () => {
+    // "ordway concert hall" is deliberately not an entry. Two different concerts
+    // at one minute in one hall is physically impossible, so it is exactly the
+    // finding worth keeping — the five-row Ehnes cluster archived on 3 Nov 2026
+    // was in this room. The Ordway CENTRE is exempt, correctly: it has two halls.
+    expect(CONCURRENT_VENUES[roomKey("Ordway Concert Hall")]).toBeUndefined();
+    expect(CONCURRENT_VENUES[roomKey("Ordway Center for the Performing Arts")]).toBeTruthy();
+    const r = findContradictions([
+      row("a", "Ordway Concert Hall", "2026-11-10T19:30", "Schubert Club Presents", "music"),
+      row("b", "Ordway Concert Hall (St Paul)", "2026-11-10T19:30", "Minnesota Opera Gala", "music"),
+    ]);
+    expect(r.conflicts).toHaveLength(1);
+  });
+
   it("every allowlist entry carries a reason", () => {
     for (const [venue, why] of Object.entries(CONCURRENT_VENUES)) {
       expect(why.length, `${venue} needs a justification`).toBeGreaterThan(8);
