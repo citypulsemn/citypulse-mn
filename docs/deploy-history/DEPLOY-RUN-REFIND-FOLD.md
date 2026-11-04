@@ -278,6 +278,19 @@ What to expect, and the two numbers that mean trouble:
   weekly `upserted` count will drop by about the same amount — which would read
   as another supply cliff rather than as a bug.
 
+**Also watch `collapsed` in the Pipeline section**, which already carries a delta
+against the previous run. The fold cannot extend a span without writing
+`multi_day_end`, and that is the one column `collapseMultiDayRuns` reads — so
+every extension widens what `planCollapse` sees later in the same pass.
+Measured on the real calendar: realistically archives go 3 → 6, the new ones
+being genuine surplus copies of Jeyifous and Como Park, with no survivor
+renamed. But if true spans ever land broadly in `multi_day_end`, the worst case
+is 3 → 29, and the 26 would include `Twelve Kinds of Ice – ASL-Interpreted
+Performance`, `– Sensory-Friendly Performance`, `– Saturday Matinee` and
+`Kunene and the King – Final Weekend` — the dated performances this guide says
+must stay live, pulled in by `planCollapse`'s own `isWordPrefix` fold once a
+parent carries a wide span. A jump in `collapsed` is the tripwire for that.
+
 ## Rollback
 
 `git revert`. The gate only ever *declines* an insert and extends a span; it
