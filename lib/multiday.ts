@@ -360,6 +360,157 @@ export function planCollapse(rows: CollapseRow[]): CollapseAction[] {
   return actions;
 }
 
+/** A live row and an incoming row, as the fold planner needs to see them. */
+export interface RunFoldRow {
+  id: string;
+  title: string;
+  city: string;
+  category?: string;
+  /** Chicago wall clock. */
+  start: string;
+  /** The row's OWN end_at, which is one of the two places a span lives. */
+  end?: string | null;
+  multiDayEnd?: string | null;
+}
+
+export interface RunFold {
+  /** The incoming row that must not be inserted. */
+  incomingId: string;
+  /** The live run it is a re-find of. */
+  keepId: string;
+  /** A later last day the live run should be extended to, or null to leave it. */
+  extendTo: string | null;
+}
+
+/**
+ * Re-finds of a run that is already on the calendar.
+ *
+ * THE DEFECT THIS EXISTS FOR, measured 4 Nov 2026. A long run gets a NEW
+ * published row on every weekly pipeline pass. `event_key` is
+ * sha256(title|venue|start DAY) and the pipeline writes the day it FOUND the
+ * show, so each pass mints a fresh identity the upsert cannot collide with:
+ *
+ *   Como Park Daily General Admission   Oct 10 → Nov 10
+ *                                       Oct 17 → Nov 17     +7
+ *                                       Oct 24 → Nov 24     +7
+ *   Twelve Kinds of Ice   Oct 19, Oct 26, Nov 2 — all ending Nov 22
+ *   Kunene and the King   Oct 10, Oct 15, Oct 29 — all ending Nov 8
+ *
+ * 13 productions, 43 live rows, 30 of them surplus. `dedupeByKey` sees distinct
+ * keys; `withoutLiveDuplicates` loads only rows STARTING on an incoming day, so
+ * it never meets the run; and `planCollapse` is handed `multi_day_end` alone,
+ * so a run carried in `end_at` reads to it as a single day and 7 days of gap
+ * refuses the cluster. Every existing gate misses this shape.
+ *
+ * WHY ONLY RUN → RUN. A single dated row inside a run is NOT folded here, and
+ * that is deliberate rather than an omission. Those rows are the calendar's
+ * coverage: a run longer than EXPAND_MAX_DAYS shows on its start day only, so
+ * "Twelve Kinds of Ice – ASL-Interpreted Performance" on Nov 14 is the only
+ * card a reader gets that day. Feeding true spans to planCollapse instead was
+ * measured first and would have archived 35 rows including those dated
+ * performances — more coverage lost than duplication removed. Whether a theatre
+ * run should be one span or many dated rows is a product call; this function
+ * does not make it.
+ *
+ * PER_NIGHT is refused outright, for the reason the set exists: consecutive
+ * days of sport and music are separately ticketed events, never one run.
+ *
+ * Identity is `runKey` — imported, not restated. A second definition of "the
+ * same event" is what let the other gates drift apart.
+ */
+/**
+ * Every key one row may be recognised by. `runKey` first and unchanged; the
+ * other repairs a NORMALISER artefact rather than guessing at similarity.
+ *
+ * Measured 4 Nov 2026: five live rows for one exhibit at the Minnesota
+ * Children's Museum, the largest single duplication on the calendar.
+ *
+ *   Monsters on Vacation (Special Exhibit)                    runKey → "monsters on vacation"
+ *   Monsters on Vacation – Special Exhibit                    runKey → "monsters on vacation special exhibit"
+ *   Monsters on Vacation – Special Exhibit at Minnesota …     runKey → "… at minnesota childrens museum"
+ *
+ * The first two are the SAME WORDS, and they key apart for one reason only:
+ * `normalizeRunTitle` deletes parenthetical CONTENTS. So a row is also indexed
+ * under its title with parens UNWRAPPED rather than deleted, and those two
+ * variants then share a key.
+ *
+ * This is deliberately NOT a similarity score — it equates only titles a
+ * reader would call identically spelled. Two other rules were measured and
+ * DECLINED, both recorded in docs/deploy-history/DEPLOY-RUN-REFIND-FOLD.md:
+ *
+ *   - `planCollapse`'s `isWordPrefix` parent-child rule (the third row above,
+ *     and the widening originally asked for). It renames the survivor on 3 of
+ *     its 9 folds — this gate keeps the EARLIEST start, while planCollapse
+ *     prefers the shorter key — and it absorbs a year-round Mall of America
+ *     attraction into one of its own sub-shows.
+ *   - stripping a trailing " at <the row's own venue>", which would have
+ *     folded the third row too. Both rows strip their OWN venue, so they meet
+ *     on the bare remainder and two DIFFERENT venues in one city can be
+ *     equated: measured, "Festival of Trees at Mall of America" absorbs
+ *     "Festival of Trees at Bloomington Center for the Arts". A word-count
+ *     floor does not close it, because the three-word holiday names are
+ *     exactly the colliding ones. 7 of 7 historical cross-venue folds were
+ *     in fact correct, but a wrong one here is an event that silently never
+ *     appears, and this project holds coverage loss to be worse than
+ *     duplication. The cost of declining it: the Monsters cluster folds to
+ *     two rows rather than one.
+ *
+ * The alias stays HERE rather than in `normalizeRunTitle`, and that matters:
+ * unwrapping parens in the normaliser would also SPLIT pairs that merge today
+ * ("Fair (Day Two)" keys to "fair" now and folds into its parent; unwrapped it
+ * would not), changing `planCollapse`'s archiving in both directions. Here the
+ * alias only ever ADDS a key, so nothing that matches today stops matching.
+ */
+function runAliasKeys(r: RunFoldRow): string[] {
+  return [...new Set([runKey(r), runKey({ title: r.title.replace(/[()]/g, " "), city: r.city })])];
+}
+
+export function planRunFolds(live: RunFoldRow[], incoming: RunFoldRow[]): RunFold[] {
+  const span = (r: RunFoldRow) =>
+    spanEnd({ start: r.start, end: r.end ?? undefined, multiDayEnd: r.multiDayEnd ?? null } as Spannable);
+  // Only a row that is ITSELF a run can be a re-find of one.
+  const runs = (rows: RunFoldRow[]) =>
+    rows
+      .filter((r) => !PER_NIGHT.has(r.category ?? ""))
+      .map((r) => ({ r, end: span(r) }))
+      .filter((x): x is { r: RunFoldRow; end: string } => x.end !== null)
+      .map((x) => ({ r: x.r, from: dayNumber(x.r.start), to: dayNumber(x.end), endDay: dayOf(x.end) }));
+
+  const liveRuns = runs(live);
+  if (liveRuns.length === 0) return [];
+  const byKey = new Map<string, typeof liveRuns>();
+  for (const l of liveRuns) {
+    for (const k of runAliasKeys(l.r)) (byKey.get(k) ?? byKey.set(k, []).get(k)!).push(l);
+  }
+
+  const out: RunFold[] = [];
+  for (const inc of runs(incoming)) {
+    // A run is indexed under several keys, so the same candidate can arrive
+    // twice. Deliberately NOT de-duplicated: one fold is pushed per incoming
+    // row, and copies of one run sort adjacently, so the keeper is the same
+    // either way. A `seen` set here would be code no test could kill.
+    const candidates = runAliasKeys(inc.r)
+      .flatMap((k) => byKey.get(k) ?? [])
+      // Overlapping day intervals, inclusive: a re-find that opens on the run's
+      // closing day is the same run, not a new one.
+      .filter((l) => l.from <= inc.to && inc.from <= l.to)
+      .filter((l) => l.r.id !== inc.r.id)
+      // The earliest run wins, then the longer one — the keeper planCollapse
+      // would pick, so the two passes cannot disagree about which row survives.
+      .sort((a, b) => a.from - b.from || b.to - a.to);
+    const keep = candidates[0];
+    if (!keep) continue;
+    out.push({
+      incomingId: inc.r.id,
+      keepId: keep.r.id,
+      // Never rewrite a span that already reaches far enough; the collapse
+      // holds the same discipline with setEnd.
+      extendTo: inc.to > keep.to ? inc.endDay : null,
+    });
+  }
+  return out;
+}
+
 /**
  * Ids whose STORED span the current rules would never have written.
  *

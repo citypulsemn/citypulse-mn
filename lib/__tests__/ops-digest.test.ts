@@ -59,6 +59,7 @@ function healthy(overrides: Partial<OpsInputs> = {}): OpsInputs {
     feeds: { clicks7: 9, top: [{ label: "venue-first-avenue", count: 5 }, { label: "live-music", count: 3 }] },
     queue: { submissions: 0, reports: 0, oldestReportDays: null, musicReview: 0, verifyFlags: 0, verifyFlagExamples: [] },
     contradictions: { conflicts: 0, duplicates: 0, placeholderVenues: 0, placeholderTitles: 0, examples: [], dupExamples: [], titleExamples: [] },
+    folds: { count7: 0, examples: [] },
     sitemapUrls: 121,
     prevSitemapUrls: 118,
     search: null, // default: not wired → manual GSC line (today's state)
@@ -1083,6 +1084,75 @@ describe("Self-check — where the calendar contradicts itself", () => {
     )!;
     expect(s.alert).toBe(true);
     expect(s.lines[0]).toContain("unavailable");
+  });
+});
+
+/**
+ * RUN FOLDS — the review channel for a gate whose mistakes are invisible.
+ *
+ * planRunFolds (lib/multiday.ts) stops a weekly re-find of a long run being
+ * minted as a fresh row. It does that by DECLINING AN INSERT, so a wrong fold
+ * leaves nothing on the site to notice: before this section its only traces
+ * were an admin_audit row, in a table the app has no read path for, and a
+ * console.log in the Actions run log. These tests hold the section to naming
+ * the folds rather than counting them — a count cannot be reviewed.
+ */
+describe("Run folds — what the write gate suppressed", () => {
+  const foldsOf = (f: Partial<OpsInputs["folds"]>) =>
+    buildSections(healthy({ folds: { count7: 0, examples: [], ...f } })).find(
+      (s) => s.title === "Run folds",
+    )!;
+
+  it("no folds is reported plainly, and is not an alert", () => {
+    // A week with no long run in the batch folds nothing. That is the normal
+    // state, so alerting on it would train the reader to ignore the section.
+    const s = foldsOf({});
+    expect(s.alert).toBe(false);
+    expect(s.lines).toEqual(["no re-finds folded in the last 7 days"]);
+  });
+
+  it("names BOTH titles, because a count cannot be reviewed", () => {
+    // The suppressed row and the keeper can be worded differently — that is
+    // what the alias key is for — and that is exactly when the operator needs
+    // to see the two side by side rather than a uuid stub.
+    const s = foldsOf({
+      count7: 3,
+      examples: [
+        '2026-11-09 · "Monsters on Vacation – Special Exhibit" → kept "Monsters on Vacation (Special Exhibit)", span unchanged',
+        '2026-11-09 · "Como Park Zoo – Daily General Admission" → kept "Como Park Zoo – Daily General Admission", run extended to 2026-12-09',
+      ],
+    });
+    expect(s.alert).toBe(false);
+    expect(s.lines[0]).toBe("3 re-finds folded onto a run already listed");
+    const text = s.lines.join(" ");
+    expect(text).toContain("Monsters on Vacation – Special Exhibit");
+    expect(text).toContain('kept "Monsters on Vacation (Special Exhibit)"');
+    expect(text).toContain("run extended to 2026-12-09");
+    expect(text).toContain("span unchanged");
+  });
+
+  it("says one re-find, not 1 re-finds", () => {
+    expect(foldsOf({ count7: 1, examples: ['2026-11-09 · "X" → kept "Y", span unchanged'] }).lines[0]).toBe(
+      "1 re-find folded onto a run already listed",
+    );
+  });
+
+  it('does not call them WEEKLY re-finds — the venue import and reader submissions fold too', () => {
+    // foldRunRefinds sits inside upsertEvents, which scripts/import-venues.ts
+    // and lib/submission-publish.ts also call. Only one of the callers is the
+    // weekly pass, and the audit row records no caller to tell them apart.
+    expect(foldsOf({ count7: 2, examples: ["a", "b"] }).lines[0]).not.toContain("weekly");
+  });
+
+  it("a failed read says unavailable and alerts — never a reassuring zero", () => {
+    // The dangerous failure: the read throws, the section prints "no re-finds
+    // folded", and a gate that is dropping rows reads as a quiet week.
+    const s = buildSections(healthy({ errors: { folds: "db down" } })).find(
+      (x) => x.title === "Run folds",
+    )!;
+    expect(s.alert).toBe(true);
+    expect(s.lines[0]).toContain("unavailable");
+    expect(s.lines.join(" ")).not.toContain("no re-finds folded");
   });
 });
 

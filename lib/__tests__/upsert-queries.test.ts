@@ -89,3 +89,114 @@ describe("upsertEvents — a changed citation is an unread page", () => {
     expect(body).not.toMatch(/source_checked_at\s*=\s*null\s*,/);
   });
 });
+
+describe("foldRunRefinds — the gate that stops a run being re-minted weekly", () => {
+  // Not exported (the pure decision is planRunFolds, which has its own golden
+  // tests); slice it by name so the SQL still gets a tripwire.
+  const at = src.indexOf("async function foldRunRefinds");
+  const body = src.slice(at, src.indexOf("export async function upsertEvents"));
+
+  it("exists, and runs inside the upsert write path", () => {
+    expect(at, "foldRunRefinds exists").toBeGreaterThan(-1);
+    expect(src).toContain("await foldRunRefinds(sql, noDupes)");
+  });
+
+  it("its output is what gets inserted — not the pre-fold list", () => {
+    // The fold is worthless if the batch it filtered is not the batch written.
+    const upsert = src.slice(src.indexOf("export async function upsertEvents"));
+    expect(upsert).toContain("const deduped = await foldRunRefinds(sql, noDupes);");
+    expect(upsert).toContain("const rows = deduped.map");
+  });
+
+  it("runs AFTER the same-slot duplicate gate, so each still sees the full batch", () => {
+    expect(src.indexOf("withoutLiveDuplicates(sql, byKey)")).toBeLessThan(
+      src.indexOf("foldRunRefinds(sql, noDupes)"),
+    );
+  });
+
+  it("bounds its read on the TRUE span, the same coalesce archivePastEvents uses", () => {
+    // multi_day_end alone is the bug this whole function exists for: a run
+    // carried in end_at is invisible to anything that reads only the span column.
+    expect(body).toContain("coalesce(multi_day_end, end_at, start_at)");
+    expect(body).toContain("at time zone 'America/Chicago')::date");
+  });
+
+  it("hands planRunFolds BOTH span sources, or it cannot see a run at all", () => {
+    expect(body).toMatch(/to_char\(end_at at time zone 'America\/Chicago'/);
+    expect(body).toMatch(/to_char\(multi_day_end at time zone 'America\/Chicago'/);
+    expect(body).toContain('as "multiDayEnd"');
+  });
+
+  it("excludes a live row whose event_key is in the incoming batch", () => {
+    // THE SELF-FOLD. planRunFolds cannot catch this: the live rows it is given
+    // are keyed by uuid and the incoming rows by event_key, so its own id check
+    // compares two namespaces and never fires. An ordinary re-find — same
+    // title, venue and start day, therefore the same event_key, i.e. the normal
+    // ON CONFLICT update — folded onto its OWN live row, declining the update
+    // that carries price, ticket_url, end_at and cancellations. 107 of 149 live
+    // runs on 4 Nov 2026, with every unit test green.
+    expect(body).toMatch(/select id::text as id, event_key, title, city, category/);
+    expect(body).toContain("const incomingKeys = new Set(incoming.map((e) => e.event_key));");
+    expect(body).toContain("live.filter((l) => !incomingKeys.has(l.event_key))");
+  });
+
+  it("keeps PUBLISHED runs only, so a hidden draft cannot decline a visible row", () => {
+    // status is set on INSERT alone, so a draft keeper declines a re-find that
+    // would have been inserted published — and the event then renders nowhere.
+    // 26 of 149 live runs are drafts. withoutLiveDuplicates reads drafts too,
+    // and should: blocking a duplicate is not the same as suppressing the only
+    // visible copy.
+    expect(body).toContain("where status = 'published'");
+    expect(body).not.toContain("where status in ('published', 'draft')");
+  });
+
+  it("extends a span through greatest(), so two folds onto one keeper cannot shrink it", () => {
+    // Every extendTo is computed against the keeper's PRE-BATCH span, so two
+    // re-finds of one run in a single batch both carry a non-null extendTo and
+    // a bare assignment let the second — possibly the nearer — win. end_at is
+    // in the greatest as well, because spanEnd prefers multi_day_end once set.
+    expect(body).toMatch(/set multi_day_end = greatest\(/);
+    expect(body).toMatch(/multi_day_end,\s*\n\s*end_at\)/);
+  });
+
+  it("records the keeper's TITLE, and cannot be killed by a failed audit write", () => {
+    // Rule 1: the instrument must not kill the panel. The span and last_seen_at
+    // are already committed by the time this insert runs, and it is the only
+    // source the digest's Run folds section reads.
+    expect(body).toContain("kept_title: keptTitle");
+    const insertAt = body.indexOf("insert into admin_audit");
+    expect(body.lastIndexOf("try {", insertAt)).toBeGreaterThan(-1);
+    expect(body.slice(insertAt)).toContain("} catch (err) {");
+  });
+
+  it("writes the exact action and patch keys the ops digest reads back", () => {
+    // Three times in 2026 a channel was dead for weeks because the writer and
+    // the reader drifted apart silently (the revalidation endpoint, the source
+    // check, the checker email). Rename either side and the Monday section
+    // reads "no re-finds folded" forever, which looks like a quiet week.
+    const inputs = readFileSync(join(__dirname, "..", "ops-inputs.ts"), "utf8");
+    expect(body).toContain("'run:folded'");
+    expect(inputs).toContain("action = 'run:folded'");
+    for (const key of ["title", "kept", "kept_title", "extended_to"]) {
+      expect(body, `gate writes patch.${key}`).toContain(`${key}:`);
+      expect(inputs, `digest reads patch.${key}`).toContain(`patch->>'${key}'`);
+    }
+  });
+
+  it("extends the keeper through the ::text cast, not a bare ISO param", () => {
+    // postgres.js types an ISO-shaped string as timestamptz and shifts it
+    // +5/6h before the tz attach (confirmed against prod 2026-07-20).
+    expect(body).toContain("::text::timestamp at time zone 'America/Chicago'");
+    expect(body).not.toMatch(/set multi_day_end = \$\{[^}]*\}\s*$/m);
+  });
+
+  it("refreshes last_seen_at on the run it folded onto", () => {
+    // The point of folding rather than dropping: the run RECEIVED this week's
+    // sighting. Without it the keeper reads as abandoned.
+    expect(body).toContain("set last_seen_at = now()");
+  });
+
+  it("leaves a trail", () => {
+    expect(body).toContain("'run:folded'");
+  });
+});

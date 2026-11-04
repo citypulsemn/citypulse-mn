@@ -6,6 +6,8 @@ import {
   collapsibleClusters,
   planCollapse,
   staleSpanIds,
+  planRunFolds,
+  type RunFoldRow,
   isMultiDay,
   multiDayLabel,
   runLength,
@@ -562,5 +564,210 @@ describe("staleSpanIds — the spans the rules refuse but nothing removed", () =
         staleSpanIds([row({ id: "x", category, endDay: "2026-11-14" })]).length > 0;
       expect(clearsASpan, `category "${category}"`).toBe(!wouldWriteASpan);
     }
+  });
+});
+
+describe("planRunFolds — a weekly re-find folds onto the run it belongs to", () => {
+  function r(o: Partial<RunFoldRow> & { id: string }): RunFoldRow {
+    return {
+      title: "Twelve Kinds of Ice",
+      city: "Minneapolis",
+      category: "arts",
+      start: "2026-10-19T00:00",
+      end: null,
+      multiDayEnd: null,
+      ...o,
+    };
+  }
+
+  it("THE DEFECT: +7 re-finds of one run fold onto the earliest and extend its span", () => {
+    // Como Park Daily General Admission, as measured 4 Nov 2026: a 31-day
+    // window re-minted every Monday because the start day moves with the find.
+    const live = [
+      r({ id: "wk1", title: "Como Park Zoo – Daily General Admission", city: "St Paul", start: "2026-10-10T10:00", end: "2026-11-10T17:00" }),
+    ];
+    const incoming = [
+      r({ id: "wk2", title: "Como Park Zoo – Daily General Admission", city: "St Paul", start: "2026-10-17T10:00", end: "2026-11-17T17:00" }),
+    ];
+    expect(planRunFolds(live, incoming)).toEqual([
+      { incomingId: "wk2", keepId: "wk1", extendTo: "2026-11-17" },
+    ]);
+  });
+
+  it("a re-find that ends no later leaves the span alone", () => {
+    // Kunene and the King: Oct 10, Oct 15 and Oct 29 all ended Nov 8.
+    const live = [r({ id: "run", title: "Kunene and the King", start: "2026-10-10T19:30", end: "2026-11-08T21:30" })];
+    const incoming = [r({ id: "again", title: "Kunene and the King", start: "2026-10-29T19:30", end: "2026-11-08T21:30" })];
+    const folds = planRunFolds(live, incoming);
+    expect(folds).toHaveLength(1);
+    expect(folds[0].extendTo).toBeNull();
+  });
+
+  it("COVERAGE: a single dated performance inside a run is never folded", () => {
+    // The whole reason this is run-to-run only. A run past EXPAND_MAX_DAYS shows
+    // on its start day alone, so the ASL performance is the only card Nov 14
+    // gets. Archiving it would cost more coverage than the duplicate removes.
+    const live = [r({ id: "run", start: "2026-10-19T00:00", end: "2026-11-22T17:00" })];
+    const incoming = [
+      r({ id: "asl", title: "Twelve Kinds of Ice – ASL-Interpreted Performance", start: "2026-11-14T11:00", end: "2026-11-14T12:30" }),
+      r({ id: "matinee", title: "Twelve Kinds of Ice – Saturday Matinee", start: "2026-11-07T11:00" }),
+    ];
+    expect(planRunFolds(live, incoming)).toEqual([]);
+  });
+
+  it("refuses PER_NIGHT: consecutive nights of music are separately ticketed", () => {
+    for (const category of ["music", "sports"]) {
+      const live = [r({ id: "n1", category, title: "Sylvan Esso", start: "2026-11-20T20:00", end: "2026-11-21T23:00" })];
+      const incoming = [r({ id: "n2", category, title: "Sylvan Esso", start: "2026-11-21T20:00", end: "2026-11-22T23:00" })];
+      expect(planRunFolds(live, incoming), category).toEqual([]);
+    }
+  });
+
+  it("a genuinely separate later run of the same show does not fold", () => {
+    const live = [r({ id: "autumn", start: "2026-10-19T00:00", end: "2026-11-22T17:00" })];
+    const incoming = [r({ id: "spring", start: "2027-03-01T00:00", end: "2027-04-04T17:00" })];
+    expect(planRunFolds(live, incoming)).toEqual([]);
+  });
+
+  it("boundary: opening on the run's closing day folds; the day after does not", () => {
+    const live = [r({ id: "run", start: "2026-10-19T00:00", end: "2026-11-22T17:00" })];
+    expect(planRunFolds(live, [r({ id: "onLastDay", start: "2026-11-22T10:00", end: "2026-12-20T17:00" })])).toHaveLength(1);
+    expect(planRunFolds(live, [r({ id: "dayAfter", start: "2026-11-23T10:00", end: "2026-12-20T17:00" })])).toEqual([]);
+  });
+
+  it("reads a span from EITHER source, and respects the late-night rule", () => {
+    // A 9 PM show ending at 1 AM is not a two-day run, so it is not a run at
+    // all and cannot fold or be folded onto.
+    const live = [r({ id: "viaSpan", start: "2026-10-19T00:00", multiDayEnd: "2026-11-22T23:59" })];
+    expect(planRunFolds(live, [r({ id: "viaEnd", start: "2026-11-02T00:00", end: "2026-11-22T17:00" })])).toHaveLength(1);
+    const lateNight = [r({ id: "late", start: "2026-10-19T21:00", end: "2026-10-20T01:00" })];
+    expect(planRunFolds(lateNight, [r({ id: "other", start: "2026-10-19T21:00", end: "2026-10-20T01:00" })])).toEqual([]);
+  });
+
+  it("a different production at the same place does not fold", () => {
+    const live = [r({ id: "ice", start: "2026-10-19T00:00", end: "2026-11-22T17:00" })];
+    const incoming = [r({ id: "grinch", title: "How the Grinch Stole Christmas", start: "2026-11-02T00:00", end: "2026-11-22T17:00" })];
+    expect(planRunFolds(live, incoming)).toEqual([]);
+  });
+
+  it("several matching runs: the earliest keeps the slot, as planCollapse would pick", () => {
+    const live = [
+      r({ id: "later", start: "2026-10-26T00:00", end: "2026-11-22T17:00" }),
+      r({ id: "earliest", start: "2026-10-19T00:00", end: "2026-11-22T17:00" }),
+    ];
+    const folds = planRunFolds(live, [r({ id: "new", start: "2026-11-02T00:00", end: "2026-11-22T17:00" })]);
+    expect(folds).toHaveLength(1);
+    expect(folds[0].keepId).toBe("earliest");
+  });
+
+  it("same show, different town: a tour stop is not a re-find", () => {
+    // runKey is title|city for exactly this reason. A Christmas Carol plays the
+    // Guthrie and Lakeville Area Arts Center in the same weeks.
+    const live = [r({ id: "mpls", title: "A Christmas Carol", city: "Minneapolis", start: "2026-11-11T19:30", end: "2026-12-27T21:30" })];
+    const incoming = [r({ id: "lakeville", title: "A Christmas Carol", city: "Lakeville", start: "2026-12-18T19:00", end: "2026-12-20T21:00" })];
+    expect(planRunFolds(live, incoming)).toEqual([]);
+  });
+
+  it("honest emptiness: nothing in, nothing out", () => {
+    expect(planRunFolds([], [])).toEqual([]);
+    expect(planRunFolds([], [r({ id: "a", end: "2026-11-22T17:00" })])).toEqual([]);
+    expect(planRunFolds([r({ id: "a", end: "2026-11-22T17:00" })], [])).toEqual([]);
+  });
+
+  it("a row never folds onto itself", () => {
+    // THIS TEST CANNOT CATCH THE REAL BUG, and that is worth saying here. It
+    // passes one object as both sides, which production cannot produce: the
+    // caller gives live rows their uuid and incoming rows their event_key, so
+    // the id check below compares two namespaces and never fires. 107 of 149
+    // live runs folded onto themselves on 4 Nov 2026 with this test green.
+    // The caller is pinned instead, in lib/__tests__/upsert-queries.test.ts
+    // ("excludes a live row whose event_key is in the incoming batch").
+    const row = r({ id: "same", start: "2026-10-19T00:00", end: "2026-11-22T17:00" });
+    expect(planRunFolds([row], [row])).toEqual([]);
+  });
+
+  // ── The alias key: the same words, differently wrapped ───────────────────
+  //
+  // Measured 4 Nov 2026 — five live rows for one exhibit, which the exact key
+  // cannot see because normalizeRunTitle DELETES parenthetical contents. These
+  // are not similarity tests: the pair that folds is the same words in another
+  // wrapper, and every pair that does not fold differs by a real word. The
+  // venue-suffix alias measured alongside it was DECLINED, and has a test of
+  // its own here so the decision cannot be undone by accident.
+  describe("the alias key repairs a normaliser artefact, not a similarity guess", () => {
+    const mcm = (o: Partial<RunFoldRow> & { id: string }) =>
+      r({ city: "St Paul", category: "arts", ...o });
+
+    it("THE ARTEFACT: a parenthesised descriptor folds onto the same words after a dash", () => {
+      const live = [mcm({ id: "aug", title: "Monsters on Vacation (Special Exhibit)", start: "2026-08-17T09:00", end: "2027-01-10T17:00" })];
+      const incoming = [mcm({ id: "nov", title: "Monsters on Vacation – Special Exhibit", start: "2026-11-02T09:00", end: "2027-01-10T17:00" })];
+      expect(planRunFolds(live, incoming)).toEqual([
+        { incomingId: "nov", keepId: "aug", extendTo: null },
+      ]);
+    });
+
+    it("DECLINED: a title ending in its own venue does NOT fold", () => {
+      // Stripping a trailing " at <the row's own venue>" would fold this pair.
+      // Measured and declined: BOTH rows strip their own venue, so they meet on
+      // the bare remainder and two DIFFERENT venues in one city get equated —
+      // "Festival of Trees at Mall of America" absorbing "Festival of Trees at
+      // Bloomington Center for the Arts", both in Bloomington. A word-count
+      // floor does not close it; the three-word holiday names are the colliding
+      // ones. The price of declining it is this fold, and the Monsters cluster
+      // folding to two rows rather than one.
+      const live = [mcm({ id: "aug", title: "Monsters on Vacation (Special Exhibit)", start: "2026-08-17T09:00", end: "2027-01-10T17:00" })];
+      const incoming = [
+        mcm({ id: "verbose", title: "Monsters on Vacation – Special Exhibit at Minnesota Children's Museum", start: "2026-11-12T09:00", end: "2026-12-11T17:00" }),
+      ];
+      expect(planRunFolds(live, incoming)).toEqual([]);
+    });
+
+    it("REFUSED: a differently-named thing inside a run is not a re-find of it", () => {
+      // The case the isWordPrefix widening got wrong. "Annual Harvest Supper"
+      // is a real word, not a wrapper, so no alias equates these.
+      const live = [
+        r({ id: "bar", title: "Travail Haunted Basement Bar", city: "Robbinsdale", category: "weird", start: "2026-10-19T00:00", end: "2026-11-07T23:00" }),
+      ];
+      const incoming = [
+        r({ id: "supper", title: "Travail Haunted Basement Bar – Annual Harvest Supper", city: "Robbinsdale", category: "food", start: "2026-11-04T17:45", end: "2026-11-07T23:00" }),
+      ];
+      expect(planRunFolds(live, incoming)).toEqual([]);
+    });
+
+    it("REFUSED: an umbrella listing does not absorb a named attraction inside it", () => {
+      const live = [
+        r({ id: "light", title: "Nickelodeon Universe Winter Break – Universe of Light Holiday Light Show", city: "Bloomington", category: "family", start: "2026-11-12T19:00", end: "2026-12-31T21:00" }),
+      ];
+      const incoming = [
+        r({ id: "break", title: "Nickelodeon Universe Winter Break", city: "Bloomington", category: "family", start: "2026-11-26T10:00", end: "2026-12-25T21:00" }),
+      ];
+      expect(planRunFolds(live, incoming)).toEqual([]);
+    });
+
+    it("REFUSED: a run phase keeps its own words", () => {
+      const live = [r({ id: "opening", title: "Fall Flower Show – Part 2 Opening", city: "St Paul", category: "family", start: "2026-10-23T10:00", end: "2026-11-18T16:00" })];
+      const incoming = [r({ id: "part2", title: "Fall Flower Show – Part 2", city: "St Paul", category: "family", start: "2026-10-26T10:00", end: "2026-11-25T16:00" })];
+      expect(planRunFolds(live, incoming)).toEqual([]);
+    });
+
+    it("every alias still carries the city, so a tour stop is not a re-find", () => {
+      const live = [mcm({ id: "stpaul", title: "Monsters on Vacation (Special Exhibit)", start: "2026-08-17T09:00", end: "2027-01-10T17:00" })];
+      const incoming = [
+        mcm({ id: "duluth", city: "Duluth", title: "Monsters on Vacation – Special Exhibit", start: "2026-11-02T09:00", end: "2027-01-10T17:00" }),
+      ];
+      expect(planRunFolds(live, incoming)).toEqual([]);
+    });
+
+    it("an alias never COSTS a match: two different parentheticals still fold", () => {
+      // These two agree only on the parens-DELETED key that runKey already
+      // produced, so this is the test that dies if the alias ever replaces
+      // runKey instead of joining it. Both rows are the same exhibit; one
+      // aggregator called it travelling, the other special.
+      const live = [mcm({ id: "aug", title: "Monsters on Vacation (Special Exhibit)", start: "2026-08-17T09:00", end: "2027-01-10T17:00" })];
+      const incoming = [mcm({ id: "trav", title: "Monsters on Vacation (Traveling Exhibit)", start: "2026-10-03T09:00", end: "2026-11-03T17:00" })];
+      expect(planRunFolds(live, incoming)).toEqual([
+        { incomingId: "trav", keepId: "aug", extendTo: null },
+      ]);
+    });
   });
 });

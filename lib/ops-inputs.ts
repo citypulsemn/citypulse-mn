@@ -263,6 +263,40 @@ export async function gatherOpsInputs(): Promise<OpsInputs> {
     },
   );
 
+  // Every fold the write gate made, NAMED. `planRunFolds` declines an insert,
+  // so a wrong fold is an event that silently never appears — and the only
+  // traces were an admin_audit row (no read path in the app) and a console.log
+  // in the Actions log. Read straight from the audit trail rather than from a
+  // new pipeline_runs column: the trail already carries the title and the
+  // keeper, which is what makes the line reviewable instead of a bare count.
+  const folds = await wrap("folds", { count7: 0, examples: [] as string[] }, async () => {
+    if (!sql) throw new Error("no database connection");
+    const rows = await sql<
+      { title: string; keptTitle: string; kept: string; extendedTo: string | null; day: string }[]
+    >`
+      select coalesce(patch->>'title', '(untitled)') as title,
+             coalesce(patch->>'kept_title', '') as "keptTitle",
+             coalesce(patch->>'kept', '') as kept,
+             patch->>'extended_to' as "extendedTo",
+             to_char(at at time zone 'America/Chicago', 'YYYY-MM-DD') as day
+      from admin_audit
+      where action = 'run:folded' and at >= now() - interval '7 days'
+      order by at desc`;
+    return {
+      count7: rows.length,
+      // BOTH titles. The suppressed row and the keeper can be worded
+      // differently — that is the whole reason the alias key exists — and it is
+      // precisely then that the operator needs to see the two side by side.
+      // `kept` is the uuid fallback for rows written before kept_title existed.
+      examples: rows.slice(0, 5).map(
+        (r) =>
+          `${r.day} · "${r.title.slice(0, 44)}" → kept ` +
+          (r.keptTitle ? `"${r.keptTitle.slice(0, 44)}"` : r.kept.slice(0, 8)) +
+          (r.extendedTo ? `, run extended to ${r.extendedTo}` : ", span unchanged"),
+      ),
+    };
+  });
+
   const subscribers = await wrap("subscribers", { total: 0, delta7: 0, bySource7: [] as { source: string; count: number }[] }, async () => {
     if (!sql) throw new Error("no database connection");
     const [row] = await sql<{ total: number; delta7: number }[]>`
@@ -367,6 +401,7 @@ export async function gatherOpsInputs(): Promise<OpsInputs> {
     queue,
     reports,
     contradictions,
+    folds,
     sitemapUrls,
     prevSitemapUrls,
     search,

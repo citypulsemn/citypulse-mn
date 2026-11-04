@@ -1,6 +1,6 @@
 import { requireSql } from "./db";
 import type { DbEventInput } from "./types";
-import { planCollapse, staleSpanIds } from "./multiday";
+import { planCollapse, staleSpanIds, planRunFolds, type RunFoldRow } from "./multiday";
 import { displayPrice } from "./price-quality";
 import { isResaleSource } from "./source-trust";
 import { findIncomingDuplicates, type CalendarRow } from "./contradictions";
@@ -125,12 +125,145 @@ async function withoutLiveDuplicates(
   return incoming.filter((e) => !blocked.has(e.event_key));
 }
 
+/**
+ * Fold a re-found RUN onto the run already on the calendar.
+ *
+ * `event_key` is sha256(title|venue|start DAY) and the pipeline writes the day
+ * it FOUND a show, so every weekly pass over a long run mints a fresh identity
+ * nothing can collide with — Como Park's daily admission arrived three times at
+ * +7 days with a 31-day window each, Kunene and the King three times all ending
+ * Nov 8. Measured 4 Nov 2026: 13 productions, 43 live rows, 30 surplus.
+ *
+ * None of the three gates that look like they should catch it do. `dedupeByKey`
+ * compares keys, and these differ by construction. `withoutLiveDuplicates`
+ * loads only rows STARTING on an incoming day, so it never meets a run that
+ * started weeks ago. And `collapseMultiDayRuns` hands `planCollapse` the
+ * `multi_day_end` column alone, so a run carried in `end_at` reads to it as a
+ * single day and seven days of gap refuses the cluster.
+ *
+ * Folding means three writes, not one: skip the insert, extend the live run
+ * when the re-find reaches further, and bump `last_seen_at` — the last because
+ * the point is that the run RECEIVED this week's sighting. Leave it off and the
+ * keeper looks abandoned, which is the live-duplicate freeze from the other
+ * side (while two rows of a pair are live, each blocks the other's re-find, so
+ * neither can take a cancellation).
+ *
+ * The decision itself is `planRunFolds`, pure and mutation-tested, and it
+ * deliberately folds run onto run only. See its own note for why a single
+ * dated performance inside a run is left alone.
+ */
+async function foldRunRefinds(
+  sql: ReturnType<typeof requireSql>,
+  incoming: DbEventInput[],
+): Promise<DbEventInput[]> {
+  const candidates: RunFoldRow[] = incoming.map((e) => ({
+    id: e.event_key,
+    title: e.title,
+    city: e.city,
+    category: e.category,
+    start: chiWallClock(new Date(e.start_at)),
+    end: e.end_at ? chiWallClock(new Date(e.end_at)) : null,
+    multiDayEnd: null, // the pipeline never writes a span; the collapse does
+  }));
+  const earliest = candidates.map((c) => c.start.slice(0, 10)).sort()[0];
+  if (!earliest) return incoming;
+
+  // PUBLISHED ONLY, and it is not a tidiness choice. A draft is a row held back
+  // on purpose (statusForNewEvent for a roundup-only source, venueIsUnknown),
+  // and `status` is set on INSERT alone — so letting a draft keep the slot
+  // declines a re-find that would have been inserted VISIBLE, and the event
+  // then renders nowhere at all. 26 of 149 live runs are drafts. Before this
+  // gate existed the outcome was a visible duplicate; coverage loss is worse.
+  //
+  // Lower bound only: a live run must still be running on or after the earliest
+  // incoming start to overlap anything in this batch. The upper bound is left
+  // to planRunFolds rather than restated as a second SQL date expression — the
+  // whole shape of this bug was two gates disagreeing about one definition.
+  const live = await sql<(RunFoldRow & { event_key: string })[]>`
+    select id::text as id, event_key, title, city, category,
+           to_char(start_at at time zone 'America/Chicago', 'YYYY-MM-DD"T"HH24:MI') as start,
+           to_char(end_at at time zone 'America/Chicago', 'YYYY-MM-DD"T"HH24:MI') as end,
+           to_char(multi_day_end at time zone 'America/Chicago', 'YYYY-MM-DD"T"HH24:MI') as "multiDayEnd"
+    from events
+    where status = 'published'
+      and (coalesce(multi_day_end, end_at, start_at) at time zone 'America/Chicago')::date
+          >= ${earliest}::date`;
+
+  // A ROW MUST NOT FOLD ONTO ITSELF, and planRunFolds' own id check cannot see
+  // it: the live rows are identified by uuid while an incoming row carries its
+  // event_key, so the two sides are different namespaces and that filter never
+  // fires. An ordinary re-find — same title, venue and start day, so the SAME
+  // event_key, i.e. the normal ON CONFLICT update — then folded onto its own
+  // live row: the insert declined, and the update carrying price, ticket_url,
+  // end_at and cancellations never ran. Measured 4 Nov 2026: 107 of 149 live
+  // runs. Excluded by key, the way withoutLiveDuplicates already does it.
+  const incomingKeys = new Set(incoming.map((e) => e.event_key));
+  const folds = planRunFolds(
+    live.filter((l) => !incomingKeys.has(l.event_key)),
+    candidates,
+  );
+  if (folds.length === 0) return incoming;
+
+  const titleOf = new Map(live.map((l) => [l.id, l.title]));
+  for (const f of folds) {
+    const e = incoming.find((x) => x.event_key === f.incomingId)!;
+    const keptTitle = titleOf.get(f.keepId) ?? "";
+    console.log(
+      `[upsert] folded "${e.title}" @ ${e.venue} onto "${keptTitle}"` +
+        (f.extendTo ? `, extended to ${f.extendTo}` : ""),
+    );
+    if (f.extendTo) {
+      // ::text first — postgres.js types an ISO-shaped param as timestamptz and
+      // shifts it before the tz attach. Same cast collapseMultiDayRuns uses.
+      //
+      // greatest() because every extendTo is computed against the keeper's
+      // PRE-BATCH span: two re-finds of one run in a single batch both carry a
+      // non-null extendTo, and a bare assignment let the second — possibly the
+      // shorter — win, shrinking a span the same batch had just proved reaches
+      // further, with the row that attested it already declined. end_at is in
+      // the greatest too, because spanEnd prefers multi_day_end once it is set,
+      // so writing a nearer span over a further end_at would shrink the run as
+      // the site reads it. Spans only ever EXTEND, per keeper, not per fold.
+      await sql`
+        update events
+        set multi_day_end = greatest(
+              (${`${f.extendTo}T23:59`}::text::timestamp at time zone 'America/Chicago'),
+              multi_day_end,
+              end_at)
+        where id::text = ${f.keepId}`;
+    }
+    await sql`update events set last_seen_at = now() where id::text = ${f.keepId}`;
+    // RULE 1 — the instrument must not kill the panel. This insert is the ONLY
+    // source the ops digest's Run folds section reads, and the mutations above
+    // have already committed; one pooler timeout here would otherwise abort the
+    // whole pipeline pass mid-run, skipping every remaining band, with the span
+    // and last_seen_at written and no trace of why.
+    try {
+      await sql`
+        insert into admin_audit (action, patch)
+        values ('run:folded', ${sql.json({
+          title: e.title, venue: e.venue, start: e.start_at, end: e.end_at ?? null,
+          source: e.source_url, kept: f.keepId, kept_title: keptTitle, extended_to: f.extendTo,
+          why: "a re-find of a run already on the calendar (lib/multiday.ts planRunFolds)",
+        })})`;
+    } catch (err) {
+      console.warn(`[upsert] run:folded audit row failed (fold still applied): ${String(err)}`);
+    }
+  }
+
+  const blocked = new Set(folds.map((f) => f.incomingId));
+  return incoming.filter((e) => !blocked.has(e.event_key));
+}
+
 export async function upsertEvents(events: DbEventInput[]): Promise<number> {
   const byKey = dedupeByKey(events);
   if (byKey.length === 0) return 0;
   const sql = requireSql();
 
-  const deduped = await withoutLiveDuplicates(sql, byKey);
+  const noDupes = await withoutLiveDuplicates(sql, byKey);
+  if (noDupes.length === 0) return 0;
+
+  const deduped = await foldRunRefinds(sql, noDupes);
   if (deduped.length === 0) return 0;
 
   const rows = deduped.map((e) => ({

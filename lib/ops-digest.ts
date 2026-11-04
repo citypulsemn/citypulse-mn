@@ -216,6 +216,18 @@ export interface OpsInputs {
     /** A few placeholder titles, so the line is actionable rather than a count. */
     titleExamples: string[];
   };
+  /** Weekly re-finds of a run the write gate absorbed (lib/multiday.ts
+   *  `planRunFolds`). THE REASON THIS SECTION EXISTS: the gate declines an
+   *  insert, so a wrong fold is an event that silently never appears. Its only
+   *  traces were an `admin_audit` row — a table with no read path in the app
+   *  (lib/admin-actions.ts), which this digest otherwise queries for exactly
+   *  one unrelated action — and a `console.log` in the Actions run log. Named
+   *  here, a wrong fold is reviewable on a Monday instead of invisible. */
+  folds: {
+    count7: number;
+    /** The folds themselves, newest first. The count alone cannot be reviewed. */
+    examples: string[];
+  };
   /** Open listing reports WITH their automated check (Sep 2026), newest last.
    *  Absent or empty renders no section at all — the Queue line already covers
    *  "nothing waiting", and an empty block every week is noise. */
@@ -274,6 +286,7 @@ export interface OpsSection {
 
 const SECTION_KEYS = [
   "pipeline",
+  "folds",
   "coverage",
   "verify",
   "source_sweep",
@@ -601,6 +614,34 @@ export function buildSections(inputs: OpsInputs, now: Date = new Date()): OpsSec
       alert = v.alert;
     }
     out.push({ title: "Jobs", lines, alert });
+  }
+
+  // 1c — Run folds. What the write gate SUPPRESSED, which no other section can
+  // show: `planRunFolds` stops a weekly re-find of a long run being minted as a
+  // fresh row, and a declined insert leaves nothing on the site to notice. The
+  // folds are named rather than counted for the same reason the duplicate line
+  // is — a count cannot be reviewed, and this gate's mistakes are invisible by
+  // construction. Zero is not an alert: it means nothing was re-found, which is
+  // the normal state for a week with no long runs in the batch.
+  {
+    let lines: string[];
+    let alert = false;
+    if (err("folds")) {
+      lines = unavailable(err("folds"));
+      alert = true;
+    } else {
+      const { count7, examples } = inputs.folds;
+      lines =
+        count7 === 0
+          ? ["no re-finds folded in the last 7 days"]
+          : [
+              // Not "weekly": foldRunRefinds sits in upsertEvents, which the
+              // venue import and an approved reader submission also call.
+              `${count7} re-find${count7 === 1 ? "" : "s"} folded onto a run already listed`,
+              ...examples.map((e) => `    ${e}`),
+            ];
+    }
+    out.push({ title: "Run folds", lines, alert });
   }
 
   // 2 — Coverage
