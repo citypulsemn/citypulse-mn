@@ -71,7 +71,11 @@ export const VENUE_CALENDARS: Record<string, string> = {
   "state theatre": "https://hennepinarts.org/events",
 
   "orchestra hall": "https://www.minnesotaorchestra.org/tickets/calendar/",
-  "childrens theatre company": "https://childrenstheatre.org/",
+  // The bare root 200s and names productions but prints no run dates;
+  // /calendar/ 200s to a script AND prints them — "Twelve Kinds of Ice",
+  // "October 13-November 22, 2026" and "Dr. Seuss's How The Grinch Stole
+  // Christmas!", "November 3, 2026-January 3, 2027" (read 4 Nov 2026).
+  "childrens theatre company": "https://childrenstheatre.org/calendar/",
   "chanhassen dinner theatres": "https://www.chanhassendt.com/",
   "landmark center": "https://www.landmarkcenter.org/events",
 
@@ -104,6 +108,34 @@ export const VENUE_CALENDARS: Record<string, string> = {
   // address and no prices; OSM has the room at 2665 4th Avenue, Anoka.
   "heart of the city music factory": "https://heartofthecity.org/events-calendar",
 };
+
+/**
+ * Rooms whose calendar a SCRIPT cannot read, measured rather than assumed.
+ *
+ * This is the distinction the table's own header makes — "A 200 was never the
+ * test — the test was whether the page lists that room's events" — made usable.
+ * That standard is right for the consumer the table was built for:
+ * `buildVerifyPrompt` hands the URL to an agent that can open a browser. It is
+ * NOT sufficient for `events.source_url`, which `npm run check-sources` fetches
+ * with a plain request every week. A browser-only page in that column means the
+ * sweep reads nothing and the listing can never be confirmed.
+ *
+ * So anything repointing a row's citation at this table must skip these. Each
+ * was probed on 4 Nov 2026 with a plain fetch; the reason is why, not a guess.
+ */
+export const BROWSER_ONLY_CALENDARS: ReadonlySet<string> = new Set([
+  // Every HTML path 307s to a script — /events/, /, /calendar/, /shows/ — while
+  // robots.txt (200) and sitemap.xml (200) are served. A Sucuri WAF. This is on
+  // record: the 28 Oct 2026 Armory corrections moved four citations OFF
+  // armorymn.com/events/ and onto each show's own page for exactly this reason,
+  // and those per-show pages are what a citation here should be.
+  "armory",
+  // 200 to a script, but no dated listing anywhere: the root names Annie,
+  // Disney's Newsies, Tuesdays with Morrie and The Groove with no run dates and
+  // an empty "Search by date"; /on-stage/ is six category tiles. Fine for an
+  // agent that can click through, useless to a weekly fetch looking for a date.
+  "chanhassen dinner theatres",
+]);
 
 /** The room's own calendar, or null when nobody has curated one. */
 export function canonicalSourceFor(venue: string): string | null {

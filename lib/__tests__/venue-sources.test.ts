@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { VENUE_CALENDARS, canonicalSourceFor, officialCalendars } from "../venue-sources";
+import { VENUE_CALENDARS, BROWSER_ONLY_CALENDARS, canonicalSourceFor, officialCalendars } from "../venue-sources";
 import { isAggregatorSource, isNonScheduleSource, isResaleSource } from "../source-trust";
 import { roomKey } from "../contradictions";
 
@@ -53,6 +53,39 @@ describe("VENUE_CALENDARS", () => {
   it("returns null for a room nobody has curated, rather than guessing", () => {
     expect(canonicalSourceFor("Some Bar Nobody Listed")).toBeNull();
     expect(canonicalSourceFor("")).toBeNull();
+  });
+
+  it("names the rooms a SCRIPT cannot read, and only real ones", () => {
+    // The table's standard is "does the page list that room's events", judged in
+    // a browser, which is right for buildVerifyPrompt. events.source_url is
+    // fetched weekly by check-sources with a plain request, and a browser-only
+    // page there means the sweep reads nothing. A repoint must skip these.
+    for (const room of BROWSER_ONLY_CALENDARS) {
+      expect(VENUE_CALENDARS[room], `${room} is flagged browser-only but is not in the table`).toBeTruthy();
+    }
+    // Measured 4 Nov 2026, not assumed: every armorymn.com HTML path 307s to a
+    // script (a Sucuri WAF) while robots.txt and sitemap.xml are served, and
+    // Chanhassen prints no run dates on any page a script can read.
+    expect(BROWSER_ONLY_CALENDARS.has("armory")).toBe(true);
+    expect(BROWSER_ONLY_CALENDARS.has("chanhassen dinner theatres")).toBe(true);
+    // The rooms a repoint DOES use must not be listed, or it silently does nothing.
+    for (const room of ["fine line", "first avenue", "dakota jazz club", "childrens theatre company"]) {
+      expect(BROWSER_ONLY_CALENDARS.has(room), `${room} should be script-readable`).toBe(false);
+    }
+  });
+
+  it("every browser-only key is a roomKey fixed point too", () => {
+    // Same trap as the table itself: a key roomKey never generates is dead
+    // weight that reads as coverage. CONCURRENT_VENUES had two of those.
+    for (const room of BROWSER_ONLY_CALENDARS) {
+      expect(roomKey(room), `${room} is not a roomKey fixed point`).toBe(room);
+    }
+  });
+
+  it("points Children's Theatre at its calendar, not its homepage", () => {
+    // The root 200s and names productions but prints no run dates, so a weekly
+    // fetch could never confirm a date from it. /calendar/ prints them.
+    expect(canonicalSourceFor("Children's Theatre Company")).toBe("https://childrenstheatre.org/calendar/");
   });
 
   it("holds only absolute https URLs", () => {
