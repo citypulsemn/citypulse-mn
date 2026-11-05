@@ -1,0 +1,20 @@
+[
+  {
+    "id": "e28785d0-7b39-48bf-9e01-b9acbcb251dd",
+    "why": "DUPLICATE — one experience, three rows. travailkitchen.com/hauntedbasement prints 'Haunted Basement runs September 24–November 7 in Travail's Basement Bar, Wednesday through Saturday', one price ('Tickets start at $189/person and included beverages'), and ONE reservation link. THE ANNUAL HARVEST SUPPER IS NOT A SEPARATE TICKET: the page uses it as the premise — the family 'preparing for their most important night of the year' — and the barn dinner is what the evening IS. It has no dates and no ticket of its own, so a row named after it is the same event under a longer name. This row starts 26 Oct, five weeks after the real opening, because the sweep clipped the run to its own window. Keeper is 68e4cc56, corrected in this same file.",
+    "evidence": "https://www.travailkitchen.com/hauntedbasement",
+    "archive": true
+  },
+  {
+    "id": "e506465f-928a-462b-a530-ae7bb69ad49d",
+    "why": "DUPLICATE — the third Haunted Basement Bar row, 4 Nov – 7 Nov, a four-day tail of a six-week run. WHY EVERY EXISTING DEFENCE MISSED THESE, because it is the useful part: the 5 Nov runKey sweep groups by normalised TITLE and all three differ; the 4 Nov fold's title-drift rule gates at Jaccard >= 0.75, and this row scores 0.571 against the keeper — under the gate — while scoring 0.875 against e28785d0, which is OVER it and should have folded, except both were already live and each blocks the other's weekly re-find (the live-duplicate freeze). Three separate mechanisms, none of which fires. Archived by hand; the general rule is roadmap T2.",
+    "evidence": "https://www.travailkitchen.com/hauntedbasement",
+    "archive": true
+  },
+  {
+    "id": "68e4cc56-b227-4a6d-ab21-cc0de6f16dd2",
+    "why": "THE KEEPER, AND ITS START WAS FIVE WEEKS LATE. travailkitchen.com/hauntedbasement prints 'Haunted Basement runs September 24–November 7'; this row said 19 Oct, and NO row of the seven in the database — published, draft or archived — held the real opening, so there was nothing to promote and the date had to be written. Checked first: event_key is sha256(title|venue|start day), and 24 Sep does not collide with anything. Also corrects the clock: the row stored 00:00, a date-only artefact, while the page prints 'Wednesday: 5:45 PM' and 'Thursday, Friday & Saturday: 5:45 PM & 8:00 PM' — 17:45 is the earliest door. end_at already reads 7 Nov, which is right, so it is left alone and spanEnd derives the 45-day run from it. NOT STAMPED: start is verify-relevant, and while the page gives a time it gives no year beside the dates (the booking slug reads 'haunted-bar-2026'), so this goes back through the verify pass. HONEST LIMIT, recorded not hidden: the run is Wednesday-to-Saturday, and the schema has no recurrence field, so the span still implies a continuous 45 days. That is a site-wide modelling limit, not something this correction introduces.",
+    "evidence": "https://www.travailkitchen.com/hauntedbasement",
+    "start": "2026-09-24T17:45"
+  }
+]

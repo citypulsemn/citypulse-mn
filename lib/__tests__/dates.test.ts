@@ -12,6 +12,7 @@ import { CATEGORY_KEYS } from "../categories";
 import type { CategoryKey, EventRecord, ViewState } from "../types";
 import { isUpcoming, daysSpanned, spanEndISO, EXPAND_MAX_DAYS } from "../dates";
 import { spanEnd } from "../multiday";
+import { planListView, LIST_ONGOING_CAP } from "../list-view";
 
 // Deterministic "now": Sunday, June 14, 2026, noon.
 const NOW = new Date("2026-06-14T12:00:00");
@@ -338,6 +339,143 @@ describe("spanEndISO - one rule, one home (5 Nov 2026)", () => {
       sp({ start: "2026-05-23T09:00", multiDayEnd: "2027-01-10T23:59" }),
     ];
     for (const c of cases) expect(spanEnd(c)).toBe(spanEndISO(c));
+  });
+});
+
+describe("eventsInWindow — RULE 5, the fourth break (5 Nov 2026)", () => {
+  // The window: Tuesday 10 Nov 2026 alone, the shape rangeWindow("today") builds.
+  const win = { start: new Date(2026, 10, 10, 0, 0, 0), end: new Date(2026, 10, 10, 23, 59, 59) };
+  const mk = (over: Partial<EventRecord>): EventRecord => ({ ...sampleEvents[0], ...over });
+  const ids = (evs: EventRecord[]) => evs.map((e) => e.id);
+
+  // THE ONE THAT MATTERS MOST: not an over-cap run. Three days, well inside
+  // EXPAND_MAX_DAYS, so the calendar grid already painted it onto 10 Nov while
+  // the list — looking at the same day — said it was not on.
+  it("a THREE-day run spanning the window is on, though it started earlier", () => {
+    const shortRun = mk({
+      id: "short",
+      start: "2026-11-09T10:00",
+      end: "",
+      multiDayEnd: "2026-11-11T17:00",
+    });
+    expect(ids(eventsInWindow([shortRun], ALL, win))).toEqual(["short"]);
+  });
+
+  it("…and so does a 233-day exhibition", () => {
+    const exhibition = mk({
+      id: "long",
+      start: "2026-05-23T09:00",
+      end: "",
+      multiDayEnd: "2027-01-10T23:59",
+    });
+    expect(ids(eventsInWindow([exhibition], ALL, win))).toEqual(["long"]);
+  });
+
+  it("a span carried by end_at rather than multiDayEnd counts too", () => {
+    const byEnd = mk({ id: "byEnd", start: "2026-11-01T10:00", end: "2026-11-20T17:00", multiDayEnd: null });
+    expect(ids(eventsInWindow([byEnd], ALL, win))).toEqual(["byEnd"]);
+  });
+
+  it("an event starting inside the window is unchanged", () => {
+    const today = mk({ id: "today", start: "2026-11-10T19:30", end: "2026-11-10T22:00", multiDayEnd: null });
+    expect(ids(eventsInWindow([today], ALL, win))).toEqual(["today"]);
+  });
+
+  it("THE OTHER DIRECTION — the fix is not 'everything matches'", () => {
+    const closedYesterday = mk({ id: "a", start: "2026-10-01T10:00", end: "", multiDayEnd: "2026-11-09T23:59" });
+    const startsTomorrow = mk({ id: "b", start: "2026-11-11T10:00", end: "", multiDayEnd: "2026-12-01T23:59" });
+    const longPast = mk({ id: "c", start: "2026-09-01T10:00", end: "2026-09-01T12:00", multiDayEnd: null });
+    expect(eventsInWindow([closedYesterday, startsTomorrow, longPast], ALL, win)).toEqual([]);
+  });
+
+  it("the boundaries: a run ending ON the first day, and one starting ON the last", () => {
+    const endsToday = mk({ id: "ends", start: "2026-10-20T10:00", end: "", multiDayEnd: "2026-11-10T16:00" });
+    const startsToday = mk({ id: "starts", start: "2026-11-10T20:00", end: "", multiDayEnd: "2026-12-20T23:59" });
+    expect(ids(eventsInWindow([endsToday, startsToday], ALL, win)).sort()).toEqual(["ends", "starts"]);
+  });
+
+  it("the category filter still applies to a spanning event", () => {
+    const run = mk({ id: "r", category: "arts", start: "2026-11-01T10:00", end: "", multiDayEnd: "2026-11-30T23:59" });
+    expect(eventsInWindow([run], new Set<CategoryKey>(["music"]), win)).toEqual([]);
+    expect(ids(eventsInWindow([run], new Set<CategoryKey>(["arts"]), win))).toEqual(["r"]);
+  });
+
+  // THE SYMPTOM, pinned at the level a reader meets it: the calendar cell and
+  // the list are two views of one dataset and must not disagree about one day.
+  it("the grid cell and the list agree for the same day", () => {
+    const rows = [
+      mk({ id: "s1", start: "2026-11-09T10:00", end: "", multiDayEnd: "2026-11-11T17:00" }), // in-cap run
+      mk({ id: "s2", start: "2026-11-10T19:00", end: "2026-11-10T22:00", multiDayEnd: null }), // starts today
+      mk({ id: "s3", start: "2026-05-23T09:00", end: "", multiDayEnd: "2027-01-10T23:59" }), // over-cap
+    ];
+    const inList = new Set(eventsInWindow(rows, ALL, win).map((e) => e.id));
+    for (const r of rows) {
+      // daysSpanned is the grid's own answer for this cell
+      if (daysSpanned(r).includes("2026-11-10")) {
+        expect(inList.has(r.id), `grid shows ${r.id} on 10 Nov, list does not`).toBe(true);
+      }
+    }
+    // and the over-cap run, which the grid does NOT paint on this cell, is still
+    // in the list — the list asks "is it on", not "which cells do I paint"
+    expect(daysSpanned(rows[2])).toEqual(["2026-05-23"]);
+    expect(inList.has("s3")).toBe(true);
+  });
+});
+
+describe("planListView — the window's long runs get their own group", () => {
+  const WIN = "2026-11-10";
+  const mk = (over: Partial<EventRecord>): EventRecord => ({ ...sampleEvents[0], ...over });
+
+  it("a mid-run event goes to 'ongoing', not into a day group", () => {
+    const run = mk({ id: "r", start: "2026-10-01T10:00", end: "", multiDayEnd: "2026-11-20T23:59" });
+    const plan = planListView([run], WIN);
+    expect(plan.ongoing.map((e) => e.id)).toEqual(["r"]);
+    expect(plan.days).toEqual([]);
+  });
+
+  it("an event starting in the window stays in its day group", () => {
+    const today = mk({ id: "t", start: "2026-11-10T19:00", end: "2026-11-10T22:00", multiDayEnd: null });
+    const plan = planListView([today], WIN);
+    expect(plan.ongoing).toEqual([]);
+    expect(plan.days.map((g) => g.key)).toEqual(["2026-11-10"]);
+  });
+
+  it("ongoing is ordered ending-soonest, because that is the only urgent part", () => {
+    const rows = [
+      mk({ id: "late", title: "Late", start: "2026-01-01T10:00", end: "", multiDayEnd: "2027-06-01T23:59" }),
+      mk({ id: "soon", title: "Soon", start: "2026-10-01T10:00", end: "", multiDayEnd: "2026-11-12T23:59" }),
+      mk({ id: "mid", title: "Mid", start: "2026-09-01T10:00", end: "", multiDayEnd: "2026-12-15T23:59" }),
+    ];
+    expect(planListView(rows, WIN).ongoing.map((e) => e.id)).toEqual(["soon", "mid", "late"]);
+  });
+
+  it("caps the group but reports the honest total", () => {
+    const rows = Array.from({ length: 9 }, (_, i) =>
+      mk({
+        id: `r${i}`,
+        start: "2026-10-01T10:00",
+        end: "",
+        multiDayEnd: `2026-11-${String(12 + i).padStart(2, "0")}T23:59`,
+      }),
+    );
+    const plan = planListView(rows, WIN);
+    expect(plan.ongoing).toHaveLength(LIST_ONGOING_CAP);
+    expect(plan.ongoingTotal).toBe(9);
+  });
+
+  it("honest emptiness: nothing in, nothing out", () => {
+    expect(planListView([], WIN)).toEqual({ ongoing: [], ongoingTotal: 0, days: [] });
+  });
+
+  it("the two groups partition the input — nothing lost, nothing doubled", () => {
+    const rows = [
+      mk({ id: "a", start: "2026-10-01T10:00", end: "", multiDayEnd: "2026-11-20T23:59" }),
+      mk({ id: "b", start: "2026-11-10T19:00", end: "2026-11-10T22:00", multiDayEnd: null }),
+      mk({ id: "c", start: "2026-11-12T19:00", end: "2026-11-12T22:00", multiDayEnd: null }),
+    ];
+    const plan = planListView(rows, WIN, 99);
+    const seen = [...plan.ongoing.map((e) => e.id), ...plan.days.flatMap((g) => g.events.map((e) => e.id))];
+    expect(seen.sort()).toEqual(["a", "b", "c"]);
   });
 });
 

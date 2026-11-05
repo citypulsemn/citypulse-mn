@@ -89,17 +89,48 @@ export function isFocus(range: RangeKey): boolean {
   return range !== "month";
 }
 
-/** Events whose start falls inside the window, filtered by active categories, sorted by time. */
+/**
+ * Events ON during the window, filtered by active categories, sorted by time.
+ *
+ * RULE 5, THE FOURTH BREAK (fixed 5 Nov 2026). This read `const d = evDate(ev);
+ * return d >= win.start && d <= win.end` — the START INSTANT only, with no span
+ * awareness of any kind. Not capped like `daysSpanned`; simply blind. Anything
+ * that began before the window and runs through it was absent, and unlike the
+ * `isUpcoming` break fixed the same day this was never limited to over-cap runs:
+ * a THREE-DAY run spanning the window edge vanished too.
+ *
+ * It feeds the explorer's list view, map view, map list and the "N events match"
+ * count (components/EventsExplorer.tsx), and `DEFAULT_VIEW` is the list — so this
+ * was the first thing a visitor saw. Measured on live data, 5 Nov 2026:
+ *
+ *     range      shown   genuinely on   hidden
+ *     Today         10             33       23   (70%)
+ *     Weekend       58             82       24
+ *     Week          89            112       23   (the default range)
+ *     Month        313            341       28
+ *
+ * Four of the 23 hidden from Today were runs of 14 days or LESS — inside
+ * EXPAND_MAX_DAYS, so the calendar grid painted them onto today's cell while the
+ * list, looking at the same day, said they were not on.
+ *
+ * Day-key comparison, not instant comparison: every window `rangeWindow` builds
+ * is day-aligned (00:00 to 23:59:59), so the two agree, and day keys keep this
+ * inside one frame (rule 10).
+ */
 export function eventsInWindow(
   events: EventRecord[],
   active: Set<CategoryKey>,
   win: DateWindow,
 ): EventRecord[] {
+  const winStart = dkey(win.start);
+  const winEnd = dkey(win.end);
   return events
     .filter((ev) => active.has(ev.category))
     .filter((ev) => {
-      const d = evDate(ev);
-      return d >= win.start && d <= win.end;
+      const startKey = dkey(evDate(ev));
+      const end = spanEndISO(ev)?.slice(0, 10);
+      const endKey = end && end > startKey ? end : startKey;
+      return startKey <= winEnd && endKey >= winStart;
     })
     .sort((a, b) => evDate(a).getTime() - evDate(b).getTime());
 }

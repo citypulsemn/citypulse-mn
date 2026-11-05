@@ -1,4 +1,4 @@
-import { groupEventsByDay } from "@/lib/list-view";
+import { planListView } from "@/lib/list-view";
 import { longDate } from "@/lib/event-view";
 import { EventDayCard } from "./EventDayCard";
 import type { EventRecord } from "@/lib/types";
@@ -16,7 +16,9 @@ export function ListView({
   events: EventRecord[];
   windowStartKey: string;
 }) {
-  if (events.length === 0) {
+  const plan = planListView(events, windowStartKey);
+
+  if (plan.ongoing.length === 0 && plan.days.length === 0) {
     return (
       <div className="day-empty">
         Nothing in this range yet. Try a wider range above, or clear a filter.
@@ -24,11 +26,29 @@ export function ListView({
     );
   }
 
-  const groups = groupEventsByDay(events, windowStartKey);
-
   return (
     <div className="list-view">
-      {groups.map((g) => (
+      {/* Runs that began before this window and are still on. Capped and
+          ending-soonest-first, so a six-month exhibition cannot push the things
+          actually starting off the top of the list. Same shape as the /day
+          shelf. Each card carries its own span badge ("May 23 – Jan 10"), so the
+          dates explain themselves. */}
+      {plan.ongoing.length > 0 && (
+        <section className="list-day">
+          <h2 className="list-day-h">Already running</h2>
+          <div className="day-list">
+            {plan.ongoing.map((e: EventRecord) => (
+              <EventDayCard key={e.id} event={e} />
+            ))}
+            {plan.ongoingTotal > plan.ongoing.length && (
+              <a className="more-day-all" href="/ongoing">
+                More ongoing runs →
+              </a>
+            )}
+          </div>
+        </section>
+      )}
+      {plan.days.map((g) => (
         <section key={g.key} className="list-day">
           <h2 className="list-day-h">{longDate(g.key)}</h2>
           <div className="day-list">
