@@ -1,0 +1,50 @@
+[
+  {
+    "id": "f23c0db5-8a68-43e7-8e94-83747b7a1951",
+    "why": "NOT AN EVENT — OPENING HOURS WEARING AN EVENT'S CLOTHES. 'Como Park Zoo & Conservatory – Daily Zoo Visit (October–November)', 3 Oct – 3 Nov, is the fact that the zoo is open, listed as if it were something happening. Nothing starts, nothing ends, and a reader scanning a day for plans learns only that a zoo exists. ARCHIVE, NOT HIDE, and the distinction is deliberate: the row is not FALSE — comozooconservatory.org/visitors/visitor-map-hours/ reads 'Como Zoo is open from 10AM-4PM daily!' — so its page keeps asserting a true thing, while archiving takes it out of getEvents and therefore out of sitemap.xml, the venue page, the city page and the new day-page shelf. An inbound link still resolves instead of 404ing. The hours themselves are not being thrown away: they ship to /venues/como-park-zoo-and-conservatory in the same change, with this source URL and the date it was read. This row had already expired (3 Nov) before the archive, so it leaves no live surface.",
+    "evidence": "https://comozooconservatory.org/visitors/visitor-map-hours/",
+    "archive": true
+  },
+  {
+    "id": "b506f130-2420-495a-8276-f678e2f55eba",
+    "why": "NOT AN EVENT — the second of four Como admission rows, 10 Oct – 10 Nov. Same shape as f23c0db5 and the same lever for the same reason: true, so archive rather than hide, and the page keeps resolving. THIS IS THE ONE THAT MADE THE CASE: on 10 November the new day-page 'Also running' shelf showed six cards and FOUR were admission rows, this one among them, sorted to the very top by 'Last day' because its window happens to close that day. One of six slots was a real event. The shelf is what turned a tidy-up into a live quality problem. Its hours fact — 10AM-4PM daily, free with a voluntary donation of $8 adult / $5 child — moves to the venue page in this change.",
+    "evidence": "https://comozooconservatory.org/visitors/visitor-map-hours/",
+    "archive": true
+  },
+  {
+    "id": "14344d1b-242d-4a6f-bed0-0b4b2e5ee3a9",
+    "why": "NOT AN EVENT — the third Como admission row, 17 Oct – 17 Nov, byte-identical in purpose to b506f130 and overlapping it by a month. TWO OF THESE WERE LIVE AT ONCE, so the shelf printed 'Como Park Zoo & Conservatory – Daily General Admission' twice on the same day page. That duplication is the weekly re-find minting a fresh row per pass against the same standing fact; see docs/deploy-history/DEPLOY-RUN-REFIND-FOLD.md. Archive, not hide: comozooconservatory.org/visitors/visitor-map-hours/ confirms the zoo is open daily, so the row is miscategorised rather than untrue, and an archived page still answers an inbound link.",
+    "evidence": "https://comozooconservatory.org/visitors/visitor-map-hours/",
+    "archive": true
+  },
+  {
+    "id": "8e026260-4c3e-4c12-be27-faa942b34387",
+    "why": "NOT AN EVENT — the fourth and last live Como admission row, 24 Oct – 24 Nov, titled 'Daily Open Admission' where its siblings say 'Daily General Admission' and 'Daily Zoo Visit'. Three different names for one standing fact is exactly why the title-based fold never caught them. Archive for the same reason as its three siblings: comozooconservatory.org/visitors/visitor-map-hours/ prints 'Free.' and 'A voluntary donation of $8 for an adult and $5 for a child ... is appreciated', so the row is true and merely in the wrong place. After this, Como's venue page keeps 16 genuine upcoming events plus its hours.",
+    "evidence": "https://comozooconservatory.org/visitors/visitor-map-hours/",
+    "archive": true
+  },
+  {
+    "id": "c1957e8b-5d95-4e53-92c6-e03ffb5c135e",
+    "why": "NOT AN EVENT — 'Minnesota Zoo – Daily General Admission (Fall Season)', 17 Oct – 17 Nov. mnzoo.org/plan-a-visit-2/ reads 'The Minnesota Zoo is open from 10 am to 4 pm' with 'Online Tickets Required', which is an opening-hours fact, not a thing to attend. KNOWN CONSEQUENCE, ACCEPTED: this is the ONLY upcoming row on /venues/minnesota-zoo, so archiving it returns that page to empty and drops it back out of sitemap.xml and out of /cities/apple-valley — which is honest, because the zoo genuinely has no dated events listed. The page does not become useless: the hours, the member 9am access and the full admission table ship to it in the same change. Archive rather than hide, so the existing event URL keeps resolving while leaving getEvents.",
+    "evidence": "https://mnzoo.org/plan-a-visit-2/",
+    "archive": true
+  },
+  {
+    "id": "18fec971-a371-49e6-99d9-ed6ec86d8d08",
+    "why": "NOT AN EVENT — 'Nickelodeon Universe – Daily Indoor Theme Park', 24 Oct – 24 Nov. nickelodeonuniverse.com/visit/ prints a seven-row PARK HOURS table (Mon–Sat 10 a.m. – 9 p.m., Sunday 11 a.m. – 7 p.m.), which is the whole content of this listing. Archive, not hide: the park is open, so the row is true and misfiled. NOTE ON THE PRICE, because it is why the hours block carries no single number for this venue: their own pages disagree — the visit page says wristbands 'Starting at $41.99 + tax', the opening page says $44.99 regular, and tix.mallofamerica.com shows $52.49. The venue page links to tickets instead of picking one.",
+    "evidence": "https://nickelodeonuniverse.com/visit/",
+    "archive": true
+  },
+  {
+    "id": "a8e639d6-37d4-4a9e-bdf7-6b16f7381787",
+    "why": "NOT AN EVENT — 'SEA LIFE Minnesota Aquarium – General Admission', 10 Oct – 10 Nov, sourced from mallofamerica.com/entertainment/events rather than from the aquarium. Same archive-not-hide reasoning as the rest. HONEST GAP, RECORDED RATHER THAN PAPERED OVER: SEA LIFE is NOT in the venue registry (matchVenueSlug returns null for it), so it has no venue page and there is nowhere in this change for its hours to go. Archiving removes the listing without the compensating move the other three venues get. That is a real, if small, loss of information, and the fix is a venue-page entry, which is a separate decision because the registry also drives the pipeline's weekly sweep.",
+    "evidence": "https://www.visitsealife.com/minnesota/",
+    "archive": true
+  },
+  {
+    "id": "31fbacde-14d2-4162-b686-9f59e7e68d2c",
+    "why": "NOT AN EVENT — 'SEA LIFE Minnesota Aquarium – Daily Open Admission', 24 Oct – 24 Nov, the second SEA LIFE admission row and overlapping the first by two weeks, so both showed on the same day pages. Its source is playtimecompass.com, a third-party roundup, not the aquarium — which is also why its price reads '$0–$25'. Archive for the same reasons as a8e639d6, with the same recorded gap: no venue page exists to carry the hours.",
+    "evidence": "https://www.visitsealife.com/minnesota/",
+    "archive": true
+  }
+]

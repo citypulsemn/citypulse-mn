@@ -3,11 +3,15 @@ import {
   selectOngoing,
   selectLastChance,
   ongoingStripPlan,
+  alsoRunningPlan,
   throughLabel,
   ONGOING_CAP,
+  ALSO_RUNNING_CAP,
   MIN_LAST_CHANCE,
 } from "../ongoing";
 import type { EventRecord } from "../types";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 
 // Noon Chicago, Monday Jul 20 2026
 const NOW = new Date("2026-07-20T17:00:00Z");
@@ -25,6 +29,184 @@ function ev(overrides: Partial<EventRecord> = {}): EventRecord {
     ...overrides,
   };
 }
+
+describe("the /day page's honest-emptiness gates (rule 6, in JSX)", () => {
+  // The dishonest empty state — "Nothing on the calendar here yet" on a day with
+  // three exhibitions open — lived in JSX, and so does the fix. Re-ternarying the
+  // page would restore the exact bug with a green suite, so read the source.
+  const page = readFileSync(
+    join(__dirname, "..", "..", "app", "day", "[date]", "page.tsx"),
+    "utf8",
+  );
+
+  it("the empty state fires only when BOTH the day list and the shelf are empty", () => {
+    // once for the header count line, once for the empty-state block
+    const gate = /events\.length === 0 && alsoRunning\.total === 0/g;
+    expect((page.match(gate) ?? []).length).toBe(2);
+    // and the old unconditional ternary is gone
+    expect(page).not.toMatch(/\{events\.length === 0\s*\n?\s*\?/);
+  });
+
+  it("the shelf renders on its own total, not on the day list's", () => {
+    expect(page).toContain("{alsoRunning.total > 0 && (");
+  });
+
+  it("the onward link does not quote a count /ongoing cannot honour", () => {
+    expect(page).toContain("More ongoing runs");
+    expect(page).not.toMatch(/See all \{alsoRunning\.total\}/);
+  });
+});
+
+describe("alsoRunningPlan — the day-page shelf (5 Nov 2026)", () => {
+  // The day being looked at. Everything below is relative to it.
+  const DAY = "2026-07-20";
+
+  // A run is "also running" only when the day surfaces cannot show it, so the
+  // fixtures are built around the 14-day cap, not around NOW.
+  const run = (start: string, end: string, over: Partial<EventRecord> = {}) =>
+    ev({ start: `${start}T10:00`, end: "", multiDayEnd: `${end}T17:00`, ...over });
+
+  it("an over-cap run that is open on the day is on the shelf", () => {
+    const plan = alsoRunningPlan([run("2026-07-01", "2026-08-15")], DAY);
+    expect(plan.total).toBe(1);
+    expect(plan.items[0].endDay).toBe("2026-08-15");
+  });
+
+  it("an IN-cap run is not — the day query already shows it", () => {
+    // 14 days inclusive, date diff 13: the longest run the day query admits.
+    expect(alsoRunningPlan([run("2026-07-15", "2026-07-28")], DAY).total).toBe(0);
+  });
+
+  it("THE BOUNDARY: diff 13 is the day query's, diff 14 is the shelf's", () => {
+    // Nothing may fall between the two predicates, and nothing may be in both.
+    expect(alsoRunningPlan([run("2026-07-10", "2026-07-23")], DAY).total).toBe(0); // diff 13
+    expect(alsoRunningPlan([run("2026-07-10", "2026-07-24")], DAY).total).toBe(1); // diff 14
+  });
+
+  it("a run that STARTS on the day is not — the main list has it", () => {
+    expect(alsoRunningPlan([run("2026-07-20", "2026-09-30")], DAY).total).toBe(0);
+  });
+
+  it("a run that closed before the day is not", () => {
+    expect(alsoRunningPlan([run("2026-05-01", "2026-07-19")], DAY).total).toBe(0);
+  });
+
+  it("…but one closing ON the day is — that is the one worth saying", () => {
+    const plan = alsoRunningPlan([run("2026-05-01", "2026-07-20")], DAY);
+    expect(plan.total).toBe(1);
+    expect(throughLabel(plan.items[0].endDay, new Date("2026-07-20T17:00:00Z"))).toBe(
+      "Last day today",
+    );
+  });
+
+  it("a single-day event is never on the shelf", () => {
+    expect(
+      alsoRunningPlan([ev({ start: "2026-07-20T10:00", end: "", multiDayEnd: null })], DAY).total,
+    ).toBe(0);
+  });
+
+  it("drafts and archived rows never reach it", () => {
+    const rows = [
+      run("2026-07-01", "2026-08-15", { status: "draft" }),
+      run("2026-07-01", "2026-08-15", { status: "archived" }),
+    ];
+    expect(alsoRunningPlan(rows, DAY).total).toBe(0);
+  });
+
+  it("ENDING SOONEST FIRST — last chance is the only urgent thing here", () => {
+    const rows = [
+      run("2026-01-01", "2026-12-31", { title: "Long" }),
+      run("2026-07-01", "2026-07-25", { title: "Closing" }),
+      run("2026-06-01", "2026-09-01", { title: "Middle" }),
+    ];
+    expect(alsoRunningPlan(rows, DAY).items.map((o) => o.event.title)).toEqual([
+      "Closing",
+      "Middle",
+      "Long",
+    ]);
+  });
+
+  it("caps the items but reports the honest total, so the link can say it", () => {
+    const rows = Array.from({ length: 10 }, (_, i) =>
+      run("2026-06-01", `2026-08-${String(i + 10).padStart(2, "0")}`),
+    );
+    const plan = alsoRunningPlan(rows, DAY);
+    expect(plan.items).toHaveLength(ALSO_RUNNING_CAP);
+    expect(plan.total).toBe(10);
+  });
+
+  it("an over-cap span carried by end_at instead of multiDayEnd counts", () => {
+    const byEnd = ev({ start: "2026-07-01T10:00", end: "2026-08-15T17:00", multiDayEnd: null });
+    expect(alsoRunningPlan([byEnd], DAY).total).toBe(1);
+  });
+
+  // ── COMPLEMENTARITY — the property the whole design rests on ──────────────
+  // The /day page renders the day query's rows AND this shelf. If the two
+  // predicates overlap, a run shows twice; if they leave a gap, a run that is
+  // genuinely open shows nowhere. This mirrors the SQL in TS and checks both
+  // directions across every offset around the cap.
+  it("no row can land in both lists, and no open run lands in neither", () => {
+    const dayNumOf = (k: string) =>
+      Date.UTC(+k.slice(0, 4), +k.slice(5, 7) - 1, +k.slice(8, 10)) / 86_400_000;
+    // readEventsForDay, in TS. Mirrors the SQL's span derivation from BOTH
+    // sources — a sweep that only understood multiDayEnd would stay green over
+    // an end_at-carried divergence forever, which is this project's own
+    // "pure tests miss the caller" shape.
+    const spanEndOf = (e: EventRecord) => {
+      const s = e.start.slice(0, 10);
+      if (e.multiDayEnd && e.multiDayEnd.slice(0, 10) > s) return e.multiDayEnd.slice(0, 10);
+      if (e.end && e.end.slice(0, 10) > s) return e.end.slice(0, 10);
+      return null;
+    };
+    const dayQueryAdmits = (e: EventRecord) => {
+      const s = e.start.slice(0, 10);
+      if (s === DAY) return true;
+      const end = spanEndOf(e);
+      if (!end) return false;
+      return s <= DAY && end >= DAY && dayNumOf(end) - dayNumOf(s) <= 13;
+    };
+
+    const rows: EventRecord[] = [];
+    for (let startOffset = -40; startOffset <= 2; startOffset += 1) {
+      for (const len of [1, 2, 13, 14, 15, 16, 40, 200]) {
+        const s = new Date(Date.UTC(2026, 6, 20) + startOffset * 86_400_000)
+          .toISOString()
+          .slice(0, 10);
+        const e = new Date(Date.UTC(2026, 6, 20) + (startOffset + len - 1) * 86_400_000)
+          .toISOString()
+          .slice(0, 10);
+        if (len === 1) {
+          rows.push(ev({ start: `${s}T10:00`, end: "", multiDayEnd: null }));
+          continue;
+        }
+        rows.push(run(s, e));
+        // the SAME span carried by end_at instead of multi_day_end
+        rows.push(ev({ start: `${s}T10:00`, end: `${e}T17:00`, multiDayEnd: null }));
+        // and the shape the two SQL clauses used to disagree about: a
+        // multiDayEnd pinned to the start day while end_at runs on
+        rows.push(ev({ start: `${s}T10:00`, end: `${e}T17:00`, multiDayEnd: `${s}T23:00` }));
+      }
+    }
+
+    const shelf = new Set(
+      alsoRunningPlan(rows, DAY, rows.length).items.map((o) => o.event.id),
+    );
+    const inDayList = new Set(rows.filter(dayQueryAdmits).map((r) => r.id));
+
+    // 1. disjoint
+    for (const id of shelf) expect(inDayList.has(id)).toBe(false);
+
+    // 2. no gap: every row genuinely open on DAY is in exactly one of them
+    for (const r of rows) {
+      const s = r.start.slice(0, 10);
+      const end = spanEndOf(r) ?? s;
+      const open = s <= DAY && end >= DAY;
+      expect(shelf.has(r.id) || inDayList.has(r.id), `${r.id} ${s}->${end}`).toBe(open);
+    }
+    expect(shelf.size).toBeGreaterThan(0);
+    expect(inDayList.size).toBeGreaterThan(0);
+  });
+});
 
 describe("selectOngoing — boundary days", () => {
   it("ends today → included, labeled 'Last day today'", () => {

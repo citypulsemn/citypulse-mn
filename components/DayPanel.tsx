@@ -9,11 +9,17 @@ import type { EventRecord } from "@/lib/types";
 export function DayPanel({
   dateKey,
   events,
+  alsoRunning,
+  alsoRunningTotal,
   onPick,
   onClose,
 }: {
   dateKey: string;
   events: EventRecord[];
+  /** Long runs on this day that the capped day rule cannot show — same planner
+   *  as /day/[date], so the two surfaces cannot answer differently (R1.7b). */
+  alsoRunning: EventRecord[];
+  alsoRunningTotal: number;
   onPick: (ev: EventRecord) => void;
   onClose: () => void;
 }) {
@@ -24,6 +30,31 @@ export function DayPanel({
   // only recovers WHERE the boundary is so the leading run of already-running
   // events gets a heading instead of just looking out of clock order.
   const { ongoing, timed } = splitDayEvents(events, dateKey);
+
+  const card = (ev: EventRecord) => {
+    const c = CATEGORIES[ev.category];
+    return (
+      <button className="daycard" key={ev.id} onClick={() => onPick(ev)}>
+        <div className="time">
+          {ev.start.slice(0, 10) < dateKey ? (
+            <span className="run-badge">{dayTimeLabel(ev, dateKey)}</span>
+          ) : (
+            dayTimeLabel(ev, dateKey)
+          )}
+        </div>
+        <div className="dc-body">
+          <div className="dc-title">{ev.title}</div>
+          <div className="dc-meta">
+            {ev.venue} · {ev.city} · {ev.price}
+          </div>
+          <span className="catbadge" style={{ color: c.color }}>
+            <span className="dot" style={{ background: c.color }} />
+            {c.label}
+          </span>
+        </div>
+      </button>
+    );
+  };
 
   return (
     <div className="overlay" onClick={(ev) => ev.target === ev.currentTarget && onClose()}>
@@ -38,7 +69,7 @@ export function DayPanel({
           </div>
         </div>
         <div className="marquee-body">
-          {events.length === 0 ? (
+          {events.length === 0 && alsoRunning.length === 0 ? (
             <div className="empty-day">
               No events match your filters on this day.
               <br />
@@ -56,31 +87,22 @@ export function DayPanel({
                   {group.head}
                 </h3>
               ) : null,
-              ...group.list.map((ev) => {
-              const c = CATEGORIES[ev.category];
-              return (
-                <button className="daycard" key={ev.id} onClick={() => onPick(ev)}>
-                  <div className="time">
-                    {ev.start.slice(0, 10) < dateKey ? (
-                      <span className="run-badge">{dayTimeLabel(ev, dateKey)}</span>
-                    ) : (
-                      dayTimeLabel(ev, dateKey)
-                    )}
-                  </div>
-                  <div className="dc-body">
-                    <div className="dc-title">{ev.title}</div>
-                    <div className="dc-meta">
-                      {ev.venue} · {ev.city} · {ev.price}
-                    </div>
-                    <span className="catbadge" style={{ color: c.color }}>
-                      <span className="dot" style={{ background: c.color }} />
-                      {c.label}
-                    </span>
-                  </div>
-                </button>
-              );
-              }),
+              ...group.list.map(card),
             ])
+          )}
+
+          {alsoRunning.length > 0 && (
+            <>
+              <h3 className="day-group-head">Also running</h3>
+              {alsoRunning.map(card)}
+              {alsoRunningTotal > alsoRunning.length && (
+                /* See the /day page: /ongoing is today-relative and capped, so this
+                   link does not quote a count it cannot honour. */
+                <a className="more-day-all" href="/ongoing">
+                  More ongoing runs →
+                </a>
+              )}
+            </>
           )}
         </div>
       </div>

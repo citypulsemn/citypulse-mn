@@ -20,6 +20,32 @@ The dev container has **no database** (all DB paths ship pre-wrapped and are exe
 ## 5. True spans, not capped expansions
 `daysSpanned` caps at `EXPAND_MAX_DAYS` (14) to keep the calendar grid sane. Any surface asking "is this running on day X?" uses TRUE span intersection (`spanEnd`), never the capped expansion. **Origin:** the 17-day fair invisible on /this-weekend; encoded as regression tests there and in lib/ongoing.
 
+**Broken a third time, 5 Nov 2026 — and this time the cause was removed.** `isUpcoming`,
+the one predicate behind every venue / city / neighborhood page, their index counts and
+the sitemap's supply test, read `daysSpanned(ev).at(-1)`. For an over-cap run that is the
+START day, so every run longer than two weeks read as finished on its second day: measured
+through the callers on live data, 31 of 600 published rows, with the Grinch at Children's
+Theatre among them and two venue pages claiming they had nothing on while an exhibition ran
+inside them. The first two breaks (R1.5 on /this-weekend, then lib/ongoing) each fixed
+themselves locally and left the shared predicate alone.
+
+The rule generator was **duplication**: the span derivation existed twice, as
+`lib/multiday.ts spanEnd` and inlined in `daysSpanned`, each commented as a mirror of the
+other — so a new surface reached for whichever was nearest, and `daysSpanned`'s copy has a
+cap welded on. In the record read path it now lives once, as `lib/dates.ts spanEndISO`;
+`spanEnd` delegates to it and a test compares the two across ten shapes. **If you add a
+surface, ask `spanEndISO` / `spanEnd` whether a run is on, and `daysSpanned` only when you
+are painting grid cells.**
+
+**THREE derivations still cannot delegate, so change them by hand with it.** Two successive
+reviews on 5 Nov caught this paragraph undercounting — first saying one, then two, while the
+day-page shelf was adding another in the same working tree. Count them before you trust this
+list: `lib/events.ts readEventsForDay` re-expresses the rule in SQL with `EXPAND_MAX_DAYS`
+hardcoded as `<= 13`; `lib/events.ts readAlsoRunningForDay` does it again with the cap
+inverted to `> 13`; and `lib/event-view.ts` takes a string-max of start/end/multiDayEnd with
+no later-date guard and no late-night rule (`eventTimeState`, live on the event page).
+See [DEPLOY-ISUPCOMING-OVERCAP.md](deploy-history/DEPLOY-ISUPCOMING-OVERCAP.md).
+
 ## 6. Honest emptiness
 Strips self-hide below minimum (trending, ongoing); pages render honest empty states; generators mark thin cards incomplete rather than padding. No sad placeholders, no fake content, no silent filtering — exclusions are reported with reasons.
 

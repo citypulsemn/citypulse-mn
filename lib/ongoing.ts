@@ -1,5 +1,6 @@
 import type { EventRecord } from "./types";
 import { spanEnd } from "./multiday";
+import { EXPAND_MAX_DAYS } from "./dates";
 import { chiDayKey } from "./weekend";
 
 /**
@@ -61,6 +62,74 @@ export function selectOngoing(events: EventRecord[], now: Date): OngoingEvent[] 
     (a, b) => a.endDay.localeCompare(b.endDay) || a.event.start.localeCompare(b.event.start),
   );
   return out.slice(0, ONGOING_CAP);
+}
+
+// ── The day-page shelf ──────────────────────────────────────────────────────
+
+export const ALSO_RUNNING_CAP = 6;
+
+export interface AlsoRunningPlan {
+  /** Capped, ending-soonest first — what the shelf renders. */
+  items: OngoingEvent[];
+  /** How many qualify in total, so the shelf can link on to /ongoing honestly. */
+  total: number;
+}
+
+/**
+ * ALSO RUNNING — the long runs that are genuinely on for `dayKey` and that the
+ * day surfaces cannot show.
+ *
+ * WHY THIS EXISTS. A run longer than EXPAND_MAX_DAYS appears on its start day
+ * and nowhere else: the grid would otherwise paint a 233-day exhibition across
+ * 233 cells (the July flood). Correct for the grid, but it left /day/<date>
+ * printing "Nothing on the calendar here yet" on days when an exhibition, a
+ * play and a flower show were all open — rule 6, honest emptiness, failing on
+ * the one page people reach from "things to do in minneapolis <date>".
+ *
+ * COMPLEMENTARY BY CONSTRUCTION. The day query shows a row when its start day
+ * IS `dayKey`, or when it spans `dayKey` with a date diff <= EXPAND_MAX_DAYS - 1.
+ * This takes exactly the rest: started STRICTLY BEFORE `dayKey`, still running
+ * by TRUE `spanEnd` (never the capped expansion — rule 5), and longer than the
+ * cap. No row can land in both lists, and a test pins that.
+ *
+ * ORDER: ending soonest first. "Last day" is the only urgent thing about a run
+ * that has been open for two months.
+ *
+ * Both callers end here — the /day page (over a prefiltered query) and the
+ * homepage day panel (over the whole client set) — so the two surfaces answer
+ * the same question the same way. That is the R1.7b lesson: when a server day
+ * surface and the SPA day panel apply different membership rules, they drift.
+ */
+export function alsoRunningPlan(
+  events: EventRecord[],
+  dayKey: string,
+  cap = ALSO_RUNNING_CAP,
+): AlsoRunningPlan {
+  const out: OngoingEvent[] = [];
+
+  for (const e of events) {
+    if (e.status !== "published") continue;
+    const startDay = e.start.slice(0, 10);
+    // On its own start day the main list already carries it.
+    if (!(startDay < dayKey)) continue;
+    const end = spanEnd(e);
+    if (!end) continue; // single-day events are never "also running"
+    const endDay = end.slice(0, 10);
+    if (endDay < dayKey) continue; // closed before this day
+    // Only what the day query cannot show. This is the exact complement of its
+    // `::date <= 13` clause, expressed from the same constant.
+    if (dayNum(endDay) - dayNum(startDay) <= EXPAND_MAX_DAYS - 1) continue;
+    out.push({ event: e, endDay });
+  }
+
+  out.sort(
+    (a, b) =>
+      a.endDay.localeCompare(b.endDay) ||
+      a.event.start.localeCompare(b.event.start) ||
+      a.event.title.localeCompare(b.event.title),
+  );
+
+  return { items: out.slice(0, cap), total: out.length };
 }
 
 /** "Through Aug 2" / "Last day today" for the card eyebrow. */

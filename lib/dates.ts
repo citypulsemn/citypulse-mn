@@ -169,11 +169,6 @@ export function windowLabel(win: DateWindow): string {
 
 
 /**
- * The day keys an event occupies. One for a normal event; every day of the run
- * for a multi-day festival (roadmap 4.4). Capped so a bad `multi_day_end` can't
- * balloon the calendar.
- */
-/**
  * Spans longer than this show on their start day only. A 12-day State Fair
  * belongs on every day it runs; a three-month museum exhibition repeated on
  * ninety calendar cells buries everything else (this actually happened — the
@@ -181,23 +176,66 @@ export function windowLabel(win: DateWindow): string {
  */
 export const EXPAND_MAX_DAYS = 14;
 
-export function daysSpanned(ev: EventRecord): string[] {
-  const start = dkey(evDate(ev));
-  // Same rule as lib/multiday.ts spanEnd: a span can come from the 4.4 collapse
-  // (multiDayEnd) OR from the event's own end landing on a later date.
-  // Mirrors lib/multiday.ts spanEnd, including the late-night rule (an event
-  // ending before 6 AM the next morning is not a two-day span).
-  const startDay = ev.start.slice(0, 10);
-  let endISO: string | null = null;
-  if (ev.multiDayEnd && ev.multiDayEnd.slice(0, 10) > startDay) {
-    endISO = ev.multiDayEnd;
-  } else if (ev.end && ev.end.slice(0, 10) > startDay) {
+/** The loose shape the span rule needs: the 4.4 collapse holds rows, not records. */
+export type Spannable = Pick<EventRecord, "start" | "multiDayEnd"> & { end?: string | null };
+
+/**
+ * THE SPAN-END RULE for everything that reads an EventRecord. The last day an
+ * event runs, from EITHER source of span:
+ *   - `multiDayEnd`, written by the 4.4 collapse (row-per-day festivals), or
+ *   - the event's own `end`, when it lands on a later DATE than `start`.
+ * Null for an ordinary single-day event.
+ *
+ * WHY IT LIVES HERE. It used to exist twice in the record read path — as
+ * lib/multiday.ts `spanEnd` and again inlined in `daysSpanned` below — each with
+ * a comment saying it mirrored the other. ENGINEERING rule 5 ("true spans, never
+ * capped expansions") has now been broken three times by a surface reaching for
+ * the capped list instead of the true end: /this-weekend (R1.5), /ongoing, and
+ * `isUpcoming` below. lib/multiday.ts already imports from this module, so this
+ * is the end of the graph that can hold the rule without a cycle. `spanEnd`
+ * delegates here, and a parity test pins the two together.
+ *
+ * IT IS NOT THE ONLY COPY IN THE CODEBASE, and two successive reviews on 5 Nov
+ * caught this comment undercounting — first claiming it was the only copy, then
+ * saying two when the day-page shelf had just added a third. THREE more
+ * derivations are live and cannot call this one. Change them with it:
+ *   - lib/events.ts readEventsForDay re-expresses the whole thing in SQL, the
+ *     sub-6-AM late-night carve-out included, plus EXPAND_MAX_DAYS hardcoded as
+ *     `<= 13`. A day query runs in Postgres; it cannot import this.
+ *   - lib/events.ts readAlsoRunningForDay is the fourth copy, the same SQL with
+ *     the cap inverted to `> 13`, feeding the day page's "Also running" shelf.
+ *   - lib/event-view.ts takes a plain string-max of start/end/multiDayEnd with
+ *     NO later-date guard and NO late-night rule (`eventTimeState`, live on the
+ *     event page via EventDetailBody; `isEnded`, tests only). That one is
+ *     deliberately the conservative archive-frame answer, not a bug — but it is
+ *     a third answer to the same question.
+ */
+export function spanEndISO(ev: Spannable): string | null {
+  const startDay = (ev.start ?? "").slice(0, 10);
+  if (ev.multiDayEnd && ev.multiDayEnd.slice(0, 10) > startDay) return ev.multiDayEnd;
+  if (ev.end && ev.end.slice(0, 10) > startDay) {
+    // An event ending in the small hours of the next morning is a LATE NIGHT
+    // (a 9 PM show ending at 1 AM), not a two-day festival. Only an end at
+    // 6 AM or later on a following day counts as a real span. Noon-anchored so
+    // a DST jump cannot shift the date.
     const nextDay = new Date(`${startDay}T12:00:00`);
     nextDay.setDate(nextDay.getDate() + 1);
     const isNextDay = ev.end.slice(0, 10) === dkey(nextDay);
     const smallHours = Number(ev.end.slice(11, 13) || "0") < 6;
-    if (!(isNextDay && smallHours)) endISO = ev.end;
+    if (!(isNextDay && smallHours)) return ev.end;
   }
+  return null;
+}
+
+/**
+ * The day keys an event occupies. One for a normal event; every day of the run
+ * for a multi-day festival (roadmap 4.4). CAPPED, deliberately — this answers
+ * the calendar grid's question ("which cells do I paint?"), which is NOT the
+ * same question as "is this still on" (see `isUpcoming`).
+ */
+export function daysSpanned(ev: EventRecord): string[] {
+  const start = dkey(evDate(ev));
+  const endISO = spanEndISO(ev);
   if (!endISO) return [start];
   const endKey = endISO.slice(0, 10);
   if (endKey <= start) return [start];
@@ -230,7 +268,28 @@ export function isUpcoming(ev: EventRecord, now: Date): boolean {
   // Validity only. `new Date` here never meets a real instant, so it is not the
   // rule-10 comparison that used to live two lines below it.
   if (Number.isNaN(new Date(ev.start).getTime())) return false;
-  const lastDay = daysSpanned(ev).at(-1)!; // always ≥ 1 entry (the start day)
+  // RULE 5 — TRUE SPANS, NEVER CAPPED EXPANSIONS (fixed 5 Nov 2026). This line
+  // read `daysSpanned(ev).at(-1)`, and daysSpanned returns the START DAY ALONE
+  // for a run longer than EXPAND_MAX_DAYS so that a three-month exhibition can't
+  // paint ninety calendar cells. Reading the last entry of that list therefore
+  // asked the GRID's question in place of this one, and every run over 14 days
+  // read as finished from its SECOND DAY.
+  //
+  // Measured THROUGH THE CALLERS on live data, 5 Nov 2026: of 600 published
+  // rows, 530 read as upcoming and 561 do now — 31 rows were running that day
+  // and invisible here, and nothing was lost. The Grinch at Children's Theatre
+  // was one. TWO venue pages said they had nothing on while an exhibition ran
+  // inside them (Minnesota Children's Museum, Minnesota Zoo) and four more
+  // under-counted; the /venues index and sitemap.xml share this predicate, so
+  // those two pages went unadvertised as well. Honest caveat, recorded with the
+  // fix: 7 of the 31 are the daily-admission rows that are not events at all and
+  // 6 are duplicate rows of 4 productions, so ~18 distinct real things come back.
+  //
+  // The non-span case keeps the old value exactly: daysSpanned's first entry is
+  // `dkey(evDate(ev))`, and its `endKey <= start` guard is mirrored here.
+  const startKey = dkey(evDate(ev));
+  const endKey = spanEndISO(ev)?.slice(0, 10);
+  const lastDay = endKey && endKey > startKey ? endKey : startKey;
   // RULE 10 — WALLS TO WALLS (fixed 30 Oct 2026). This used to be
   // `new Date(\`${lastDay}T23:59\`).getTime() >= now.getTime()`. That parses a
   // naive Chicago wall string in the SERVER's zone, which on Vercel is UTC, so

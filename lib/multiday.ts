@@ -1,5 +1,5 @@
 import type { EventRecord } from "./types";
-import { MONTHS } from "./dates";
+import { MONTHS, spanEndISO, type Spannable } from "./dates";
 
 /**
  * MULTI-DAY EVENTS & DUPLICATES (roadmap 4.4).
@@ -750,8 +750,6 @@ export function staleSpanIds(rows: CollapseRow[]): string[] {
 
 // ── Display ───────────────────────────────────────────────────────────────
 
-type Spannable = Pick<EventRecord, "start" | "multiDayEnd"> & { end?: string };
-
 /**
  * The last day an event runs, from EITHER source of span:
  *  - `multiDayEnd`, set by the 4.4 collapse (row-per-day festivals), or
@@ -762,17 +760,12 @@ type Spannable = Pick<EventRecord, "start" | "multiDayEnd"> & { end?: string };
  * Null for ordinary single-day events.
  */
 export function spanEnd(ev: Spannable): string | null {
-  if (ev.multiDayEnd && dayOf(ev.multiDayEnd) > dayOf(ev.start)) return ev.multiDayEnd;
-  if (ev.end && dayOf(ev.end) > dayOf(ev.start)) {
-    // An event ending in the small hours of the next morning is a LATE NIGHT
-    // (a 9 PM show ending at 1 AM), not a two-day festival. Only an end at
-    // 6 AM or later on a following day counts as a real span.
-    const nextMorning =
-      dayNumber(ev.end) - dayNumber(ev.start) === 1 &&
-      Number((ev.end.slice(11, 13) || "0")) < 6;
-    if (!nextMorning) return ev.end;
-  }
-  return null;
+  // ONE COPY OF THE RULE (5 Nov 2026). This body was a second, hand-kept copy of
+  // the derivation inlined in lib/dates.ts daysSpanned — each annotated as a
+  // mirror of the other, which is how rule 5 kept getting broken. The rule now
+  // lives in lib/dates.ts, which this module already imported for MONTHS, so
+  // there is no cycle and nothing left to drift.
+  return spanEndISO(ev);
 }
 
 /** True when an event spans more than one day. */

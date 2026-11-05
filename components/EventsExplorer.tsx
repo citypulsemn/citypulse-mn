@@ -39,6 +39,7 @@ import { FilterPanel } from "./FilterPanel";
 import { CalendarView } from "./CalendarView";
 import { ListView } from "./ListView";
 import { DayPanel } from "./DayPanel";
+import { alsoRunningPlan } from "@/lib/ongoing";
 import { EventDetail } from "./EventDetail";
 
 // Map is browser-only (Mapbox GL touches window); never server-render it.
@@ -358,6 +359,17 @@ export function EventsExplorer({
     );
   }, [filtered, active, dayKey]);
 
+  // The long runs the capped rule above cannot show. Same planner as
+  // /day/[date], fed the same category filter, so the panel and the server day
+  // page agree — the R1.7b lesson, applied before the two could drift.
+  const dayAlsoRunning = useMemo(() => {
+    if (!dayKey) return { items: [], total: 0 };
+    return alsoRunningPlan(
+      filtered.filter((ev) => active.has(ev.category)),
+      dayKey,
+    );
+  }, [filtered, active, dayKey]);
+
   // Log search terms (no-op until roadmap 1.4 wires analytics).
   useEffect(() => {
     const q = deferredQuery.trim();
@@ -642,6 +654,8 @@ export function EventsExplorer({
         <DayPanel
           dateKey={dayKey}
           events={dayEvents}
+          alsoRunning={dayAlsoRunning.items.map((o) => o.event)}
+          alsoRunningTotal={dayAlsoRunning.total}
           onPick={(ev) => openDetail(ev, "calendar")}
           onClose={() => setDayKey(null)}
         />

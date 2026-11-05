@@ -9,6 +9,7 @@ import {
   isFocus,
   rangeWindow,
 } from "@/lib/dates";
+import { alsoRunningPlan } from "@/lib/ongoing";
 import type { CategoryKey, EventRecord, ViewState } from "@/lib/types";
 
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -41,10 +42,15 @@ export function CalendarView({
   for (let d = 1; d <= daysIn; d++) {
     const k = dkey(new Date(year, month, d));
     const evs = byDay[k] ?? [];
+    // The cell's PILLS stay capped — that is the whole point of EXPAND_MAX_DAYS.
+    // But the panel this cell opens now shows long runs too, so a cell with none
+    // of its own must not render dimmed and announce "no events" over a panel
+    // holding six. Count only; nothing extra is drawn.
+    const alsoCount = evs.length === 0 ? alsoRunningPlan(events, k, 1).total : 0;
     const isToday = k === todayKey;
     let focusClass = "";
     if (focus) focusClass = classifyDay(year, month, d, win);
-    const dimClass = !focus && evs.length === 0 ? "dim" : "";
+    const dimClass = !focus && evs.length === 0 && alsoCount === 0 ? "dim" : "";
 
     cells.push(
       <button
@@ -54,7 +60,9 @@ export function CalendarView({
         aria-label={
           evs.length
             ? `${d}: ${evs.length} event${evs.length > 1 ? "s" : ""}`
-            : `${d}: no events`
+            : alsoCount
+              ? `${d}: ${alsoCount} ongoing run${alsoCount > 1 ? "s" : ""}`
+              : `${d}: no events`
         }
       >
         <div className="dnum">{d}</div>

@@ -33,10 +33,23 @@ describe("hardening — a configured-DB read failure must NOT cache sample/empty
   });
 
   it("list reads cap description to a preview (egress); the detail page keeps full text", () => {
-    // description is ~half the getEvents payload — the 3 list reads (readAllPublished,
-    // readEventsForDay, getEventsByIds) truncate it; readEvent (detail page) does not.
-    expect((src.match(/left\(description, 179\) \|\| '…'/g) ?? []).length).toBe(3);
+    // description is ~half the getEvents payload — the 4 list reads (readAllPublished,
+    // readEventsForDay, readAlsoRunningForDay, getEventsByIds) truncate it; readEvent
+    // (detail page) does not. The count went 3 -> 4 on 5 Nov 2026 with the day-page
+    // "Also running" shelf, which is a list read and truncates like its siblings.
+    expect((src.match(/left\(description, 179\) \|\| '…'/g) ?? []).length).toBe(4);
     expect(src).toContain("ticket_url, description, image"); // readEvent — the one full read
+  });
+
+  // A bare count cannot tell "a new list read truncates" from "a new list read
+  // forgot to" — it just stays at 3 and passes. So name the newest one.
+  it("the also-running day read truncates too — it is a list read", () => {
+    const body = src.slice(
+      src.indexOf("async function readAlsoRunningForDay"),
+      src.indexOf("The page-facing reads"),
+    );
+    expect(body.length).toBeGreaterThan(200); // the slice actually found the function
+    expect(body).toContain("left(description, 179)");
   });
 });
 

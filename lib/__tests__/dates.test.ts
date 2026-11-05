@@ -10,7 +10,8 @@ import {
 import { sampleEvents } from "../sample-events";
 import { CATEGORY_KEYS } from "../categories";
 import type { CategoryKey, EventRecord, ViewState } from "../types";
-import { isUpcoming } from "../dates";
+import { isUpcoming, daysSpanned, spanEndISO, EXPAND_MAX_DAYS } from "../dates";
+import { spanEnd } from "../multiday";
 
 // Deterministic "now": Sunday, June 14, 2026, noon.
 const NOW = new Date("2026-06-14T12:00:00");
@@ -209,6 +210,134 @@ describe("isUpcoming (UX9 span-aware index/detail predicate)", () => {
       expect(isUpcoming(janShow, new Date("2026-01-16T04:00:00Z"))).toBe(true); // 22:00 Chicago
       expect(isUpcoming(janShow, new Date("2026-01-16T06:30:00Z"))).toBe(false); // 00:30 Chicago
     });
+  });
+});
+
+describe('over-cap runs: the grid question is not "is it still on" (rule 5, 5 Nov 2026)', () => {
+  // 12:00 Chicago on 5 Nov 2026 (CST, UTC-6), pinned with Z so this means the
+  // same thing on a Chicago laptop and on CI (ENGINEERING rule 3).
+  const NOV5 = new Date("2026-11-05T18:00:00Z");
+  const mk = (over: Partial<EventRecord>): EventRecord => ({ ...sampleEvents[0], ...over });
+
+  // Real rows, measured on the live site that morning. The span lives in
+  // multi_day_end and end_at is cleared — but a cleared end_at does NOT reach
+  // the client as "": lib/events.ts rowToEvent does `end: r.end ?? r.start`, so
+  // 207 published rows carry end === start. These fixtures use that real shape,
+  // not an empty string (a review caught the earlier comment claiming otherwise).
+  const fallFlower = mk({ start: "2026-10-23T10:00", end: "2026-10-23T10:00", multiDayEnd: "2026-11-29T23:59" }); // 38 days
+  const grinch = mk({ start: "2026-11-03T19:00", end: "2026-11-03T19:00", multiDayEnd: "2027-01-03T23:59" }); // 62 days
+  const monsters = mk({ start: "2026-05-23T09:00", end: "2026-05-23T09:00", multiDayEnd: "2027-01-10T23:59" }); // 233 days
+
+  it("a 38-day run is upcoming in the middle of it", () => {
+    expect(isUpcoming(fallFlower, NOV5)).toBe(true);
+  });
+
+  it("...and so are a 62-day and a 233-day run", () => {
+    expect(isUpcoming(grinch, NOV5)).toBe(true);
+    expect(isUpcoming(monsters, NOV5)).toBe(true);
+  });
+
+  it("THE ASYMMETRY, deliberately: those same rows paint ONE calendar cell", () => {
+    // Not a bug to fix next. daysSpanned answers "which grid cells do I paint",
+    // and a 233-day run painting 233 cells IS the flood incident
+    // (docs/deploy-history/HOTFIX-calendar-flood.md). isUpcoming asks a different
+    // question and must never borrow this answer again.
+    expect(daysSpanned(fallFlower)).toEqual(["2026-10-23"]);
+    expect(daysSpanned(monsters)).toEqual(["2026-05-23"]);
+  });
+
+  it("the cap boundary: 14 days and 15 days are BOTH still on, mid-run", () => {
+    // 14 days inclusive (date diff 13) is the longest run the grid expands; 15 is
+    // the first it collapses. The 14-day case was already right and is the
+    // control here. The 15-day one read as FINISHED from its second day.
+    const atCap = mk({ start: "2026-11-01T10:00", end: "", multiDayEnd: "2026-11-14T23:59" });
+    const pastCap = mk({ start: "2026-11-01T10:00", end: "", multiDayEnd: "2026-11-15T23:59" });
+    expect(daysSpanned(atCap)).toHaveLength(EXPAND_MAX_DAYS);
+    expect(daysSpanned(pastCap)).toEqual(["2026-11-01"]);
+    expect(isUpcoming(atCap, NOV5)).toBe(true);
+    expect(isUpcoming(pastCap, NOV5)).toBe(true);
+  });
+
+  it('an over-cap run that has CLOSED is not upcoming - the fix is not "always true"', () => {
+    const closed = mk({ start: "2026-08-01T10:00", end: "", multiDayEnd: "2026-11-04T23:59" });
+    expect(isUpcoming(closed, NOV5)).toBe(false);
+  });
+
+  it("an over-cap run is still on through its LAST day, and gone after it", () => {
+    const closesToday = mk({ start: "2026-08-01T10:00", end: "", multiDayEnd: "2026-11-05T17:00" });
+    // 22:00 Chicago on the closing day - rule 10 still holds through the new path
+    expect(isUpcoming(closesToday, new Date("2026-11-06T04:00:00Z"))).toBe(true);
+    // 00:30 Chicago the next day
+    expect(isUpcoming(closesToday, new Date("2026-11-06T06:30:00Z"))).toBe(false);
+  });
+
+  it("an over-cap span carried by end rather than multiDayEnd counts too", () => {
+    // Both sources of span - the divergence isUpcoming's docstring is about, now
+    // covered PAST the cap as well as inside it.
+    const byEnd = mk({ start: "2026-10-01T10:00", end: "2026-11-20T17:00", multiDayEnd: null });
+    expect(daysSpanned(byEnd)).toEqual(["2026-10-01"]); // grid: start day only
+    expect(isUpcoming(byEnd, NOV5)).toBe(true);
+  });
+});
+
+describe("spanEndISO - one rule, one home (5 Nov 2026)", () => {
+  const sp = (over: Record<string, unknown>) => ({
+    start: "2026-07-01T20:00",
+    end: "",
+    multiDayEnd: null as string | null,
+    ...over,
+  });
+
+  it("reads multiDayEnd, then a genuinely later end, else null", () => {
+    expect(spanEndISO(sp({ multiDayEnd: "2026-07-05T23:59" }))).toBe("2026-07-05T23:59");
+    expect(spanEndISO(sp({ end: "2026-07-05T17:00" }))).toBe("2026-07-05T17:00");
+    expect(spanEndISO(sp({ end: "2026-07-01T23:00" }))).toBeNull(); // same day
+    expect(spanEndISO(sp({}))).toBeNull();
+  });
+
+  it("multiDayEnd wins even when end lands later", () => {
+    expect(spanEndISO(sp({ end: "2026-07-09T17:00", multiDayEnd: "2026-07-05T23:59" }))).toBe(
+      "2026-07-05T23:59",
+    );
+  });
+
+  it("a multiDayEnd at or before the start day is not a span", () => {
+    expect(spanEndISO(sp({ multiDayEnd: "2026-07-01T23:59" }))).toBeNull();
+    expect(spanEndISO(sp({ multiDayEnd: "2026-06-28T23:59" }))).toBeNull();
+  });
+
+  it("THE LATE-NIGHT BOUNDARY: 05:59 next morning is one show, 06:00 is a span", () => {
+    expect(spanEndISO(sp({ end: "2026-07-02T05:59" }))).toBeNull();
+    expect(spanEndISO(sp({ end: "2026-07-02T06:00" }))).toBe("2026-07-02T06:00");
+    // two days later at 2 AM is a span, not a late night
+    expect(spanEndISO(sp({ end: "2026-07-03T02:00" }))).toBe("2026-07-03T02:00");
+  });
+
+  it("holds across both DST jumps - the boundary is a calendar day, not 24 hours", () => {
+    // spring forward 8 Mar 2026; fall back 1 Nov 2026
+    expect(spanEndISO(sp({ start: "2026-03-07T20:00", end: "2026-03-08T01:00" }))).toBeNull();
+    expect(spanEndISO(sp({ start: "2026-10-31T20:00", end: "2026-11-01T01:00" }))).toBeNull();
+    expect(spanEndISO(sp({ start: "2026-03-07T20:00", end: "2026-03-08T10:00" }))).toBe(
+      "2026-03-08T10:00",
+    );
+  });
+
+  it("lib/multiday spanEnd IS this function now - the two cannot drift (rule 5)", () => {
+    // The duplication was the rule-5 defect generator: two hand-kept copies, each
+    // commented as a mirror of the other. This pins the delegation.
+    const cases = [
+      sp({}),
+      sp({ multiDayEnd: "2026-07-05T23:59" }),
+      sp({ end: "2026-07-05T17:00" }),
+      sp({ end: "2026-07-02T05:59" }),
+      sp({ end: "2026-07-02T06:00" }),
+      sp({ end: "2026-07-03T02:00" }),
+      sp({ end: "2026-07-09T17:00", multiDayEnd: "2026-07-05T23:59" }),
+      sp({ multiDayEnd: "2026-06-28T23:59" }),
+      sp({ start: "2026-10-31T20:00", end: "2026-11-01T01:00" }),
+      sp({ start: "2026-05-23T09:00", multiDayEnd: "2027-01-10T23:59" }),
+    ];
+    for (const c of cases) expect(spanEnd(c)).toBe(spanEndISO(c));
   });
 });
 

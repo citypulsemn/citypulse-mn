@@ -260,6 +260,88 @@ async function readEventsForDay(dayKey: string): Promise<EventRecord[]> {
 }
 
 /**
+ * The long runs that are on for `dayKey` but that readEventsForDay deliberately
+ * refuses — its own query, so that query's R1.7b cap stays byte-identical and
+ * its source tripwire keeps passing.
+ *
+ * This is a PREFILTER, not the rule. The authority is lib/ongoing alsoRunningPlan,
+ * which both this page and the homepage day panel run over the result; the SQL
+ * just avoids shipping 600 rows to a day page. Hence `> 13` here mirroring the
+ * `<= 13` twenty lines up: the two clauses partition the same span derivation,
+ * and upsert-queries.test.ts pins both.
+ */
+async function readAlsoRunningForDay(dayKey: string): Promise<EventRecord[]> {
+  if (!sql) {
+    // Sample mode: hand the planner everything public and let it narrow. The
+    // planner applies the whole predicate anyway, so no rule lives here.
+    return sampleEvents.filter((e) => isPublicStatus(e.status));
+  }
+  try {
+    const rows = await sql<Row[]>`
+      select
+        id::text                                                            as id,
+        title, category, venue, address, city, lat, lng,
+        to_char(start_at at time zone 'America/Chicago', 'YYYY-MM-DD"T"HH24:MI') as start,
+        to_char(end_at   at time zone 'America/Chicago', 'YYYY-MM-DD"T"HH24:MI') as end,
+        price, price_tier, ticket_url,
+        case when length(description) > 180 then left(description, 179) || '…' else description end as description,
+        image, source_url, status,
+        to_char(multi_day_end at time zone 'America/Chicago', 'YYYY-MM-DD"T"HH24:MI') as multi_day_end,
+        all_day
+      from events
+      where status = 'published'
+        -- the same span derivation readEventsForDay uses, late-night rule included
+        and coalesce(multi_day_end, case
+              when to_char(end_at at time zone 'America/Chicago', 'YYYY-MM-DD')
+                 > to_char(start_at at time zone 'America/Chicago', 'YYYY-MM-DD')
+               and not (
+                 (end_at at time zone 'America/Chicago')::date
+                   = (start_at at time zone 'America/Chicago')::date + 1
+                 and extract(hour from end_at at time zone 'America/Chicago') < 6
+               )
+              then end_at end) is not null
+        -- STRICTLY before: on its start day the main day list already has it
+        and to_char(start_at at time zone 'America/Chicago', 'YYYY-MM-DD') < ${dayKey}
+        -- GUARDED, unlike the sibling. A bare coalesce(multi_day_end, end_at) prefers
+        -- multi_day_end even when it is NOT later than the start day, where
+        -- spanEndISO falls through to end_at — so the two would disagree about a row
+        -- with multi_day_end = its start day and a long end_at. Measured 5 Nov 2026:
+        -- 0 published rows have that shape, and lib/corrections.ts rejects only a
+        -- multi_day_end BEFORE the start, so it permits one equal to it. Guarded here;
+        -- readEventsForDay above still carries the bare form, which is the same latent
+        -- defect and is left for a change that can re-verify the day page on its own.
+        and to_char(case
+              when multi_day_end is not null
+               and to_char(multi_day_end at time zone 'America/Chicago', 'YYYY-MM-DD')
+                 > to_char(start_at at time zone 'America/Chicago', 'YYYY-MM-DD')
+              then multi_day_end else end_at end
+            at time zone 'America/Chicago', 'YYYY-MM-DD') >= ${dayKey}
+        -- the complement of the day query's cap
+        and (case
+              when multi_day_end is not null
+               and to_char(multi_day_end at time zone 'America/Chicago', 'YYYY-MM-DD')
+                 > to_char(start_at at time zone 'America/Chicago', 'YYYY-MM-DD')
+              then multi_day_end else end_at end
+            at time zone 'America/Chicago')::date
+          - (start_at at time zone 'America/Chicago')::date > 13
+      order by coalesce(multi_day_end, end_at) asc, start_at asc
+      -- the planner shows at most ALSO_RUNNING_CAP; this bounds the egress while
+      -- leaving the planner total honest well past anything a real day carries.
+      limit 60
+    `;
+    return rows.map(rowToEvent);
+  } catch (err) {
+    // RULE 1 — a broken instrument must not kill its panel. This differs from the
+    // sibling read on purpose: readEventsForDay IS the day page, so a failure
+    // there has to surface, but this shelf is decoration below it. The day page
+    // awaits both in one Promise.all, so re-throwing here would 500 a page whose
+    // own read succeeded. An empty shelf is the honest degraded state.
+    console.error("[events] getAlsoRunningForDay failed (shelf omitted):", err);
+    return [];
+  }
+}
+
+/**
  * The page-facing reads: cached and shared across every route and request. See
  * the EVENTS_TAG note above for why. unstable_cache keys getEventsForDay by its
  * dayKey argument automatically, so each day caches independently.
@@ -273,6 +355,12 @@ export const getEventsForDay = unstable_cache(readEventsForDay, ["events:for-day
   revalidate: EVENTS_TTL_SECONDS,
   tags: [EVENTS_TAG],
 });
+
+export const getAlsoRunningForDay = unstable_cache(
+  readAlsoRunningForDay,
+  ["events:also-running-for-day"],
+  { revalidate: EVENTS_TTL_SECONDS, tags: [EVENTS_TAG] },
+);
 
 /**
  * Uncached direct reads — for contexts that run OUTSIDE a Next request (the

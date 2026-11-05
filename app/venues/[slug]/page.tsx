@@ -20,6 +20,7 @@ import { neighborhoodOf } from "@/lib/neighborhoods";
 import { matchCitySlug } from "@/lib/cities";
 import { officialCalendars } from "@/lib/venue-sources";
 import { isUpcoming } from "@/lib/dates";
+import { venueHours, readOnLabel } from "@/lib/venue-hours";
 import { SITE_URL } from "@/lib/seo/site";
 import { jsonLdSafe } from "@/lib/seo/event-jsonld";
 
@@ -101,6 +102,14 @@ export default async function VenuePage({
   // an empty box asking to be filled is the placeholder rule 6 forbids.
   const calendars = officialCalendars(upcoming);
 
+  // OPENING HOURS (5 Nov 2026). The pipeline used to file these as events —
+  // "Daily General Admission", a month-long "run" with nothing happening in it.
+  // Those 8 rows are archived; the fact lives here, on the page where someone
+  // deciding whether to drive out can use it. Renders nothing for the 44 venues
+  // nobody has read the site of: an empty "Hours" box is the placeholder rule 6
+  // forbids. See lib/venue-hours.ts.
+  const hours = venueHours(v.slug);
+
   const placeJsonLd: Record<string, unknown> = {
     "@context": "https://schema.org",
     "@type": "Place",
@@ -155,6 +164,26 @@ export default async function VenuePage({
             height={400}
             loading="lazy"
           />
+        )}
+
+        {hours && (
+          <section className="venue-hours">
+            <h2 className="venue-hours-head">Hours</h2>
+            <ul className="venue-hours-list">
+              {hours.lines.map((line) => (
+                <li key={line}>{line}</li>
+              ))}
+            </ul>
+            {hours.admission && <p className="venue-hours-adm">{hours.admission}</p>}
+            {hours.note && <p className="venue-hours-note">{hours.note}</p>}
+            <p className="venue-hours-src">
+              From{" "}
+              <a href={hours.sourceUrl} target="_blank" rel="noopener noreferrer">
+                the venue&rsquo;s own page ↗
+              </a>
+              , read {readOnLabel(hours.readOn)}. Hours drift — check before you travel.
+            </p>
+          </section>
         )}
 
         {calendars.length > 0 && (

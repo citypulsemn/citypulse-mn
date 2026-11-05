@@ -1,0 +1,100 @@
+[
+  {
+    "id": "d39edbca-2493-41a5-ab1c-b6ac1437a247",
+    "why": "DUPLICATE RE-FIND — Twelve Kinds of Ice, 1 of 4 live rows. childrenstheatre.org/shows-and-tickets/ prints the run as 'October 13-November 22, 2026' on the Cargill Stage. The four live rows start 19 Oct, 26 Oct, 2 Nov and 6 Nov — one a week apart, every one ending 22 Nov. That is the weekly sweep minting a fresh row each pass against a run already in the database, clipped each time to the sweep window's own start. NONE of the four carries the real opening. Archive; the keeper is the archived row c218b44b, republished in this same file, which already holds 13 Oct – 22 Nov exactly.",
+    "evidence": "https://childrenstheatre.org/shows-and-tickets/",
+    "archive": true
+  },
+  {
+    "id": "14ef6c1e-0518-451b-9803-ca82bc6af67b",
+    "why": "DUPLICATE RE-FIND — Twelve Kinds of Ice, 2 of 4. Starts 26 Oct, a week after its sibling and thirteen days after the real opening; same 22 Nov close. Cites childrenstheatre.org/press-room/ rather than the show page, which is how it got a different start from the same source domain.",
+    "evidence": "https://childrenstheatre.org/shows-and-tickets/",
+    "archive": true
+  },
+  {
+    "id": "783f0d18-9308-4786-871c-95b151229659",
+    "why": "DUPLICATE RE-FIND — Twelve Kinds of Ice, 3 of 4. Starts 2 Nov, twenty days after the real opening; same 22 Nov close. These three overlapping rows are why /day/2026-11-20 showed this one show three times in six shelf slots.",
+    "evidence": "https://childrenstheatre.org/shows-and-tickets/",
+    "archive": true
+  },
+  {
+    "id": "b84df105-9d70-49c4-8e5c-97bf1b3edf69",
+    "why": "DUPLICATE RE-FIND — Twelve Kinds of Ice, 4 of 4, and the odd one: a SINGLE day, 6 Nov, titled 'Twelve Kinds of Ice (World Premiere Musical)' at 'Children's Theatre Company – Cargill Stage'. 6 November is inside the printed 13 Oct – 22 Nov run, and its source is joethemnmovieman.com, a blog, not the theatre. A single date inside a running show is not a separate event. HONEST NOTE: if 6 Nov turns out to be a distinct gala or opening-night performance the theatre lists separately, this is the row to bring back — nothing on childrenstheatre.org/shows-and-tickets/ says so.",
+    "evidence": "https://childrenstheatre.org/shows-and-tickets/",
+    "archive": true
+  },
+  {
+    "id": "c218b44b-523e-477c-a3fe-50a494b9decb",
+    "why": "THE KEEPER, AND IT WAS ALREADY IN THE DATABASE, ARCHIVED. This row holds 13 Oct 00:00 – 22 Nov 23:59, which is childrenstheatre.org/shows-and-tickets/ word for word: 'October 13-November 22, 2026'. It was created 21 Sep, last seen 21 Sep, and archived with NO admin_audit row — so an automated pass dropped it, and the four re-finds that replaced it all start late. Republishing is better than editing a live row's start onto 13 Oct, because that edit COLLIDES: event_key is sha256(title|venue|start day) and this row already owns that key. That collision is the whole reason to check before moving a date.",
+    "evidence": "https://childrenstheatre.org/shows-and-tickets/",
+    "publish": true
+  },
+  {
+    "id": "4416a767-2ed7-40f1-877e-aaa305717366",
+    "why": "DUPLICATE RE-FIND — Dr. Seuss's How the Grinch Stole Christmas!, a single 26 Dec row sitting inside the real run. childrenstheatre.org/shows-and-tickets/ prints 'November 3, 2026-January 3, 2027' on the UnitedHealth Group Stage, and the keeper abdc06be already carries exactly that, so it needs no edit at all. Archive this one only.",
+    "evidence": "https://childrenstheatre.org/shows-and-tickets/",
+    "archive": true
+  },
+  {
+    "id": "9a5dce68-3b6b-46d4-ad74-b3d3243ee06e",
+    "why": "DUPLICATE RE-FIND — Olalekan Jeyifous: Hydricosmic Litanies, 1 of 3 surplus. walkerart.org/exhibitions/ prints 'Aug 6, 2026–Jan 3, 2027'. This row claims 15 Oct – 13 Nov: both ends wrong, a sweep-window slice of a run that started in August. The keeper b6a756c8 already holds 6 Aug – 3 Jan exactly and needs no edit.",
+    "evidence": "https://walkerart.org/exhibitions/",
+    "archive": true
+  },
+  {
+    "id": "0d128559-2f82-43aa-ae53-4acb312a9f37",
+    "why": "DUPLICATE RE-FIND — Jeyifous, 2 of 3 surplus: 29 Oct – 27 Nov, another thirty-day window clipped out of a five-month exhibition. Same walkerart.org source as its sibling and a different answer, which is the tell that the window, not the page, set these dates.",
+    "evidence": "https://walkerart.org/exhibitions/",
+    "archive": true
+  },
+  {
+    "id": "eacd2008-dbca-4418-892a-ef671a578303",
+    "why": "DUPLICATE RE-FIND — Jeyifous, 3 of 3 surplus: a single day, 14 Nov, inside the run. The Walker lists one exhibition, not a date series.",
+    "evidence": "https://walkerart.org/exhibitions/",
+    "archive": true
+  },
+  {
+    "id": "7a2a37ee-ab4c-456c-a390-b5d39140e7f2",
+    "why": "THE KEEPER, AND BOTH ITS DATES WERE WRONG — Collection in Focus: Martine Syms. walkerart.org/exhibitions/ prints 'Jun 25, 2026–May 23, 2027'; this row said 29 Oct – 27 Nov, a one-month slice of an eleven-month exhibition. Neither live row had the real span, so unlike Jeyifous there was no correct row to promote. Corrected to the printed window: start 25 Jun 2026, end cleared, multi_day_end 23 May 2027 (the house shape for a run). The start day changes, so event_key changes — checked, no collision. NOT STAMPED: start and end are verify-relevant and the Walker's listing page prints no clock time, so this goes back through the verify pass. The title keeps its '(Exhibition)' suffix, which the Walker does not print; that is a pipeline artefact, not a falsehood, and changing it would move the key a second time.",
+    "evidence": "https://walkerart.org/exhibitions/",
+    "start": "2026-06-25T10:00",
+    "end": null,
+    "multi_day_end": "2027-05-23"
+  },
+  {
+    "id": "3a528579-22bc-48fe-bab2-bcd915e9ffd0",
+    "why": "DUPLICATE RE-FIND — Collection in Focus: Martine Syms, a single 14 Nov row inside the corrected 25 Jun 2026 – 23 May 2027 run. Same shape as the Jeyifous 14 Nov row, found on the same pass, from the same walkerart.org sweep.",
+    "evidence": "https://walkerart.org/exhibitions/",
+    "archive": true
+  },
+  {
+    "id": "54090de2-58a6-472f-91f7-2782ab345ac2",
+    "why": "DUPLICATE RE-FIND — Holiday Flower Show – Northern Lights, 26 Dec – 3 Jan, a nine-day tail of a run that starts earlier. comozooconservatory.org/como/sunken-garden-2/ prints 'December 4, 2026 through January 3, 2027' WITH BOTH YEARS ADJACENT, and the keeper bf0bb765 already holds exactly that, so it needs no edit. Worth recording: a different page on the same domain, comozooconservatory.org/visit/, currently says the fall show 'ends this Sunday, November 26th' — and 26 November 2026 is a Thursday. That is the fourth wrong-year trap found on Como's own domain. The dated page wins.",
+    "evidence": "https://comozooconservatory.org/como/sunken-garden-2/",
+    "archive": true
+  },
+  {
+    "id": "9a751c9f-f15d-4918-946b-d13ca192f6ee",
+    "why": "DUPLICATE RE-FIND — Kunene and the King, 1 of 4 surplus. Five live rows, every one closing 8 Nov, starting 10 Oct, 15 Oct, 29 Oct, 5 Nov and 8 Nov — the weekly-sweep signature again. Keeper is 16b6df13, the earliest start. NO DATE IS BEING CORRECTED HERE and that is deliberate: the Guthrie's own show page 404s for both a scripted fetch and the browser, so the real opening is unverified. Archiving the four asserts nothing new — the keeper already said 10 Oct – 8 Nov — and the run closes in three days.",
+    "evidence": "https://www.guthrietheater.org/whats-on/",
+    "archive": true
+  },
+  {
+    "id": "3c134819-60ad-49fb-8753-eed67078c21f",
+    "why": "DUPLICATE RE-FIND — Kunene and the King, 2 of 4 surplus: 29 Oct – 8 Nov, an eleven-day slice. Same close as its four siblings.",
+    "evidence": "https://www.guthrietheater.org/whats-on/",
+    "archive": true
+  },
+  {
+    "id": "c3d373e5-8106-4e3c-b27a-d4c3dc4e422a",
+    "why": "DUPLICATE RE-FIND — Kunene and the King, 3 of 4 surplus: a single day, 5 Nov, inside the run.",
+    "evidence": "https://www.guthrietheater.org/whats-on/",
+    "archive": true
+  },
+  {
+    "id": "92142d03-5e33-433b-89b9-75e08a6aab5d",
+    "why": "DUPLICATE RE-FIND — Kunene and the King, 4 of 4 surplus: a single day, 8 Nov, titled 'Kunene and the King – Final Weekend' and sourced from a broadwayworld.com article. 'Final Weekend' is how a theatre markets the last performances of a run, not a separate production, and 8 Nov is the keeper's own closing day. HONEST NOTE: this is the one archive here that removes a distinct TITLE rather than a duplicate of the same words, so if the Guthrie is in fact selling a separately-ticketed final-weekend event, this is the row to bring back.",
+    "evidence": "https://www.guthrietheater.org/whats-on/",
+    "archive": true
+  }
+]

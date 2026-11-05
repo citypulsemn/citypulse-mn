@@ -264,6 +264,40 @@ describe("upcomingCountsByVenue / venuePagesWithUpcoming — the sitemap supply 
     expect(upcomingCountsByVenue([finished], NOW).get("first-avenue")).toBeUndefined();
   });
 
+  // ── THE MEASURED SYMPTOM (5 Nov 2026) ─────────────────────────────────────
+  // Two venue pages on the live site said they had nothing on while an exhibition
+  // was running inside them, because isUpcoming read the calendar-CAPPED
+  // expansion instead of the true span end (rule 5). A pure test on isUpcoming
+  // would not have caught the PAGE - this asks the caller, which is where the
+  // last two defects of this shape actually lived.
+  it("a venue whose ONLY live event is an over-cap run is not quiet (rule 5)", () => {
+    // The real row: Dr. Seuss's How the Grinch Stole Christmas!, 3 Nov - 3 Jan.
+    const grinch = ev({
+      venue: "Children's Theatre Company (Minneapolis)",
+      start: "2026-11-03T19:00",
+      end: "",
+      multiDayEnd: "2027-01-03T23:59",
+    });
+    const nov5 = new Date("2026-11-05T18:00:00Z"); // 12:00 Chicago, mid-run
+    expect(upcomingCountsByVenue([grinch], nov5).get("children-s-theatre-company")).toBe(1);
+    // ...and the sitemap stops omitting the page, since it shares this definition.
+    expect(venuePagesWithUpcoming([grinch], nov5).map((v) => v.slug)).toEqual([
+      "children-s-theatre-company",
+    ]);
+  });
+
+  it("...but a venue whose over-cap run has CLOSED stays quiet (honest emptiness)", () => {
+    const over = ev({
+      venue: "Children's Theatre Company (Minneapolis)",
+      start: "2026-08-01T19:00",
+      end: "",
+      multiDayEnd: "2026-11-04T23:59",
+    });
+    const nov5 = new Date("2026-11-05T18:00:00Z");
+    expect(upcomingCountsByVenue([over], nov5).size).toBe(0);
+    expect(venuePagesWithUpcoming([over], nov5)).toEqual([]);
+  });
+
   it("an unparseable start is dropped, not counted", () => {
     expect(upcomingCountsByVenue([ev({ start: "not a date" })], NOW).size).toBe(0);
   });

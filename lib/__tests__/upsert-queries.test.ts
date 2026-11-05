@@ -57,6 +57,15 @@ describe("getEventsForDay expansion cap (R1.7b) — SQL agrees with EXPAND_MAX_D
     expect(eventsSrc).toContain("::date <= 13");
     expect(eventsSrc).not.toMatch(/::date <= 14/);
   });
+
+  // The day-page "Also running" shelf (5 Nov 2026) is a SEPARATE query taking
+  // the exact complement. If one cap is ever edited without the other, a run
+  // either shows twice on a day page or falls between them and shows nowhere.
+  it("the also-running query takes the exact complement, > 13", () => {
+    expect(eventsSrc).toContain("::date > 13");
+    expect(eventsSrc).not.toMatch(/::date > 14/);
+    expect(eventsSrc).not.toMatch(/::date >= 13/);
+  });
 });
 
 describe("getDuplicatePairs (admin view) — same R0.3 predicate", () => {
