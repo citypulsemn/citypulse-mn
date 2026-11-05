@@ -292,13 +292,13 @@ revalidation call is needed.
 
 ### Verify after deploy
 
-1. `https://citypulsemn.com/venues/minnesota-children-s-museum` — says **2 upcoming
+1. `https://www.citypulsemn.com/venues/minnesota-children-s-museum` — says **2 upcoming
    events**, not "nothing on"
-2. `https://citypulsemn.com/venues/minnesota-zoo` — 1 event
-3. `https://citypulsemn.com/venues` — "Also tracked" has 17 names, neither of the
+2. `https://www.citypulsemn.com/venues/minnesota-zoo` — 1 event
+3. `https://www.citypulsemn.com/venues` — "Also tracked" has 17 names, neither of the
    two above among them
-4. `https://citypulsemn.com/sitemap.xml` — contains `/venues/minnesota-children-s-museum`
-5. `https://citypulsemn.com/day/2026-11-10` — **still** no Fall Flower Show. If this
+4. `https://www.citypulsemn.com/sitemap.xml` — contains `/venues/minnesota-children-s-museum`
+5. `https://www.citypulsemn.com/day/2026-11-10` — **still** no Fall Flower Show. If this
    one changed, something else changed too.
 6. Spot-check the homepage calendar for November: no cell should have gained
    standing exhibitions.

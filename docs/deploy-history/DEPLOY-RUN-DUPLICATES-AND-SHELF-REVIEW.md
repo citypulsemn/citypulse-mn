@@ -186,11 +186,16 @@ git push
 
 ### Verify after deploy
 
-1. `https://citypulsemn.com/day/2026-11-20` — *Twelve Kinds of Ice* appears **once**
-2. `https://citypulsemn.com/event/c218b44b-523e-477c-a3fe-50a494b9decb` — live, 13 Oct – 22 Nov
-3. `https://citypulsemn.com/day/2027-01-19` — view source, the ItemList has 6 items
+Use **www**. The apex 308s to it, and a bare `curl` without `-L` gets a 15-byte
+redirect body — which is how a deploy watcher reported "not live" for eight
+minutes while the deploy had in fact landed. `SITE_URL` is already the www host
+(lib/seo/site.ts).
+
+1. `https://www.citypulsemn.com/day/2026-11-20` — *Twelve Kinds of Ice* appears **once**
+2. `https://www.citypulsemn.com/event/c218b44b-523e-477c-a3fe-50a494b9decb` — live, 13 Oct – 22 Nov
+3. `https://www.citypulsemn.com/day/2027-01-19` — view source, the ItemList has 6 items
 4. Any day shelf — the onward link reads "More ongoing runs", never a count
-5. `https://citypulsemn.com/venues/walker-art-center` — there is no such page; check
+5. `https://www.citypulsemn.com/venues/walker-art-center` — there is no such page; check
    *Martine Syms* on `/ongoing` instead, closing 23 May 2027
 
 ## Rollback

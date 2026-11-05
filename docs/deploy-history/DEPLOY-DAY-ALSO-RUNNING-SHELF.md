@@ -188,9 +188,9 @@ at `EVENTS_TTL_SECONDS` alongside the existing day read.
 
 ### Verify after deploy
 
-1. `https://citypulsemn.com/day/2027-01-19` — must NOT say "Nothing on the calendar here yet";
+1. `https://www.citypulsemn.com/day/2027-01-19` — must NOT say "Nothing on the calendar here yet";
    expect `13 also running` and six cards
-2. `https://citypulsemn.com/day/2026-11-10` — `6 events · 29 also running`, shelf below the
+2. `https://www.citypulsemn.com/day/2026-11-10` — `6 events · 29 also running`, shelf below the
    main list, `See all 29 ongoing runs →`
 3. Homepage → Calendar → click 10 — the panel's shelf must match item for item
 4. The calendar cell for 10 must still read 6, not 35

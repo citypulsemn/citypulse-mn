@@ -152,12 +152,12 @@ git push
 
 ### Verify after deploy
 
-1. `https://citypulsemn.com/venues/minnesota-zoo` — hours box present, no events, honest empty line
-2. `https://citypulsemn.com/venues/como-park-zoo-and-conservatory` — four hours lines including
+1. `https://www.citypulsemn.com/venues/minnesota-zoo` — hours box present, no events, honest empty line
+2. `https://www.citypulsemn.com/venues/como-park-zoo-and-conservatory` — four hours lines including
    the Monday exceptions
-3. `https://citypulsemn.com/venues/first-avenue` — **no** hours box
-4. `https://citypulsemn.com/day/2026-11-10` — no "General Admission" anywhere on the page
-5. `https://citypulsemn.com/sitemap.xml` — `/venues/minnesota-zoo` and `/cities/apple-valley`
+3. `https://www.citypulsemn.com/venues/first-avenue` — **no** hours box
+4. `https://www.citypulsemn.com/day/2026-11-10` — no "General Admission" anywhere on the page
+5. `https://www.citypulsemn.com/sitemap.xml` — `/venues/minnesota-zoo` and `/cities/apple-valley`
    are **gone**; that is correct
 
 ## Rollback
