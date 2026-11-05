@@ -590,7 +590,7 @@ describe("planRunFolds — a weekly re-find folds onto the run it belongs to", (
       r({ id: "wk2", title: "Como Park Zoo – Daily General Admission", city: "St Paul", start: "2026-10-17T10:00", end: "2026-11-17T17:00" }),
     ];
     expect(planRunFolds(live, incoming)).toEqual([
-      { incomingId: "wk2", keepId: "wk1", extendTo: "2026-11-17" },
+      { incomingId: "wk2", keepId: "wk1", extendTo: "2026-11-17", drift: false },
     ]);
   });
 
@@ -702,7 +702,7 @@ describe("planRunFolds — a weekly re-find folds onto the run it belongs to", (
       const live = [mcm({ id: "aug", title: "Monsters on Vacation (Special Exhibit)", start: "2026-08-17T09:00", end: "2027-01-10T17:00" })];
       const incoming = [mcm({ id: "nov", title: "Monsters on Vacation – Special Exhibit", start: "2026-11-02T09:00", end: "2027-01-10T17:00" })];
       expect(planRunFolds(live, incoming)).toEqual([
-        { incomingId: "nov", keepId: "aug", extendTo: null },
+        { incomingId: "nov", keepId: "aug", extendTo: null, drift: false },
       ]);
     });
 
@@ -744,12 +744,6 @@ describe("planRunFolds — a weekly re-find folds onto the run it belongs to", (
       expect(planRunFolds(live, incoming)).toEqual([]);
     });
 
-    it("REFUSED: a run phase keeps its own words", () => {
-      const live = [r({ id: "opening", title: "Fall Flower Show – Part 2 Opening", city: "St Paul", category: "family", start: "2026-10-23T10:00", end: "2026-11-18T16:00" })];
-      const incoming = [r({ id: "part2", title: "Fall Flower Show – Part 2", city: "St Paul", category: "family", start: "2026-10-26T10:00", end: "2026-11-25T16:00" })];
-      expect(planRunFolds(live, incoming)).toEqual([]);
-    });
-
     it("every alias still carries the city, so a tour stop is not a re-find", () => {
       const live = [mcm({ id: "stpaul", title: "Monsters on Vacation (Special Exhibit)", start: "2026-08-17T09:00", end: "2027-01-10T17:00" })];
       const incoming = [
@@ -766,8 +760,216 @@ describe("planRunFolds — a weekly re-find folds onto the run it belongs to", (
       const live = [mcm({ id: "aug", title: "Monsters on Vacation (Special Exhibit)", start: "2026-08-17T09:00", end: "2027-01-10T17:00" })];
       const incoming = [mcm({ id: "trav", title: "Monsters on Vacation (Traveling Exhibit)", start: "2026-10-03T09:00", end: "2026-11-03T17:00" })];
       expect(planRunFolds(live, incoming)).toEqual([
-        { incomingId: "trav", keepId: "aug", extendTo: null },
+        { incomingId: "trav", keepId: "aug", extendTo: null, drift: false },
       ]);
+    });
+  });
+
+  // ── MID-STRING DRIFT ───────────────────────────────────────────────────
+  //
+  // A key is exact and an alias repairs one punctuation artefact. Neither sees
+  // a word changed in the MIDDLE of a title, which is how the same production
+  // arrives twice. These tests pin the threshold from both sides: what it must
+  // fold, and the two real pairs just underneath it that it must not.
+  //
+  // Every title here is a row that was live on 4 Nov 2026, and the three
+  // productions were verified against the venues' own pages that day.
+  describe("mid-string title drift folds, and stops where the evidence stops", () => {
+    const span = (o: Partial<RunFoldRow> & { id: string }) => r({ category: "family", ...o });
+
+    it("THE NAMED CASE: a word DELETED mid-string folds, and is reported as drift", () => {
+      // {monsters,on,summer,vacation} against {monsters,on,vacation}: 3 shared
+      // of 4, exactly 0.75. Verified at mcm.org the same day: the museum's
+      // exhibit page is headed "Monsters on Vacation", the press release uses
+      // that name throughout, and "Monsters on Summer Vacation" is a DIFFERENT
+      // exhibit the museum ran in summer 2024. So these two rows are one
+      // production — but the keeper, being the row already live, carries a
+      // title the museum does not publish. The fold is right and the surviving
+      // name is wrong, which is precisely why a drift fold is named in the
+      // Monday ops email instead of being silent.
+      const live = [span({ id: "summer", title: "Monsters on Summer Vacation (Special Exhibit)", city: "St Paul", start: "2026-05-23T09:00", end: "2027-01-10T17:00" })];
+      const incoming = [span({ id: "aug", title: "Monsters on Vacation (Special Exhibit)", city: "St Paul", start: "2026-08-17T09:00", end: "2027-01-10T17:00" })];
+      expect(planRunFolds(live, incoming)).toEqual([
+        { incomingId: "aug", keepId: "summer", extendTo: null, drift: true },
+      ]);
+    });
+
+    it("THE NAMED CASE: one word SWAPPED, carried by a long shared prefix", () => {
+      // A substitution costs two tokens, so it only clears 0.75 when six or
+      // more survive it: 6 shared of 8 here. Verified at Como the same day —
+      // and the finding was bigger than the fold. Como is FREE and open all
+      // year ("Free." on its Hours & Admission page), publishes no product
+      // under any of these names, and a site search for "Open Admission"
+      // returns nothing. Both rows are dated 31-day windows invented around a
+      // standing policy. Folding them is still correct; archiving all of them
+      // is the real answer, and it is not this function's call.
+      const live = [span({ id: "general", title: "Como Park Zoo & Conservatory – Daily General Admission", city: "St Paul", start: "2026-10-10T10:00", end: "2026-11-10T17:00" })];
+      const incoming = [span({ id: "open", title: "Como Park Zoo & Conservatory – Daily Open Admission", city: "St Paul", start: "2026-10-24T10:00", end: "2026-11-24T17:00" })];
+      expect(planRunFolds(live, incoming)).toEqual([
+        { incomingId: "open", keepId: "general", extendTo: "2026-11-24", drift: true },
+      ]);
+    });
+
+    it("REFUSED although it IS one show: a trailing word is parent/child, not drift", () => {
+      // The honest version of a test that has now been wrong in both
+      // directions, so both facts are recorded here.
+      //
+      // These two rows ARE one show. Verified 4 Nov 2026 on
+      // comozooconservatory.org: the 2026 Fall Flower Show runs Sep 18 – Oct 18
+      // and Oct 23 – Nov 29 as two halves its own page labels "Part 1" and
+      // "Part 2", and Como publishes NO opening, preview or members' night —
+      // its event sitemap carries fall opening-day pages for 2023 only, and
+      // Como Friends' calendar jumps from a December shopping evening to
+      // February. So the refusal below is NOT a claim that they differ, and
+      // the comment this test shipped with this morning (that a run phase is
+      // its own event) was my assumption, not Como's.
+      //
+      // The gate declines them regardless, at 0.833, because "Opening" is a
+      // word APPENDED and that is indistinguishable from a real sub-event —
+      // a ticketed preview reads exactly the same way. Reason 3 of the
+      // isWordPrefix declination was paid for here: a multi-day sub-event IS a
+      // run, so folding a prefix relation re-opens the class the coverage rule
+      // protects. One correct fold is the price of that, and on this project a
+      // wrong fold costs an event that silently never appears.
+      const live = [span({ id: "opening", title: "Fall Flower Show – Part 2 Opening", city: "St Paul", start: "2026-10-23T10:00", end: "2026-11-18T16:00" })];
+      const incoming = [span({ id: "part2", title: "Fall Flower Show – Part 2", city: "St Paul", start: "2026-10-26T10:00", end: "2026-11-25T16:00" })];
+      expect(planRunFolds(live, incoming)).toEqual([]);
+    });
+
+    it("REFUSED: a MULTI-DAY sub-event does not fold onto its parent, however similar", () => {
+      // The archetype the guard above exists for, and the one the run-to-run
+      // rule alone cannot stop: a single dated performance has no span and is
+      // excluded for that reason, but a sub-event that runs for days IS a run.
+      // 5 shared of 6, 0.833 — comfortably over the floor, and refused on shape.
+      const live = [span({ id: "parent", title: "Winter Lights at the Arboretum", city: "Chanhassen", start: "2026-11-20T17:00", end: "2027-01-02T21:00" })];
+      const incoming = [span({ id: "child", title: "Winter Lights at the Arboretum Opening", city: "Chanhassen", start: "2026-11-20T17:00", end: "2026-11-29T21:00" })];
+      expect(planRunFolds(live, incoming)).toEqual([]);
+    });
+
+    it("a DELETED word is still drift, even though its tokens are a subset", () => {
+      // Why the guard is isWordPrefix and not a strict token superset. The
+      // Monsters pair IS a subset relation — {monsters,on,vacation} sits inside
+      // {monsters,on,summer,vacation} — so a superset guard would refuse the
+      // deletion this rule was built for. The distinction that matters is
+      // WHERE the extra word sits: appended is parent/child, inserted is drift.
+      const live = [span({ id: "summer", title: "Monsters on Summer Vacation (Special Exhibit)", city: "St Paul", start: "2026-05-23T09:00", end: "2027-01-10T17:00" })];
+      const incoming = [span({ id: "aug", title: "Monsters on Vacation (Special Exhibit)", city: "St Paul", start: "2026-08-17T09:00", end: "2027-01-10T17:00" })];
+      expect(planRunFolds(live, incoming)[0]?.drift).toBe(true);
+    });
+
+    it("a title whose words are REORDERED folds — no prefix or alias rule can see that", () => {
+      // Token SETS, so order is free: both normalise to the same five words.
+      // This is the shape that cannot be caught by any amount of prefix
+      // matching, and the reason similarity was worth building at all.
+      const live = [span({ id: "a", title: "Sever's Fall Festival & Corn Maze", city: "Shakopee", start: "2026-09-26T10:00", end: "2026-10-31T18:00" })];
+      const incoming = [span({ id: "b", title: "Sever's Corn Maze & Fall Festival", city: "Shakopee", start: "2026-10-03T10:00", end: "2026-10-31T18:00" })];
+      expect(planRunFolds(live, incoming)).toEqual([
+        { incomingId: "b", keepId: "a", extendTo: null, drift: true },
+      ]);
+    });
+
+    it("the threshold is a boundary, not a direction: 3-of-4 folds, 3-of-5 does not", () => {
+      // The arithmetic the docblock claims, asserted rather than described.
+      // One word inserted into a three-word title is 0.75 and folds; two words
+      // inserted is 0.6 and does not. Both are INSERTIONS rather than appended
+      // words, because an appended word is refused on shape whatever it scores
+      // — which is what this test originally got wrong.
+      const live = [span({ id: "run", title: "Holidazzle Village Market", city: "Minneapolis", start: "2026-11-27T11:00", end: "2026-12-23T19:00" })];
+      const one = [span({ id: "one", title: "Holidazzle Village Night Market", city: "Minneapolis", start: "2026-12-04T11:00", end: "2026-12-23T19:00" })];
+      const two = [span({ id: "two", title: "Holidazzle Village Night Craft Market", city: "Minneapolis", start: "2026-12-04T11:00", end: "2026-12-23T19:00" })];
+      expect(planRunFolds(live, one)).toEqual([
+        { incomingId: "one", keepId: "run", extendTo: null, drift: true },
+      ]);
+      expect(planRunFolds(live, two)).toEqual([]);
+    });
+
+    it("REFUSED: the first pair no reader would call one event, 0.444", () => {
+      // Two real Mall of America listings sharing nothing but "at mall of
+      // america" — the nearest thing to a false positive in the whole band,
+      // and it sits 0.3 below the gate. If this ever folds, the threshold has
+      // been lowered past the evidence.
+      const live = [span({ id: "santa", title: "The Santa Experience at Mall of America", city: "Bloomington", start: "2026-11-07T10:00", end: "2026-12-24T20:00" })];
+      const incoming = [span({ id: "trees", title: "Festival of Trees at Mall of America", city: "Bloomington", start: "2026-11-20T10:00", end: "2026-12-26T20:00" })];
+      expect(planRunFolds(live, incoming)).toEqual([]);
+    });
+
+    it("REFUSED: the same swap in a SHORT title is not enough, 0.500", () => {
+      // The pair above folds only because six venue words survive the swap.
+      // Strip the prefix and the identical substitution scores 0.5 and is
+      // refused — the gate is measuring shared evidence, not word distance.
+      const live = [span({ id: "g", title: "Daily General Admission", city: "St Paul", start: "2026-10-10T10:00", end: "2026-11-10T17:00" })];
+      const incoming = [span({ id: "o", title: "Daily Open Admission", city: "St Paul", start: "2026-10-24T10:00", end: "2026-11-24T17:00" })];
+      expect(planRunFolds(live, incoming)).toEqual([]);
+    });
+
+    it("RUN → RUN still holds: a dated performance scoring 0.800 does NOT fold", () => {
+      // The protection the coverage rule exists for, and the reason the
+      // isWordPrefix widening was declined. A single-day sub-event has no span,
+      // so it is not a run and cannot be a re-find of one — even though these
+      // titles share 4 of 5 words and clear the threshold easily. An over-cap
+      // run shows on its start day only, so this matinee is the one card a
+      // reader gets on its own day.
+      const live = [span({ id: "run", title: "Kunene and the King", city: "Minneapolis", category: "arts", start: "2026-10-10T19:30", end: "2026-11-08T21:30" })];
+      const incoming = [span({ id: "mat", title: "Kunene and the King Matinee", city: "Minneapolis", category: "arts", start: "2026-10-24T13:00", end: "2026-10-24T15:30" })];
+      expect(planRunFolds(live, incoming)).toEqual([]);
+    });
+
+    it("the sports rule is untouched: near-identical game titles never fold", () => {
+      // PER_NIGHT is filtered before any similarity is computed, so a swap of
+      // one word in a long game title cannot merge two real games.
+      for (const category of ["sports", "music"]) {
+        const live = [span({ id: "g1", category, title: "Minnesota Wild vs. Chicago Blackhawks Home Opener", city: "St Paul", start: "2026-11-10T19:00", end: "2026-11-12T21:30" })];
+        const incoming = [span({ id: "g2", category, title: "Minnesota Wild vs. Chicago Blackhawks Home Game", city: "St Paul", start: "2026-11-11T19:00", end: "2026-11-13T21:30" })];
+        expect(planRunFolds(live, incoming), category).toEqual([]);
+      }
+    });
+
+    it("the city still has to match, however similar the words", () => {
+      const live = [span({ id: "stp", title: "Monsters on Summer Vacation (Special Exhibit)", city: "St Paul", start: "2026-05-23T09:00", end: "2027-01-10T17:00" })];
+      const incoming = [span({ id: "dul", title: "Monsters on Vacation (Special Exhibit)", city: "Duluth", start: "2026-08-17T09:00", end: "2027-01-10T17:00" })];
+      expect(planRunFolds(live, incoming)).toEqual([]);
+    });
+
+    it("drift is asked of the KEEPER, so a row matching BOTH ways is not drift", () => {
+      // Identical titles score 1.0, so this pair arrives down both paths at
+      // once. The flag is derived from the keeper's keys rather than carried
+      // from whichever list found it, so the two cannot disagree: this must
+      // report a key match, not a similarity one. The ops email draws a
+      // different line for each, and an ordinary weekly re-find is not a
+      // judgement call.
+      const live = [span({ id: "wk1", title: "Twelve Kinds of Ice", start: "2026-10-19T19:30", end: "2026-11-22T21:00" })];
+      const incoming = [span({ id: "wk2", title: "Twelve Kinds of Ice", start: "2026-10-26T19:30", end: "2026-11-22T21:00" })];
+      expect(planRunFolds(live, incoming)).toEqual([
+        { incomingId: "wk2", keepId: "wk1", extendTo: null, drift: false },
+      ]);
+    });
+
+    it("a drift candidate that starts EARLIER takes the keeper slot from a key match", () => {
+      // The widening's second-order effect, and the reason key folds dropped
+      // 16 → 14 on the live calendar while total folds rose 16 → 22: a drift
+      // candidate now enters a pool the exact key used to have to itself, so
+      // an existing fold can get a different keeper. Measured: 2 of 123
+      // incoming rows are redirected this way, both in the Monsters cluster,
+      // and both move the keeper to the May 23 row — which mcm.org attests as
+      // the exhibit's opening date. The redirect is MORE correct on the date
+      // axis, onto the row whose title is wrong.
+      const live = [
+        span({ id: "aug24", title: "Monsters on Vacation (Special Exhibit)", city: "St Paul", start: "2026-08-24T09:00", end: "2027-01-10T17:00" }),
+        span({ id: "may23", title: "Monsters on Summer Vacation (Special Exhibit)", city: "St Paul", start: "2026-05-23T09:00", end: "2027-01-10T17:00" }),
+      ];
+      const incoming = [span({ id: "aug17", title: "Monsters on Vacation (Special Exhibit)", city: "St Paul", start: "2026-08-17T09:00", end: "2027-01-10T17:00" })];
+      expect(planRunFolds(live, incoming)).toEqual([
+        { incomingId: "aug17", keepId: "may23", extendTo: null, drift: true },
+      ]);
+    });
+
+    it("a title that normalises to nothing folds onto nothing by similarity", () => {
+      // Shared-of-union is 0 when one side has no tokens, so emptiness can
+      // never reach the threshold. (An all-punctuation title still collides on
+      // the exact key — a pre-existing hole, and no live row normalises empty.)
+      const live = [span({ id: "real", title: "Fall Flower Show", city: "St Paul", start: "2026-10-23T10:00", end: "2026-11-29T16:00" })];
+      const incoming = [span({ id: "empty", title: "— — —", city: "St Paul", start: "2026-10-26T10:00", end: "2026-11-25T16:00" })];
+      expect(planRunFolds(live, incoming)).toEqual([]);
     });
   });
 });

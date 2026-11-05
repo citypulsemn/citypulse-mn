@@ -210,6 +210,7 @@ async function foldRunRefinds(
     const keptTitle = titleOf.get(f.keepId) ?? "";
     console.log(
       `[upsert] folded "${e.title}" @ ${e.venue} onto "${keptTitle}"` +
+        (f.drift ? " (title similarity, not an identical name)" : "") +
         (f.extendTo ? `, extended to ${f.extendTo}` : ""),
     );
     if (f.extendTo) {
@@ -238,13 +239,21 @@ async function foldRunRefinds(
     // have already committed; one pooler timeout here would otherwise abort the
     // whole pipeline pass mid-run, skipping every remaining band, with the span
     // and last_seen_at written and no trace of why.
+    //
+    // `drift` records WHICH rule matched, because the two can be wrong in
+    // different ways: a key match is two spellings of one name, a drift match
+    // is the planner deciding two similar names are one event, and that is the
+    // one worth a human's eye on a Monday.
     try {
       await sql`
         insert into admin_audit (action, patch)
         values ('run:folded', ${sql.json({
           title: e.title, venue: e.venue, start: e.start_at, end: e.end_at ?? null,
           source: e.source_url, kept: f.keepId, kept_title: keptTitle, extended_to: f.extendTo,
-          why: "a re-find of a run already on the calendar (lib/multiday.ts planRunFolds)",
+          drift: f.drift,
+          why: f.drift
+            ? "a re-find whose title DRIFTED from a run already on the calendar (lib/multiday.ts planRunFolds, DRIFT_MIN)"
+            : "a re-find of a run already on the calendar (lib/multiday.ts planRunFolds)",
         })})`;
     } catch (err) {
       console.warn(`[upsert] run:folded audit row failed (fold still applied): ${String(err)}`);

@@ -29,7 +29,7 @@ function base(sub: Partial<OpsInputs["subscribers"]>): OpsInputs {
     feeds: { clicks7: 0, top: [] },
     queue: { submissions: 0, reports: 0, oldestReportDays: null, musicReview: 0, verifyFlags: 0, verifyFlagExamples: [] },
     contradictions: { conflicts: 0, duplicates: 0, placeholderVenues: 0, placeholderTitles: 0, examples: [], dupExamples: [], titleExamples: [] },
-    folds: { count7: 0, examples: [] },
+    folds: { count7: 0, drift7: 0, examples: [] },
     prevPipeline: null,
     recentPipeline: [],
     sitemapUrls: 120,

@@ -299,16 +299,23 @@ extension it made is a value the re-find attested.
 
 ## Left open, honestly
 
-- **Mid-string title drift is still not caught.** The alias key handles the
-  punctuation artefact; it does nothing for `Monsters on Summer Vacation` vs
-  `Monsters on Vacation` (a word deleted) or Como's `Daily General Admission` vs
-  `Daily Open Admission` (a word swapped). Those are a SIMILARITY problem, and a
-  token-set (Jaccard) threshold at ≥ 0.75 catches both — measured below, 8
-  both-live pairs and no false positive found, including word *reordering* no
+- ~~**Mid-string title drift is still not caught.**~~ **SHIPPED the same day —
+  see `DEPLOY-RUN-FOLD-TITLE-DRIFT.md`.** The alias key handles the punctuation
+  artefact; it did nothing for `Monsters on Summer Vacation` vs `Monsters on
+  Vacation` (a word deleted) or Como's `Daily General Admission` vs `Daily Open
+  Admission` (a word swapped). Those are a SIMILARITY problem, and a token-set
+  (Jaccard) threshold at ≥ 0.75 catches both, including word *reordering* no
   prefix or alias rule can see (`Sever's Fall Festival & Corn Maze` ↔ `Sever's
-  Corn Maze & Fall Festival`, 1.000). It carries the same survivor-inversion
-  risk, and it misses the Monsters cluster entirely (0.600 / 0.556). Separate,
-  measurable work.
+  Corn Maze & Fall Festival`, 1.000).
+
+  Two numbers in this bullet were wrong and the follow-up corrected them. "8
+  both-live pairs" counted drafts, which the fold's live set excludes; on
+  published rows the widening folds **6** pairs the key and alias do not. And
+  the survivor-inversion risk was framed as a flaw in the rule when it is a
+  property of the gate: the keeper is whichever row is already live, so a drift
+  fold cannot make a title worse than one already published — it only stops the
+  better-named re-find from returning. That is reported rather than resolved,
+  which is what the read path above was built for.
 
 ## The isWordPrefix widening, measured and declined
 

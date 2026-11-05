@@ -269,21 +269,32 @@ export async function gatherOpsInputs(): Promise<OpsInputs> {
   // in the Actions log. Read straight from the audit trail rather than from a
   // new pipeline_runs column: the trail already carries the title and the
   // keeper, which is what makes the line reviewable instead of a bare count.
-  const folds = await wrap("folds", { count7: 0, examples: [] as string[] }, async () => {
+  const folds = await wrap("folds", { count7: 0, drift7: 0, examples: [] as string[] }, async () => {
     if (!sql) throw new Error("no database connection");
     const rows = await sql<
-      { title: string; keptTitle: string; kept: string; extendedTo: string | null; day: string }[]
+      {
+        title: string;
+        keptTitle: string;
+        kept: string;
+        extendedTo: string | null;
+        day: string;
+        drift: boolean;
+      }[]
     >`
       select coalesce(patch->>'title', '(untitled)') as title,
              coalesce(patch->>'kept_title', '') as "keptTitle",
              coalesce(patch->>'kept', '') as kept,
              patch->>'extended_to' as "extendedTo",
+             -- Folds written before the drift rule existed carry no flag, and
+             -- they were all key matches, so absent reads as false.
+             coalesce((patch->>'drift')::boolean, false) as drift,
              to_char(at at time zone 'America/Chicago', 'YYYY-MM-DD') as day
       from admin_audit
       where action = 'run:folded' and at >= now() - interval '7 days'
       order by at desc`;
     return {
       count7: rows.length,
+      drift7: rows.filter((r) => r.drift).length,
       // BOTH titles. The suppressed row and the keeper can be worded
       // differently — that is the whole reason the alias key exists — and it is
       // precisely then that the operator needs to see the two side by side.
@@ -292,6 +303,10 @@ export async function gatherOpsInputs(): Promise<OpsInputs> {
         (r) =>
           `${r.day} · "${r.title.slice(0, 44)}" → kept ` +
           (r.keptTitle ? `"${r.keptTitle.slice(0, 44)}"` : r.kept.slice(0, 8)) +
+          // Marked on the line itself, not only in the count above: the
+          // examples are where the two titles sit side by side, and a drift
+          // fold is exactly the one where they are supposed to differ.
+          (r.drift ? " (title similarity)" : "") +
           (r.extendedTo ? `, run extended to ${r.extendedTo}` : ", span unchanged"),
       ),
     };

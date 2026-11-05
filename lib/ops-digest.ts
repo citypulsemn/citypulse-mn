@@ -225,6 +225,7 @@ export interface OpsInputs {
    *  here, a wrong fold is reviewable on a Monday instead of invisible. */
   folds: {
     count7: number;
+    drift7: number;
     /** The folds themselves, newest first. The count alone cannot be reviewed. */
     examples: string[];
   };
@@ -630,7 +631,7 @@ export function buildSections(inputs: OpsInputs, now: Date = new Date()): OpsSec
       lines = unavailable(err("folds"));
       alert = true;
     } else {
-      const { count7, examples } = inputs.folds;
+      const { count7, drift7, examples } = inputs.folds;
       lines =
         count7 === 0
           ? ["no re-finds folded in the last 7 days"]
@@ -638,6 +639,12 @@ export function buildSections(inputs: OpsInputs, now: Date = new Date()): OpsSec
               // Not "weekly": foldRunRefinds sits in upsertEvents, which the
               // venue import and an approved reader submission also call.
               `${count7} re-find${count7 === 1 ? "" : "s"} folded onto a run already listed`,
+              // The drift rule matches similar names rather than identical
+              // ones, so it is the one that could equate two real events. Its
+              // count is stated even when the examples below are truncated.
+              ...(drift7 > 0
+                ? [`${drift7} of them matched on title similarity, not an identical name`]
+                : []),
               ...examples.map((e) => `    ${e}`),
             ];
     }

@@ -59,7 +59,7 @@ function healthy(overrides: Partial<OpsInputs> = {}): OpsInputs {
     feeds: { clicks7: 9, top: [{ label: "venue-first-avenue", count: 5 }, { label: "live-music", count: 3 }] },
     queue: { submissions: 0, reports: 0, oldestReportDays: null, musicReview: 0, verifyFlags: 0, verifyFlagExamples: [] },
     contradictions: { conflicts: 0, duplicates: 0, placeholderVenues: 0, placeholderTitles: 0, examples: [], dupExamples: [], titleExamples: [] },
-    folds: { count7: 0, examples: [] },
+    folds: { count7: 0, drift7: 0, examples: [] },
     sitemapUrls: 121,
     prevSitemapUrls: 118,
     search: null, // default: not wired → manual GSC line (today's state)
@@ -772,6 +772,17 @@ describe("R2.3 — gather-side tripwires (gatherer source)", () => {
     return readFileSync(join(__dirname, "..", "ops-inputs.ts"), "utf8");
   })();
 
+  it("the fold example line MARKS a title-similarity match", () => {
+    // Caught by mutation, 4 Nov 2026, and it is the same shape as the defect
+    // this gate shipped with: the renderer's test asserts a hand-written
+    // examples string, so deleting the marker HERE — where the line is
+    // actually built — broke nothing. A drift fold is exactly the one whose
+    // two titles are supposed to differ, so the line that puts them side by
+    // side has to say which rule equated them.
+    expect(src).toContain('(r.drift ? " (title similarity)" : "")');
+    expect(src).toContain("drift7: rows.filter((r) => r.drift).length");
+  });
+
   it("engagement goes through wrap with the STRICT read (failure-zeros can't pose as data)", () => {
     expect(src).toContain('wrap("engagement", emptyEngagement, () => getEngagementStrict(7))');
     expect(src).not.toContain("await getEngagement(7)");
@@ -1099,7 +1110,7 @@ describe("Self-check — where the calendar contradicts itself", () => {
  */
 describe("Run folds — what the write gate suppressed", () => {
   const foldsOf = (f: Partial<OpsInputs["folds"]>) =>
-    buildSections(healthy({ folds: { count7: 0, examples: [], ...f } })).find(
+    buildSections(healthy({ folds: { count7: 0, drift7: 0, examples: [], ...f } })).find(
       (s) => s.title === "Run folds",
     )!;
 
@@ -1135,6 +1146,31 @@ describe("Run folds — what the write gate suppressed", () => {
     expect(foldsOf({ count7: 1, examples: ['2026-11-09 · "X" → kept "Y", span unchanged'] }).lines[0]).toBe(
       "1 re-find folded onto a run already listed",
     );
+  });
+
+  it("counts the title-similarity folds separately — they are the judgement calls", () => {
+    // A key match is two spellings of one name; a drift match is the gate
+    // deciding two similar names are one event, and that is the fold that can
+    // equate two REAL events. Measured 4 Nov 2026: the drift rule keeps a
+    // title the Minnesota Children's Museum does not publish, because the
+    // keeper is whichever row was found first. The count has to survive the
+    // examples being truncated to five, so it is its own line.
+    const s = foldsOf({
+      count7: 9,
+      drift7: 2,
+      examples: ['2026-11-09 · "Monsters on Vacation" → kept "Monsters on Summer Vacation" (title similarity), span unchanged'],
+    });
+    expect(s.lines[0]).toBe("9 re-finds folded onto a run already listed");
+    expect(s.lines[1]).toBe("2 of them matched on title similarity, not an identical name");
+    expect(s.lines.join(" ")).toContain("(title similarity)");
+  });
+
+  it("says nothing about similarity when every fold was an exact key match", () => {
+    // The ordinary week. A line reading "0 of them matched on title
+    // similarity" is noise, and noise is what trains a reader to skim.
+    const s = foldsOf({ count7: 4, drift7: 0, examples: ['2026-11-09 · "X" → kept "Y", span unchanged'] });
+    expect(s.lines.join(" ")).not.toContain("similarity");
+    expect(s.alert).toBe(false);
   });
 
   it('does not call them WEEKLY re-finds — the venue import and reader submissions fold too', () => {

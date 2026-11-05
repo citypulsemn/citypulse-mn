@@ -380,6 +380,11 @@ export interface RunFold {
   keepId: string;
   /** A later last day the live run should be extended to, or null to leave it. */
   extendTo: string | null;
+  /**
+   * True when the keeper shares NO key with the incoming row and was matched
+   * on title similarity alone — the fold a human may want to look at.
+   */
+  drift: boolean;
 }
 
 /**
@@ -434,8 +439,10 @@ export interface RunFold {
  * under its title with parens UNWRAPPED rather than deleted, and those two
  * variants then share a key.
  *
- * This is deliberately NOT a similarity score — it equates only titles a
- * reader would call identically spelled. Two other rules were measured and
+ * This is not a similarity score — it equates only titles a reader would call
+ * identically spelled. Similarity is a separate rule below (`DRIFT_MIN`), added
+ * after this one and measured on its own; keeping them apart is what lets the
+ * fold say which of the two matched it. Two further rules were measured and
  * DECLINED, both recorded in docs/deploy-history/DEPLOY-RUN-REFIND-FOLD.md:
  *
  *   - `planCollapse`'s `isWordPrefix` parent-child rule (the third row above,
@@ -465,6 +472,113 @@ function runAliasKeys(r: RunFoldRow): string[] {
   return [...new Set([runKey(r), runKey({ title: r.title.replace(/[()]/g, " "), city: r.city })])];
 }
 
+/**
+ * How much of two normalised titles is the same words: shared / union of their
+ * token sets (Jaccard), 0..1. Set-based, so it sees a REORDERING that no prefix
+ * or alias rule can — "Sever's Fall Festival & Corn Maze" against "Sever's Corn
+ * Maze & Fall Festival" scores 1.
+ */
+function tokenOverlap(a: string, b: string): number {
+  const A = new Set(a.split(" ").filter(Boolean));
+  const B = new Set(b.split(" ").filter(Boolean));
+  let shared = 0;
+  for (const t of A) if (B.has(t)) shared++;
+  // Two titles that normalise to nothing share no tokens and score 0, so the
+  // drift rule can never fold on emptiness. (The exact key still can — a
+  // pre-existing hole, and no live row normalises to empty.)
+  return shared / (A.size + B.size - shared || 1);
+}
+
+/**
+ * MID-STRING TITLE DRIFT — the shape no key, alias or prefix rule reaches.
+ *
+ * A key is exact and an alias repairs one punctuation artefact. Neither sees a
+ * word changed in the MIDDLE of a title, which is how the same production
+ * actually arrives twice:
+ *
+ *   Monsters on SUMMER Vacation (Special Exhibit)   May 23 → Jan 10    0.750
+ *   Monsters on Vacation (Special Exhibit)          Aug 17 → Jan 10
+ *
+ *   Como … – Daily GENERAL Admission                Oct 10 → Nov 10    0.750
+ *   Como … – Daily OPEN Admission                   Oct 24 → Nov 24
+ *
+ * WHERE 0.75 COMES FROM. Measured over every overlapping same-city published
+ * run pair on the live calendar (125 runs; 116 pairs the key and alias do not
+ * already fold), walking the whole band down to 0.30 rather than asserting a
+ * number:
+ *
+ *   ≥ 0.75   6 pairs — every one a real duplicate, and every one at the same
+ *            venue or at one venue spelled two ways.
+ *   0.500    the pair this project has already established is WRONG:
+ *            "Nickelodeon Universe Winter Break – Universe of Light Holiday
+ *            Light Show" against "Nickelodeon Universe Winter Break" — an
+ *            umbrella listing and a year-round attraction inside it.
+ *   0.444    the first pair no reader would call one event: "The Santa
+ *            Experience at Mall of America" and "Festival of Trees at Mall of
+ *            America", which share nothing but "at mall of america".
+ *
+ * So the threshold sits a clear 0.25 above the nearest known-bad pair rather
+ * than up against it. It is conservative, not tuned: 0.60 would fold five more
+ * pairs that are also real duplicates (a third Fall Flower Show row, Como's
+ * "Daily Zoo Visit", SEA LIFE's two admission listings) and would still meet
+ * nothing wrong until 0.50. Widening it is a product call, and coverage loss is
+ * the expensive direction here, so it stays where the evidence is unambiguous.
+ *
+ * Arithmetically 0.75 means: a word deleted from a four-word title (3 of 4
+ * shared), a word added to a three-word one, or — since a substitution costs
+ * two tokens — one word swapped in a title of six or more shared tokens. Both
+ * cases above are swaps carried by a long venue prefix. A swap in a short title
+ * ("Daily General Admission" on its own, 0.500) is NOT caught, deliberately.
+ *
+ * MID-STRING MEANS MID-STRING: a word APPENDED is refused. An adversarial
+ * review caught the first draft folding "Fall Flower Show – Part 2 Opening"
+ * onto "Fall Flower Show – Part 2" at 0.833 — and a trailing word is exactly
+ * the parent/child shape, which reason 3 of the `isWordPrefix` declination was
+ * paid for: a multi-day sub-event IS a run, so matching a prefix relation turns
+ * "run → run only" into "run → run, plus any multi-day sub-event whose title
+ * begins with its parent's", the class the coverage rule protects. So the drift
+ * candidate refuses `isWordPrefix` in either direction, borrowing the same
+ * helper `planCollapse` uses rather than restating the idea.
+ *
+ * That guard costs a fold that was CORRECT on identity, and the honest version
+ * of this is worth stating: Como publishes no opening night for the Fall Flower
+ * Show (verified against its own event sitemap and Como Friends' calendar on
+ * 4 Nov 2026), so those two rows are one show. The gate declines them anyway,
+ * because nothing in the data distinguishes that pair from a real sub-event —
+ * "Opening" could as easily have been a ticketed preview — and here a wrong
+ * fold costs an event that silently never appears. Measured on the live
+ * calendar: 2 of 8 drift folds were this shape, both of them that one pair.
+ * A STRICT TOKEN SUPERSET would have been the wrong guard: it also refuses
+ * "Monsters on Vacation" ⊂ "Monsters on Summer Vacation", which is the deletion
+ * this rule exists for.
+ *
+ * VENUE IS NOT REQUIRED, and that is measured too: of the six folds, three are
+ * between rows whose venue STRINGS differ for one venue — "Travail Kitchen and
+ * Amusements" / "Travail Kitchen & Amusements", "Minnesota Children's Museum
+ * (St Paul)" / "Minnesota Children's Museum". Venue spelling drift is part of
+ * why these duplicates exist at all; requiring equality would decline half of
+ * them. The city key still has to match, as it does for every other rule here.
+ *
+ * THE TITLE IS NOT REWRITTEN, AND THE KEEPER IS WHICHEVER ROW IS ALREADY LIVE.
+ * Be exact about that: the earliest-start sort only chooses among several LIVE
+ * candidates, and the incoming row never keeps, so for a two-row drift pair the
+ * surviving title is simply the one found first. Replayed both ways on the real
+ * calendar, "Fall Flower Show – Part 2" and "Fall Flower Show – Part 2 Opening"
+ * each keep when the other arrives.
+ *
+ * So a drift fold can leave a month-long show titled "– Part 2 Opening". It
+ * cannot make any title worse than one already published — both rows are live
+ * today — but it does stop the better-named re-find from ever appearing again.
+ * Choosing by title instead would drop an attested earlier start, the axis
+ * readers plan around, and writing the other row's title onto the keeper is a
+ * product call this function has no business making. So the fold does the
+ * mechanical thing and REPORTS it: a drift fold is flagged in `admin_audit`
+ * and named in the Monday ops email with both titles, where a correction can
+ * fix the name. That read path was built before this widening precisely so this
+ * could be the answer.
+ */
+const DRIFT_MIN = 0.75;
+
 export function planRunFolds(live: RunFoldRow[], incoming: RunFoldRow[]): RunFold[] {
   const span = (r: RunFoldRow) =>
     spanEnd({ start: r.start, end: r.end ?? undefined, multiDayEnd: r.multiDayEnd ?? null } as Spannable);
@@ -474,7 +588,14 @@ export function planRunFolds(live: RunFoldRow[], incoming: RunFoldRow[]): RunFol
       .filter((r) => !PER_NIGHT.has(r.category ?? ""))
       .map((r) => ({ r, end: span(r) }))
       .filter((x): x is { r: RunFoldRow; end: string } => x.end !== null)
-      .map((x) => ({ r: x.r, from: dayNumber(x.r.start), to: dayNumber(x.end), endDay: dayOf(x.end) }));
+      .map((x) => ({
+        r: x.r,
+        from: dayNumber(x.r.start),
+        to: dayNumber(x.end),
+        endDay: dayOf(x.end),
+        titleKey: normalizeRunTitle(x.r.title),
+        cityKey: normalizeCityKey(x.r.city),
+      }));
 
   const liveRuns = runs(live);
   if (liveRuns.length === 0) return [];
@@ -485,12 +606,29 @@ export function planRunFolds(live: RunFoldRow[], incoming: RunFoldRow[]): RunFol
 
   const out: RunFold[] = [];
   for (const inc of runs(incoming)) {
-    // A run is indexed under several keys, so the same candidate can arrive
-    // twice. Deliberately NOT de-duplicated: one fold is pushed per incoming
-    // row, and copies of one run sort adjacently, so the keeper is the same
-    // either way. A `seen` set here would be code no test could kill.
-    const candidates = runAliasKeys(inc.r)
-      .flatMap((k) => byKey.get(k) ?? [])
+    // A run is indexed under several keys, and can also match by similarity, so
+    // the same candidate arrives more than once. Deliberately NOT
+    // de-duplicated: one fold is pushed per incoming row, and copies of one run
+    // sort adjacently, so the keeper is the same either way. A `seen` set here
+    // would be code no test could kill.
+    const keys = new Set(runAliasKeys(inc.r));
+    const candidates = [
+      ...[...keys].flatMap((k) => byKey.get(k) ?? []),
+      // Mid-string drift: same town, enough of the same words. Scanned rather
+      // than indexed, because similarity has no key to look up — 123 live runs
+      // against a weekly batch of ~120 is ~15k comparisons of already-
+      // normalised token sets, measured at 1.3ms per incoming row.
+      ...liveRuns.filter(
+        (l) =>
+          l.cityKey === inc.cityKey &&
+          // A word APPENDED is the parent/child shape, not drift — and folding
+          // it is the hole reason 3 of the isWordPrefix declination was paid
+          // for. See DRIFT_MIN's docblock.
+          !isWordPrefix(l.titleKey, inc.titleKey) &&
+          !isWordPrefix(inc.titleKey, l.titleKey) &&
+          tokenOverlap(l.titleKey, inc.titleKey) >= DRIFT_MIN,
+      ),
+    ]
       // Overlapping day intervals, inclusive: a re-find that opens on the run's
       // closing day is the same run, not a new one.
       .filter((l) => l.from <= inc.to && inc.from <= l.to)
@@ -506,6 +644,9 @@ export function planRunFolds(live: RunFoldRow[], incoming: RunFoldRow[]): RunFol
       // Never rewrite a span that already reaches far enough; the collapse
       // holds the same discipline with setEnd.
       extendTo: inc.to > keep.to ? inc.endDay : null,
+      // Asked of the KEEPER rather than carried from the candidate list, which
+      // a row can enter twice. One derivation cannot disagree with itself.
+      drift: !runAliasKeys(keep.r).some((k) => keys.has(k)),
     });
   }
   return out;

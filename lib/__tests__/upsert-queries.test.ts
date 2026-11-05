@@ -177,10 +177,22 @@ describe("foldRunRefinds — the gate that stops a run being re-minted weekly", 
     const inputs = readFileSync(join(__dirname, "..", "ops-inputs.ts"), "utf8");
     expect(body).toContain("'run:folded'");
     expect(inputs).toContain("action = 'run:folded'");
-    for (const key of ["title", "kept", "kept_title", "extended_to"]) {
+    for (const key of ["title", "kept", "kept_title", "extended_to", "drift"]) {
       expect(body, `gate writes patch.${key}`).toContain(`${key}:`);
       expect(inputs, `digest reads patch.${key}`).toContain(`patch->>'${key}'`);
     }
+  });
+
+  it("carries the planner's drift flag through, rather than deciding again", () => {
+    // Two definitions of "was this a judgement call" would drift apart exactly
+    // like the gates this fold exists to patch over. planRunFolds derives the
+    // flag from the keeper's own keys; the applier is only a courier for it,
+    // and the digest reads what the courier wrote.
+    expect(body).toContain("drift: f.drift");
+    const inputs = readFileSync(join(__dirname, "..", "ops-inputs.ts"), "utf8");
+    // Rows written before the drift rule existed carry no flag and were all
+    // key matches, so an absent flag must read as false, never as null.
+    expect(inputs).toContain("coalesce((patch->>'drift')::boolean, false)");
   });
 
   it("extends the keeper through the ::text cast, not a bare ISO param", () => {
