@@ -1,0 +1,70 @@
+[
+  {
+    "id": "00f9ae64-ca94-4ba4-8e8e-8a21a199b68d",
+    "why": "HIDDEN — the boutique does not open on this row's date, and the row for the date it does open already exists. The Arboretum's own AppleHouse page prints 'Nov. 6-Dec. 20: The AppleHouse transforms into a Holiday Boutique! Open 9 a.m.-5 p.m. daily.' and 'The AppleHouse Holiday Boutique opens this Friday, Nov. 6!' (6 Nov 2026 is a Friday, which pins the year independently), while the same page says the regular season is 'Open 9 a.m.-6 p.m. daily through Nov. 5.' — so 5 November is the last apple day, with no boutique on it, and this listing told readers otherwise. NOT RE-DATED to Nov 6: event_key is sha256(title|venue|day) and unique across every status, and e7f08e59 is an ARCHIVED row with this exact title and venue already sitting on 2026-11-06 — moving this row onto that date would take an identity that is taken, and the applier refuses that. So this row is hidden and e7f08e59 is republished with the right hours in the same apply. Hide rather than archive because a 1-3pm boutique slot on 5 November never existed and must stop rendering.",
+    "evidence": "https://arb.umn.edu/AppleHouse",
+    "hide": true
+  },
+  {
+    "id": "e7f08e59-a2ca-4f8d-ae97-ac8411e4eeb6",
+    "why": "REPUBLISHED and corrected — this row already carries the right DATE and was archived with the wrong hours. The Arboretum's own AppleHouse page prints 'Nov. 6-Dec. 20: The AppleHouse transforms into a Holiday Boutique! Open 9 a.m.-5 p.m. daily.', and /events/calendar and /events/topics/holiday both print the year outright as 'Nov. 6-Dec. 20, 2026'. So this is one shop open daily for six weeks, nothing separately ticketed: start 09:00, end 17:00, multi_day_end 2026-12-20, replacing the archived row's 13:00 slot and absent span. On the closing hour the organiser contradicts itself — the two dedicated hours statements (the AppleHouse page, twice, and the canonical /hours page) say 5 p.m. for the boutique, while the two calendar listings print '9 a.m.-6 p.m.', which is traceably the REGULAR season figure carried over onto the boutique entry. Took 5 p.m., the figure on the pages that are about the boutique. Citation moved off /events/calendar, an index that rotates entries off as they pass, onto /AppleHouse, which will still carry this run in December. NOT CHECKED, flagged rather than guessed: the AppleHouse is a separate building at '7485 Rolling Acres Rd, Victoria, MN 55386', '1.5 miles west of the main Arboretum entrance along Highway 5', so if this row's pin sits on the Chaska entrance it is about 1.5 miles off — address and lat/lng would have to move together and no source for its coordinates was read.",
+    "evidence": "https://arb.umn.edu/AppleHouse",
+    "source_url": "https://arb.umn.edu/AppleHouse",
+    "publish": true,
+    "start": "2026-11-06T09:00",
+    "end": "2026-11-06T17:00",
+    "multi_day_end": "2026-12-20",
+    "verified": true
+  },
+  {
+    "id": "02d63fd8-d5ff-405e-8beb-291cf43bf121",
+    "why": "HIDDEN — no such concert exists. The verify pass said this programme belonged on 13 November; it does not, and that claim was checked against the SPCO's own pages rather than acted on, because 13 Nov 11:00am at the Ordway is 'Zachary Cohen Premieres Deak's Bass Concerto' (confirmed from the SPCO's own detail page earlier today) and one hall cannot hold two programmes at one time. What the SPCO's own site actually shows for 6 November is 'Bach's Fifth Partita: Concert November 6-8, 2026', whose Friday performances are 'Friday, November 6, 2026 - 11:00 AM' and 'Friday, November 6, 2026 - 7:00 PM' at Wooddale Church, Eden Prairie — not the Ordway. And no title resembling '18th Century Classical Program with SPCO Flutists' appears anywhere in the SPCO's 2026-27 season, its November calendar, or its upcoming-concerts list. So there is nothing true to correct this row into: it names a concert that is not in the season, on a night the orchestra is in a different building. Hidden rather than archived so the event page stops serving.",
+    "evidence": "https://content.thespco.org/events/bachs-fifth-partita/",
+    "hide": true
+  },
+  {
+    "id": "bb3e6ce0-41ee-4add-8b7a-fd0acce69327",
+    "why": "HIDDEN, not re-dated — and this reverses the first research pass, which wanted to move it to 3 December. The Ames Center's own event page prints 'A JOHN DENVER CHRISTMAS', 'Date: Dec 03, 2026', 'Time: 7:30 PM' at 'Masquerade Dance Theater at the Ames Center', so there is no 8 November 2pm John Denver tribute at this venue. But we ALREADY carry the December show: 165c57f9, 'Rocky Mountain High Experience: A John Denver Christmas Tribute', 2026-12-03 19:30 at Ames Center, published — with the fuller title and the right start. Moving this row onto 3 December would have put two cards for one show on that day, and recomputed its event_key toward an identity the other row effectively holds. Its November date was the only thing making it a distinct listing, and that date does not exist, so there is nothing to correct it into. Hide, not archive: a 2pm matinee that was never scheduled must stop rendering.",
+    "evidence": "https://www.ames-center.com/events/2026/a-john-denver-christmas",
+    "hide": true
+  },
+  {
+    "id": "cc6d8f97-d7f6-480e-b33c-a0570501aec5",
+    "why": "DATE FIXED, two days earlier, and the stamp deliberately withheld. Kincaid's own event page prints 'Thursday, November 12 | 7 pm' and, in its body, 'Join Kincaid's for a 5-course Rodney Strong Wine Dinner on Thursday, November 12, 2026 at 7 PM. $145 per person (tax and gratuity included).' — the year is printed, and 12 November 2026 is a Thursday, so the weekday and the date agree. Our row had 14 November at 19:00. Citation moved off localwineevents.com, an aggregator, onto the restaurant's own page. END CLEARED rather than moved: kincaids.com shows no finish time at all (its own Event JSON-LD carries an empty endDate), and the 22:00 available elsewhere comes from a linked Eventbrite listing, which is not the organiser. CLAUDE.md says never invent an end date, so the stored 21:30 goes rather than being replaced by a third-party figure. No `verified: true` for the same reason — the stamp clears and the row goes back through a free re-check, which will read the organiser's page now that it is cited. NOT FIXABLE HERE: the page prints '$145 Per Person' and this row says 'See listing'; `price` is not a field lib/corrections.ts accepts.",
+    "evidence": "https://www.kincaids.com/event/rodney-strong-wine-dinner/",
+    "source_url": "https://www.kincaids.com/event/rodney-strong-wine-dinner/",
+    "start": "2026-11-12T19:00",
+    "end": null
+  },
+  {
+    "id": "a621eb4f-75bb-48a4-9445-a5fe34ebe4ad",
+    "why": "TITLE AND SPAN FIXED — the row described two events at once and only one of them is on this date. The Arboretum's own page prints 'Northern Lights will be open each night Nov. 20, 2026-Jan. 3, 2027, from 4:30-9:30 p.m.' So the stored 16:30-21:30 was already exactly right (4:30-9:30 p.m.) and is untouched; what was wrong was the title, which bolted 'Gala in the Gardens' onto a six-week light display, and the missing span, which left a 43-night run showing on one evening. Retitled to the organiser's own name and given its real run. The parenthetical came from the row citing /events/topics/special-ticketed-event, an index listing several ticketed events together; the citation now points at the display's own page. KNOWN AND NOT EXPRESSIBLE: the same sentence continues '(closed Nov. 26, Dec. 24 and Dec. 25)', and a multi_day_end span cannot carry gaps, so the listing will show on those three closed nights. The alternative is no span at all, which drops a running display off the site for 43 of its 45 nights — the wrong trade. Worth a follow-up on whether spans should carry exclusions. ALSO NOT DONE: if a separate 'Gala in the Gardens' is a real Arboretum event, we no longer carry it under that name; nothing was read that establishes its date, so nothing was invented for it.",
+    "evidence": "https://arb.umn.edu/northernlights",
+    "source_url": "https://arb.umn.edu/northernlights",
+    "title": "Northern Lights",
+    "multi_day_end": "2027-01-03",
+    "verified": true
+  },
+  {
+    "id": "4bd09ef2-aa62-4af8-8748-b0d538fa14bd",
+    "why": "DATE FIXED off a closure day. Mall of America's own Festival of Trees page prints '2026 Event Details:', 'Dates: November 18 - November 25, 2026 + November 27, 2026 - January 8, 2027' and 'Hours: 11 a.m. - 7 p.m.' — so 26 November, which is Thanksgiving, falls in the one-day gap between the two runs and the festival is shut. Our row sat exactly there, with 10:00-21:00 hours that look copied from general mall hours rather than the festival's. Moved onto the start of the longer run, 27 November, with the organiser's printed hours and the run's real end as the span. Citation moved off /press-release/28518 — a 2025 release, which is also where the stored dates most likely came from — onto the festival's own page. DELIBERATE TRADE: this covers 27 Nov - 8 Jan, 43 days, and leaves the first run of 18-25 November uncovered. A single row cannot express two runs with a gap, and we hold no other Festival of Trees row for this venue; starting on the 18th instead would have put the listing on the 26th, a day the organiser says it is closed. Showing a real event late beats showing it on a day it is shut. CAVEAT the organiser states itself: '(hours vary + are subject to change)'.",
+    "evidence": "https://www.mallofamerica.com/community/celebrate/festival-of-trees",
+    "source_url": "https://www.mallofamerica.com/community/celebrate/festival-of-trees",
+    "start": "2026-11-27T11:00",
+    "end": "2026-11-27T19:00",
+    "multi_day_end": "2027-01-08",
+    "verified": true
+  },
+  {
+    "id": "5e2ec1ac-6b55-42b0-8105-cc26052bd28c",
+    "why": "HIDDEN — the date is not a programme date and the theme is not a December theme. Como Zoo's own Little Explorers page prints 'Little Explorers is a FREE program from 10:00AM-noon on Thursdays in the Visitor Center in the Winter' and lists its December sessions as 'December 3- Diggin' Dinos', 'December 10- Down on the Farm', 'December 17- Fancy Flowers'. 16 December 2026 is a WEDNESDAY, so our row put a Thursday-only programme on a Wednesday, and 'Under the Sea' is not among the December themes at all. NOT MOVED to 17 December: that is the cadence extrapolation this project has already shipped a fabrication of — the 17th is 'Fancy Flowers', not 'Under the Sea', so moving the date would keep a theme the organiser does not print for any December date. The page also prints no year beside any individual session, only a '2026 - 2027 Schedule' header, so even a same-theme match could not be dated from it. Hidden rather than archived: a Wednesday session Como's own calendar does not list must stop rendering, which is the lever the 28 October re-dated-sessions incident established.",
+    "evidence": "https://comozooconservatory.org/como/little-explorer-thursday/",
+    "hide": true
+  },
+  {
+    "id": "523669b8-46b2-44b8-9449-9e8c5595a63f",
+    "why": "HIDDEN — wrong venue, and no performance on this date anyway. Theatre in the Round's own page for the show prints 'Acting Can Be Murder', 'Written by John Gaspard', 'December 4, 2026-January 10, 2027', 'Running in tandem with Dial M for Murder' and 'No Performances Christmas Weekend'. So the production is real but it is at Theatre in the Round, not Illusion Theater, and 26 December 2026 is a Saturday in Christmas weekend — a date the company says it does not play. NOT RE-POINTED to the right venue: a venue change has to carry address and lat/lng together or the pin stays in the wrong room, and no source read prints coordinates for 245 Cedar Avenue; more decisively, there is no 26 December performance to move this row onto, so correcting the venue would leave a listing for a show that is dark that night. The citation it carried, talkinbroadway.com, is a third-party schedule, which is how both the venue and the date went unchallenged — and it STAYS wrong, because the applier refuses hide combined with any edit, correctly: a takedown is not an edit. The row is going dark, so the stale citation costs a hidden listing nothing. Hidden rather than archived so the event page stops serving. SEPARATELY: we may hold no listing at all for a six-week run at Theatre in the Round; a correction cannot insert one.",
+    "evidence": "https://www.theatreintheround.org/actingcanbemurder/",
+    "hide": true
+  }
+]

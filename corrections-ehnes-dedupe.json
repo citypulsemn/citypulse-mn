@@ -1,0 +1,32 @@
+[
+ {
+  "id": "cee3a928-de50-46af-b700-c5c444a0a272",
+  "why": "survivor for the Nov 10 recital. Its title is the presenter's own wording and names both players; moving its citation off the Ordway's index page to the Schubert Club's own listing is the one thing the archived duplicate did better.",
+  "evidence": "https://schubert.org/concerts/international-artist-series/ read 28 Oct 2026 lists exactly two performances of this engagement: \"Tuesday, Nov 10, 2026 at 7:30 p.m.\" and \"Wednesday, Nov 11, 2026 at 10:30 a.m.\", both \"James Ehnes, violin & Andrew Armstrong, piano\" at Ordway Concert Hall.",
+  "source_url": "https://schubert.org/concerts/international-artist-series/"
+ },
+ {
+  "id": "fb6f6a94-24aa-4028-92d8-26d15595b8fb",
+  "why": "survivor for the Nov 11 10:30 performance, same engagement, same reason — cited the venue index, now cites the presenter.",
+  "evidence": "https://schubert.org/concerts/international-artist-series/ read 28 Oct 2026 lists exactly two performances of this engagement: \"Tuesday, Nov 10, 2026 at 7:30 p.m.\" and \"Wednesday, Nov 11, 2026 at 10:30 a.m.\", both \"James Ehnes, violin & Andrew Armstrong, piano\" at Ordway Concert Hall.",
+  "source_url": "https://schubert.org/concerts/international-artist-series/"
+ },
+ {
+  "id": "cf746787-89fd-4fe0-bb6c-a530c85eb9c2",
+  "archive": true,
+  "why": "duplicate of the Nov 10 survivor: same hall, same 7:30pm, same recital, read off the presenter's page under the series name instead of the artists' names. Its span to Nov 11 was a fold of the Nov 11 10:30 performance, which has its own card.",
+  "evidence": "https://schubert.org/concerts/international-artist-series/ read 28 Oct 2026 lists exactly two performances of this engagement: \"Tuesday, Nov 10, 2026 at 7:30 p.m.\" and \"Wednesday, Nov 11, 2026 at 10:30 a.m.\", both \"James Ehnes, violin & Andrew Armstrong, piano\" at Ordway Concert Hall."
+ },
+ {
+  "id": "318eeeb4-b1de-412f-abac-52c3932f06fc",
+  "archive": true,
+  "why": "third card for the same Nov 10 recital. 'Schubert Club Presents (Concert)' with a Nov 10-11 span is the Ordway index entry, which prints the engagement as a date RANGE ('November 10 - 11, 2026') — so the span is the venue's notation, not an invented second night.",
+  "evidence": "https://ordway.org/events/ read 28 Oct 2026 prints \"Schubert Club Presents / James Ehnes, violin / November 10 - 11, 2026 - Ordway Concert Hall\" as one entry."
+ },
+ {
+  "id": "03be332f-6c57-4733-9db8-7316298d5240",
+  "archive": true,
+  "why": "duplicate of the Nov 11 10:30 survivor — same hall, same time, same artists, cited to the venue index.",
+  "evidence": "https://schubert.org/concerts/international-artist-series/ read 28 Oct 2026 lists exactly two performances of this engagement: \"Tuesday, Nov 10, 2026 at 7:30 p.m.\" and \"Wednesday, Nov 11, 2026 at 10:30 a.m.\", both \"James Ehnes, violin & Andrew Armstrong, piano\" at Ordway Concert Hall."
+ }
+]

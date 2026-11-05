@@ -1,0 +1,11 @@
+[
+  {
+    "id": "478b9fe6-d0e2-4632-b700-a3db171ff8fe",
+    "why": "start and end were both late, and the citation was a shared index. The venue's own page for this performance prints 'Friday, November 27, 2026' and '7:00 PM 8:15 PM' against our 19:30-20:50, so the listing was sending readers half an hour after the curtain. Confirmed by the page's own Google-calendar parameter, dates=20261128T010000Z/20261128T021500Z, which is 19:00-20:15 Chicago in CST and so cannot be a transcription of the printed times. Citation moved off https://www.bryantlakebowl.com/theater, a theater index shared by twelve of our listings and therefore unable to confirm any one of them, onto this performance's own page. NOT TOUCHED, and still open: multi_day_end stays 2026-11-28. A first read of the theater index reported a second performance on Sat 28 Nov at 7:00 PM and the words 'only two performances', but that index also carries prior years' entries - the sibling page .../a-very-carey-christmas-cabaret2 is 'Saturday, November 29, 2025' - so the second 2026 night is unproven and clearing the span could hide a real night. Left for the verify pass.",
+    "evidence": "https://www.bryantlakebowl.com/theater/a-very-carey-christmas-cabaret",
+    "source_url": "https://www.bryantlakebowl.com/theater/a-very-carey-christmas-cabaret",
+    "start": "2026-11-27T19:00",
+    "end": "2026-11-27T20:15",
+    "verified": true
+  }
+]

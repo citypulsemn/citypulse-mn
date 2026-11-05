@@ -1,0 +1,8 @@
+[
+  {
+    "id": "719a1d97-0894-4636-87c2-3ea195b78402",
+    "why": "HIDDEN, not archived and not re-dated. gophersports.com's own 2026-27 men's basketball schedule, read in a browser because the page is JS-rendered and returns no game rows to a plain fetch, prints 'vs Southern · The Barn by Blue Cross and Blue Shield of Minnesota · Nov 12 (Thu) · 7:00 PM' and 'vs Western Illinois · The Barn by Blue Cross and Blue Shield of Minnesota · TV: BTN · Nov 16 (Mon) · 7:00 PM'. So Minnesota do not play Western Illinois on 12 November at all, and this listing tells a reader they do. WHY NOT RE-DATE IT TO NOV 16: we already carry that game as ed232549, 'Gophers Men's Basketball vs. Western Illinois', 2026-11-16 19:00 at The Barn, which matches the official schedule exactly — moving this row onto the 16th would duplicate it and recompute event_key onto the same identity, which the applier refuses. WHY NOT RELABEL IT AS SOUTHERN: that invents a game. We hold no Nov 12 Southern row and never scraped one, so turning a Western Illinois listing into a Southern one would be a guess about which half of a mis-paired scrape was right, and the sports rule forbids merging or moving games across days on a judgement like that. HIDE RATHER THAN ARCHIVE because archive leaves the event page serving: a row for a matchup that does not exist on that date must stop rendering, which is the lever the 28 Oct re-dated-sessions incident established. SEPARATELY, AND NOT FIXABLE HERE: the real 12 November game, Minnesota vs Southern, is missing from the calendar entirely — a correction cannot insert a row, so that is for the pipeline or a hand add.",
+    "evidence": "https://gophersports.com/sports/mens-basketball/schedule",
+    "hide": true
+  }
+]

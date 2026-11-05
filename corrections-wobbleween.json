@@ -1,0 +1,11 @@
+[
+  {
+    "id": "d13a2f7f-7ade-484f-858d-913e6b26cc9f",
+    "why": "listed 9:00 PM to 2:00 AM across Oct 30-31; the Armory's own page for this show says 'Friday, October 30, 2026 / Doors at 6:00 // Show at 6:15' and states no end time. The 21:00 start and the 02:00 end both came from resources.onestowatch.com, the roundup this row cited until 5 Oct, and the same roundup gave Night 2 the same 21:00 while the venue says 6:15 for that night too. End cleared rather than guessed - the venue publishes none, and our other three Armory listings carry the venue's show time with no invented end. Span cleared: the Armory sells Night 1 and Night 2 as separate ticketed shows, so a Friday show is not an Oct 30-31 run.",
+    "evidence": "https://armorymn.com/events/wobbleween-night-1/",
+    "start": "2026-10-30T18:15",
+    "end": null,
+    "multi_day_end": null,
+    "verified": true
+  }
+]

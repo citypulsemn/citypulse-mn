@@ -1,0 +1,26 @@
+[
+  {
+    "id": "f26c87b2-1f42-4e71-ab10-eeec36384ce3",
+    "why": "LAST YEAR'S EVENT, RE-DATED — the other half of the 28 Oct eight-row set. The museum's own series announcement, posted 2 Oct 2025, prints the whole schedule with the weekday beside every date: 'Tues. Oct. 7  Echo & Explore', 10:30-11:30 a.m. in the Sprouts gallery. Our row says 2026-10-07 10:30, and 7 Oct 2026 is a WEDNESDAY. The cited source is womenspress.com/organizer/minnesota-childrens-museum/, a third-party organizer roundup that now 404s, which is why nothing caught it. Stamped verified 21 Sep 2026. Archived by the pipeline before the 28 Oct takedown, so the one-tap hide never reached it and the event page has gone on serving at HTTP 200 ever since - getEvent filters status <> 'draft', not 'archived'.",
+    "evidence": "https://mcm.org/new-toddler-music-lab-series-in-sprouts-this-fall/",
+    "hide": true
+  },
+  {
+    "id": "48ce7d6a-b44a-4781-a772-2f562f8973d6",
+    "why": "LAST YEAR'S EVENT, RE-DATED — same eight-row set, same dead roundup source. The museum's series announcement reads 'Tues. Oct. 14  Funky Soundscapes', and its own event page for this session reads 'TUE 14 OCT ... October 14, 2025 10:30 am - 11:30 am'. Our row says 2026-10-14 10:30, and 14 Oct 2026 is a WEDNESDAY. Stamped verified 12 Oct 2026 - the pass confirmed a date the organiser's own page contradicts. Archived before the 28 Oct takedown, still serving its event page at HTTP 200.",
+    "evidence": "https://mcm.org/new-toddler-music-lab-series-in-sprouts-this-fall/",
+    "hide": true
+  },
+  {
+    "id": "d2218ecc-e5cf-4e15-af7c-9db3ba525484",
+    "why": "LAST YEAR'S EVENT, RE-DATED, and the clearest of the eight. The museum's series announcement reads 'Fri. Oct. 17 (special MEA session)  Funky Soundscapes' - the museum printed the weekday itself. Our row puts that MEA session on 2026-10-17, which is a SATURDAY, and MEA break is a Thursday and Friday. The museum has no 2026 page for it at all. Stamped verified 21 Sep 2026. Archived before the 28 Oct takedown, still serving its event page at HTTP 200.",
+    "evidence": "https://mcm.org/new-toddler-music-lab-series-in-sprouts-this-fall/",
+    "hide": true
+  },
+  {
+    "id": "40b08145-5ba6-428e-b0a0-cda2c40e3946",
+    "why": "LAST YEAR'S EVENT, RE-DATED — fourth of the four that the 28 Oct takedown missed. The museum's series announcement reads 'Tues. Oct. 21  Splish Splash Water Percussion', and its own event page reads 'TUE 21 OCT ... October 21, 2025 10:30 am - 11:30 am'. Our row says 2026-10-21 10:30, and 21 Oct 2026 is a WEDNESDAY. Stamped verified 15 Oct 2026. Archived before the 28 Oct takedown, still serving its event page at HTTP 200.",
+    "evidence": "https://mcm.org/new-toddler-music-lab-series-in-sprouts-this-fall/",
+    "hide": true
+  }
+]

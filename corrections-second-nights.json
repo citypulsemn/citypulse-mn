@@ -1,0 +1,21 @@
+[
+  {
+    "id": "6ced099c-51ab-4c13-bace-4c833b451f5a",
+    "why": "restored. A real Saturday show the multi-day collapse archived into Night 1's span; clearing that span left it listed nowhere. The Armory's own page for Night 2 says 'Saturday, October 31, 2026 / Doors at 6:00 // Show at 6:15' and states no end time, so the 21:00 start and the 02:00 end - both from the onestowatch roundup this row cited - are replaced by the venue's show time and no end.",
+    "evidence": "https://armorymn.com/events/wobbleween-night-2/",
+    "source_url": "https://armorymn.com/events/wobbleween-night-2/",
+    "start": "2026-10-31T18:15",
+    "end": null,
+    "publish": true,
+    "verified": true
+  },
+  {
+    "id": "b439fe30-cc31-45c2-aa60-a4deb1da0112",
+    "why": "restored. The Armory sells Tape B as two nights with no shared act - Night 1 is MERSIV, SAKA, FLY, STVSH + CLAYBROOK, Night 2 is TROYBOI, TAIKI, NIGHLIGHT, WINK - and this is Night 2, archived as a duplicate of Night 1 and then folded into its span. Kept over the sibling titled 'Tape B - Saturday Pass', which is a ticket type rather than an event name. Start stays 21:00: the venue's page says 'Doors at 9:00 // Show at 9:00'. End cleared - the venue states none, and the 01:00 came from concertarchives.org, which is also what this row cited.",
+    "evidence": "https://armorymn.com/events/tape-b-night-2/",
+    "source_url": "https://armorymn.com/events/tape-b-night-2/",
+    "end": null,
+    "publish": true,
+    "verified": true
+  }
+]

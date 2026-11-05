@@ -1,0 +1,8 @@
+[
+  {
+    "id": "e40393f7-0d15-46e4-92bc-b5ce6258cf2e",
+    "why": "CITATION ONLY — the listing is right, the page it cited could not prove it. This row carried https://www.ticketmaster.com/ames-center-tickets-burnsville/venue/50355, a reseller's generic VENUE page rather than an event page, and the verify pass flagged it weak_source on 29 Oct: 'confirmed only against www.ticketmaster.com, a reseller or social page rather than the organiser's own schedule — needs a primary source'. The flag was raised after the 29 Oct stamp, which is why it is still open. Repointed to the production's own tour listing, which prints 'November 3, 2026' at 'Ames Center' with the year on the page — so the date and venue are now attested by the producer rather than by a ticket seller. The Ames Center's own /events page returns 'No Results' and could not be used. NOT CHANGED, deliberately: nothing. The 19:30 start is NOT on the producer's page (it prints no time for this stop), so `verified` is left off and the stamp stays where it is — the flag therefore stays open, correctly, until a primary source attests the time. Several resellers say 7:30 PM and they agree with the row, but a reseller is what got this flagged in the first place.",
+    "evidence": "https://menopausethemusical.com/list-of-events",
+    "source_url": "https://menopausethemusical.com/list-of-events"
+  }
+]

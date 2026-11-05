@@ -1,0 +1,98 @@
+[
+  {
+    "id": "e2721ea1-451b-4bbd-908c-253f6161b96c",
+    "why": "ONE PRODUCTION, ONE RUN — this row becomes it. The Guthrie prints \"A Christmas Carol November 11 - December 27, 2026 ... Wurtele Thrust Stage\" on its own production page and again on /whats-on/, with the year adjacent both times and in the page title (\"A Christmas Carol: Nov 11 - Dec 27, 2026\"), and its instance list ends \"SundayDec 271:00 PM\" - so the run's last day is 2026-12-27, not the 2026-11-14 this row carried. We held FOUR published rows for this one run; this is the only one whose start DAY is the run's real first day, so it takes the span and the other three come down. The 21:30 end was a two-hour default, not a printed finish: the organiser prints no end time for any of the 43 performances, only \"Run time Approximately 1 hour, 45 minutes (including intermission)\", which is a running time. Both the instance list (31 dates, curtain times 1:00 / 7:00 / 7:30 PM) and the separately served /calendar/ grid were read and agree date for date. Citation moves off broadwayworld.com, a press-release roundup, onto the organiser's production page. NO STAMP, deliberately: the 7:30 PM curtain this row carries on 11 Nov is printed on no Guthrie page - the instance list begins \"FridayNov 137:30 PM\" and the /calendar/ cells for Nov 11 and Nov 12 are empty - so verified_at must clear and this row goes back through the verify pass. The organiser's prose does advertise \"preview performances (November 11-13)\", which attests the DAY but not the time. The attested alternative, moving the start to 2026-11-13T19:30, was deliberately NOT taken: that re-keys, and an ARCHIVED row already sits at 2026-11-13 19:30, so the move would manufacture a near-duplicate of a row nobody can see.",
+    "evidence": "https://www.guthrietheater.org/whats-on/a-christmas-carol-2026/",
+    "source_url": "https://www.guthrietheater.org/whats-on/a-christmas-carol-2026/",
+    "end": null,
+    "multi_day_end": "2026-12-27"
+  },
+  {
+    "id": "5c188118-633a-4aa1-9069-a7deb176bfd0",
+    "why": "A FABRICATED PERFORMANCE, so draft and not archive. This row claims A Christmas Carol at 7:30 PM on 2026-11-26, which is Thanksgiving, and the theatre is dark: the Guthrie's instance list runs \"WednesdayNov 257:00 PM ... FridayNov 271:00 PM\" with nothing between, and the /calendar/ cell for 2026-11-26 is empty. Its stored end, 2026-12-25T21:00, is a dark day too - the list runs \"WednesdayDec 23 ... SaturdayDec 261:00 PM\" with nothing on Dec 24 or Dec 25 - and the organiser prints no end time for any performance of this production in any case. hide rather than archive because lib/events.ts:175 selects \"status <> 'draft'\", so an archived row KEEPS serving its event page: archiving this one would leave a live, crawlable citypulsemn.com page asserting a 7:30 PM Christmas Carol on Thanksgiving. That is the incident written into the hide docstring in lib/corrections.ts - four re-dated sessions archived on 28 Oct 2026, dropped off every list, and still serving their own pages. A row that records something real keeps its URL; a row that records a performance that does not exist does not. It was also a duplicate chunk of the one Nov 11 - Dec 27 run now carried by e2721ea1, and its 30-day span put a second A Christmas Carol on /ongoing beside af3ef5e3 every day from 6 to 25 December.",
+    "hide": true,
+    "evidence": "https://www.guthrietheater.org/whats-on/a-christmas-carol-2026/"
+  },
+  {
+    "id": "af3ef5e3-3cdd-4815-bb2b-9b11f138cf1f",
+    "why": "Duplicate chunk of the one Nov 11 - Dec 27 2026 Guthrie run, now carried by e2721ea1. Archive rather than draft because its start IS a genuinely attested performance - the instance list prints \"SaturdayDec 51:00 PM ... 7:30 PM\" and the /calendar/ cell for 2026-12-05 agrees - so the archived page goes on saying a true thing. What is wrong is the shape around that start: a 23-day span presenting three weeks of a 43-performance run as one event, and a 2026-12-27T21:30 end that is invented twice over, because the organiser prints no end time for any performance and the closing day carries only \"SundayDec 271:00 PM\". It was the second A Christmas Carol on /ongoing from 6 to 25 December. Keeping it live as the single attested 5 Dec performance was measured and rejected: with the survivor spanning the whole run, lib/weekend.ts uses the UNCAPPED spanEnd, so /this-weekend for 4-6 Dec would show the survivor under \"Happening all weekend\" AND this row under Saturday - the same double-listing, moved to another page.",
+    "archive": true,
+    "evidence": "https://www.guthrietheater.org/whats-on/a-christmas-carol-2026/"
+  },
+  {
+    "id": "996d336c-954f-4184-b953-4e19f49f1ddf",
+    "why": "Duplicate chunk of the one Nov 11 - Dec 27 2026 Guthrie run, now carried by e2721ea1. Archive rather than draft because its start is a real performance: the instance list prints \"SaturdayDec 261:00 PM\" and the /calendar/ cell for 2026-12-26 shows Carol at 1:00 p.m. and 7:30 p.m. Its 2026-12-27T21:30 end is invented twice over - no end time is printed for any performance, and the only Dec 27 performance is \"SundayDec 271:00 PM\". It cited /seasons/2026-2027-season/, a season index that cannot attest a performance. KNOWN COST, stated rather than buried: this is the one takedown here that removes a card a reader can currently see on a day page, because its two-day span puts it on 26 and 27 December. The survivor's 47-day span exceeds EXPAND_MAX_DAYS, so it shows on 11 November plus /ongoing and will not replace that card. Keeping this row live as the single attested 26 Dec 1:00 PM performance was measured and rejected for the same reason as af3ef5e3: it would put two Carol cards on /this-weekend for 25-27 December.",
+    "archive": true,
+    "evidence": "https://www.guthrietheater.org/whats-on/a-christmas-carol-2026/"
+  },
+  {
+    "id": "4533c4f5-d17d-4a4d-8736-e943ada5db78",
+    "why": "A fabricated 00:00-23:59 whole-run span. Children's Theatre Company prints the run as \"November 3, 2026-January 3, 2027\" - the same line appears on the calendar page this row itself cites - so a Nov 26 start is wrong by 23 days, and the production page's list of 69 performances has NO November 26 at all: it jumps \"Nov 25\" to \"Nov 27\", because 26 November 2026 is Thanksgiving. 11 of the 39 days this span asserts are dark. Both the production page and /calendar/ were read, and the 69 performance instances were parsed independently twice with matching aggregate times (26x 2:00pm, 21x 7:00pm, 12x 11:00am, 10x 5:00pm). At 38 days the span is past EXPAND_MAX_DAYS=14, so daysSpanned returns the start day alone and it rendered on /day/2026-11-26 only - a day with no performance - while lib/weekend.ts uses the uncapped spanEnd and put it in \"Happening all weekend\" on every weekend to 3 January, printing beside the real dated 26 December row. Reshaping does not rescue it: the true run is 62 days, still past the cap, and any span asserts the dark days including Christmas Day. Archived rather than hidden: the production is real and on view across that window, so the event page should keep rendering, and the dated per-performance rows carry it on the calendar.",
+    "archive": true,
+    "evidence": "https://childrenstheatre.org/whats-on/how-the-grinch-stole-christmas-26-27/"
+  },
+  {
+    "id": "5cf8b7de-b1fc-4caf-8089-81c2667f123b",
+    "why": "CTC's production page prints \"Wednesday Nov 4\" at \"7:00pm\", which this row already has, and prints no finish time for any of the 69 performances - only \"Run time\" / \"1 hour and 50 minutes with one 15-minute intermission\", which is a running time, not an end. The 20:30 end was never attested, and 7:00pm plus 1h50 would not reach it even if deriving one were allowed. Citation moves off the bare homepage, which carries no schedule, onto the per-production page. Same day and time, so event_key is unchanged and there is no collision to check.",
+    "evidence": "https://childrenstheatre.org/whats-on/how-the-grinch-stole-christmas-26-27/",
+    "source_url": "https://childrenstheatre.org/whats-on/how-the-grinch-stole-christmas-26-27/",
+    "end": null,
+    "verified": true
+  },
+  {
+    "id": "8b2d5bc9-548d-4d25-980b-b95db0559fac",
+    "why": "The stored 11:00am start is not attested. CTC's production page prints exactly two Saturday Nov 7 performances, \"2:00pm\" and \"5:00pm\", and no 11:00am that day - 11:00am Saturdays do not begin until Nov 14. This row takes the earlier printed curtain, 2:00pm. Which of the two the scrape came from is not attested, but that is not a free choice: event_key is sha256(title | venue | start DAY), so both Nov 7 performances share one key and only one row for that day can exist under this title - the earlier curtain is the only shape available. End cleared: the page prints no finish for any performance, only the run time. Start day unchanged, so event_key is unchanged.",
+    "evidence": "https://childrenstheatre.org/whats-on/how-the-grinch-stole-christmas-26-27/",
+    "source_url": "https://childrenstheatre.org/whats-on/how-the-grinch-stole-christmas-26-27/",
+    "start": "2026-11-07T14:00",
+    "end": null,
+    "verified": true
+  },
+  {
+    "id": "649bdcda-f20c-4c50-a791-0f80527a6a9b",
+    "why": "CTC's production page prints \"Saturday Nov 14\" \"11:00am\", which this row already has. The 12:30pm end is not attested - the page prints no finish for any of the 69 performances, only a \"Run time\" of \"1 hour and 50 minutes with one 15-minute intermission\" - so it is cleared. Citation moves off the bare homepage onto the per-production page. Same day and time, so event_key is unchanged.",
+    "evidence": "https://childrenstheatre.org/whats-on/how-the-grinch-stole-christmas-26-27/",
+    "source_url": "https://childrenstheatre.org/whats-on/how-the-grinch-stole-christmas-26-27/",
+    "end": null,
+    "verified": true
+  },
+  {
+    "id": "9bf07504-61a6-4865-81ee-00d33f21e600",
+    "why": "Duplicate of a correctly dated row we already hold. The Walker prints one continuous run, \"Oct 17, 2026-Feb 14, 2027\", on the per-exhibition page, on the galleries index and in its own press release - and row daebb4e1 already carries exactly 2026-10-17 to 2027-02-14, published. This row's 12 November start appears on no Walker page for the Triennial: it is the opening date of Abbas Akhavan: Variations on a Garden, which sits beside it on the same index. The closing date was right, which is what made the two rows look like different things. Re-keying this row onto 17 October was considered and rejected: it computes event_key db5cf82009da1d41c8135103d11aa4ae, which daebb4e1 already holds, and event_key is unique across every status, so the correction would simply be refused. Archived rather than hidden because the exhibition genuinely is on view throughout this window, so the row is a wrong start date on a real show rather than an event that never happened.",
+    "archive": true,
+    "evidence": "https://www.walkerart.org/whats-on/walker-design-triennial-beyond-materialism/"
+  },
+  {
+    "id": "1c6657e1-9207-4fd3-949c-6e5a1375ebb3",
+    "why": "Third published row for one exhibition, and the least attested of the three. Its range, 26 December 2026 to 26 January 2027, appears on no Walker page: the organiser prints a single continuous run, \"Oct 17, 2026-Feb 14, 2027\", with no separate December or January run, and this row cited the bare homepage, which carries no schedule at all. Row daebb4e1 already holds the correct dates. Archived rather than hidden: the invented range falls entirely inside the real run, so the event page keeps rendering something a reader can still act on.",
+    "archive": true,
+    "evidence": "https://www.walkerart.org/whats-on/walker-design-triennial-beyond-materialism/"
+  },
+  {
+    "id": "a3d0ffee-7667-4f05-97f7-a5d4189f5b84",
+    "why": "The surviving row of a double-listed exhibition; its dates were already right. The Walker's own per-exhibition page prints \"Nov 12, 2026-Apr 18, 2027\" twice, under the title and in the Event Details \"When\" line, with both years adjacent, and gives \"Galleries A & B\" as the location: one continuous exhibition on gallery hours, no performances and no tickets. The 17:00 stored on 2027-04-18 came from the site-wide hours banner (\"Open Today 10AM-5PM\"), not from any closing instant the Walker publishes for this show, so it is cleared and the run moves to multi_day_end, the column counted in days. Render is unchanged: a 158-day span exceeds EXPAND_MAX_DAYS either way, so daysSpanned returns 2026-11-12 alone under both shapes. The title drops \"(Exhibition Opening)\" because this row is the five-month run, not an opening - the Walker lists the Opening-Day Talk separately (\"Thu, Nov 12, 2026\", \"Time 6-8 pm, galleries 5-9 pm\", Walker Cinema) - and this costs nothing in identity: canonicalizeTitle folds both spellings to the same basis, so event_key stays 05b6915249c0be6e894c136eb54a25be, confirmed by running the project's own computeEventKey. Citation moves off the generic /visit/galleries/ hours page onto the per-exhibition page. The 10:00 start is left alone and IS attested: the Walker's /visit/ page prints \"Thursday\" \"10 am-9 pm\" and 12 November 2026 is a Thursday. Not stamped: the evidence page prints no opening clock for the exhibition, and both title and end_local are verify-relevant so the stamp clears anyway - the re-read is the right outcome for a row whose previous stamp rested partly on that invented 17:00.",
+    "evidence": "https://www.walkerart.org/whats-on/abbas-akhavan-variations-on-a-garden/",
+    "source_url": "https://www.walkerart.org/whats-on/abbas-akhavan-variations-on-a-garden/",
+    "title": "Abbas Akhavan: Variations on a Garden",
+    "end": null,
+    "multi_day_end": "2027-04-18"
+  },
+  {
+    "id": "3baf6ded-05db-4ccb-b68d-cf2f39d63874",
+    "why": "Duplicate of a3d0ffee with an unattested date window. Same exhibition, same venue, and canonicalizeTitle folds both titles to the identical basis, so these two rows differ in event_key only by start day - which is why neither dedupe path caught them: the same-day duplicate rule needs the same day and the consecutive-day collapse needs touching intervals, and 12 November to 26 December is neither. Its 26 December 2026 to 26 January 2027 window is attested by nothing - the press release this row itself cites prints \"November 12, 2026-April 18, 2027\" twice and contains no December 2026 date at all, the nearest January date being \"August 6, 2026-January 3, 2027\" for a different artist. Both rows' spans exceed EXPAND_MAX_DAYS, so neither day page ever carried two cards; the duplication showed on /ongoing, where both rows qualified, and in the venue and place lists. Archived rather than hidden because the exhibition genuinely is on view throughout that window.",
+    "archive": true,
+    "evidence": "https://www.walkerart.org/whats-on/abbas-akhavan-variations-on-a-garden/"
+  },
+  {
+    "id": "7e68c8da-5007-441e-81c6-3fa9ef032f2f",
+    "why": "The Arboretum sells the Fall Rootstock teas as five separately ticketed single afternoons, not a run. Under the heading \"November 2026\" its own page prints exactly \"Friday, Nov. 6\", \"Saturday, Nov. 7\", \"Thursday, Nov. 12\", \"Friday, Nov. 13\" and \"Saturday, Nov. 14\", at \"Select afternoons November-April, 1-3 p.m.\" - five dates, no sixth, and no continuous run. The year is adjacent in that heading and corroborated by the ticket slugs behind four of the five dates (Rootstock-Seasonal-Tea-13Nov2026) and by all five printed weekdays matching the 2026 calendar. So the span to 15 November was invented, and it is what threw a second tea card onto /day/2026-11-15. The start 2026-11-14T13:00 and end 2026-11-14T15:00 already match the page, so nothing else changes. No stamp is possible on a span-only change and none is needed: multi_day_end is not verify-relevant, so the existing verified_at is written back unchanged.",
+    "evidence": "https://arb.umn.edu/rootstock/seasonal-teas",
+    "multi_day_end": null
+  },
+  {
+    "id": "d8b79900-0842-41f0-badd-344d32334f76",
+    "why": "15 November 2026 is not a Rootstock tea date. The Arboretum's own page prints exactly five Fall seatings under the heading \"November 2026\" - Nov 6, 7, 12, 13 and 14 - and 2026-11-15 is a Sunday, with no Sunday seating offered in any season; \"Sunday\" appears nowhere on either the organiser page or the ticket store. This row was never stamped by a verify pass. Drafted rather than archived because a date nobody sells must stop rendering its event page, not merely drop off the lists - lib/events.ts:175 keeps serving an archived row's page. Note for later: this row keeps its event_key while drafted, so it would block a future genuine 15 November row under the same title and venue.",
+    "hide": true,
+    "evidence": "https://arb.umn.edu/rootstock/seasonal-teas"
+  }
+]

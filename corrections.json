@@ -1,0 +1,50 @@
+[
+  {
+    "id": "d13a2f7f-7ade-484f-858d-913e6b26cc9f",
+    "why": "cited armorymn.com/events/ — the venue index, shared by four listings, and behind a Sucuri challenge that answers 307 to any script. The venue's own page for this show was in its sitemap all along.",
+    "evidence": "https://armorymn.com/events/wobbleween-night-1/",
+    "source_url": "https://armorymn.com/events/wobbleween-night-1/"
+  },
+  {
+    "id": "6a70d1f8-bbc6-4e05-938a-9f6cbe6511ea",
+    "why": "cited the blocked venue index; re-pointed at this show's own page, which confirms Tuesday, November 3, 2026 and Abbie Callahan as support.",
+    "evidence": "https://armorymn.com/events/orville-peck/",
+    "source_url": "https://armorymn.com/events/orville-peck/"
+  },
+  {
+    "id": "b7a2f136-4848-47d0-b400-a1a24caa3d10",
+    "why": "cited the blocked venue index; re-pointed at this show's own page, which confirms Sunday, November 8, 2026, show at 8:30.",
+    "evidence": "https://armorymn.com/events/jack-white/",
+    "source_url": "https://armorymn.com/events/jack-white/"
+  },
+  {
+    "id": "4352cc30-3890-48c2-ba3d-575d2e90d48c",
+    "why": "cited the blocked venue index; re-pointed at this show's own page, which confirms Sunday, November 22nd, show at 7:00pm, with Pop Evil and Wings of Steel.",
+    "evidence": "https://armorymn.com/events/sabaton/",
+    "source_url": "https://armorymn.com/events/sabaton/"
+  },
+  {
+    "id": "4821c4fc-c7e8-4439-9c26-1f455159b1e2",
+    "why": "LAST YEAR'S EVENT, RE-DATED. The museum's own page for this session reads 'October 28, 2025 10:30 am - 11:30 am' — same month, day and time, one year earlier. The museum's 2026 calendar lists nothing on 28 Oct. Its source (womenspress.com) now 404s, so nothing caught it. This row is stamped verified. Archived first and that was the wrong lever: getEvent filters status <> 'draft', so the row left every list and went on serving its own event page. Hidden instead.",
+    "evidence": "https://mcm.org/events/toddler-music-lab-bounce-and-boogie/",
+    "hide": true
+  },
+  {
+    "id": "25575fd3-4a33-4934-ad80-02e5b0e80772",
+    "why": "LAST YEAR'S EVENT, RE-DATED. The museum ran Echo & Explore on 7 Oct and 4 Nov 2025; there is no 2026 page for it and the museum's November 2026 calendar holds only Securian Free First Sunday on the 1st. One of the four weeks of a 2025 Tuesday series re-dated into 2026. Archived first and that was the wrong lever: getEvent filters status <> 'draft', so the row left every list and went on serving its own event page. Hidden instead.",
+    "evidence": "https://mcm.org/events/toddler-music-lab-echo-and-explore-2/",
+    "hide": true
+  },
+  {
+    "id": "a404066f-2be2-4acf-9a5b-f4eb040734cf",
+    "why": "LAST YEAR'S EVENT, RE-DATED. The museum's own page reads 'November 18, 2025' at the same 10:30 start; 18 Nov 2025 was a Tuesday, 18 Nov 2026 is a Wednesday, and the museum's 2026 calendar is empty that day. This row is stamped verified. Archived first and that was the wrong lever: getEvent filters status <> 'draft', so the row left every list and went on serving its own event page. Hidden instead.",
+    "evidence": "https://mcm.org/events/toddler-music-lab-splish-splash-water-percussion-2/",
+    "hide": true
+  },
+  {
+    "id": "a1dbfabb-5cf3-48e6-beca-d4343f5244a3",
+    "why": "LAST YEAR'S EVENT, RE-DATED. The museum's own page reads 'November 25, 2025'; 25 Nov 2026 is a Wednesday and the museum's 2026 calendar is empty that day. Fourth week of the same 2025 series. Archived first and that was the wrong lever: getEvent filters status <> 'draft', so the row left every list and went on serving its own event page. Hidden instead.",
+    "evidence": "https://mcm.org/events/toddler-music-lab-bounce-and-boogie-2/",
+    "hide": true
+  }
+]

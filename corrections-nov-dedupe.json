@@ -1,0 +1,65 @@
+[
+  {
+    "id": "c0858631-9649-4e6c-9cb5-5acba8d18f9f",
+    "why": "SURVIVOR for the Friday Nordic Soundscapes concert, and its start was an hour early on the row that already carried a verified stamp. The Minnesota Orchestra's own program page sells exactly two performances of this engagement, each with its own BUY button and its own printed time: 'BUY / FRI NOV 13, 8PM CT' and 'BUY / SAT NOV 14, 7PM CT'. So Friday is 8pm, not the 19:00 we published. The per-night pre-concert lobby times corroborate the offset independently - 'Fri Nov 13, 7:15-7:45pm / Sat Nov 14, 6:15-6:45pm', 45 minutes before each printed start. Kept over its duplicate 7a9c7320 because this title names the festival; nothing to carry over from that row. The span to Nov 14 is cleared: two separately ticketed performances with distinct performance ids are not one run (the Wobbleween/Tape B house rule), and Saturday already has its own row 84d5566c, so the span was double-printing Nov 14. End cleared rather than moved: the page prints no end time anywhere, only '~2 hours, including intermission', and CLAUDE.md says never invent an end date. Host note worth keeping: minnesotaorchestra.org returns 403 to plain fetchers, but its block is bot/UA-based and the browser pane reads it fine after the Cloudflare interstitial clears - docs/SOURCE-CHECK.md calls this host unreadable, which is true only of scripted fetches.",
+    "evidence": "https://www.minnesotaorchestra.org/tickets/calendar/classical/vaenskae-chen-and-nielsen",
+    "source_url": "https://www.minnesotaorchestra.org/tickets/calendar/classical/vaenskae-chen-and-nielsen",
+    "start": "2026-11-13T20:00",
+    "end": null,
+    "multi_day_end": null,
+    "verified": true
+  },
+  {
+    "id": "7a9c7320-1314-4f87-b84d-44e27fb0ef3f",
+    "why": "duplicate of the Friday Nordic Soundscapes performance kept as c0858631. Same hall, same night, same program, read off the orchestra's calendar under a different title. This row had the RIGHT start time (20:00) and the survivor had the wrong one, which is why the survivor's start is corrected in the same apply rather than this row being kept - the survivor's title names the festival and this one does not.",
+    "evidence": "https://www.minnesotaorchestra.org/tickets/calendar/classical/vaenskae-chen-and-nielsen",
+    "archive": true
+  },
+  {
+    "id": "79b00723-d909-4c4e-9236-c5832cb37f74",
+    "why": "SURVIVOR for the Friday 11am SPCO premiere. The SPCO's own detail page prints 'Friday, November 13, 2026 - 11:00 AM' and 'Saturday, November 14, 2026 - 7:00 PM' at 'Ordway Concert Hall', each performance with its own Buy Tickets link and a distinct performance id - so there are two performances, the Saturday one already has its own row (473c531d), and the two 11:00 rows are one performance listed twice. The 11:00 start needs no change and is now attested verbatim. Citation moves off content.thespco.org/events/venues/ordway-concert-hall/, a venue index shared by four of our listings and therefore unable to confirm any single one, onto this concert's own page. End cleared, NOT moved to 12:30: the page's only duration string is 'Approximate length 1:30', the organiser's own hedge, printed once on a page advertising two performances, and the music itself sums to 10+26+27 = 63 minutes - so the padding is of unknown composition and 12:30 would be a second guess replacing the first. The stored 13:00 was never attested either. CLAUDE.md: never invent an end date.",
+    "evidence": "https://content.thespco.org/events/zachary-cohen-premieres-deaks-bass-concerto/",
+    "source_url": "https://content.thespco.org/events/zachary-cohen-premieres-deaks-bass-concerto/",
+    "end": null,
+    "verified": true
+  },
+  {
+    "id": "7ac7b248-fef3-465c-a515-72fdcfc49be6",
+    "why": "duplicate of the Friday 11am SPCO premiere kept as 79b00723. Its title was only the presenter's name, 'Saint Paul Chamber Orchestra', with no event in it, and it cited https://ordway.org/events/ - the venue index, shared by seven of our listings. Its own description gave it away: it described 'the November 13-14 run' rather than one performance, which is the index entry, not a concert.",
+    "evidence": "https://content.thespco.org/events/zachary-cohen-premieres-deaks-bass-concerto/",
+    "archive": true
+  },
+  {
+    "id": "9f7a2add-0f6f-47d1-8ccc-1e1028e1b1b5",
+    "why": "SURVIVOR for the Gaelynn Lea concert, and the start was wrong on BOTH rows of this pair - they agreed with each other at 19:30 while the Ordway's own page for the show prints 'November 15, 2026' and 'Sunday, 7:00 PM'. A duplicate pair corroborating its own error is the reason a second row is worse than no second row. Two independent reads confirmed the string '7:30' appears nowhere on the page. Citation moves off the shared https://ordway.org/events/ index onto this concert's own page. End cleared: 21:30 was derived by adding the page's '2 hours, 30 minutes with intermission' to the start, which is arithmetic on the page rather than anything it prints. Title deliberately NOT changed - the venue styles it 'It Wasn't Meant to be Perfect: An Evening with Gaelynn Lea and Friends', but our title leads with the artist's name, which is how a reader searches, and changing it would recompute event_key for no reader benefit. NOT carried over from the archived row: its '$25-$65'. The Ordway page prints no dollar amount at all and says 'This event offers flexible choose-your-own pricing to accommodate any budget', so that range is unattested and may have come from an index widget.",
+    "evidence": "https://ordway.org/events/gaelynn-lea/",
+    "source_url": "https://ordway.org/events/gaelynn-lea/",
+    "start": "2026-11-15T19:00",
+    "end": null,
+    "verified": true
+  },
+  {
+    "id": "8257e5c3-84c3-47a5-a511-9d1d47889f3a",
+    "why": "duplicate of the Gaelynn Lea concert kept as 9f7a2add. 'Gaelynn Lea Presents' is a presenter line, not the show's title, and it cited the shared https://ordway.org/events/ index. Its price range $25-$65 is deliberately not carried over: the organiser's page prints no dollar figure and describes choose-your-own pricing.",
+    "evidence": "https://ordway.org/events/gaelynn-lea/",
+    "archive": true
+  },
+  {
+    "id": "c0ad8513-33bc-4b75-8726-4504d2470507",
+    "why": "SURVIVOR for the 10am Ordway school performance. The Ordway's own detail page prints the date as 'Nov172026' and lists two performances that day, 'Tuesday, 10:00 AM' and 'Tuesday, 12:00 PM', at 'Ordway Concert Hall', '60 minutes', '$4 per ticket'. The 10:00 start needs no change and is now attested. Citation moves off https://ordway.org/education/school-performances/, the index both rows shared, onto the show's own page, which is what actually carries the date, both times and the price. End cleared: the stored 11:30 is contradicted by the page's '60 minutes' and the alternative 11:00 is that duration added to the start rather than anything printed. NOT FIXABLE HERE: the page prints '$4 per ticket' and this row still says 'See listing', but `price` is not a field lib/corrections.ts accepts - it needs /admin or the next re-find.",
+    "evidence": "https://ordway.org/events/school/gravity-acrobatic/",
+    "source_url": "https://ordway.org/events/school/gravity-acrobatic/",
+    "end": null,
+    "verified": true
+  },
+  {
+    "id": "fcf58382-8bfb-4ae3-902a-d4219db39ab0",
+    "why": "REPOINTED, NOT ARCHIVED - and this is a deliberate departure from treating it as a duplicate. At 10:00 it is indistinguishable from c0ad8513, but the organiser's page proves TWO performances on 17 Nov, 'Tuesday, 10:00 AM' and 'Tuesday, 12:00 PM', and we carry only one row for the pair. Archiving this row would be correct about the duplicate and still leave a real, dated, priced performance off the calendar until someone researched it back. The standing rule is that a fuzzy match may confirm but must never destroy, and the burden is on the archive, so this row becomes the midday performance instead: nothing is lost either way, and if it was simply a stale placeholder it is now a listing the venue's own page prints. Its generic title 'Ordway Presents - School Performance (November)' named no event; the new title takes the show's name with a (Midday) suffix, following the house convention already used for 'SPCO: ... (Evening)', which also keeps event_key distinct from the 10:00 row. End cleared for the same reason as its sibling - the page states a 60-minute running time but prints no end.",
+    "evidence": "https://ordway.org/events/school/gravity-acrobatic/",
+    "source_url": "https://ordway.org/events/school/gravity-acrobatic/",
+    "title": "Gravity and Other Myths: Ten Thousand Hours – School Performance (Midday)",
+    "start": "2026-11-17T12:00",
+    "end": null,
+    "verified": true
+  }
+]
