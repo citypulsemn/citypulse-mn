@@ -11,7 +11,6 @@ import { TopBar } from "@/components/TopBar";
 import { SiteFooter } from "@/components/SiteFooter";
 import { dayItemListJsonLd, jsonLdSafe } from "@/lib/seo/event-jsonld";
 import { SITE_URL } from "@/lib/seo/site";
-import { dkey } from "@/lib/dates";
 import { planListView } from "@/lib/list-view";
 import { chiDayKey } from "@/lib/clock";
 import { longDate } from "@/lib/event-view";
@@ -68,9 +67,17 @@ export default async function CollectionPage({
   // page — and grouped by their own start they would print headers months in
   // the past ("Saturday, May 23, 2026" on a November collection). planListView
   // puts them in a capped "Already running" group instead, exactly as the
-  // homepage list and /day do, and clamps anything else that began earlier.
+  // homepage list and /day do. (It does NOT reach groupEventsByDay's clamp from
+  // here — today is the window start, so nothing is left to clamp. The first
+  // draft of this comment said it did; lib/list-view.ts records the same wrong
+  // claim being caught on the homepage the same day.)
   const todayKey = chiDayKey(now);
   const plan = planListView(selected, todayKey, todayKey);
+  // The ItemList describes what is ON THE PAGE. `selected` is larger: the
+  // ongoing group is capped, so advertising all of it would list URLs with no
+  // card and no link to reach them (the "+ N more running" line is a count, by
+  // design). Same rule the /day page follows.
+  const rendered = [...plan.ongoing, ...plan.days.flatMap((g) => g.events)];
   // Featured (R2.2): capped at 1, drawn from THIS collection's own events so a
   // paid placement stays relevant; empty (invisible) until a venue buys.
   const featured = await getFeatured("collection", selected);
@@ -80,11 +87,11 @@ export default async function CollectionPage({
 
   return (
     <>
-      {selected.length > 0 && (
+      {rendered.length > 0 && (
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
-            __html: jsonLdSafe(dayItemListJsonLd(selected, { baseUrl: SITE_URL })),
+            __html: jsonLdSafe(dayItemListJsonLd(rendered, { baseUrl: SITE_URL })),
           }}
         />
       )}

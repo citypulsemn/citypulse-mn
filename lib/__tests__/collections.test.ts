@@ -38,12 +38,16 @@ describe("selectCollection — RULE 5, the fifth break (5 Nov 2026)", () => {
   // 3:30 PM Chicago on Monday 13 Jul 2026, the same instant the R1.2 regressions
   // above use, so the two sets of rules are tested against one clock.
   const afternoon = new Date("2026-07-13T20:30:00Z");
-  const spec = getCollection("live-music")!;
+  // arts-and-culture, NOT live-music: PER_NIGHT = {sports, music}, so a music
+  // row carrying a multiDayEnd is exactly what staleSpanIds deletes — a shape
+  // production cannot produce, and therefore a fixture that proves nothing.
+  // A review caught it. Window is "month", which the dates below sit inside.
+  const spec = getCollection("arts-and-culture")!;
 
   it("a run that opened BEFORE the window and is open now is in its collection", () => {
     const run = ev({
       id: "run",
-      category: "music",
+      category: "arts",
       start: "2026-06-01T19:00",
       end: "",
       multiDayEnd: "2026-07-30T22:00",
@@ -54,7 +58,7 @@ describe("selectCollection — RULE 5, the fifth break (5 Nov 2026)", () => {
   it("…including a SHORT run, which is why this is not just the over-cap bug", () => {
     const threeDay = ev({
       id: "short",
-      category: "music",
+      category: "arts",
       start: "2026-07-12T19:00",
       end: "",
       multiDayEnd: "2026-07-14T22:00",
@@ -65,7 +69,7 @@ describe("selectCollection — RULE 5, the fifth break (5 Nov 2026)", () => {
   it("a run that CLOSED before today is not — the fix is not 'everything matches'", () => {
     const over = ev({
       id: "over",
-      category: "music",
+      category: "arts",
       start: "2026-06-01T19:00",
       end: "",
       multiDayEnd: "2026-07-12T22:00",
@@ -78,7 +82,7 @@ describe("selectCollection — RULE 5, the fifth break (5 Nov 2026)", () => {
     const weekendSpec = getCollection("date-night")!;
     const overTheWeekend = ev({
       id: "wknd",
-      category: "music",
+      category: "arts",
       start: "2026-07-15T19:00",
       end: "",
       multiDayEnd: "2026-07-21T22:00",
@@ -91,10 +95,10 @@ describe("selectCollection — RULE 5, the fifth break (5 Nov 2026)", () => {
     // This is the one axis on which the page still differs from its own feed,
     // deliberately: a collection is what is coming up, so this morning's concert
     // is gone by the afternoon. A RUN that began this morning is still on.
-    const pastToday = ev({ id: "past", category: "music", start: "2026-07-13T09:00" });
+    const pastToday = ev({ id: "past", category: "arts", start: "2026-07-13T09:00" });
     const runFromThisMorning = ev({
       id: "running",
-      category: "music",
+      category: "arts",
       start: "2026-07-13T09:00",
       end: "",
       multiDayEnd: "2026-07-20T22:00",
@@ -131,11 +135,11 @@ describe("selectCollection — RULE 5, the fifth break (5 Nov 2026)", () => {
   // multiday's spansWindow. Pin the agreement, not just each side.
   it("the page and its own ICS feed agree about every run", () => {
     const rows = [
-      ev({ id: "opened-before", category: "music", start: "2026-06-01T19:00", end: "", multiDayEnd: "2026-07-30T22:00" }),
-      ev({ id: "short-run", category: "music", start: "2026-07-12T19:00", end: "", multiDayEnd: "2026-07-14T22:00" }),
-      ev({ id: "starts-later", category: "music", start: "2026-07-20T19:00" }),
-      ev({ id: "closed", category: "music", start: "2026-06-01T19:00", end: "", multiDayEnd: "2026-07-12T22:00" }),
-      ev({ id: "span-by-end", category: "music", start: "2026-07-01T19:00", end: "2026-07-25T22:00" }),
+      ev({ id: "opened-before", category: "arts", start: "2026-06-01T19:00", end: "", multiDayEnd: "2026-07-30T22:00" }),
+      ev({ id: "short-run", category: "arts", start: "2026-07-12T19:00", end: "", multiDayEnd: "2026-07-14T22:00" }),
+      ev({ id: "starts-later", category: "arts", start: "2026-07-20T19:00" }),
+      ev({ id: "closed", category: "arts", start: "2026-06-01T19:00", end: "", multiDayEnd: "2026-07-12T22:00" }),
+      ev({ id: "span-by-end", category: "arts", start: "2026-07-01T19:00", end: "2026-07-25T22:00" }),
     ];
     const feed: FeedSpec = { kind: "collection", key: spec.slug, name: spec.title, slug: spec.slug };
     const page = selectCollection(rows, spec, afternoon).map((e) => e.id).sort();
@@ -144,6 +148,37 @@ describe("selectCollection — RULE 5, the fifth break (5 Nov 2026)", () => {
     expect(page).toContain("opened-before");
     expect(page).toContain("short-run");
     expect(page).not.toContain("closed");
+  });
+});
+
+describe("selectCollection — the all-day floor (caught by review, 5 Nov 2026)", () => {
+  const afternoon = new Date("2026-07-13T20:30:00Z"); // 3:30 PM Chicago
+  const spec = getCollection("arts-and-culture")!;
+
+  it("an ALL-DAY event today is not dropped at 00:01 — the day is the unit", () => {
+    // all-day is stored at midnight (lib/time-integrity.ts), so a wall-time
+    // floor binned a TBD game or a no-listed-time show from the first minute of
+    // the day it happens. isEnded and isUpcoming have always used the day.
+    const allDayToday = ev({
+      category: "arts",
+      start: "2026-07-13T00:00",
+      end: "",
+      allDay: true,
+      title: "All-day today",
+    });
+    expect(selectCollection([allDayToday], spec, afternoon).map((e) => e.title)).toEqual([
+      "All-day today",
+    ]);
+  });
+
+  it("…but an all-day event YESTERDAY still is", () => {
+    const yesterday = ev({ category: "arts", start: "2026-07-12T00:00", end: "", allDay: true });
+    expect(selectCollection([yesterday], spec, afternoon)).toEqual([]);
+  });
+
+  it("a timed single-day event earlier today is still dropped — R1.2 intact", () => {
+    const thisMorning = ev({ category: "arts", start: "2026-07-13T09:00", end: "" });
+    expect(selectCollection([thisMorning], spec, afternoon)).toEqual([]);
   });
 });
 

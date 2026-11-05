@@ -57,6 +57,41 @@ describe("exclusionReason — the locked blocklist, with its documented exceptio
   });
 });
 
+describe("buildCards — rule 5, the sixth break (5 Nov 2026)", () => {
+  // This filtered with daysSpanned, the CAPPED expansion, which returns the
+  // start day alone for a run over 14 days — so a long exhibition running right
+  // through the window could never be carded. daysSpanned' own docstring says it
+  // answers the calendar grid's question, not this one.
+  it("a run longer than the grid cap is carded when it covers a window day", () => {
+    const longRun = ev({
+      category: "arts",
+      title: "Two-month exhibition",
+      start: "2026-05-01T10:00",
+      end: "",
+      multiDayEnd: "2026-09-30T17:00",
+    });
+    const cards = buildCards([longRun], DAYS);
+    const all = [...cards.regular, ...cards.family, ...cards.weird];
+    expect(all.map((e) => e.title)).toContain("Two-month exhibition");
+  });
+
+  it("…and one that closed before the window is not", () => {
+    const over = ev({
+      category: "arts",
+      title: "Closed exhibition",
+      start: "2026-05-01T10:00",
+      end: "",
+      multiDayEnd: "2026-06-30T17:00",
+    });
+    const all = [
+      ...buildCards([over], DAYS).regular,
+      ...buildCards([over], DAYS).family,
+      ...buildCards([over], DAYS).weird,
+    ];
+    expect(all.map((e) => e.title)).not.toContain("Closed exhibition");
+  });
+});
+
 describe("buildCards — the locked structural rules", () => {
   const pool = [
     // 6 family, 6 weird, plenty of regular

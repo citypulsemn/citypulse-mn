@@ -2,7 +2,7 @@ import { matchesQuery, type QueryScope } from "./search";
 import { matchesPrice, matchesArea } from "./filters";
 import { chiWallClock, chiDayKey } from "./clock";
 import { weekendDays } from "./weekend";
-import { spanEnd, spansDay, spansWindow } from "./multiday";
+import { dayOf, spanEnd, spansDay, spansWindow } from "./multiday";
 import type { EventRecord, CategoryKey, PriceTier } from "./types";
 import type { AreaKey } from "./areas";
 
@@ -167,7 +167,15 @@ export function selectCollection(
   const fromKey = w.fromWall.slice(0, 10);
   return events
     .filter((e) => e.status === "published")
-    .filter((e) => spanEnd(e) !== null || e.start >= w.fromWall)
+    .filter((e) =>
+      spanEnd(e) !== null ||
+      // An ALL-DAY row is stored at midnight (lib/time-integrity.ts), so a
+      // wall-time floor drops a TBD game or a no-listed-time show from 00:01 on
+      // the very day it happens. Everywhere else treats all-day as past only
+      // once the DAY has passed (lib/event-view.ts isEnded, lib/dates.ts
+      // isUpcoming); this arm matches them. Caught by a review of the first cut.
+      (e.allDay ? dayOf(e.start) >= fromKey : e.start >= w.fromWall),
+    )
     .filter((e) =>
       w.days
         ? [...w.days].some((d) => spansDay(e, d))

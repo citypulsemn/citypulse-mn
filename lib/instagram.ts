@@ -1,5 +1,6 @@
 import type { EventRecord } from "./types";
-import { daysSpanned } from "./dates";
+import { daysSpanned } from "./dates"; // dayTag asks a START question, legitimately
+import { spansDay } from "./multiday";
 import { timeLabel } from "./dates";
 
 /**
@@ -77,7 +78,13 @@ export function buildCards(pool: EventRecord[], windowDays: string[]): CardSet {
   const daySet = new Set(windowDays);
   const inWindow = pool
     .filter((e) => e.status === "published")
-    .filter((e) => daysSpanned(e).some((d) => daySet.has(d)))
+    // RULE 5, the sixth and last break (5 Nov 2026). This was
+    // `daysSpanned(e).some((d) => daySet.has(d))` — the CAPPED expansion, which
+    // returns the start day alone for a run over 14 days, so a two-month
+    // exhibition could never be carded. daysSpanned' own docstring says it
+    // answers the grid's question and not this one. One line, and it is the
+    // literal shape ENGINEERING rule 5 forbids.
+    .filter((e) => windowDays.some((d) => spansDay(e, d)))
     .sort((a, b) => a.start.localeCompare(b.start));
 
   const excluded: CardSet["excluded"] = [];

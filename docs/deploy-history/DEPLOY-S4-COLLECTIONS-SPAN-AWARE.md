@@ -56,7 +56,10 @@ wrong number twice.** Run the old code against the new code over the real set.
 
 The obvious fix — import `inWindow` from `lib/feeds.ts` — **cycles**: `feeds.ts` imports
 `COLLECTIONS`, so that dependency runs one way only. The rule therefore went to
-`lib/multiday.ts` as `spansWindow`, beside `spansDay`, which both callers already import from.
+`lib/multiday.ts` as `spansWindow`, beside `spansDay`. (`feeds` already imported from
+`multiday`; `collections` did not, reaching it only transitively through `lib/weekend.ts` —
+the first draft of this line overstated that too. It changes nothing about the cycle: nothing
+in `multiday`'s own import closure reaches either module.)
 `feeds.ts` deleted its local copy. Same resolution as `spanEndISO` moving into `lib/dates.ts`.
 
 ### 2. R1.2's floor is kept, and it is the one axis that still differs
@@ -168,8 +171,16 @@ collections predicate and the `queryScope` argument, both reverting cleanly.
 - **The R1.2 floor** keeps one axis different on purpose. If Taren would rather a collection
   show what is on rather than what is coming up, that is a one-line change and a test to
   rewrite.
-- **Rule 5 is now closed for every surface found so far** — five breaks, all fixed. The sweep
-  that found the fifth also named weaker candidates that are *not* violations
-  (`weekly-picks`, `related`, `verify`, `digest-personal`, `admin`, `ops-inputs`,
-  `source-sweep` all ask genuine start questions); `lib/instagram.ts:80` is the one remaining
-  literal capped-expansion misuse, reaching one admin page.
+- **Rule 5: SIX literal breaks found, six fixed — and I am not calling it closed.** The first
+  draft of this line said "closed … five breaks, all fixed" **three lines above naming a live
+  sixth**, `lib/instagram.ts:80`. A review caught the contradiction. That one is fixed here
+  too (it became a one-liner once `spansDay` was an import away), so the count is six. But
+  every one of the six was found while chasing the previous one, which is weak evidence that
+  the sixth is the last.
+- **The cousin shape is NOT swept.** A start-only predicate is not the literal thing rule 5
+  forbids, but it produces the same bug when a sibling surface answers differently — which is
+  exactly what made S4 a bug rather than a preference. The highest-reach live candidate is
+  **`lib/related.ts:29`** (`e.start >= nowWall`), on every event page, disagreeing with the
+  venue page it links to (`app/venues/[slug]/page.tsx:81` uses the span-aware `isUpcoming`).
+  Also flagged: `lib/verify-flags.ts:62` (`e.start_at >= now()`), which can hide a reader
+  report about a currently-running show. Neither is in this commit; both want their own.

@@ -118,9 +118,9 @@ oracle that cloned each event onto the first covered day but kept its original t
 the old predicate's `e.start < w.fromWall` still rejected the clones. Simulating a predicate is
 how you get a wrong number twice. Run the old code against the new code.
 
-**Rule 6 rides on top of rule 5 here:** `app/collections/[slug]/page.tsx` renders `groupByDay`
-and nothing else, so its "No events match this collection yet" copy can print while a
-qualifying run is open.
+**Rule 6 rode on top of rule 5 here:** before this shipped, `app/collections/[slug]/page.tsx`
+rendered its own `groupByDay` and nothing else, so its "No events match this collection yet"
+copy could print while a qualifying run was open. That private grouping is now deleted.
 
 **Fix — SHIPPED 5 Nov 2026.** Not by importing from `feeds`: `feeds.ts` imports `COLLECTIONS`,
 so that dependency only runs one way and the import would have cycled. The rule moved DOWN to
@@ -128,7 +128,7 @@ so that dependency only runs one way and the import would have cycled. The rule 
 `feeds` deleted its local copy. The collection page uses `planListView` for an "Already
 running" group and lost its own third copy of day-grouping.
 
-**Tests:** six added, including the parity test that would have caught this — the page and the
+**Tests:** added, including the parity test that would have caught this — the page and the
 ICS feed, built from one spec, asserted equal over five shapes. Mutating `spansWindow` to
 ignore the span fails tests on BOTH sides, which is the proof the predicate is really shared.
 
@@ -259,7 +259,9 @@ next scheduled verify pass will re-read them; no work unless it does not.
 1. ~~**S1**~~ — **SHIPPED 5 Nov 2026**, with the Travail duplicate cluster it exposed cleared in the same pass. See docs/deploy-history/DEPLOY-S1-LIST-SPAN-AWARE.md.
 2. ~~**S4**~~ — **SHIPPED 5 Nov 2026.** 45 rows gained, 0 lost; page and feed now agree.
 3. **T1** — stops the most visible treadmill before the next Monday run.
-4. **S2** — small, and it closes rule 5 for good.
+4. **S2** — small. It does NOT "close rule 5 for good", which an earlier draft of this line
+   claimed: six literal breaks have been fixed and the start-only cousin shape
+   (`lib/related.ts:29` above all) has never been swept.
 5. **H2** — cheap, and one of those files is now actively dangerous.
 6. **T2** — the harder treadmill.
 7. **H1**, then the owner calls as they land.
