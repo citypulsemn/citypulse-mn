@@ -5,7 +5,7 @@ import { matchesPrice, matchesArea } from "./filters";
 import { venuePageBySlug, matchVenueSlug, VENUE_PAGES } from "./venue-pages";
 import { neighborhoodByKey, eventNeighborhood, NEIGHBORHOODS } from "./neighborhoods";
 import { weekendDays, chiDayKey } from "./weekend";
-import { spanEnd, spansDay, dayOf } from "./multiday";
+import { spansDay, spansWindow } from "./multiday";
 import type { CategoryKey, EventRecord } from "./types";
 
 /**
@@ -89,19 +89,17 @@ export function allFeedSlugs(): string[] {
   ];
 }
 
-/** True-span intersection with the rolling window [today, today+N days]. */
-function inWindow(ev: EventRecord, startKey: string, endKey: string): boolean {
-  const first = dayOf(ev.start);
-  const last = dayOf(spanEnd(ev) ?? ev.start);
-  return first <= endKey && last >= startKey;
-}
-
 function matchesCollection(ev: EventRecord, spec: CollectionSpec): boolean {
   const cats = spec.categories ? new Set(spec.categories) : null;
   if (cats && !cats.has(ev.category)) return false;
   if (!matchesPrice(ev, new Set(spec.prices ?? []))) return false;
   if (!matchesArea(ev, new Set(spec.areas ?? []))) return false;
-  if (spec.query && !matchesQuery(ev, spec.query)) return false;
+  // queryScope, not just query (5 Nov 2026). Dropping it meant the ICS used the
+  // default "all" scope while the page used the spec’s own: food-truck-festivals
+  // sets queryScope "title" on purpose ("a body mention isn’t the topic"), so the
+  // feed was admitting events the page deliberately excluded. Same spec, two
+  // answers — the span half of that was S4; this was the rest of it.
+  if (spec.query && !matchesQuery(ev, spec.query, spec.queryScope ?? "all")) return false;
   return true;
 }
 
@@ -115,7 +113,7 @@ export function selectFeedEvents(events: EventRecord[], feed: FeedSpec, now: Dat
   } else {
     const startKey = chiDayKey(now);
     const endKey = chiDayKey(new Date(now.getTime() + FEED_WINDOW_DAYS * DAY_MS));
-    const windowed = published.filter((e) => inWindow(e, startKey, endKey));
+    const windowed = published.filter((e) => spansWindow(e, startKey, endKey));
     switch (feed.kind) {
       case "category":
         picked = windowed.filter((e) => e.category === feed.key);

@@ -11,7 +11,9 @@ import { TopBar } from "@/components/TopBar";
 import { SiteFooter } from "@/components/SiteFooter";
 import { dayItemListJsonLd, jsonLdSafe } from "@/lib/seo/event-jsonld";
 import { SITE_URL } from "@/lib/seo/site";
-import { dkey, evDate } from "@/lib/dates";
+import { dkey } from "@/lib/dates";
+import { planListView } from "@/lib/list-view";
+import { chiDayKey } from "@/lib/clock";
 import { longDate } from "@/lib/event-view";
 import type { EventRecord } from "@/lib/types";
 
@@ -47,22 +49,6 @@ export async function generateMetadata({
   };
 }
 
-/** Group events by day, preserving chronological order. */
-function groupByDay(events: EventRecord[]): { key: string; events: EventRecord[] }[] {
-  const groups: { key: string; events: EventRecord[] }[] = [];
-  const index = new Map<string, EventRecord[]>();
-  for (const e of events) {
-    const k = dkey(evDate(e));
-    if (!index.has(k)) {
-      const arr: EventRecord[] = [];
-      index.set(k, arr);
-      groups.push({ key: k, events: arr });
-    }
-    index.get(k)!.push(e);
-  }
-  return groups;
-}
-
 export default async function CollectionPage({
   params,
 }: {
@@ -73,8 +59,18 @@ export default async function CollectionPage({
   if (!collection) notFound();
 
   const events = await getEvents();
-  const selected = selectCollection(events, collection, new Date());
-  const groups = groupByDay(selected);
+  // One instant for the whole render, so the selection and the "Already
+  // running" split cannot straddle midnight.
+  const now = new Date();
+  const selected = selectCollection(events, collection, now);
+  // One grouping rule for every event list on the site. Collections went
+  // span-aware on 5 Nov 2026 (roadmap S4), so mid-run events now reach this
+  // page — and grouped by their own start they would print headers months in
+  // the past ("Saturday, May 23, 2026" on a November collection). planListView
+  // puts them in a capped "Already running" group instead, exactly as the
+  // homepage list and /day do, and clamps anything else that began earlier.
+  const todayKey = chiDayKey(now);
+  const plan = planListView(selected, todayKey, todayKey);
   // Featured (R2.2): capped at 1, drawn from THIS collection's own events so a
   // paid placement stays relevant; empty (invisible) until a venue buys.
   const featured = await getFeatured("collection", selected);
@@ -109,8 +105,24 @@ export default async function CollectionPage({
 
         <FeaturedRow items={featured} />
 
-        {groups.length > 0 ? (
-          groups.map((g) => (
+        {plan.ongoing.length > 0 && (
+          <section className="coll-daygroup">
+            <h2 className="coll-dayhead">Already running</h2>
+            <div className="day-list">
+              {plan.ongoing.map((e) => (
+                <EventDayCard key={e.id} event={e} />
+              ))}
+              {plan.ongoingTotal > plan.ongoing.length && (
+                <p className="list-ongoing-more">
+                  + {plan.ongoingTotal - plan.ongoing.length} more running
+                </p>
+              )}
+            </div>
+          </section>
+        )}
+
+        {plan.days.length > 0 ? (
+          plan.days.map((g) => (
             <section key={g.key} className="coll-daygroup">
               <h2 className="coll-dayhead">{longDate(g.key)}</h2>
               <div className="day-list">
@@ -120,7 +132,7 @@ export default async function CollectionPage({
               </div>
             </section>
           ))
-        ) : (
+        ) : plan.ongoingTotal > 0 ? null : (
           <div className="day-empty">
             No events match this collection yet — new events land with every Monday refresh.
             <br />

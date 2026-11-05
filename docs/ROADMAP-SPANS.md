@@ -99,36 +99,43 @@ weekend branch — and `feeds.ts:87` builds those feeds from `COLLECTIONS.map((c
 So `/feeds/<slug>` and `/collections/<slug>` disagree, with the under-reporting one as the
 indexed HTML page. That is the R1.5 page-versus-ICS shape `/this-weekend` already paid for.
 
-**Measured, 5 Nov 2026** — by handing `selectCollection` clones whose start is moved onto the
-first covered day, so every other filter the spec applies (price, area, query, category) runs
-unchanged and the delta isolates the span blindness:
+**Measured, 5 Nov 2026 — THIRD time, and the first two were both wrong.** The only measurement
+worth quoting runs the OLD predicate and the new one side by side over the real published set:
 
-| collection | shown | span-aware | hidden |
+| collection | before | after | gained |
 |---|---|---|---|
 | `date-night` | 41 | 58 | **17** |
-| `arts-and-culture` | 58 | 60 | 2 |
-| `free-this-week` | 15 | 16 | 1 |
-| `family-fun` | 15 | 16 | 1 |
+| `arts-and-culture` | 58 | 74 | **16** |
+| `free-this-week` | 15 | 22 | 7 |
+| `family-fun` | 15 | 19 | 4 |
 | `only-in-minnesota` | 2 | 3 | 1 |
-| the other three | — | — | 0 |
+| `live-music`, `festivals-and-markets`, `food-truck-festivals` | — | — | 0 |
 
-**22 rows across all eight.** Smaller than S1, and worth saying why the first pass of this
-measurement reported 686: that oracle applied only the category filter and ignored each spec's
-own price and query rules. Measure with the real filters or do not quote a number.
+**45 rows gained, 0 lost.** Both earlier figures quoted here were wrong and are left on the
+record deliberately: the first said **686**, from an oracle that applied only the category
+filter and ignored each spec's own price and query rules; the second said **22**, from an
+oracle that cloned each event onto the first covered day but kept its original time-of-day, so
+the old predicate's `e.start < w.fromWall` still rejected the clones. Simulating a predicate is
+how you get a wrong number twice. Run the old code against the new code.
 
 **Rule 6 rides on top of rule 5 here:** `app/collections/[slug]/page.tsx` renders `groupByDay`
 and nothing else, so its "No events match this collection yet" copy can print while a
 qualifying run is open.
 
-**Fix:** import `lib/feeds.ts`'s `inWindow` / `spansDay` rather than write a third predicate.
-Decide whether a collection page needs an "Already running" group as the list and day pages
-now have, or whether 22 rows is small enough to interleave.
+**Fix — SHIPPED 5 Nov 2026.** Not by importing from `feeds`: `feeds.ts` imports `COLLECTIONS`,
+so that dependency only runs one way and the import would have cycled. The rule moved DOWN to
+`lib/multiday.ts` as `spansWindow`, beside `spansDay`, where both callers already import from;
+`feeds` deleted its local copy. The collection page uses `planListView` for an "Already
+running" group and lost its own third copy of day-grouping.
 
-**Tests:** a run spanning the window from before it · the weekend-days branch · a closed run
-excluded · parity with `selectFeedEvents` for the same spec, which is the test that would have
-caught this.
-**Verify:** `/collections/date-night` card count against `/feeds/date-night.ics`.
-**Size: S–M.** **Depends:** nothing.
+**Tests:** six added, including the parity test that would have caught this — the page and the
+ICS feed, built from one spec, asserted equal over five shapes. Mutating `spansWindow` to
+ignore the span fails tests on BOTH sides, which is the proof the predicate is really shared.
+
+**One axis still differs, deliberately.** R1.2's floor is kept: a SINGLE-DAY event that already
+started today is past, so this morning's concert leaves the collection in the afternoon while
+the ICS keeps it. A RUN that began this morning stays in both. A test pins it.
+**Size: S–M.** **Shipped.**
 
 ### S2 `readEventsForDay` prefers a `multi_day_end` that is not later than the start
 **Where:** `lib/events.ts:241` and `:246-247`.
@@ -250,8 +257,7 @@ next scheduled verify pass will re-read them; no work unless it does not.
 ## Sequencing
 
 1. ~~**S1**~~ — **SHIPPED 5 Nov 2026**, with the Travail duplicate cluster it exposed cleared in the same pass. See docs/deploy-history/DEPLOY-S1-LIST-SPAN-AWARE.md.
-2. **S4** — the fifth break, found by the review of S1. Same shape, and its own ICS feed
-   already disagrees with it.
+2. ~~**S4**~~ — **SHIPPED 5 Nov 2026.** 45 rows gained, 0 lost; page and feed now agree.
 3. **T1** — stops the most visible treadmill before the next Monday run.
 4. **S2** — small, and it closes rule 5 for good.
 5. **H2** — cheap, and one of those files is now actively dangerous.

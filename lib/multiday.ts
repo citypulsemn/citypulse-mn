@@ -793,6 +793,26 @@ export function runLength(ev: Spannable): number {
 }
 
 /**
+ * Does this event's TRUE run intersect the window [startKey, endKey]?
+ *
+ * The rolling-window half of rule 5, lifted out of lib/feeds.ts on 5 Nov 2026
+ * so that `lib/collections.ts` could ask the same question. It could not import
+ * the feeds copy: `feeds.ts` imports COLLECTIONS, so the dependency only runs
+ * one way, and the rule has to live below both. That is the same shape as
+ * `spanEndISO` moving into lib/dates.ts for `multiday`.
+ *
+ * WHY IT MATTERED: `selectCollection` filtered on the START DAY alone while
+ * `selectFeedEvents` used the feeds copy of this, for the SAME CollectionSpec —
+ * so /collections/<slug> and /feeds/<slug>.ics disagreed, with the indexed HTML
+ * page under-reporting. The R1.5 page-versus-ICS shape, a second time.
+ */
+export function spansWindow(ev: Spannable, startKey: string, endKey: string): boolean {
+  const first = dayOf(ev.start);
+  const last = dayOf(spanEnd(ev) ?? ev.start);
+  return first <= endKey && last >= startKey;
+}
+
+/**
  * Does this event occur on `dayKey`? A multi-day festival is happening on every
  * day it spans — so it should surface in "what's on today", not only on day one.
  */

@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest";
+import { selectFeedEvents, type FeedSpec } from "../feeds";
 import {
   selectCollection,
   collectionWindow,
@@ -32,6 +33,119 @@ function ev(overrides: Partial<EventRecord> = {}): EventRecord {
     ...overrides,
   };
 }
+
+describe("selectCollection — RULE 5, the fifth break (5 Nov 2026)", () => {
+  // 3:30 PM Chicago on Monday 13 Jul 2026, the same instant the R1.2 regressions
+  // above use, so the two sets of rules are tested against one clock.
+  const afternoon = new Date("2026-07-13T20:30:00Z");
+  const spec = getCollection("live-music")!;
+
+  it("a run that opened BEFORE the window and is open now is in its collection", () => {
+    const run = ev({
+      id: "run",
+      category: "music",
+      start: "2026-06-01T19:00",
+      end: "",
+      multiDayEnd: "2026-07-30T22:00",
+    });
+    expect(selectCollection([run], spec, afternoon).map((e) => e.id)).toEqual(["run"]);
+  });
+
+  it("…including a SHORT run, which is why this is not just the over-cap bug", () => {
+    const threeDay = ev({
+      id: "short",
+      category: "music",
+      start: "2026-07-12T19:00",
+      end: "",
+      multiDayEnd: "2026-07-14T22:00",
+    });
+    expect(selectCollection([threeDay], spec, afternoon).map((e) => e.id)).toEqual(["short"]);
+  });
+
+  it("a run that CLOSED before today is not — the fix is not 'everything matches'", () => {
+    const over = ev({
+      id: "over",
+      category: "music",
+      start: "2026-06-01T19:00",
+      end: "",
+      multiDayEnd: "2026-07-12T22:00",
+    });
+    expect(selectCollection([over], spec, afternoon)).toEqual([]);
+  });
+
+  it("the weekend window asks spansDay, so a run covering the weekend counts", () => {
+    // 13 Jul 2026 is a Monday; the weekend window is Fri 17 - Sun 19.
+    const weekendSpec = getCollection("date-night")!;
+    const overTheWeekend = ev({
+      id: "wknd",
+      category: "music",
+      start: "2026-07-15T19:00",
+      end: "",
+      multiDayEnd: "2026-07-21T22:00",
+    });
+    const ids = selectCollection([overTheWeekend], weekendSpec, afternoon).map((e) => e.id);
+    expect(ids).toEqual(["wknd"]);
+  });
+
+  it("R1.2's floor survives for SINGLE-DAY events, and only for them", () => {
+    // This is the one axis on which the page still differs from its own feed,
+    // deliberately: a collection is what is coming up, so this morning's concert
+    // is gone by the afternoon. A RUN that began this morning is still on.
+    const pastToday = ev({ id: "past", category: "music", start: "2026-07-13T09:00" });
+    const runFromThisMorning = ev({
+      id: "running",
+      category: "music",
+      start: "2026-07-13T09:00",
+      end: "",
+      multiDayEnd: "2026-07-20T22:00",
+    });
+    const ids = selectCollection([pastToday, runFromThisMorning], spec, afternoon).map((e) => e.id);
+    expect(ids).toEqual(["running"]);
+  });
+
+  it("the feed honours queryScope, which it used to drop", () => {
+    // food-truck-festivals sets queryScope "title" on purpose. The feed called
+    // matchesQuery without it, so a body mention got into the ICS and not the
+    // page — the same spec answering twice, the non-span half of S4.
+    const ftf = getCollection("food-truck-festivals")!;
+    expect(ftf.queryScope).toBe("title");
+    const titled = ev({ id: "titled", category: "food", title: "Food Truck Rally", start: "2026-07-20T12:00" });
+    const bodyOnly = ev({
+      id: "body",
+      category: "food",
+      title: "Summer Block Party",
+      description: "with a food truck on site",
+      start: "2026-07-20T12:00",
+    });
+    const feed: FeedSpec = { kind: "collection", key: ftf.slug, name: ftf.title, slug: ftf.slug };
+    const page = selectCollection([titled, bodyOnly], ftf, afternoon).map((e) => e.id);
+    const ics = selectFeedEvents([titled, bodyOnly], feed, afternoon).map((e) => e.id);
+    expect(page).toEqual(ics);
+    expect(ics).not.toContain("body");
+  });
+
+  // ── THE TEST THAT WOULD HAVE CAUGHT THIS ─────────────────────────────────
+  // /collections/<slug> and /feeds/<slug>.ics are built from the SAME
+  // CollectionSpec, and before today they answered differently: the feed used
+  // true-span intersection, the page used the start day. Both now call
+  // multiday's spansWindow. Pin the agreement, not just each side.
+  it("the page and its own ICS feed agree about every run", () => {
+    const rows = [
+      ev({ id: "opened-before", category: "music", start: "2026-06-01T19:00", end: "", multiDayEnd: "2026-07-30T22:00" }),
+      ev({ id: "short-run", category: "music", start: "2026-07-12T19:00", end: "", multiDayEnd: "2026-07-14T22:00" }),
+      ev({ id: "starts-later", category: "music", start: "2026-07-20T19:00" }),
+      ev({ id: "closed", category: "music", start: "2026-06-01T19:00", end: "", multiDayEnd: "2026-07-12T22:00" }),
+      ev({ id: "span-by-end", category: "music", start: "2026-07-01T19:00", end: "2026-07-25T22:00" }),
+    ];
+    const feed: FeedSpec = { kind: "collection", key: spec.slug, name: spec.title, slug: spec.slug };
+    const page = selectCollection(rows, spec, afternoon).map((e) => e.id).sort();
+    const ics = selectFeedEvents(rows, feed, afternoon).map((e) => e.id).sort();
+    expect(page).toEqual(ics);
+    expect(page).toContain("opened-before");
+    expect(page).toContain("short-run");
+    expect(page).not.toContain("closed");
+  });
+});
 
 describe("collectionWindow — Chicago wall frame (R1.2)", () => {
   it("week runs from the wall-clock now through the 7th Chicago day", () => {

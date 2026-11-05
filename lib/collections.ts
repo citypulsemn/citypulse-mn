@@ -2,6 +2,7 @@ import { matchesQuery, type QueryScope } from "./search";
 import { matchesPrice, matchesArea } from "./filters";
 import { chiWallClock, chiDayKey } from "./clock";
 import { weekendDays } from "./weekend";
+import { spanEnd, spansDay, spansWindow } from "./multiday";
 import type { EventRecord, CategoryKey, PriceTier } from "./types";
 import type { AreaKey } from "./areas";
 
@@ -144,13 +145,34 @@ export function selectCollection(
   const prices = new Set(spec.prices ?? []);
   const areas = new Set(spec.areas ?? []);
 
+  // RULE 5, THE FIFTH BREAK (fixed 5 Nov 2026). This asked the START DAY only:
+  //
+  //     if (e.start < w.fromWall) return false;
+  //     const day = e.start.slice(0, 10);
+  //     return w.days ? w.days.has(day) : day <= w.endKey;
+  //
+  // so a run that opened before the window and is open right now was absent from
+  // its own collection. The proof it was wrong rather than merely different: the
+  // SAME CollectionSpec already got true-span treatment in lib/feeds.ts, which
+  // builds its feeds from COLLECTIONS — so /collections/<slug> and
+  // /feeds/<slug>.ics answered one question two ways, and the under-reporting
+  // one was the indexed HTML page. Both now call multiday's spansWindow/spansDay.
+  //
+  // R1.2’S FLOOR IS KEPT, and a test pins it: a SINGLE-DAY event that already
+  // started today is past, and a collection is what is coming up. A RUN that
+  // started earlier is not past — that distinction is the whole change. The
+  // floor is why /collections and /feeds still differ on one narrow axis: the
+  // feed has no such floor, so this morning’s concert stays in the ICS all day.
+  // Deliberate, measured, and recorded in the guide rather than quietly aligned.
+  const fromKey = w.fromWall.slice(0, 10);
   return events
     .filter((e) => e.status === "published")
-    .filter((e) => {
-      if (e.start < w.fromWall) return false; // walls to walls, never epochs
-      const day = e.start.slice(0, 10);
-      return w.days ? w.days.has(day) : day <= w.endKey;
-    })
+    .filter((e) => spanEnd(e) !== null || e.start >= w.fromWall)
+    .filter((e) =>
+      w.days
+        ? [...w.days].some((d) => spansDay(e, d))
+        : spansWindow(e, fromKey, w.endKey),
+    )
     .filter((e) => (cats ? cats.has(e.category) : true))
     .filter((e) => matchesPrice(e, prices))
     .filter((e) => matchesArea(e, areas))
