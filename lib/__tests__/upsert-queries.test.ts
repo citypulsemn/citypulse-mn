@@ -183,6 +183,16 @@ describe("foldRunRefinds — the gate that stops a run being re-minted weekly", 
     }
   });
 
+  it("says WHICH rule folded the row, in the audit trail and in the Actions log", () => {
+    // Both of these survived a mutation pass: collapsing the audit `why` to one
+    // string, and deleting the marker from the console line, broke no test. The
+    // audit `why` is the only place a future reader learns that a fold was a
+    // similarity judgement rather than an identical name, and the console line
+    // is the only trace while a pipeline run is in flight.
+    expect(body).toContain("DRIFTED from a run");
+    expect(body).toContain("title similarity, not an identical name");
+  });
+
   it("carries the planner's drift flag through, rather than deciding again", () => {
     // Two definitions of "was this a judgement call" would drift apart exactly
     // like the gates this fold exists to patch over. planRunFolds derives the

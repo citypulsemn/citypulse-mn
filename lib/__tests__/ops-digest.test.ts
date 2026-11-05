@@ -772,6 +772,18 @@ describe("R2.3 — gather-side tripwires (gatherer source)", () => {
     return readFileSync(join(__dirname, "..", "ops-inputs.ts"), "utf8");
   })();
 
+  it("the fold examples are ordered DRIFT FIRST, not merely newest", () => {
+    // Measured by a review against the real batch size: a drift fold reached
+    // the printed five in under a third of the passes that made one, so the
+    // section counted the judgement calls without ever naming them — the exact
+    // failure it was built to end. Sort is stable, so recency still orders
+    // within each group.
+    expect(src).toContain("sort((a, b) => Number(b.drift) - Number(a.drift))");
+    const sortAt = src.indexOf("Number(b.drift) - Number(a.drift)");
+    const sliceAt = src.indexOf("slice(0, 5)", sortAt);
+    expect(sortAt, "the drift sort must come before the five-row cap").toBeLessThan(sliceAt);
+  });
+
   it("the fold example line MARKS a title-similarity match", () => {
     // Caught by mutation, 4 Nov 2026, and it is the same shape as the defect
     // this gate shipped with: the renderer's test asserts a hand-written

@@ -478,14 +478,49 @@ function runAliasKeys(r: RunFoldRow): string[] {
  * or alias rule can — "Sever's Fall Festival & Corn Maze" against "Sever's Corn
  * Maze & Fall Festival" scores 1.
  */
+/**
+ * Words this calendar uses to name a PART of a run rather than a run.
+ *
+ * NOT invented: taken from the 5,171 titles the project has published, by
+ * counting what actually appears after the last dash or colon — where this
+ * calendar puts a phase. "weekend" leads at 146, then "night" 76, "day" 59,
+ * "opening" 59, "final" 31, "performance" 21, "matinee" 15, "part" 8. Words
+ * that only ever name a whole event ("tour", "festival", "concert", "market")
+ * are left out, as are place names.
+ *
+ * It errs toward INCLUSION, and that is the safe direction on purpose: a word
+ * wrongly listed here refuses a fold, which leaves a duplicate card visible,
+ * while a word missing from it folds a real sub-event into silence. "night" and
+ * "day" are the uncomfortable entries — "Date Night" and "Labor Day" are whole
+ * events — but the guard only fires between two multi-day runs whose titles are
+ * otherwise the same and whose dates overlap, where the cost is one duplicate.
+ */
+const SUBEVENT_WORDS = new Set([
+  "opening", "closing", "final", "finale", "premiere", "preview", "previews",
+  "matinee", "matinees", "encore", "gala", "members", "sneak", "peek",
+  "part", "phase", "edition", "session", "sessions", "hours",
+  "weekend", "weekends", "week", "day", "days", "night", "nights",
+  "performance", "performances", "first", "second", "third", "last", "only",
+]);
+
+/** Tokens in one normalised title and not the other, in either direction. */
+function titleDiff(a: string, b: string): string[] {
+  const A = new Set(a.split(" ").filter(Boolean));
+  const B = new Set(b.split(" ").filter(Boolean));
+  return [...A].filter((t) => !B.has(t)).concat([...B].filter((t) => !A.has(t)));
+}
+
 function tokenOverlap(a: string, b: string): number {
   const A = new Set(a.split(" ").filter(Boolean));
   const B = new Set(b.split(" ").filter(Boolean));
   let shared = 0;
   for (const t of A) if (B.has(t)) shared++;
   // Two titles that normalise to nothing share no tokens and score 0, so the
-  // drift rule can never fold on emptiness. (The exact key still can — a
-  // pre-existing hole, and no live row normalises to empty.)
+  // drift rule can never fold on emptiness. The exact key still can, which is
+  // a pre-existing hole: exactly one published row normalises to empty, titled
+  // "@", and it is music with no span, so it is neither a run nor eligible and
+  // cannot reach this code. (An earlier version of this comment claimed no such
+  // row existed. It does.)
   return shared / (A.size + B.size - shared || 1);
 }
 
@@ -551,6 +586,37 @@ function tokenOverlap(a: string, b: string): number {
  * A STRICT TOKEN SUPERSET would have been the wrong guard: it also refuses
  * "Monsters on Vacation" ⊂ "Monsters on Summer Vacation", which is the deletion
  * this rule exists for.
+ *
+ * POSITION WAS THE WRONG TEST, AND THE FIRST GUARD ONLY HALF-CLOSED THIS.
+ * `isWordPrefix` is a string test — `longer.startsWith(shorter + " ")` — so it
+ * sees a word appended at the END of the normalised title and nothing else.
+ * Move the same qualifier in front of a trailing " at <venue>" and it slips
+ * past at an identical score. Reproduced against real live rows: incoming
+ * "Festival of Trees Members Preview at Mall of America" is DECLINED onto its
+ * parent "Festival of Trees at Mall of America", and "Handmade Holidays –
+ * Makers Market Third Weekend at Midtown Global Market" onto its parent;
+ * strip the venue tail from either and the prefix guard holds. That tail is on
+ * **15 of 114 eligible live runs**, so this is an ordinary naming shape, not a
+ * contrived one — and a declined insert is an event that silently never
+ * appears, permanently, because next week's re-find folds again.
+ *
+ * I had measured this as speculative and written it up as a known limit, on the
+ * wrong axis: I counted pairs that COLLIDE today (none did) instead of parents
+ * whose naming shape ADMITS it (15). An adversarial review against the
+ * committed code found it with the second measurement.
+ *
+ * So the second guard tests the WORDS instead of their position: refuse when
+ * any token that differs between the two titles names a phase
+ * (`SUBEVENT_WORDS`). Both guards stay — the vocabulary catches a qualifier
+ * anywhere, and `isWordPrefix` still catches an appended word that is not in
+ * the vocabulary, such as "Fall Flower Show 2".
+ *
+ * REFUSING EVERY TOKEN SUPERSET was the other option, and it is rejected
+ * because it would drop the deletion this rule was built for:
+ * {monsters, on, vacation} ⊂ {monsters, on, summer, vacation} is the same
+ * relation as {winter, lights, at, the, arboretum} ⊂ {winter, lights, opening,
+ * at, the, arboretum}. Nothing structural separates them, only whether the
+ * extra word names a phase — which is why the vocabulary exists at all.
  *
  * VENUE IS NOT REQUIRED, and that is measured too: of the six folds, three are
  * between rows whose venue STRINGS differ for one venue — "Travail Kitchen and
@@ -626,6 +692,12 @@ export function planRunFolds(live: RunFoldRow[], incoming: RunFoldRow[]): RunFol
           // for. See DRIFT_MIN's docblock.
           !isWordPrefix(l.titleKey, inc.titleKey) &&
           !isWordPrefix(inc.titleKey, l.titleKey) &&
+          // ...and isWordPrefix only sees a word appended at the END of the
+          // string, so the same qualifier moved in front of a trailing
+          // " at <venue>" slips past it. That tail is on 15 of 114 live runs,
+          // so the shape is ordinary, not exotic. Refuse on the WORDS instead
+          // of their position whenever one of them names a phase.
+          !titleDiff(l.titleKey, inc.titleKey).some((t) => SUBEVENT_WORDS.has(t)) &&
           tokenOverlap(l.titleKey, inc.titleKey) >= DRIFT_MIN,
       ),
     ]

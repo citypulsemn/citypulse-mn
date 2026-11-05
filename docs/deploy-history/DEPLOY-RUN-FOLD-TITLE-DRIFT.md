@@ -96,18 +96,63 @@ coverage rule exists to protect. Run-to-run alone does not close it: a single
 dated performance has no span and is excluded for that reason, but a sub-event
 that runs for days is a run like any other.
 
-So the drift candidate now refuses `isWordPrefix` **in either direction**,
-borrowing the same module-private helper `planCollapse` uses rather than
-restating the idea. Measured: **2 of 8 drift folds were this shape**, both of
-them that one pair; after the guard, 0 of 6 are.
+So the drift candidate refuses `isWordPrefix` **in either direction**, borrowing
+the same module-private helper `planCollapse` uses rather than restating the
+idea. Measured: **2 of 8 drift folds were this shape**, both of them that one
+pair; after the guard, 0 of 6 are.
 
-Two things worth being precise about.
+#### Position was the wrong test, and the first guard only half-closed it
 
-**A strict token superset would have been the wrong guard.** It also refuses
-`{monsters, on, vacation}` ⊂ `{monsters, on, summer, vacation}` — the deletion
-this rule was built for. The distinction that matters is *where* the extra word
-sits: appended is parent/child, inserted is drift. There is a test pinning that,
-and a mutation confirming the superset version turns the suite red.
+A second review — this time against the committed code, so the agents could
+actually read it — found that `isWordPrefix` is a *string* test:
+`longer.startsWith(shorter + " ")`. It sees a word appended at the **end** of
+the normalised title and nothing else. Move the same qualifier in front of a
+trailing `" at <venue>"` and it slips past at an identical score.
+
+Reproduced against real live rows before fixing, with controls isolating the
+cause:
+
+| live parent | incoming 3-day child | outcome |
+|---|---|---|
+| `Festival of Trees at Mall of America` | `Festival of Trees Members Preview at Mall of America` | **insert declined onto its parent** |
+| `Handmade Holidays – Makers Market at Midtown Global Market` | `… Makers Market Third Weekend at Midtown Global Market` | **insert declined onto its parent** |
+| either of the above | same child with the venue tail removed | inserted — the prefix guard holds |
+
+That tail is on **15 of 114 eligible live runs**, so this is an ordinary naming
+shape rather than a contrived one. And a declined insert is permanent: the row
+is never written, and next week's re-find folds again.
+
+**I had measured this and called it speculative, on the wrong axis.** I counted
+the pairs that *collide today* — none did — instead of the parents whose naming
+shape *admits* it, which is 15. Same mistake in miniature as every instrument
+this project has had to fix: measuring something adjacent to the question.
+
+So a second guard tests the **words** rather than their position: refuse when
+any token that differs between the two titles names a phase. The vocabulary is
+not invented — it comes from counting what this calendar actually puts after the
+last dash or colon across its own 5,171 titles, where `weekend` leads at 146,
+then `night` 76, `day` 59, `opening` 59, `final` 31, `performance` 21,
+`matinee` 15, `part` 8. Words that only ever name a whole event (`tour`,
+`festival`, `concert`, `market`) are left out, as are place names.
+
+Both guards stay: the vocabulary catches a qualifier anywhere, and
+`isWordPrefix` still catches an appended word that is not in the vocabulary,
+such as `Fall Flower Show 2`.
+
+**The vocabulary errs toward inclusion on purpose.** A word wrongly on the list
+refuses a fold, which leaves a duplicate card visible; a word missing from it
+folds a real sub-event into silence. `night` and `day` are the uncomfortable
+entries — "Date Night" and "Labor Day" are whole events — and the cost showed up
+immediately in this patch's own boundary test, which had to stop using
+`Holidazzle Village Night Market` because the guard refuses it. That is the
+trade working as designed, and it is recorded in the test.
+
+**A strict token superset would have been the wrong guard**, and it was the
+other option on the table. It also refuses `{monsters, on, vacation}` ⊂
+`{monsters, on, summer, vacation}` — the deletion this rule was built for, and
+one of the two cases that motivated the whole item. Nothing structural separates
+a phase word from a renamed word; only the vocabulary does. There is a test
+pinning that, and a mutation confirming the superset version turns the suite red.
 
 **The guard declines a fold that was correct on identity**, and that should be
 said plainly rather than smoothed over. Como publishes no opening night (below),
@@ -249,11 +294,11 @@ separately:
 ### The gate
 
 - `npx tsc --noEmit` clean
-- `npm test` — **3,087 in 151 files** (was 3,069)
+- `npm test` — **3,092 in 151 files** (was 3,069)
 - `npm run build` clean
 - `npm audit` — **0 vulnerabilities**
 - `npm run ops-digest -- --dry-run` — section renders in place
-- **22 mutations, every one confirmed to turn the suite red**, all four files
+- **30 mutations, every one confirmed to turn the suite red**, all four files
   restored byte-identical
 
 The threshold mutations are the point of that pass. A test that expects `[]`
@@ -289,6 +334,32 @@ where the line is actually built, broke nothing. Fixed with a gather-source
 tripwire in the block that already exists for exactly this (`R2.3 — gather-side
 tripwires`), then re-mutated in both directions. The lesson keeps being the
 same one: a test that reads a fixture is not testing the thing that writes it.
+
+**Three more survived, found by a 34-mutation pass in the second review**, and
+two were real coverage gaps in this patch: collapsing the audit `why` to a
+single string, and deleting the drift marker from the `console.log`, broke
+nothing. The `why` text is the only place a later reader learns a fold was a
+similarity judgement, and the console line is the only trace while a run is in
+flight, so both are now pinned by source tripwires. The third — removing
+`tokenOverlap`'s `|| 1` denominator guard — survives because it is genuinely
+inert: `0/0` is `NaN` and `NaN >= 0.75` is false, so the guard changes no
+outcome. It stays as documentation of intent, and the comment beside it now says
+so instead of claiming a live row needs it.
+
+**And one test was passing for the wrong reason.** `RUN → RUN still holds` used
+`Kunene and the King Matinee`, which the prefix guard refuses on shape and the
+vocabulary refuses on the word — so it never exercised the no-span rule it
+claimed to pin. It now uses `Kunene and King`, which differs by one ordinary
+word, clears every title guard, and is refused *only* for having no span — plus
+an assertion that giving the same title a span makes it fold, so nothing else
+can be doing the work.
+
+**Two factual corrections to comments I wrote**, both from the second review.
+`tokenOverlap` claimed no live row normalises to an empty title: exactly one
+published row does, titled `@`. It is music with no span, so it is neither a run
+nor eligible and cannot reach the fold — which is worth saying precisely rather
+than saying the row does not exist. And a test comment still carried the
+pre-guard total of `16 → 22` where the measurement is `14 + 6 = 20`.
 
 ## Deploy
 
@@ -347,6 +418,23 @@ reads an absent flag as false, so a revert does not break the read path.
   date. The drift rule deliberately will not touch them (the word-prefix guard),
   so this one is entirely a data decision: keep `Fall Flower Show – Part 2`,
   fix its dates, archive the other two.
+- **The vocabulary is a word list, so it is only as complete as the list.** A
+  sub-event qualifier this calendar has never used, infixed before a venue tail,
+  would still fold. The list is pinned as a whole and at one entry by mutation,
+  not word by word — 33 single-word tests would be noise — and widening it is
+  cheap if the ops email ever shows a fold that should not have happened.
+- **The digest's five examples are now drift-first**, which fixed a real hole in
+  this patch's own mitigation rather than a hypothetical one: a review replayed
+  the gate at the real batch size and found a drift fold reached the printed five
+  in **under a third** of the passes that made one. The section was counting the
+  judgement calls without naming them — exactly the failure it was built to end.
+- **Two near-miss pairs sit one status change away from folding**, both with one
+  row published and one draft, so neither is in the fold's live set today:
+  `Dead End Hayride` / `The Dead End Hayride` (0.750) and `48th Annual Holiday
+  Bazaar at Landmark Center` / `47th Annual Holiday Bazaar …` (0.750). Both
+  folds would be correct — the 47th is the same bazaar carrying a stale ordinal
+  from an aggregator — and the interval-overlap requirement is what stops an
+  ordinal difference from merging two genuinely different years.
 - **Additive drift is still missed.** `Fall Flower Show – Part 2` against
   `2026 Fall Flower Show – Part Two (Lion-Inspired)` scores 0.444 — the year is
   normalised away but "two" and "2" are different tokens, and the parenthetical

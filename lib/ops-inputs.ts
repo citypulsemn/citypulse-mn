@@ -299,7 +299,17 @@ export async function gatherOpsInputs(): Promise<OpsInputs> {
       // differently — that is the whole reason the alias key exists — and it is
       // precisely then that the operator needs to see the two side by side.
       // `kept` is the uuid fallback for rows written before kept_title existed.
-      examples: rows.slice(0, 5).map(
+      // DRIFT FIRST, then newest. The examples are capped at five and the
+      // query returns newest-first, so on a busy week the judgement calls — the
+      // only folds that need a human — were the ones getting cut: replayed at
+      // the real batch size, a drift fold appeared among the printed five in
+      // under a third of the passes that made one. A count nobody can review is
+      // the failure this section was built to end. Sort is stable, so recency
+      // still orders within each group.
+      examples: [...rows]
+        .sort((a, b) => Number(b.drift) - Number(a.drift))
+        .slice(0, 5)
+        .map(
         (r) =>
           `${r.day} · "${r.title.slice(0, 44)}" → kept ` +
           (r.keptTitle ? `"${r.keptTitle.slice(0, 44)}"` : r.kept.slice(0, 8)) +
@@ -308,7 +318,7 @@ export async function gatherOpsInputs(): Promise<OpsInputs> {
           // fold is exactly the one where they are supposed to differ.
           (r.drift ? " (title similarity)" : "") +
           (r.extendedTo ? `, run extended to ${r.extendedTo}` : ", span unchanged"),
-      ),
+        ),
     };
   });
 
