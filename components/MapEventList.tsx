@@ -1,6 +1,7 @@
 "use client";
 
 import { timeLabel } from "@/lib/dates";
+import { isMultiDay, multiDayLabel } from "@/lib/multiday";
 import type { EventRecord } from "@/lib/types";
 
 /**
@@ -33,7 +34,12 @@ export function MapEventList({
           onClick={() => onFocus(e.id)}
           aria-pressed={focusId === e.id}
         >
-          <span className="mlr-time">{timeLabel(e)}</span>
+          {/* A mid-run event reaching this list since 5 Nov 2026 would otherwise
+              show only "9 AM" — its start clock, from a date outside the window.
+              Same rule as EventDayCard with no dayKey: a run shows its span. */}
+          <span className="mlr-time">
+            {isMultiDay(e) ? multiDayLabel(e) : timeLabel(e)}
+          </span>
           <span className="mlr-body">
             <span className="mlr-title">{e.title}</span>
             <span className="mlr-meta">

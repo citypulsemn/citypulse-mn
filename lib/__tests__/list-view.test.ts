@@ -85,7 +85,14 @@ describe("UX4 wiring — the list view and the mobile default", () => {
   });
 
   it("the list renders the WINDOWED events (what the presets drive), not the whole month", () => {
-    expect(explorer).toContain("<ListView events={windowedEvents} windowStartKey={dkey(win.start)} />");
+    // Substance, not formatting: the list must get the WINDOWED set, the window
+    // start for day grouping, and todayKey — which is what decides "Already
+    // running" (5 Nov 2026; splitting on the window instead labelled closed runs
+    // as running on the month preset).
+    expect(explorer).toContain("<ListView");
+    expect(explorer).toContain("events={windowedEvents}");
+    expect(explorer).toContain("windowStartKey={dkey(win.start)}");
+    expect(explorer).toContain("todayKey={dkey(now)}");
   });
 
   it("list/week is the UNIVERSAL default (U5 — no viewport swap, so no mobile flash)", () => {

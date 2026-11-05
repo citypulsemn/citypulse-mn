@@ -32,25 +32,54 @@ export interface ListPlan {
  *
  * Until today `eventsInWindow` dropped every mid-run event before the list saw
  * it, so `groupEventsByDay`'s clamp branch below — written for exactly this case,
- * and covered by a test since UX4 — had never once run in production. Fixing the
- * predicate makes it live, and on the default Today range that would have put 23
- * events, most of them months-long exhibitions, at the top of a 33-item list
- * ahead of the 10 things actually starting. That is the calendar-flood incident
- * arriving by a different door.
+ * and covered by a test since UX4 — had never once run in production. On the
+ * default Today range the widened predicate would have put 23 events, most of
+ * them months-long exhibitions, at the top of a 33-item list ahead of the 10
+ * things actually starting. That is the calendar-flood incident arriving by a
+ * different door.
+ *
+ * (The first cut of this file claimed that fixing the predicate "makes the clamp
+ * branch live". A review showed it did not: every row that could reach the clamp
+ * was routed into `ongoing` instead, so the branch stayed dead and the claim was
+ * simply wrong. It IS live now, but only because of the `todayKey` fix below —
+ * a run that overlapped the window and has since closed goes to `starting` with
+ * a start before the window, which is exactly what the clamp handles.)
  *
  * So the mid-run ones get their own capped group, ordered ending-soonest, the
  * same shape `/day/<date>` and `/this-weekend` already use. `groupEventsByDay`
  * is deliberately untouched: `/this-week` shares it.
+ *
+ * "ALREADY RUNNING" IS DECIDED FROM `todayKey`, NOT FROM THE WINDOW, and that
+ * distinction is the whole correctness of the heading. The first cut split on
+ * `windowStartKey` alone, and a review caught what that does: on 5 Nov 2026 one
+ * tap on "This Month" set the window to 1 Nov, the widened predicate admitted
+ * the Halloween runs that closed on 2 Nov, and the ending-soonest sort put the
+ * deadest rows FIRST — all six visible cards were attractions that had shut,
+ * evicting the runs that were genuinely on. The mirror case is a future window:
+ * on a Monday the weekend preset starts on Friday, so a Wednesday-to-Sunday run
+ * would have been "Already running" two days before it opened. Both shapes were
+ * NEW, because the old start-only predicate excluded those rows entirely.
+ *
+ * A row that overlapped the window but has since closed is not dropped — it
+ * falls through to the day groups and `groupEventsByDay` clamps it to the
+ * window's first day, which is what that branch was written for. On a past
+ * month that is the only way a run that spanned it appears at all.
  */
 export function planListView(
   events: EventRecord[],
   windowStartKey: string,
+  todayKey: string,
   cap = LIST_ONGOING_CAP,
 ): ListPlan {
   const ongoing: EventRecord[] = [];
   const starting: EventRecord[] = [];
   for (const e of events) {
-    if (dkey(evDate(e)) < windowStartKey) ongoing.push(e);
+    const startKey = dkey(evDate(e));
+    const end = spanEndISO(e)?.slice(0, 10);
+    const endKey = end && end > startKey ? end : startKey;
+    const underwayWhenTheWindowOpened = startKey < windowStartKey;
+    const onRightNow = startKey < todayKey && endKey >= todayKey;
+    if (underwayWhenTheWindowOpened && onRightNow) ongoing.push(e);
     else starting.push(e);
   }
 

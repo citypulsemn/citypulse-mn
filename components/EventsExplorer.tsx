@@ -632,7 +632,11 @@ export function EventsExplorer({
             onOpenDay={setDayKey}
           />
         ) : view === "list" ? (
-          <ListView events={windowedEvents} windowStartKey={dkey(win.start)} />
+          <ListView
+            events={windowedEvents}
+            windowStartKey={dkey(win.start)}
+            todayKey={dkey(now)}
+          />
         ) : (
           <div className="map-split">
             <MapView

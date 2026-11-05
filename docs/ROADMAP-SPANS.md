@@ -25,6 +25,10 @@ guide. Mutation-check every new test. Verify production on **www** with `curl -L
 
 ## Sprint S — span correctness (finish rule 5)
 
+*Updated 5 Nov 2026 after S1 shipped: the review of S1 found a **fifth** break (S4 below). Each
+of the five was found while chasing the previous one, which is the argument for the deliberate
+sweep rather than waiting for the next symptom.*
+
 ### S1 `eventsInWindow` is not span-aware at all — the list and map drop most of what is on ⭐
 **Where:** `lib/dates.ts:93-105`. Consumed at `components/EventsExplorer.tsx:247-249`
 (`windowedEvents`), which feeds `ListView` (:623), `MapView` (:627), `MapEventList` (:632) and
@@ -77,6 +81,54 @@ since that disagreement is the symptom.
 33 for 5 Nov's data shape; the calendar cell for the same day no longer exceeds the list.
 
 **Size: M.** **Depends:** nothing. This is the next item.
+
+### S4 `selectCollection` decides membership from the start day alone — THE FIFTH BREAK ⭐
+**Where:** `lib/collections.ts:148-152`. Reaches `app/collections/page.tsx` (every index card
+count), `app/collections/[slug]/page.tsx` (all eight pages), `app/content/collection/[slug]/route.tsx`
+(the OG card) and `app/admin/content/page.tsx`.
+
+**Bug:** `if (e.start < w.fromWall) return false;` then `const day = e.start.slice(0, 10);
+return w.days ? w.days.has(day) : day <= w.endKey;`. No `spanEnd`, no `daysSpanned` — the same
+shape as the `eventsInWindow` break fixed in S1. A run that opened before the window and is
+open right now is absent from its own collection.
+
+**The decisive evidence is the divergence from the SAME spec.** `lib/feeds.ts:93-97` answers
+the identical question for the identical `CollectionSpec` by true-span intersection
+(`first <= endKey && last >= startKey`), and `lib/feeds.ts:113` uses `spansDay` for the
+weekend branch — and `feeds.ts:87` builds those feeds from `COLLECTIONS.map((c) => c.slug)`.
+So `/feeds/<slug>` and `/collections/<slug>` disagree, with the under-reporting one as the
+indexed HTML page. That is the R1.5 page-versus-ICS shape `/this-weekend` already paid for.
+
+**Measured, 5 Nov 2026** — by handing `selectCollection` clones whose start is moved onto the
+first covered day, so every other filter the spec applies (price, area, query, category) runs
+unchanged and the delta isolates the span blindness:
+
+| collection | shown | span-aware | hidden |
+|---|---|---|---|
+| `date-night` | 41 | 58 | **17** |
+| `arts-and-culture` | 58 | 60 | 2 |
+| `free-this-week` | 15 | 16 | 1 |
+| `family-fun` | 15 | 16 | 1 |
+| `only-in-minnesota` | 2 | 3 | 1 |
+| the other three | — | — | 0 |
+
+**22 rows across all eight.** Smaller than S1, and worth saying why the first pass of this
+measurement reported 686: that oracle applied only the category filter and ignored each spec's
+own price and query rules. Measure with the real filters or do not quote a number.
+
+**Rule 6 rides on top of rule 5 here:** `app/collections/[slug]/page.tsx` renders `groupByDay`
+and nothing else, so its "No events match this collection yet" copy can print while a
+qualifying run is open.
+
+**Fix:** import `lib/feeds.ts`'s `inWindow` / `spansDay` rather than write a third predicate.
+Decide whether a collection page needs an "Already running" group as the list and day pages
+now have, or whether 22 rows is small enough to interleave.
+
+**Tests:** a run spanning the window from before it · the weekend-days branch · a closed run
+excluded · parity with `selectFeedEvents` for the same spec, which is the test that would have
+caught this.
+**Verify:** `/collections/date-night` card count against `/feeds/date-night.ics`.
+**Size: S–M.** **Depends:** nothing.
 
 ### S2 `readEventsForDay` prefers a `multi_day_end` that is not later than the start
 **Where:** `lib/events.ts:241` and `:246-247`.
@@ -198,8 +250,10 @@ next scheduled verify pass will re-read them; no work unless it does not.
 ## Sequencing
 
 1. ~~**S1**~~ — **SHIPPED 5 Nov 2026**, with the Travail duplicate cluster it exposed cleared in the same pass. See docs/deploy-history/DEPLOY-S1-LIST-SPAN-AWARE.md.
-2. **T1** — stops the most visible treadmill before the next Monday run.
-3. **S2** — small, and it closes rule 5 for good.
-4. **H2** — cheap, and one of those files is now actively dangerous.
-5. **T2** — the harder treadmill.
-6. **H1**, then the owner calls as they land.
+2. **S4** — the fifth break, found by the review of S1. Same shape, and its own ICS feed
+   already disagrees with it.
+3. **T1** — stops the most visible treadmill before the next Monday run.
+4. **S2** — small, and it closes rule 5 for good.
+5. **H2** — cheap, and one of those files is now actively dangerous.
+6. **T2** — the harder treadmill.
+7. **H1**, then the owner calls as they land.

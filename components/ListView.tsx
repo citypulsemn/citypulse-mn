@@ -12,13 +12,17 @@ import type { EventRecord } from "@/lib/types";
 export function ListView({
   events,
   windowStartKey,
+  todayKey,
 }: {
   events: EventRecord[];
   windowStartKey: string;
+  /** Chicago's today. "Already running" is decided from this, not from the
+   *  window — see lib/list-view planListView for what happens when it is not. */
+  todayKey: string;
 }) {
-  const plan = planListView(events, windowStartKey);
+  const plan = planListView(events, windowStartKey, todayKey);
 
-  if (plan.ongoing.length === 0 && plan.days.length === 0) {
+  if (plan.ongoingTotal === 0 && plan.days.length === 0) {
     return (
       <div className="day-empty">
         Nothing in this range yet. Try a wider range above, or clear a filter.
@@ -40,10 +44,17 @@ export function ListView({
             {plan.ongoing.map((e: EventRecord) => (
               <EventDayCard key={e.id} event={e} />
             ))}
+            {/* A count, not a link. /ongoing cannot deliver what the cap drops:
+                it requires a run LONGER than 3 days (MIN_RUN_DAYS), anchors on
+                today rather than this window, and caps at 12 itself — and the
+                headline case for this group is a three-day run. So say the
+                number and stop, rather than point somewhere that will not have
+                them. This also keeps an anchor out of a CSS grid container,
+                where .more-day-all would stretch the full column width. */}
             {plan.ongoingTotal > plan.ongoing.length && (
-              <a className="more-day-all" href="/ongoing">
-                More ongoing runs →
-              </a>
+              <p className="list-ongoing-more">
+                + {plan.ongoingTotal - plan.ongoing.length} more running
+              </p>
             )}
           </div>
         </section>

@@ -428,14 +428,14 @@ describe("planListView — the window's long runs get their own group", () => {
 
   it("a mid-run event goes to 'ongoing', not into a day group", () => {
     const run = mk({ id: "r", start: "2026-10-01T10:00", end: "", multiDayEnd: "2026-11-20T23:59" });
-    const plan = planListView([run], WIN);
+    const plan = planListView([run], WIN, WIN);
     expect(plan.ongoing.map((e) => e.id)).toEqual(["r"]);
     expect(plan.days).toEqual([]);
   });
 
   it("an event starting in the window stays in its day group", () => {
     const today = mk({ id: "t", start: "2026-11-10T19:00", end: "2026-11-10T22:00", multiDayEnd: null });
-    const plan = planListView([today], WIN);
+    const plan = planListView([today], WIN, WIN);
     expect(plan.ongoing).toEqual([]);
     expect(plan.days.map((g) => g.key)).toEqual(["2026-11-10"]);
   });
@@ -446,7 +446,7 @@ describe("planListView — the window's long runs get their own group", () => {
       mk({ id: "soon", title: "Soon", start: "2026-10-01T10:00", end: "", multiDayEnd: "2026-11-12T23:59" }),
       mk({ id: "mid", title: "Mid", start: "2026-09-01T10:00", end: "", multiDayEnd: "2026-12-15T23:59" }),
     ];
-    expect(planListView(rows, WIN).ongoing.map((e) => e.id)).toEqual(["soon", "mid", "late"]);
+    expect(planListView(rows, WIN, WIN).ongoing.map((e) => e.id)).toEqual(["soon", "mid", "late"]);
   });
 
   it("caps the group but reports the honest total", () => {
@@ -458,13 +458,68 @@ describe("planListView — the window's long runs get their own group", () => {
         multiDayEnd: `2026-11-${String(12 + i).padStart(2, "0")}T23:59`,
       }),
     );
-    const plan = planListView(rows, WIN);
+    const plan = planListView(rows, WIN, WIN);
     expect(plan.ongoing).toHaveLength(LIST_ONGOING_CAP);
     expect(plan.ongoingTotal).toBe(9);
   });
 
+  // ── THE BLOCKER A REVIEW CAUGHT (5 Nov 2026) ─────────────────────────────
+  // The first cut split on windowStartKey alone. On "This Month" that labelled
+  // runs that had already CLOSED as "Already running" — and because the sort is
+  // ending-soonest, the deadest rows took every slot. Measured on live data
+  // before the fix: 6 of 6 visible cards were Halloween attractions that shut on
+  // 2 November. These pin both directions.
+  it("a run that CLOSED before today is not 'Already running' on a month window", () => {
+    // window = November, today = 5 Nov, run = 19 Sep to 2 Nov
+    const closed = mk({ id: "shut", start: "2026-09-19T10:00", end: "", multiDayEnd: "2026-11-02T23:59" });
+    const plan = planListView([closed], "2026-11-01", "2026-11-05");
+    expect(plan.ongoing).toEqual([]);
+    expect(plan.ongoingTotal).toBe(0);
+    // not dropped either — it ran on 1-2 Nov, so it belongs in the month's list,
+    // clamped to the window's first day. THIS is the clamp branch, finally live.
+    expect(plan.days.map((g) => g.key)).toEqual(["2026-11-01"]);
+  });
+
+  it("a run that has NOT OPENED yet is not 'Already running' on a future window", () => {
+    // Monday 2 Nov, weekend preset starts Friday 6 Nov, run is Wed 4 to Sun 8
+    const notYetOpen = mk({ id: "soon", start: "2026-11-04T10:00", end: "", multiDayEnd: "2026-11-08T23:59" });
+    const plan = planListView([notYetOpen], "2026-11-06", "2026-11-02");
+    expect(plan.ongoing).toEqual([]);
+    expect(plan.days.map((g) => g.key)).toEqual(["2026-11-06"]);
+  });
+
+  it("…while a run that IS on today still leads the group", () => {
+    const live = mk({ id: "live", start: "2026-10-15T10:00", end: "", multiDayEnd: "2026-11-20T23:59" });
+    const closed = mk({ id: "shut", start: "2026-09-19T10:00", end: "", multiDayEnd: "2026-11-02T23:59" });
+    const plan = planListView([closed, live], "2026-11-01", "2026-11-05");
+    expect(plan.ongoing.map((e) => e.id)).toEqual(["live"]);
+  });
+
+  it("the closed rows no longer evict the live ones from the cap", () => {
+    // six closed + two live, cap 6: the live pair must both be visible
+    const rows = [
+      ...Array.from({ length: 6 }, (_, i) =>
+        mk({ id: `dead${i}`, start: "2026-09-19T10:00", end: "", multiDayEnd: "2026-11-02T23:59" }),
+      ),
+      mk({ id: "liveA", start: "2026-10-15T10:00", end: "", multiDayEnd: "2026-11-20T23:59" }),
+      mk({ id: "liveB", start: "2026-10-20T10:00", end: "", multiDayEnd: "2026-11-25T23:59" }),
+    ];
+    const plan = planListView(rows, "2026-11-01", "2026-11-05");
+    expect(plan.ongoing.map((e) => e.id)).toEqual(["liveA", "liveB"]);
+    expect(plan.ongoingTotal).toBe(2);
+  });
+
+  it("a run still on today but starting INSIDE the window is not 'already' running", () => {
+    // started 2 Nov, window opened 1 Nov — it began during the window, so it
+    // belongs on its own day, not under a heading that means "was already on".
+    const inside = mk({ id: "in", start: "2026-11-02T10:00", end: "", multiDayEnd: "2026-11-30T23:59" });
+    const plan = planListView([inside], "2026-11-01", "2026-11-05");
+    expect(plan.ongoing).toEqual([]);
+    expect(plan.days.map((g) => g.key)).toEqual(["2026-11-02"]);
+  });
+
   it("honest emptiness: nothing in, nothing out", () => {
-    expect(planListView([], WIN)).toEqual({ ongoing: [], ongoingTotal: 0, days: [] });
+    expect(planListView([], WIN, WIN)).toEqual({ ongoing: [], ongoingTotal: 0, days: [] });
   });
 
   it("the two groups partition the input — nothing lost, nothing doubled", () => {
@@ -473,7 +528,7 @@ describe("planListView — the window's long runs get their own group", () => {
       mk({ id: "b", start: "2026-11-10T19:00", end: "2026-11-10T22:00", multiDayEnd: null }),
       mk({ id: "c", start: "2026-11-12T19:00", end: "2026-11-12T22:00", multiDayEnd: null }),
     ];
-    const plan = planListView(rows, WIN, 99);
+    const plan = planListView(rows, WIN, WIN, 99);
     const seen = [...plan.ongoing.map((e) => e.id), ...plan.days.flatMap((g) => g.events.map((e) => e.id))];
     expect(seen.sort()).toEqual(["a", "b", "c"]);
   });

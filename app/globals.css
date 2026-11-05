@@ -464,6 +464,7 @@ a.daycard { text-decoration: none; }
 .onward { display: flex; flex-wrap: wrap; gap: 20px; margin: 22px auto 4px; max-width: 620px; }
 .day-list { max-width: 620px; margin: 0 auto; }
 .day-also { margin-top: 18px; }
+.list-ongoing-more { color: var(--cream-dim); font-size: 13px; letter-spacing: 0.04em; margin: 10px 0 2px; }
 .day-empty { max-width: 620px; margin: 0 auto; text-align: center; color: var(--cream-dim); font-size: 14px; line-height: 1.7; padding: 30px 16px; border: 1px dashed var(--line); border-radius: 14px; }
 
 /* U6a — on wide screens the homepage LIST view uses the full width: each day's

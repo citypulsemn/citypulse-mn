@@ -57,7 +57,12 @@ executed in production**, because `eventsInWindow` removed every mid-run event b
 saw it. A tested branch the caller could not reach — this project's "pure tests miss the
 caller" shape, a third time.
 
-Fixing the predicate makes it live. But on the default Today range that would put 23 events,
+**Correction, from the review of this very commit:** the first cut of this guide said fixing
+the predicate "makes it live", and that was false. `planListView` routed every row that could
+have reached the clamp into `ongoing` instead, so it stayed dead. It is live now, but only
+because of the `todayKey` blocker fix below — a run that overlapped the window and has since
+closed falls through to `starting` carrying a start before the window, which is precisely the
+case the clamp was written for. But on the default Today range that would put 23 events,
 most of them months-long exhibitions, at the top of a 33-item list ahead of the 10 things
 actually starting — the calendar-flood incident arriving by another door. So `planListView`
 splits them into a capped **"Already running"** group, ordered ending-soonest, the shape
@@ -210,10 +215,17 @@ was not modified, so `/this-week` cannot be affected either way.
 - **T2, the general title-drift problem** — the Jaccard gate at 0.75 is demonstrably too high
   for this family, and lowering it is how the venue-alias pin-fold wrongly merged 24 real pairs
   to catch 6. Needs a measured threshold, not a guess.
-- **`matchesAfterWindow`** still uses a start-only filter (`lib/dates.ts`). That is defensible —
-  it answers "does anything START later" — but it is now the only start-only predicate left,
-  and worth a comment saying so deliberately.
-- **The map** was not visually confirmed: Mapbox did not render in the local pane (no token in
-  this environment). It receives the same `windowedEvents` array, so its pin count rises with
-  the list, but that is reasoned, not observed.
+- **`matchesAfterWindow`** still uses a start-only filter (`lib/dates.ts`). Defensible — it
+  answers "does anything START later". **The first cut of this line also called it "the only
+  start-only predicate left", which was flatly wrong**; the review named eight more:
+  `lib/collections.ts:150`, `lib/content/weekly-picks.ts:57`, `lib/related.ts:29`,
+  `lib/verify.ts:298`, `lib/digest-personal.ts:44`, `lib/admin.ts:241`,
+  `lib/ops-inputs.ts:111`, `lib/source-sweep.ts:63`. Most are asking a start question and are
+  fine; `collections.ts` is not, and is now roadmap **S4**.
+- **The map.** The review found a real consequence the first cut missed: `MapEventList` sorts
+  by raw start and rendered only `timeLabel`, so a 23 May exhibition became row 1 of a list for
+  a November window showing a bare "9 AM". Fixed — a multi-day row now shows its span label,
+  the same rule `EventDayCard` uses without a `dayKey`. **Still open:** `MapView`'s pin popup
+  prints the start day and date (`Sat May 23 · 9 AM`) inside a window labelled Nov. And none of
+  it was visually confirmed — Mapbox does not render in the local pane for want of a token.
 - **`LIST_ONGOING_CAP = 6`** matches the day shelf. Six is still a guess.
