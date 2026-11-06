@@ -83,7 +83,7 @@ RULES
 - If you run out of usage, stop without applying. The paid pass at 20:00 UTC covers the week.
 
 STEPS
-1. Record the start time. Set D to /c/Users/mccul/Documents/CityPulseMN/verify/ followed by today's date as YYYY-MM-DD, and create that folder.
+1. Record the start time. Work out today's folder: /c/Users/mccul/Documents/CityPulseMN/verify/ followed by today's date as YYYY-MM-DD, and create it. Shell variables do not carry between commands, so wherever $D appears below, write out that full path.
 2. Run: npm run verify -- --emit-queue=$D/queue.json --cap=200
 3. Read queue.json. It has a `batches` array, and each batch has a `prompt`.
 4. For each batch, start one general-purpose subagent with the Agent tool, model "sonnet". Run at most 4 subagents at once, starting the next when one finishes. Pass it the batch's `prompt` word for word, then add exactly this text, replacing <path> with $D/batch-N.md, where N is the batch's number:
