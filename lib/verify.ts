@@ -2,6 +2,7 @@ import type { EventRecord } from "./types";
 import { isAggregatorSource, isNonScheduleSource } from "./source-trust";
 import { venueIsUnknown, unknownVenueReason } from "./venue-quality";
 import { chiWallClock } from "./clock";
+import { buildVerifyPrompt } from "./agents/prompts";
 
 /**
  * FRESHNESS RE-VERIFICATION (roadmap 4.5).
@@ -358,6 +359,73 @@ export function batchForVerification<T>(events: T[], perBatch = 8): T[][] {
   const out: T[][] = [];
   for (let i = 0; i < events.length; i += perBatch) out.push(events.slice(i, i + perBatch));
   return out;
+}
+
+/**
+ * The queue a supervised session works from: the paid pass's batches, each
+ * carrying the paid pass's own prompt.
+ *
+ * THE PROMPT TRAVELS IN THE FILE BECAUSE A COPY OF IT ROTTED. docs/MANUAL-VERIFY.md
+ * held a hand-written version that never learned `saw` when the year gate shipped
+ * on 28 Oct 2026, nor the venue calendars from 15 Oct — so following the doc would
+ * have had every confirmation withheld as unproven. One prompt, one set of rules.
+ */
+export function buildVerifyQueue<T extends Parameters<typeof buildVerifyPrompt>[0][number]>(
+  candidates: T[],
+): { events: T[]; prompt: string }[] {
+  return batchForVerification(candidates).map((events) => ({
+    events,
+    prompt: buildVerifyPrompt(events),
+  }));
+}
+
+/**
+ * The fewest events a pass must DECIDE before a scheduled run may stand down on it.
+ *
+ * MEASURED, 15 Oct – 5 Nov 2026: the five paid passes decided 94–134 events and
+ * the one full supervised pass decided 106. 80 sits under all of them, so a real
+ * pass clears it, and far over the pass that made this necessary. On 2 Nov a file
+ * holding ONE event stood down that Monday's whole paid pass.
+ */
+export const STAND_DOWN_MIN_DECIDED = 80;
+
+/** A `verify_pass` audit row as the gate reads it. JSON text, so anything may be missing. */
+export interface RecentVerifyPass {
+  at: string;
+  how: string | null;
+  confirmed: string | null;
+  cancelled: string | null;
+}
+
+/**
+ * Events the pass settled: confirmed plus cancelled, deliberately not `checked`.
+ * `checked` also counts flags, so a pass whose every confirmation was withheld as
+ * unproven would read as a full pass while having verified nothing. A malformed
+ * count is zero, which errs towards running the pass.
+ */
+export function decidedCount(pass: Pick<RecentVerifyPass, "confirmed" | "cancelled">): number {
+  const n = (v: string | null) => {
+    const parsed = Number(v);
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
+  };
+  return n(pass.confirmed) + n(pass.cancelled);
+}
+
+/**
+ * Which recent pass, if any, a scheduled run may stand down on. Takes passes
+ * newest first. `tooSmall` is every pass newer than the one chosen that fell
+ * under the floor, so the run can say what it refused to count.
+ */
+export function standDownFor(
+  passes: RecentVerifyPass[],
+  floor = STAND_DOWN_MIN_DECIDED,
+): { pass: RecentVerifyPass | null; tooSmall: RecentVerifyPass[] } {
+  const tooSmall: RecentVerifyPass[] = [];
+  for (const pass of passes) {
+    if (decidedCount(pass) >= floor) return { pass, tooSmall };
+    tooSmall.push(pass);
+  }
+  return { pass: null, tooSmall };
 }
 
 // ---------------------------------------------------------------------------

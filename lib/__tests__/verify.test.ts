@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { describe, it, expect } from "vitest";
 import {
   actionFor,
@@ -12,6 +14,11 @@ import {
   VERDICTS,
   type RoutableEvent,
   unprovenAlarm,
+  buildVerifyQueue,
+  standDownFor,
+  decidedCount,
+  STAND_DOWN_MIN_DECIDED,
+  type RecentVerifyPass,
 } from "../verify";
 import { buildVerifyPrompt, buildResearchPrompt, buildVenueSweepPrompt } from "../agents/prompts";
 import type { EventRecord } from "../types";
@@ -293,6 +300,99 @@ describe("parseVerdicts no longer defaults to confirmed", () => {
     expect(parseVerdicts('```json\n[{"id":"a","verdict":"confirmed"}]\n```', ids)).toHaveLength(1);
     const wrong = parseVerdicts('```json\n[{"id":"a","verdict":"wrong_event","evidence":"x"}]\n```', ids);
     expect(wrong[0]).toMatchObject({ verdict: "wrong_event", evidence: "x" });
+  });
+});
+
+describe("buildVerifyQueue — a supervised session works from the paid pass's own prompt", () => {
+  const candidate = (id: string, venue = "The Cedar") => ({
+    id,
+    title: `Show ${id}`,
+    venue,
+    city: "Minneapolis",
+    start: "2026-11-20T19:30",
+    sourceUrl: `https://venue.example/${id}`,
+    ticketUrl: "",
+  });
+  const candidates = Array.from({ length: 17 }, (_, i) => candidate(`e${i}`));
+
+  it("puts every event in exactly one batch of the paid pass's size", () => {
+    const queue = buildVerifyQueue(candidates);
+    expect(queue.map((b) => b.events.length)).toEqual([8, 8, 1]);
+    expect(queue.flatMap((b) => b.events.map((e) => e.id))).toEqual(candidates.map((c) => c.id));
+  });
+
+  it("gives each batch the exact prompt the paid pass would send", () => {
+    const queue = buildVerifyQueue(candidates);
+    for (const b of queue) expect(b.prompt).toBe(buildVerifyPrompt(b.events));
+    expect(queue[2].prompt).toContain("- id: e16\n");
+    expect(queue[2].prompt).not.toContain("- id: e15\n");
+  });
+
+  it("is empty for an empty queue, rather than one empty batch", () => {
+    expect(buildVerifyQueue([])).toEqual([]);
+  });
+
+  it("asks for the `saw` the year gate requires, and that reply gets a stamp", () => {
+    // The incident this guards: a hand-kept prompt that never learned `saw`.
+    // The reply format the prompt shows has to survive the real file path.
+    const [batch] = buildVerifyQueue([candidate("e1")]);
+    expect(batch.prompt).toContain('"saw"');
+    const reply = '```json\n[{"id": "e1", "verdict": "confirmed", "saw": "Friday, November 20, 2026"}]\n```';
+    const { verdicts, rejected } = parseVerdictFile(reply, new Set(["e1"]));
+    expect(rejected).toEqual([]);
+    const routed = routeVerdicts(verdicts, [{ ...candidate("e1"), status: "published" } as RoutableEvent]);
+    expect(routed.confirms).toEqual(["e1"]);
+  });
+
+  it("the doc no longer carries its own copy of the prompt", () => {
+    const doc = readFileSync(resolve(__dirname, "../../docs/MANUAL-VERIFY.md"), "utf8");
+    expect(doc).toContain("batches");
+    expect(doc).not.toMatch(/^> Read `verify-queue\.json`/m);
+  });
+});
+
+describe("standDownFor — only a real pass stands a scheduled run down", () => {
+  const pass = (confirmed: unknown, cancelled: unknown, at = "2026-11-02 13:58:19+00"): RecentVerifyPass =>
+    ({ at, how: "file", confirmed, cancelled }) as RecentVerifyPass;
+
+  it("the 2 Nov incident: a one-event file cannot cancel the whole pass", () => {
+    const small = pass("0", "1");
+    expect(standDownFor([small])).toEqual({ pass: null, tooSmall: [small] });
+  });
+
+  it("every real pass on record clears the floor", () => {
+    // confirmed / cancelled from admin_audit, 15 Oct – 5 Nov 2026.
+    const real = [["112", "3"], ["103", "3"], ["116", "0"], ["134", "0"], ["93", "1"], ["107", "1"]];
+    for (const [confirmed, cancelled] of real) {
+      expect(standDownFor([pass(confirmed, cancelled)]).pass).not.toBeNull();
+    }
+  });
+
+  it("the boundary is inclusive", () => {
+    expect(standDownFor([pass(String(STAND_DOWN_MIN_DECIDED), "0")]).pass).not.toBeNull();
+    expect(standDownFor([pass(String(STAND_DOWN_MIN_DECIDED - 1), "0")]).pass).toBeNull();
+    expect(standDownFor([pass(String(STAND_DOWN_MIN_DECIDED - 1), "1")]).pass).not.toBeNull();
+  });
+
+  it("flags do not count: every confirmation withheld means nothing was verified", () => {
+    const allWithheld = { ...pass("0", "0"), checked: "160", flagged: "160" };
+    expect(standDownFor([allWithheld]).pass).toBeNull();
+  });
+
+  it("a small pass does not hide a full one behind it, and is still reported", () => {
+    const small = pass("0", "1", "newer");
+    const full = pass("107", "1", "older");
+    expect(standDownFor([small, full])).toEqual({ pass: full, tooSmall: [small] });
+  });
+
+  it("no passes, or an unreadable database's empty answer, means run", () => {
+    expect(standDownFor([])).toEqual({ pass: null, tooSmall: [] });
+  });
+
+  it("malformed counts read as zero, which runs the pass", () => {
+    for (const bad of [null, undefined, "", "lots", "NaN", "Infinity", "-500"]) {
+      expect(decidedCount(pass(bad, bad))).toBe(0);
+    }
   });
 });
 

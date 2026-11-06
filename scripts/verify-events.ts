@@ -39,6 +39,10 @@ import {
   unprovenAlarm,
   parseVerdictFile,
   withinBudget,
+  buildVerifyQueue,
+  standDownFor,
+  decidedCount,
+  STAND_DOWN_MIN_DECIDED,
   DEFAULT_CAP,
   RUN_BUDGET_MS,
   VERDICTS,
@@ -51,7 +55,7 @@ import {
   cancelVerified,
   flagVerification,
   recordVerifyPass,
-  recentVerifyPass,
+  recentVerifyPasses,
 } from "../lib/upsert";
 import type { EventStatus } from "../lib/types";
 import { recordRunSpend } from "../lib/model-spend";
@@ -160,15 +164,22 @@ async function main() {
   // Before the API key check, so a standing-down run never needs the key.
   // Only the Monday pass passes this flag; the pre-send pass never does.
   if (skipHours !== null && !emitQueue && !fromFile) {
-    const recent = await recentVerifyPass(skipHours);
-    if (recent.ran) {
+    const { pass, tooSmall } = standDownFor(await recentVerifyPasses(skipHours));
+    // Rule 6: a pass that was seen and not counted is reported with its reason.
+    for (const p of tooSmall) {
+      console.warn(
+        `[verify] ignoring the pass at ${p.at} (${p.how ?? "unknown"}) — it decided ` +
+          `${decidedCount(p)} event(s), under the floor of ${STAND_DOWN_MIN_DECIDED}.`,
+      );
+    }
+    if (pass) {
       console.log(
-        `[verify] a pass already completed ${recent.at} (${recent.how ?? "unknown"}) — ` +
-          `inside the ${skipHours}h window, standing down and spending nothing.`,
+        `[verify] a pass already completed ${pass.at} (${pass.how ?? "unknown"}), deciding ` +
+          `${decidedCount(pass)} event(s) — inside the ${skipHours}h window, standing down and spending nothing.`,
       );
       return void (await sql.end({ timeout: 5 }));
     }
-    console.log(`[verify] no pass recorded in the last ${skipHours}h — proceeding.`);
+    console.log(`[verify] no full pass recorded in the last ${skipHours}h — proceeding.`);
   }
 
   const rows = await sql<
@@ -199,7 +210,7 @@ async function main() {
       // Carried in the file so the session need not remember them, and so a
       // verdict outside this set is a file error rather than a guess.
       allowedVerdicts: VERDICTS,
-      events: candidates,
+      batches: buildVerifyQueue(candidates),
     };
     writeFileSync(emitQueue, JSON.stringify(payload, null, 2));
     console.log(

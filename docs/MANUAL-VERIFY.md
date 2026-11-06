@@ -33,9 +33,10 @@ npm run verify -- --emit-queue=verify-queue.json --cap=60
 ```
 
 One SELECT. No model call, no database write, no `ANTHROPIC_API_KEY`. Writes
-the riskiest `--cap` events — never-verified-from-a-roundup first — as JSON.
+the riskiest `--cap` events — never-verified-from-a-roundup first — as JSON, in
+`batches`, each with the `prompt` the paid pass would send for it.
 
-Then, in a session **in this repo**, the prompt below. It writes
+Then, in a session **in this repo**, the instructions below. They write
 `verdicts.json`.
 
 ```bash
@@ -46,35 +47,38 @@ npm run verify -- --from=verdicts.json              # apply
 Also free: Postgres and a cache purge, nothing else. The verdicts route through
 the same `routeVerdicts` the paid loop uses.
 
-### The prompt
+### The instructions
 
-> Read `verify-queue.json`. For each event in `events`, find **the organiser's
-> or venue's own page** for it and decide whether the listing is right.
->
-> Rules, each of which this project has been burned by:
-> - **Check the year.** A page that looks authoritative may be last year's. A
->   2024 Halloween roundup put four fabricated listings on this calendar.
-> - **A page you cannot find is not evidence of anything.** Use `not_found`.
->   Never report a cancellation because the page is missing.
-> - **`cancelled` requires evidence** — a URL or the quoted wording. Without it
->   the verdict is downgraded to a flag, so an unevidenced cancel is wasted
->   work.
-> - **One date of a run is not the run.** If the listing is one night of a
->   six-performance run, the start is right; say so in a `moved` note rather
->   than confirming silently.
-> - Prefer the venue's own calendar. Ticketmaster, Songkick, Bandsintown and
->   tourism-board roundups are good enough to cite, not good enough to confirm
->   against — a confirmation resting on one gets flagged either way.
->
-> Write `verdicts.json`: an array of
-> `{"id": "...", "verdict": "...", "evidence": "https://...", "new_start": "YYYY-MM-DDTHH:MM"}`.
-> `id` must be copied exactly. `verdict` must be one of the `allowedVerdicts`
-> in the queue file. `evidence` is the page you actually read. `new_start` only
-> for `moved`.
->
-> Do not touch the database. Do not edit any other file. If you cannot reach a
-> verdict for an event, **leave it out** — an omitted event is re-queued next
-> week, a guessed one is a fabrication.
+**The rules live in the queue file, not here.** Each batch carries the output of
+`buildVerifyPrompt`, the same text the paid pass sends. This doc used to hold its
+own copy, which never learned `saw` when the year gate shipped, nor the venue
+calendars. Following it would have had every confirmation withheld as unproven.
+
+Give each batch's `prompt` to a separate subagent, so 200 events of web pages do
+not pile up in one conversation. Have it save its reply, the fenced JSON block,
+as `batch-N.md`. Then join them, because `--from` applies every fenced block in a
+file:
+
+```bash
+cat batch-*.md > verdicts.md
+```
+
+If a batch fails, **leave it out**. Its events are re-queued next week, while a
+guessed verdict is a fabrication. Subagents do not touch the database or edit any
+other file.
+
+### The scheduled trial (Nov 2026)
+
+A Claude Code scheduled task does all of this at 11am Central on Mondays on
+Taren's PC, using the Claude subscription rather than the API. Its prompt and setup
+are in `docs/deploy-history/DEPLOY-LOCAL-VERIFY-TRIAL.md`, and its files are kept in
+`Documents\CityPulseMN\verify\<date>\`. If it does not run, or decides too few
+events, the 20:00 UTC paid job runs as usual, so a missed Monday costs about $8
+rather than a week of unchecked listings.
+
+It needs the PC awake and the Claude app open. It must only ever run the two free
+commands: `.env.local` holds `ANTHROPIC_API_KEY` because the local reels job needs
+it, so a plain `npm run verify` on this PC **bills the API**.
 
 ## The gate
 
@@ -84,7 +88,8 @@ The scheduled Monday run passes:
 npm run verify -- --skip-if-verified-recently=72
 ```
 
-If a pass completed inside 72 hours it logs that and exits, spending nothing.
+If a pass that decided at least 80 events completed inside 72 hours, it logs that
+and exits, spending nothing.
 
 ### Why not `verified_at`
 
@@ -131,19 +136,31 @@ still carries the inflated figure, since `admin_audit` is append-only.
 and `dropped` on the file path, so a truncated or partly-rejected run is
 visibly so rather than looking like a clean sweep.
 
+### The floor: 80 decided events
+
+On 2 Nov 2026 a file holding **one** event was applied at 13:58 UTC. When Monday's
+paid job fired at 21:29 UTC it found that marker, stood down and reported success,
+so about 150 events went unchecked that Monday. The first draft of this doc named
+this risk and left the floor out until there was data. Now there is.
+
+`standDownFor` counts **confirmed plus cancelled**, not `checked`. `checked` also
+counts flags, so a pass whose every confirmation was withheld as unproven could
+read 160 while having verified nothing. Real passes from 15 Oct to 5 Nov decided
+94–134, so 80 sits under all of them. A smaller pass is printed and ignored.
+
 ### Why 72 hours
 
-The Thursday pre-send pass lands 93h before Monday's (Thu 15:00 UTC → Mon 12:00
+The Thursday pre-send pass lands 101h before Monday's (Thu 15:00 UTC → Mon 20:00
 UTC). Any window wider than that lets Thursday suppress Monday, collapsing the
 cadence back to one pass a week — the exact failure the twice-weekly schedule
-was built to fix. 72h leaves 21h of margin against the +1h02m–+3h52m scheduler
-drift observed on this repo, and opens a window from Friday noon UTC onward.
+was built to fix. The digest job has fired up to 6.4h late, and 72h still clears
+that. It opens a window from Friday evening UTC onward.
 
 ### Why it fails open
 
-`recentVerifyPass` returns "no recent pass" when it cannot tell — unreachable
-database, missing `DATABASE_URL`, malformed answer — so the pass runs and
-spends. This is the **opposite** of `hasSentDigestToday`, which fails closed
+`recentVerifyPasses` returns no passes when it cannot tell — unreachable database,
+missing `DATABASE_URL` — and `decidedCount` reads a malformed count as zero, so the
+pass runs and spends. This is the **opposite** of `hasSentDigestToday`, which fails closed
 because a duplicated email is the expensive direction there. Here the expensive
 direction is an unchecked week reaching readers. A lost secret must not quietly
 switch verification off while every Actions run still shows green.
@@ -162,22 +179,16 @@ A supervised session will not cover 200 events. The paid pass averages ~156
 session that suppresses a 156-event pass **is a coverage cut**, not a free
 saving.
 
-The marker row records `checked` — and records it honestly, as events actually
-adjudicated — so a floor is available if you want one: the gate could refuse to
-stand down for a pass that covered less than *n* events. It is deliberately not
-there yet, because the right *n* depends on how many you actually get through in
-a sitting, and guessing it would be inventing a number.
+The trial queues 200, because a dry run projected 160 would miss the floor. It still
+confirms fewer than the paid pass: 15 against 25 on the same 32 events on 6 Nov. Read the
+results with:
 
 ```sql
 select at, patch->>'how' as how, patch->>'checked' as checked,
-       patch->>'ofCandidates' as queued, patch->>'batches' as batches
+       patch->>'confirmed' as confirmed, patch->>'cancelled' as cancelled,
+       patch->>'flagged' as flagged, patch->>'ofFile' as of_file
 from admin_audit where action = 'verify_pass' order by at desc;
 ```
-
-Run it a few weeks, read those counts, then decide.
-
-Until then the honest summary is: **you choose coverage or cost each week, and
-the gate makes that choice explicit instead of accidental.**
 
 ## Applying what the pass found
 

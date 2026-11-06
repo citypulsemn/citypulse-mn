@@ -5,6 +5,7 @@ import { displayPrice } from "./price-quality";
 import { isResaleSource } from "./source-trust";
 import { findIncomingDuplicates, type CalendarRow } from "./contradictions";
 import { chiWallClock } from "./clock";
+import type { RecentVerifyPass } from "./verify";
 
 /** Count populated optional fields — a rough "richness" score for a row. */
 function richness(e: DbEventInput): number {
@@ -651,28 +652,29 @@ export async function recordVerifyPass(
  * Without this a lost secret would silently switch verification off for good
  * while every Actions run still showed green — which is how this project lost
  * its revalidation channel for two months.
+ *
+ * Returns every pass in the window, newest first. Whether one of them is big
+ * enough to stand on is `standDownFor`'s decision (lib/verify.ts), not this
+ * query's.
  */
-export async function recentVerifyPass(
-  hours: number,
-): Promise<{ ran: boolean; at: string | null; how: string | null }> {
-  const none = { ran: false, at: null, how: null };
+export async function recentVerifyPasses(hours: number): Promise<RecentVerifyPass[]> {
   try {
     const sql = requireSql();
-    const [row] = await sql<{ ranAt: string; how: string | null }[]>`
-      select at::text as "ranAt", patch->>'how' as how
-      from admin_audit
-      where action = 'verify_pass'
-        and at >= now() - (${hours} * interval '1 hour')
-      order by at desc
-      limit 1
-    `;
-    if (!row?.ranAt) return none;
-    return { ran: true, at: row.ranAt, how: row.how ?? null };
+    return [
+      ...(await sql<RecentVerifyPass[]>`
+        select at::text as at, patch->>'how' as how,
+               patch->>'confirmed' as confirmed, patch->>'cancelled' as cancelled
+        from admin_audit
+        where action = 'verify_pass'
+          and at >= now() - (${hours} * interval '1 hour')
+        order by at desc
+      `),
+    ];
   } catch (err) {
     console.error(
       "[verify] could not check for a recent pass — running rather than risk skipping a week:",
       err,
     );
-    return none;
+    return [];
   }
 }

@@ -191,7 +191,8 @@ describe("the digest verifies before it sends", () => {
       "utf8",
     );
     const crons = [...verifyWf.matchAll(/- cron: "([^"]+)"/g)].map((m) => m[1]);
-    expect(crons).toEqual(["0 12 * * 1"]);
+    // Monday only, at 20:00 so the 11am Central supervised pass lands first.
+    expect(crons).toEqual(["0 20 * * 1"]);
   });
 });
 
