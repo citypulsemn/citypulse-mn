@@ -4,6 +4,7 @@ import {
   validateCorrection,
   describePlan,
   nextValue,
+  LOCKED_BY_CORRECTION,
   type Correction,
   type CorrectionRow,
 } from "../corrections";
@@ -23,6 +24,7 @@ function row(overrides: Partial<CorrectionRow> = {}): CorrectionRow {
     address: "2923 Girard Avenue South",
     // Empty is a real state: the column defaults to '' and plenty of rows have it.
     source_url: "",
+    description: "Fifty ballerinas, one small stage.",
     start_local: "2026-10-23T20:00",
     end_local: "2026-10-23T23:00",
     multi_day_end: null,
@@ -454,6 +456,105 @@ describe("source_url — repairing a bad citation", () => {
 
   it("refuses an archive that also rewrites the citation", () => {
     expect(validateCorrection(base({ archive: true, source_url: VENUE_PAGE }))).toMatch(/source_url/);
+  });
+});
+
+describe("description — the prose has to move with the facts", () => {
+  const text = "Sensory-friendly performance, Sunday, November 15 at 2pm.";
+
+  it("is an edit the verify pass cannot see, so the stamp survives", () => {
+    const p = planCorrection(row(), base({ description: text }));
+    if (p.kind !== "edit") throw new Error("expected an edit");
+    expect(p.fields.description).toBe(text);
+    expect(p.affectsVerification).toBe(false);
+    expect(p.resetsSourceCheck).toBe(false);
+    expect(p.newKey).toBeNull();
+  });
+
+  it("is written through nextValue like every other column", () => {
+    const p = planCorrection(row(), base({ description: text }));
+    if (p.kind !== "edit") throw new Error("expected an edit");
+    expect(nextValue(p.fields, row(), "description")).toBe(text);
+    expect(nextValue({}, row(), "description")).toBe(row().description);
+  });
+
+  it("re-running is a no-op, surrounding whitespace included", () => {
+    const r = row({ description: text });
+    expect(planCorrection(r, base({ description: text })).kind).toBe("nothing");
+    expect(planCorrection(r, base({ description: `  ${text}\n` })).kind).toBe("nothing");
+  });
+
+  it("is enough on its own to be a correction", () => {
+    expect(validateCorrection(base({ description: text }))).toBeNull();
+  });
+
+  it("refuses a blank or non-text description rather than wiping the listing", () => {
+    for (const bad of ["", "   \n", null, 7]) {
+      expect(validateCorrection(base({ description: bad as string }))).toMatch(/non-empty text/);
+    }
+  });
+
+  it("refuses a paste accident, and takes the longest allowed", () => {
+    expect(validateCorrection(base({ description: "x".repeat(1000) }))).toBeNull();
+    expect(validateCorrection(base({ description: "x".repeat(1001) }))).toMatch(/1001 characters/);
+  });
+
+  it("refuses verified:true on prose alone, since the pass never reads it", () => {
+    expect(
+      validateCorrection(base({ description: text, verified: true, evidence: "https://venue.example/x" })),
+    ).toMatch(/cannot see/);
+  });
+
+  it("cannot be combined with a takedown", () => {
+    expect(validateCorrection(base({ hide: true, description: text }))).toMatch(/hide:true cannot be combined.*description/);
+    expect(validateCorrection(base({ archive: true, description: text }))).toMatch(/archive:true cannot be combined.*description/);
+  });
+});
+
+describe("the lock — a correction survives the next research run", () => {
+  const upsert = readFileSync(join(__dirname, "..", "upsert.ts"), "utf8");
+  const script = readFileSync(join(__dirname, "..", "..", "scripts", "apply-correction.ts"), "utf8");
+  const schema = readFileSync(join(__dirname, "..", "..", "db", "schema.sql"), "utf8");
+  const clause = upsert.slice(upsert.indexOf("on conflict (event_key) do update set"));
+
+  it("every locked column keeps its value when the row has been corrected", () => {
+    for (const col of LOCKED_BY_CORRECTION) {
+      expect(clause).toMatch(
+        new RegExp(`\\b${col}\\s*= case when events\\.corrected_at is null then excluded\\.${col} else events\\.${col} end`),
+      );
+    }
+  });
+
+  it("no locked column is also written unconditionally", () => {
+    for (const col of LOCKED_BY_CORRECTION) {
+      expect(clause).not.toMatch(new RegExp(`\\b${col}\\s*= excluded\\.${col}`));
+    }
+  });
+
+  it("research can still enrich what a correction cannot edit", () => {
+    for (const col of ["category", "price", "price_tier", "ticket_url", "image"]) {
+      expect(clause).toMatch(new RegExp(`\\b${col}\\s*= excluded\\.${col}`));
+    }
+  });
+
+  it("a kept citation does not read as a new, unread page", () => {
+    expect(clause).toMatch(/source_checked_at = case when events\.corrected_at is null\s+and events\.source_url is distinct/);
+  });
+
+  it("the edit path sets the lock and writes the description through nextValue", () => {
+    const update = script.slice(script.indexOf("update events set\n          event_key"));
+    expect(update).toMatch(/corrected_at = now\(\)/);
+    expect(update).toMatch(/description = \$\{nextValue\(f, row, "description"\)\}/);
+    expect(script).toMatch(/select id::text as id, event_key, title, venue, city, address, source_url, description,/);
+  });
+
+  it("a takedown does not set it, since status already survives a re-find", () => {
+    const hide = script.slice(script.indexOf('plan.kind === "hide"'), script.indexOf("const f = plan.fields"));
+    expect(hide).not.toMatch(/corrected_at/);
+  });
+
+  it("the column is additive", () => {
+    expect(schema).toMatch(/alter table events add column if not exists corrected_at timestamptz;/);
   });
 });
 

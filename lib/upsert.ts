@@ -316,28 +316,36 @@ export async function upsertEvents(events: DbEventInput[]): Promise<number> {
   // being checked against anything real. Also the one thing that could silently
   // undo an operator's citation repair (`npm run correct --from=…`).
   //
+  // A CORRECTED ROW KEEPS WHAT IT WAS CORRECTED TO. This clause overwrote every
+  // column on every re-find, so a correction lasted until the next run that found
+  // the same event, and the row went back to whatever the research agent read. A
+  // set `corrected_at` keeps LOCKED_BY_CORRECTION (lib/corrections.ts); category,
+  // price, ticket link and image still enrich. League time changes are unaffected:
+  // import-sports moves a game with its own UPDATE, not through here.
+  //
   // Keep prose out of the template below: a `//` line inside it is sent to
   // Postgres, and a backtick in a SQL comment ends the JS literal.
   await sql`
     insert into events ${sql(rows, ...cols)}
     on conflict (event_key) do update set
-      title       = excluded.title,
+      title       = case when events.corrected_at is null then excluded.title else events.title end,
       category    = excluded.category,
-      venue       = excluded.venue,
-      address     = excluded.address,
-      city        = excluded.city,
-      lat         = excluded.lat,
-      lng         = excluded.lng,
-      start_at    = excluded.start_at,
-      all_day     = excluded.all_day,
-      end_at      = excluded.end_at,
+      venue       = case when events.corrected_at is null then excluded.venue else events.venue end,
+      address     = case when events.corrected_at is null then excluded.address else events.address end,
+      city        = case when events.corrected_at is null then excluded.city else events.city end,
+      lat         = case when events.corrected_at is null then excluded.lat else events.lat end,
+      lng         = case when events.corrected_at is null then excluded.lng else events.lng end,
+      start_at    = case when events.corrected_at is null then excluded.start_at else events.start_at end,
+      all_day     = case when events.corrected_at is null then excluded.all_day else events.all_day end,
+      end_at      = case when events.corrected_at is null then excluded.end_at else events.end_at end,
       price       = excluded.price,
       price_tier  = excluded.price_tier,
       ticket_url  = excluded.ticket_url,
-      description = excluded.description,
+      description = case when events.corrected_at is null then excluded.description else events.description end,
       image       = excluded.image,
-      source_url  = excluded.source_url,
-      source_checked_at = case when events.source_url is distinct from excluded.source_url
+      source_url  = case when events.corrected_at is null then excluded.source_url else events.source_url end,
+      source_checked_at = case when events.corrected_at is null
+                                and events.source_url is distinct from excluded.source_url
                                then null else events.source_checked_at end,
       last_seen_at = now()
   `;

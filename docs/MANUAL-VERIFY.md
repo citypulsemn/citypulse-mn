@@ -250,6 +250,16 @@ Three other things it does that `admin-actions.ts updateEvent` cannot:
     `eventbrite.com` is in both, so an Eventbrite page is caught by the roundup
     rule even though it is also a directory.
 
+- **A description can be corrected** (`"description"`, added 6 Nov 2026), so a
+  date fix does not leave the old date in the prose. The pass never reads it, so
+  it leaves `verified_at` alone, and `"verified": true` on prose alone is refused.
+- **A corrected row keeps its correction.** An edit sets `corrected_at`, and
+  `upsertEvents` then stops research overwriting the title, venue, address, pin,
+  times, description or source. Price, ticket link and image still update, and
+  `import-sports` still moves a game's time. A correction that moves a row's DATE
+  gives it a new identity, so research can still re-create the old date from the
+  page that misled it. To release a row, set `corrected_at` back to null.
+
 #### `end_at` could never be cleared, and said it had been
 
 Found 27 Oct 2026 by an adversarial review of the `source_url` change, which

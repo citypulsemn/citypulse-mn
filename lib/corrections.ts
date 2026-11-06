@@ -85,6 +85,19 @@ export interface Correction {
    * Often they are the same page, and then both want setting.
    */
   source_url?: string;
+  /**
+   * What the listing says about itself.
+   *
+   * Added 6 Nov 2026, because a date fix was leaving the old date in the prose.
+   * The Twelve Kinds of Ice sensory-friendly row moved to 15 Nov and went on
+   * reading "The November 19 evening performance", and nine sports rows printed
+   * a tip-off an hour off the correct time shown beside it.
+   *
+   * NOT verify-relevant: `lib/verify.ts` is never shown the description, so it
+   * leaves `verified_at` alone, and `verified: true` on a prose-only change is
+   * refused. Never empty: clearing a description is not a correction.
+   */
+  description?: string;
   /** Chicago wall clock, `YYYY-MM-DDTHH:MM`. */
   start?: string;
   /** Chicago wall clock, or null to clear. */
@@ -131,6 +144,7 @@ export interface CorrectionRow {
   city: string;
   address: string;
   source_url: string;
+  description: string;
   start_local: string;
   end_local: string | null;
   /** The run's last day, `YYYY-MM-DD`, or null for a single-day event. */
@@ -189,6 +203,23 @@ const VERIFY_RELEVANT = ["title", "venue", "city", "start_local", "end_local"] a
 const WALL = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/;
 const DAY = /^\d{4}-\d{2}-\d{2}$/;
 
+/** Longer than any description the agents write; a paste accident, not prose. */
+const DESCRIPTION_MAX = 1000;
+
+/**
+ * The columns a research re-find may not overwrite once an operator has corrected
+ * the row. `upsertEvents` writes every one of these on conflict, so without this
+ * a correction lasted only until the next Monday. Everything a correction can edit
+ * except `multi_day_end` and `status`, which that clause never writes, plus
+ * `all_day`, which has to stay in step with `start_at`.
+ *
+ * lib/upsert.ts spells these out inside its SQL, and a test holds the two together.
+ */
+export const LOCKED_BY_CORRECTION = [
+  "title", "venue", "address", "city", "lat", "lng",
+  "start_at", "all_day", "end_at", "description", "source_url",
+] as const;
+
 /** Problems an operator's correction file can have, in plain words. */
 export function validateCorrection(c: Correction): string | null {
   if (!c.id?.trim()) return "no id";
@@ -207,7 +238,7 @@ export function validateCorrection(c: Correction): string | null {
   }
   if (c.archive || c.hide) {
     const edits = (
-      ["title", "venue", "city", "address", "source_url", "start", "end", "multi_day_end", "lat", "lng"] as const
+      ["title", "venue", "city", "address", "source_url", "description", "start", "end", "multi_day_end", "lat", "lng"] as const
     ).filter((k) => c[k] !== undefined);
     if (edits.length > 0) {
       const lever = c.archive ? "archive" : "hide";
@@ -227,7 +258,17 @@ export function validateCorrection(c: Correction): string | null {
     c.verified &&
     !["title", "venue", "city", "start", "end"].some((k) => c[k as keyof Correction] !== undefined)
   ) {
-    return "verified:true on a change the verify pass cannot see (pin, address or citation only) — the stamp is left as it is for those";
+    return "verified:true on a change the verify pass cannot see (pin, address, citation or description only) — the stamp is left as it is for those";
+  }
+  // Checked as a string because this arrives from JSON.parse: `"description": null`
+  // is one keystroke away, and String(null) would publish the word "null".
+  if (c.description !== undefined) {
+    if (typeof c.description !== "string" || !c.description.trim()) {
+      return "description must be non-empty text — a listing is never corrected into saying nothing";
+    }
+    if (c.description.length > DESCRIPTION_MAX) {
+      return `description is ${c.description.length} characters, over the ${DESCRIPTION_MAX} limit`;
+    }
   }
   // THE CITATION HAS TO BE AN IMPROVEMENT. This field exists to repair a bad
   // source, so pointing it at the two kinds of page the project has already
@@ -278,7 +319,7 @@ export function validateCorrection(c: Correction): string | null {
   if (c.lat !== undefined && (c.lat < 43 || c.lat > 49.5)) return `lat ${c.lat} is outside Minnesota`;
   if (c.lng !== undefined && (c.lng < -97.5 || c.lng > -89)) return `lng ${c.lng} is outside Minnesota`;
   const touches = (
-    ["title", "venue", "city", "address", "source_url", "start", "end", "multi_day_end", "lat", "lng"] as const
+    ["title", "venue", "city", "address", "source_url", "description", "start", "end", "multi_day_end", "lat", "lng"] as const
   ).some((k) => c[k] !== undefined);
   if (!touches && !c.publish) return "nothing to change";
   return null;
@@ -321,6 +362,7 @@ export function planCorrection(row: CorrectionRow, c: Correction): CorrectionPla
   put("city", c.city, row.city);
   put("address", c.address, row.address);
   put("source_url", c.source_url, row.source_url);
+  put("description", c.description?.trim(), row.description);
   put("start_local", c.start, row.start_local);
   put("end_local", c.end, row.end_local);
   put("multi_day_end", c.multi_day_end, row.multi_day_end);

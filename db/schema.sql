@@ -550,6 +550,12 @@ create index if not exists idx_events_source_checked
   on events (source_checked_at nulls first)
   where status = 'published';
 
+-- When an operator last corrected this row (npm run correct). A set value stops a
+-- research re-find overwriting what the correction fixed: see upsertEvents in
+-- lib/upsert.ts. Nullable, so every existing row stays open to research.
+-- To release a row: update events set corrected_at = null where id = '...';
+alter table events add column if not exists corrected_at timestamptz;
+
 -- Every model call this project pays for, one row per job run.
 --
 -- Until 29 Sep 2026 the only cost columns in the whole schema were on

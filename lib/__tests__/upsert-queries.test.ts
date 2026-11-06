@@ -88,9 +88,12 @@ describe("upsertEvents — a changed citation is an unread page", () => {
     // (`stalestFirst`, nulls first), so the new page went to the BACK of the
     // queue and the listing stopped being checked against anything real. It is
     // also the one thing that could silently undo `npm run correct`'s
-    // source_url repair.
-    expect(body).toContain("source_url  = excluded.source_url");
-    expect(body).toContain("source_checked_at = case when events.source_url is distinct from excluded.source_url");
+    // source_url repair, which `corrected_at` now prevents: a locked row keeps
+    // its source, so it must keep its stamp too.
+    expect(body).toContain("then excluded.source_url else events.source_url end");
+    expect(body).toMatch(
+      /source_checked_at = case when events\.corrected_at is null\s+and events\.source_url is distinct from excluded\.source_url/,
+    );
     expect(body).toContain("then null else events.source_checked_at end");
   });
 
