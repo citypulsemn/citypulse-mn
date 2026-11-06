@@ -24,10 +24,19 @@ Measured on live data before anything changed, 6 November 2026:
 
 `npm run digest -- --dry-run` agrees: *"48 emails, 0 personalized"*.
 
-**So no subscriber has received a wrong date from this.** What follows fixes a live mechanism
-with zero current occurrences — which is the honest framing, and the one the review's own
-refutation insisted on ("a live mechanism with a reachable branch, not a measured occurrence
-in a sent email").
+**So nothing is firing TODAY.** What follows fixes a live mechanism with zero occurrences in
+the state I could measure.
+
+> **Correction.** The commit message for this change says *"No subscriber has received a
+> wrong date from this."* **That claim is not supported and should not have been made.**
+> Every number above is a reading of today's state. Saves and save-counts change week to
+> week, and this code has shipped since the saved block existed, so an earlier send could
+> have carried a wrong date and I have no way to check: the digest records only recipient
+> counts (`digest_sends`), not rendered bodies. The commit is already pushed and cannot be
+> amended, so the correction lives here. A review caught it as a blocker, and it was right.
+
+The honest framing is the one the review's own refutation insisted on: a live mechanism with
+a reachable branch, not a measured occurrence in a sent email.
 
 It is still worth fixing, because the shape that admits it is ordinary reader behaviour:
 
@@ -129,19 +138,30 @@ else. Two tests pin it; mutating the gate away fails both.
 ### Both new parameters are required, not defaulted
 
 `now` on `selectMostSaved` and `now` on `DigestOptions` are **required**. A caller that forgets
-`now` on `selectMostSaved` is exactly how the past-event drop went missing; a caller that
+`now` on `selectMostSaved` would silently restore the stale-event bug — though to be accurate,
+forgetting it is NOT how the drop went missing: the parameter never existed, the filter was
+simply never written. A caller that
 forgets it on `DigestOptions` would render every date label against the real clock, which makes
 tests drift as time passes. `tsc` enumerated all of them — including
 `app/admin/digest/page.tsx`, a second production caller the first pass had not noticed.
 
-**Runs are not excluded anywhere.** They follow dated events and still lead when nothing is
-dated — rule 6, same as the card surfaces.
+**The ORDERING never excludes a run.** Runs follow dated events and still lead when nothing
+is dated — rule 6, same as the card surfaces. The **cap** is a different matter and it does
+drop them: a test in this very commit asserts that with six qualifying rows the run is not
+among the five kept. That is the intended trade (five slots, the catchable things first),
+but "runs are not excluded anywhere" — as an earlier draft of this line put it — was wrong.
 
 ---
 
 ## Verification
 
-### Rendered against live data (no send)
+### Rendered against live data, with a CONSTRUCTED saved set (no send)
+
+The events and their dates are live rows. **The saved set is not anyone's.** No subscriber
+has saves that produce this block today — the table above says all three tokens render
+nothing — so the exhibit was built by handing the renderer one underway run plus two of
+today's picks, to exercise the branch. It demonstrates the label and the order; it is not a
+screenshot of an email anybody would receive.
 
 ```
 YOU SAVED THESE — HAPPENING THIS WEEK
@@ -187,7 +207,9 @@ git commit -m "fix — the weekly email could date a run by the day it opened"
 git push
 ```
 
-Nothing is observable on the website. The next verification is **the Thursday send**: a
+Nothing is observable on the PUBLIC site (`/this-week` and the two action routes import only
+`digestEvents`, `digestWeekLabel` and `esc`, none of which changed). `/admin/digest` renders
+the same email and is behind auth. The next real verification is **the Thursday send**: a
 `--dry-run` beforehand should report the same recipient count, and any saved block should show
 dated events first with runs stating a span.
 
@@ -203,7 +225,8 @@ label, the order and the extra drop.
 
 - **The span label is yearless.** `"May 23 – Jan 10"` is ambiguous about which January on a
   weekly email, exactly as it is on the two share cards. Same shared helper, same five
-  surfaces, same owner call recorded in the Instagram guide — it is all five or none.
+  surfaces — **six now, because this commit made the email the sixth** — same owner call
+  recorded in the Instagram guide. It is all of them or none.
 - **An all-day row with NO end would be dropped from the saved block on the day it happens.**
   It is stored at midnight, so it fails `start >= fromWall` from 00:01, and the run branch
   cannot rescue it because it has no end to test. This is the same all-day shape the R1.2
