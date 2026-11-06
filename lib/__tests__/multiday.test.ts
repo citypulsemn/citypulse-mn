@@ -376,6 +376,24 @@ describe("display helpers", () => {
     );
   });
 
+  it("does NOT collapse the month when the years differ (6 Nov 2026)", () => {
+    // The month check ignored the year, so a run spanning almost twelve months
+    // printed "May 23 – 10" — a range that reads backwards. Found by a review
+    // of the Instagram card, which is one of two surfaces that post this label
+    // off-site, where a wrong date cannot be corrected after the fact.
+    expect(
+      multiDayLabel(ev({ start: "2026-05-23T10:00", multiDayEnd: "2027-05-10T17:00" })),
+    ).toBe("May 23 – May 10");
+    // A genuinely same-month run is still collapsed.
+    expect(
+      multiDayLabel(ev({ start: "2026-05-23T10:00", multiDayEnd: "2026-05-30T17:00" })),
+    ).toBe("May 23 – 30");
+    // Cross-year but cross-month was already correct; it stays that way.
+    expect(
+      multiDayLabel(ev({ start: "2026-11-03T10:00", multiDayEnd: "2027-01-03T17:00" })),
+    ).toBe("Nov 3 – Jan 3");
+  });
+
   it("spansDay: a festival is on every day it runs, not just opening day", () => {
     expect(spansDay(fair, "2026-08-20")).toBe(true); // first
     expect(spansDay(fair, "2026-08-24")).toBe(true); // middle — the important one

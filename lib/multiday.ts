@@ -778,10 +778,18 @@ export function multiDayLabel(ev: Spannable): string {
   const a = new Date(`${dayOf(ev.start)}T12:00:00`);
   const b = new Date(`${dayOf(spanEnd(ev) ?? ev.start)}T12:00:00`);
   const left = `${MONTHS[a.getMonth()].slice(0, 3)} ${a.getDate()}`;
-  const right =
-    a.getMonth() === b.getMonth()
-      ? `${b.getDate()}`
-      : `${MONTHS[b.getMonth()].slice(0, 3)} ${b.getDate()}`;
+  // The same MONTH is not the same month when the YEARS differ. Without the
+  // year check a run from 2026-05-23 to 2027-05-10 collapsed to "May 23 – 10",
+  // a backwards-reading range, on every surface that prints this label —
+  // including two that post off-site, where it cannot be corrected after the
+  // fact. lib/reels/format.ts:55 already guards exactly this with
+  // `sy === ey && sm === em`; this is the same guard, late. No live row hits it
+  // today (23 cross-year runs, none of them same-month), so nothing on the site
+  // changes — it is one date edit away from mattering.
+  const sameMonth = a.getMonth() === b.getMonth() && a.getFullYear() === b.getFullYear();
+  const right = sameMonth
+    ? `${b.getDate()}`
+    : `${MONTHS[b.getMonth()].slice(0, 3)} ${b.getDate()}`;
   return `${left} – ${right}`;
 }
 

@@ -174,6 +174,53 @@ ordering and the run label, both reverting cleanly. No schema, no data.
 
 ---
 
+## Review — 40 agents, 37 findings, 12 survived refutation
+
+Three recon lenses (sibling sweep, date audit, design critique), each finding adversarially
+refuted. **Nothing in the repair itself was found wrong.** The design critique confirmed the
+three things most likely to have been: no import cycle and `lib/list-view.ts` is the right
+home; rule 6 holds and the thin Weird lane is untouched; and the per-category cap changes
+*which* Regular events appear but cannot change *how many*. The `windowStartKey`/`todayKey`
+collapse was challenged twice and refuted both times.
+
+### One finding in this change, fixed here
+
+Two agents reached opposite verdicts on the same claim — that `multiDayLabel` drops the year.
+Both were partly right, and the refutation found the thing the original finding missed:
+
+```ts
+a.getMonth() === b.getMonth()   // year-blind
+```
+
+**The same month is not the same month when the years differ.** A run from `2026-05-23` to
+`2027-05-10` collapsed to `"May 23 – 10"`, a range that reads backwards, on all five surfaces
+that print this label — two of which post off-site, where a wrong date cannot be corrected
+after the fact. `lib/reels/format.ts:55` already guards exactly this with `sy === ey && sm === em`;
+this is the same guard, late.
+
+Measured: **0 of the 23 cross-year runs live today are same-month**, so nothing on the site
+changes. It was one date edit from mattering. Mutating the year check away fails its test.
+
+The *broader* question the first agent raised — whether a yearless `"May 23 – Jan 10"` should
+print the year on a card posted off-site — is **not taken here**. It affects five surfaces
+including `EventDetailBody`, the canonical date statement for a run on its own page, and the
+collection share card that deliberately adopted this label hours earlier. That is a product
+call, below.
+
+### Confirmed findings NOT in this change — all pre-existing, none fixed here
+
+| sev | where | what |
+|---|---|---|
+| **blocker** | `lib/digest.ts:177` | `whenLabel` is span-blind and feeds the **live subscriber email**. The "You saved these — happening this week" block deliberately admits runs already underway, so a saved run that opened in May renders as "Saturday, May 23 · 10 AM" under that heading — a wrong date *and* a fabricated clock, the exact lie `dayTimeLabel` was written to stop. "Most saved this week" is worse: `selectMostSaved` has **no date filter at all**, so a finished run can rank and render. |
+| major | `lib/digest-personal.ts:47` | saved events sorted by start then capped at 5, so a run evicts a concert the reader can still catch — the same anti-signal fixed here |
+| major | `lib/content/templates.ts:141` | `collectionCaptionFor` takes `sample.slice(0, 4)` start-ascending and prints out-of-window start dates — **the caption beside the share card whose order was fixed this morning** |
+| major | `components/MapEventList.tsx:24` | the map list sorts a span-aware window by start, so a months-old run leads it |
+| minor | `lib/weekend.ts:127` | "Happening all weekend" is ordered longest-running first |
+
+The digest findings carry the most reach by far: that is the real weekly Resend send, not an
+admin page. They are reported, not touched — this commit is one item, and the email deserves
+its own measurement and its own guide.
+
 ## Left open — owner calls, not defects
 
 - **The Regular card is now five Friday events.** Soonest-first means a busy Friday can fill a
@@ -182,6 +229,11 @@ ordering and the run label, both reverting cleanly. No schema, no data.
   not mine to take quietly.
 - **`timeLabel` on a run** prints the start time, or "All day". Honest for the Travail bar;
   worth a look if a run with a meaningful nightly time ever lands on a card.
+- **Should a span label print the year off-site?** `multiDayLabel` is yearless by design, so a
+  run into next January reads `"MAY 23 – JAN 10"` — ambiguous about which year, though not
+  malformed. It is shared by `EventDayCard`, `EventDetailBody`, `MapEventList`, the collection
+  share card and now the Instagram card. Changing it at one call site would recreate exactly
+  the copy-drift this session spent two days removing, so it is all five or none. Taren's call.
 - **The cousin shape is still unswept** — unchanged from S4. `lib/related.ts:29` is on every
   event page and disagrees with the venue page it links to; `lib/verify-flags.ts:62` can hide a
   reader report about a currently-running show. Neither is touched here.
