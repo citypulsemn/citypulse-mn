@@ -49,6 +49,12 @@ export interface VenueShow {
   /** "HH:MM" once the detail page has been read; absent until then. */
   time?: string;
   /**
+   * The venue's own label for a show that is off. A cancelled show stays on First
+   * Avenue's calendar with a badge, so being on the calendar proves nothing without
+   * reading it. Absent means the calendar shows it as on.
+   */
+  status?: "cancelled" | "postponed";
+  /**
    * The source's OWN category tags, verbatim. Policy lives with the caller —
    * the parser reports what the feed says and decides nothing.
    */
@@ -69,6 +75,12 @@ export interface ExistingShow {
 export type ShowVerdict =
   /** Found on the venue's own calendar that night. */
   | { kind: "ok"; id: string; title: string; url: string }
+  /**
+   * The venue's own calendar names this show that night and marks it off. Positive
+   * evidence, so it holds for any room we can place, not only authoritative ones. It
+   * is never given when a show on that night also matches: see reconcileShows.
+   */
+  | { kind: "off"; id: string; title: string; url: string; status: "cancelled" | "postponed" }
   /**
    * The show is real, but not where or when we say. The same act appears on the
    * calendar at another room or on another date — Altın Gün was on our site at
@@ -162,7 +174,10 @@ export function parseFirstAvenueMonth(html: string): VenueShow[] {
     const afterBreak = raw.split(/<br\s*\/?>/i).pop() ?? raw;
     const title = stripTags(afterBreak) || stripTags(raw);
     if (!title) continue;
-    out.push({ day, venue: stripTags(venue), title, url: anchor[1] });
+    // Read the words, not the class: a cancelled show's badge is `badge-sold-out`.
+    const badge = (block.match(/<div class="status badge[^"]*">\s*<span>\s*([^<]+?)\s*<\/span>/i) ?? [])[1]?.toLowerCase();
+    const status = badge && /^cancell?ed$/.test(badge) ? "cancelled" : badge === "postponed" ? "postponed" : undefined;
+    out.push({ day, venue: stripTags(venue), title, url: anchor[1], ...(status ? { status } : {}) });
   }
   return out;
 }
@@ -338,17 +353,24 @@ export function reconcileShows(
   // the SAME night into one. Michael Che played two on 29 Aug; our event_key is
   // sha256(title|venue|day), so the two can't be told apart and the second was
   // "missing" on every single run, forever. One listing is the honest
-  // representation of what we can actually store.
+  // representation of what we can actually store. If one of the two is off and the
+  // other is on, the listing is still on, so a show that is on keeps the slot.
   const seenShow = new Set<string>();
-  feed = feed.filter((s) => {
+  feed = [...feed.filter((s) => !s.status), ...feed.filter((s) => s.status)].filter((s) => {
     const k = `${keyOf(s.venue, s.day)}|${foldTitle(s.title)}`;
     if (seenShow.has(k)) return false;
     seenShow.add(k);
     return true;
   });
 
+  // A show that is off cannot confirm a listing, occupy a room or become a new one.
+  // Until 6 Nov 2026 the parser ignored the badge, so all three happened: Packaging
+  // was stamped verified five days after First Avenue marked it cancelled.
+  const off = feed.filter((s) => s.status);
+  const on = feed.filter((s) => !s.status);
+
   const byVenueDay = new Map<string, VenueShow[]>();
-  for (const s of feed) {
+  for (const s of on) {
     const k = keyOf(s.venue, s.day);
     const list = byVenueDay.get(k);
     if (list) list.push(s);
@@ -376,6 +398,14 @@ export function reconcileShows(
       verdicts.push({ kind: "ok", ...base, url: hit.url });
       continue;
     }
+    // Rule 12: a fuzzy match must not destroy on its own. This one acts only with the
+    // venue's own label on the same room and night, and only after no show that is on
+    // matched the row above.
+    const gone = off.find((s) => keyOf(s.venue, s.day) === keyOf(row.venue, row.day) && showTitlesMatch(s.title, row.title));
+    if (gone?.status) {
+      verdicts.push({ kind: "off", ...base, url: gone.url, status: gone.status });
+      continue;
+    }
     // Past this point every verdict reads meaning into ABSENCE, which only the
     // rooms the calendar speaks for can support. A promoter's page not
     // mentioning tonight's show at the Cedar says nothing about the Cedar.
@@ -386,7 +416,7 @@ export function reconcileShows(
 
     // Before concluding anything from absence, look for the show ELSEWHERE on
     // the calendar. Finding it turns a guess into evidence.
-    const elsewhere = feed.find(
+    const elsewhere = on.find(
       (s) => (s.day !== row.day || s.venue.toLowerCase() !== row.venue.toLowerCase()) &&
         showTitlesMatch(s.title, row.title),
     );
@@ -412,7 +442,7 @@ export function reconcileShows(
 
   // Adding is safe everywhere we can place the room: a listed show is positive
   // evidence regardless of who owns the building. Only HIDING needs authority.
-  const missing = feed.filter(
+  const missing = on.filter(
     (s) => s.day >= todayKey && known.has(s.venue.toLowerCase()) && !matched.has(s),
   );
 

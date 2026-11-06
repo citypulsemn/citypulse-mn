@@ -68,6 +68,19 @@ writes an `import_music_review` audit row and leaves the listing alone.
 absence, we are *looking at the show somewhere else*, and the correct version is
 created in the same pass.
 
+### A show the venue marks off (Nov 2026)
+
+First Avenue keeps a cancelled or postponed show on its calendar with a status badge. Until 6 Nov 2026 the parser ignored the badge, so being on the calendar counted as confirmation: Packaging was stamped verified five days after it was cancelled, and a cancelled show could be created as a new listing. The badge's words are read now, not its class, because a cancelled show's badge has the `badge-sold-out` class.
+
+A listing matching a show marked off gets the verdict `off`, on the same room and night, and only if no show that is on also matches it:
+
+- **Cancelled:** status `cancelled`, through the same `cancelVerified` audit trail as the verify pass, with the venue's page as evidence. The event page shows a banner.
+- **Postponed:** hidden as a draft with the reason in the audit. Its new date arrives as a new listing once the calendar and our 92-day window reach it.
+
+A show marked off never confirms a listing, never counts as the show being elsewhere, never makes a dark room look busy, and is never added. The importer also runs right before Thursday's email, because a show can be cancelled between Monday and the send: The Weeknd Night's page changed about five hours before the 5 Nov email went out.
+
+**Only First Avenue's parser reads a status.** The other sources' parser reads none, so a cancellation there still relies on the verify pass or a report.
+
 ## Safety properties
 
 Same contract as sports:

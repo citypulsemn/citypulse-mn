@@ -52,6 +52,20 @@ jobs:
 
       - run: npm ci --prefer-offline --no-audit --no-fund
 
+      # A free read of the venues' own calendars right before the send, because a
+      # show can be cancelled between Monday's importer and Thursday's email. On
+      # 5 Nov 2026 The Weeknd Night's page changed at 16:24 UTC, the verify pass
+      # stamped it confirmed at 21:34 and the email went at 21:44. No model call and
+      # no API key. continue-on-error: a calendar outage must not cost the list its
+      # email. Same conditions as the verify step below.
+      - name: Reconcile listings against venue calendars before sending
+        if: github.event.schedule != '0 20 * * 4' && github.event.inputs.dry_run != 'true'
+        continue-on-error: true
+        run: npm run import-venues
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          REVALIDATE_SECRET: ${{ secrets.REVALIDATE_SECRET }}
+
       # ORDERING, not an optimization. This used to be a separate workflow at
       # 16:00 — an hour AFTER the 15:00 send — so the highest-stakes surface on
       # the site went out ahead of the week's verification pass. An email cannot

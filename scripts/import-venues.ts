@@ -32,7 +32,7 @@ import {
 } from "../lib/music-feed";
 import { computeEventKey, normalizeTier } from "../lib/event-key";
 import { normalizeAgentTime } from "../lib/time-integrity";
-import { upsertEvents } from "../lib/upsert";
+import { upsertEvents, cancelVerified } from "../lib/upsert";
 import { chiTodayKey } from "../lib/clock";
 import type { DbEventInput } from "../lib/types";
 
@@ -218,11 +218,13 @@ async function main() {
     const unmatched = plan.verdicts.filter((v) => v.kind === "unmatched");
     const ok = plan.verdicts.filter((v) => v.kind === "ok");
     const unknown = plan.verdicts.filter((v) => v.kind === "unknown");
+    const off = plan.verdicts.flatMap((v) => (v.kind === "off" ? [v] : []));
 
     console.log(
       `   ${shows.length} shows on the calendar, ${plan.window?.from}→${plan.window?.to}` +
         ` · ${venues.length} venues · ${rows.length} of our listings in them`,
     );
+    for (const v of off) console.log(`   ${v.status.toUpperCase().padEnd(9)} ${v.title.slice(0, 50).padEnd(50)} ${v.url}`);
     for (const v of phantom) console.log(`   HIDE    ${v.title.slice(0, 52).padEnd(52)} room dark that night`);
     for (const v of moved) {
       if (v.kind !== "moved") continue;
@@ -236,19 +238,32 @@ async function main() {
       console.log(`   ADD     ${s.day}  ${s.venue.padEnd(18)} ${s.title.slice(0, 46)}`);
     }
     console.log(
-      `   → ${phantom.length + moved.length} to hide (${moved.length} found elsewhere) · ${unmatched.length} to review · ` +
+      `   → ${off.length} marked off · ${phantom.length + moved.length} to hide (${moved.length} found elsewhere) · ${unmatched.length} to review · ` +
         `${plan.missing.length} to add · ${ok.length} verified · ${unknown.length} left alone`,
     );
 
     if (dryRun) continue;
 
-    const toHide = [...phantom, ...moved];
+    // Cancelled goes through the same path and audit trail as the verify pass, with
+    // the venue's own page as the evidence. A postponed show is hidden rather than
+    // cancelled: the site has no word for it, it is not on that night, and its new
+    // date arrives as a new listing once the calendar and our window reach it.
+    changed += await cancelVerified(
+      off
+        .filter((v) => v.status === "cancelled")
+        .map((v) => ({ id: v.id, evidence: `${source.sourceLabel} marks this show cancelled: ${v.url}` })),
+    );
+    const postponed = off.filter((v) => v.status === "postponed");
+
+    const toHide = [...phantom, ...moved, ...postponed];
     changed += toHide.length;
     if (toHide.length) {
       const ids = toHide.map((v) => v.id);
       await sql`update events set status = 'draft' where id::text = any(${ids})`;
       for (const v of toHide) {
-        const why = v.kind === "moved"
+        const why = v.kind === "off"
+          ? `${source.sourceLabel} marks this show postponed: ${v.url}`
+          : v.kind === "moved"
           ? `${source.sourceLabel} has this show on ${v.actual.day} at ${v.actual.venue}`
           : `no show in this room that night per ${source.sourceLabel}`;
         await sql`

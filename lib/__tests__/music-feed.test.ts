@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { describe, it, expect } from "vitest";
 import {
   padDay,
@@ -36,7 +38,7 @@ const TODAY = "2026-08-22";
 // A cut-down copy of their markup: day anchor, then show blocks, venue name
 // duplicated per block the way the responsive layout does it.
 const monthHtml = (
-  days: { day: string; shows: { venue: string; title: string; slug: string }[] }[],
+  days: { day: string; shows: { venue: string; title: string; slug: string; badge?: string }[] }[],
 ) =>
   days
     .map(
@@ -46,6 +48,7 @@ const monthHtml = (
           .map(
             (s) => `
   <div class="show_list_item" id="post-1">
+    ${s.badge ?? ""}${s.badge ?? ""}
     <div class="venue_col"><div class="venue_name"> ${s.venue} </div></div>
     <div class="venue_col d-none"><div class="venue_name"> ${s.venue} </div></div>
     <div class="show_name"><h4 class=" lg ">
@@ -56,6 +59,80 @@ const monthHtml = (
           .join(""),
     )
     .join("");
+
+describe("the wiring for shows the venue marks off", () => {
+  const root = join(__dirname, "..", "..");
+  const script = readFileSync(join(root, "scripts", "import-venues.ts"), "utf8");
+  const digest = readFileSync(join(root, ".github", "workflows", "weekly-digest.yml"), "utf8");
+
+  it("cancels only the cancelled, with the venue's page as evidence, before a dry run can reach it", () => {
+    const write = script.slice(script.indexOf("if (dryRun) continue;"));
+    expect(write).toMatch(/cancelVerified\(\s*off\s*\.filter\(\(v\) => v\.status === "cancelled"\)/);
+    expect(write).toContain("marks this show cancelled: ${v.url}");
+  });
+
+  it("hides the postponed, and says why in the audit", () => {
+    expect(script).toMatch(/toHide = \[\.\.\.phantom, \.\.\.moved, \.\.\.postponed\]/);
+    expect(script).toContain("marks this show postponed: ${v.url}");
+  });
+
+  it("reads the calendars right before the email, after which nothing can be recalled", () => {
+    const importer = digest.indexOf("run: npm run import-venues");
+    const verify = digest.indexOf("run: npm run verify");
+    const send = digest.indexOf("name: Send weekly digest");
+    expect(importer).toBeGreaterThan(-1);
+    expect(importer).toBeLessThan(verify);
+    expect(verify).toBeLessThan(send);
+  });
+
+  it("a calendar outage cannot cost the list its email", () => {
+    const step = digest.slice(digest.indexOf("name: Reconcile listings against venue calendars before sending"), digest.indexOf("run: npm run import-venues"));
+    expect(step).toContain("continue-on-error: true");
+    expect(step).toContain("github.event.schedule != '0 20 * * 4'");
+    expect(step).toContain("github.event.inputs.dry_run != 'true'");
+  });
+});
+
+describe("parsing First Avenue's status badges", () => {
+  // The real markup, read 6 Nov 2026. A cancelled show's badge has the sold-out
+  // CLASS, so only the words can tell the two apart.
+  const parseBadge = (badge: string) =>
+    parseFirstAvenueMonth(monthHtml([{ day: "2026-11-18", shows: [{ venue: "7th St Entry", title: "Packaging", slug: "p", badge }] }]))[0];
+
+  it("reads cancelled from the words, in either spelling", () => {
+    expect(parseBadge('<div class="status badge badge-sold-out"><span>Cancelled</span></div>').status).toBe("cancelled");
+    expect(parseBadge('<div class="status badge badge-sold-out"><span>CANCELED</span></div>').status).toBe("cancelled");
+  });
+
+  it("reads postponed", () => {
+    expect(parseBadge('<div class="status badge badge-postponed"><span>postponed</span></div>').status).toBe("postponed");
+  });
+
+  it("a sold-out show is still on", () => {
+    expect(parseBadge('<div class="status badge badge-sold-out"><span>Sold Out</span></div>').status).toBeUndefined();
+  });
+
+  it("no badge means on, and the rest of the show still parses", () => {
+    const s = parseBadge("");
+    expect(s.status).toBeUndefined();
+    expect(s).toMatchObject({ day: "2026-11-18", venue: "7th St Entry", title: "Packaging" });
+  });
+
+  it("a badge stays with its own show", () => {
+    const shows = parseFirstAvenueMonth(
+      monthHtml([
+        {
+          day: "2026-11-18",
+          shows: [
+            { venue: "7th St Entry", title: "Packaging", slug: "p", badge: '<div class="status badge badge-sold-out"><span>Cancelled</span></div>' },
+            { venue: "Turf Club", title: "Squirrel Flower", slug: "s" },
+          ],
+        },
+      ]),
+    );
+    expect(shows.map((s) => s.status)).toEqual(["cancelled", undefined]);
+  });
+});
 
 describe("parsing First Avenue's calendar", () => {
   it("reads day, venue, title and link — and never infers a date", () => {
@@ -298,6 +375,100 @@ describe("reconcileShows", () => {
   });
   const row = (id: string, day: string, venue: string, title: string): ExistingShow => ({
     id, day, venue, title,
+  });
+
+  describe("a show the venue marks off", () => {
+    const offShow = (day: string, venue: string, title: string, status: "cancelled" | "postponed" = "cancelled"): VenueShow => ({
+      ...show(day, venue, title),
+      status,
+    });
+
+    it("is not verified: this is what stamped Packaging five days after it was cancelled", () => {
+      const plan = reconcileShows(
+        [offShow("2026-11-18", "7th St Entry", "Packaging")],
+        [row("r1", "2026-11-18", "7th St Entry", "Packaging")],
+        TODAY, AUTH,
+      );
+      expect(plan.verdicts[0]).toMatchObject({ kind: "off", id: "r1", status: "cancelled" });
+    });
+
+    it("carries the status and the venue's own page as evidence", () => {
+      const plan = reconcileShows(
+        [offShow("2026-11-06", "Fine Line", "Death From Above 1979", "postponed")],
+        [row("r1", "2026-11-06", "Fine Line", "Death From Above 1979")],
+        TODAY, AUTH,
+      );
+      expect(plan.verdicts[0]).toMatchObject({ kind: "off", status: "postponed", url: "https://first-avenue.com/event/DeathFromAbove1979/" });
+    });
+
+    it("is never added as a new listing", () => {
+      const plan = reconcileShows([offShow("2026-11-18", "7th St Entry", "Packaging")], [], TODAY, AUTH);
+      expect(plan.missing).toEqual([]);
+    });
+
+    it("a matching show that is on wins, so a row is never cancelled beside its own show", () => {
+      const plan = reconcileShows(
+        [offShow("2026-11-18", "Turf Club", "Red Desert"), show("2026-11-18", "Turf Club", "Red Desert with Guests")],
+        [row("r1", "2026-11-18", "Turf Club", "Red Desert")],
+        TODAY, AUTH,
+      );
+      expect(plan.verdicts[0].kind).toBe("ok");
+      expect(plan.missing).toEqual([]);
+    });
+
+    it("the same billing twice in one night stays on if either show is", () => {
+      for (const feed of [
+        [offShow("2026-11-18", "Turf Club", "Michael Che"), show("2026-11-18", "Turf Club", "Michael Che")],
+        [show("2026-11-18", "Turf Club", "Michael Che"), offShow("2026-11-18", "Turf Club", "Michael Che")],
+      ]) {
+        const plan = reconcileShows(feed, [row("r1", "2026-11-18", "Turf Club", "Michael Che")], TODAY, AUTH);
+        expect(plan.verdicts[0].kind).toBe("ok");
+      }
+    });
+
+    it("another room or another night is not this row", () => {
+      const plan = reconcileShows(
+        [offShow("2026-11-18", "Fine Line", "Red Desert"), offShow("2026-11-19", "Turf Club", "Red Desert"), show("2026-11-18", "Turf Club", "Someone Else")],
+        [row("r1", "2026-11-18", "Turf Club", "Red Desert")],
+        TODAY, AUTH,
+      );
+      expect(plan.verdicts[0].kind).toBe("unmatched");
+    });
+
+    it("does not count as the show being elsewhere", () => {
+      const plan = reconcileShows(
+        [offShow("2026-11-19", "Fine Line", "Red Desert"), show("2026-11-18", "Turf Club", "Someone Else")],
+        [row("r1", "2026-11-18", "Turf Club", "Red Desert")],
+        TODAY, AUTH,
+      );
+      expect(plan.verdicts[0].kind).not.toBe("moved");
+    });
+
+    it("does not make a dark room look busy", () => {
+      const plan = reconcileShows(
+        [offShow("2026-11-18", "Turf Club", "Someone Else"), show("2026-11-30", "Fine Line", "Later Show")],
+        [row("r1", "2026-11-18", "Turf Club", "Red Desert")],
+        TODAY, AUTH,
+      );
+      expect(plan.verdicts[0].kind).toBe("phantom");
+    });
+
+    it("a label is positive evidence, so it holds in a room we only book into", () => {
+      const plan = reconcileShows(
+        [offShow("2026-11-18", "The Cedar", "Red Desert")],
+        [row("r1", "2026-11-18", "The Cedar", "Red Desert")],
+        TODAY,
+        { ...AUTH, knownVenues: new Set(["the cedar"]) },
+      );
+      expect(plan.verdicts[0].kind).toBe("off");
+    });
+
+    it("a room we cannot place, or a past night, is left alone", () => {
+      const unknown = reconcileShows([offShow("2026-11-18", "Elsewhere Hall", "Red Desert")], [row("r1", "2026-11-18", "Elsewhere Hall", "Red Desert")], TODAY, AUTH);
+      expect(unknown.verdicts[0].kind).toBe("unknown");
+      const past = reconcileShows([offShow("2020-01-01", "Turf Club", "Red Desert")], [row("r1", "2020-01-01", "Turf Club", "Red Desert")], TODAY, AUTH);
+      expect(past.verdicts).toEqual([]);
+    });
   });
 
   it("verifies a listing the venue confirms", () => {
