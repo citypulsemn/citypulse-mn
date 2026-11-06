@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { groupEventsByDay } from "../list-view";
+import { groupEventsByDay, soonestFirstThenRuns } from "../list-view";
 import type { EventRecord } from "../types";
 
 function ev(id: string, start: string, overrides: Partial<EventRecord> = {}): EventRecord {
@@ -106,5 +106,63 @@ describe("UX4 wiring — the list view and the mobile default", () => {
 
   it("the list reuses EventDayCard so rows carry the UX3 save overlay", () => {
     expect(readFileSync(join(root, "components", "ListView.tsx"), "utf8")).toContain("EventDayCard");
+  });
+});
+
+describe("soonestFirstThenRuns — one ordering for every card surface (6 Nov 2026)", () => {
+  const W0 = "2026-07-13"; // the window opens here
+
+  // Runs are category "arts", never "music": PER_NIGHT = {sports, music}, so
+  // staleSpanIds deletes a music row carrying a multiDayEnd. A music run is a
+  // shape production cannot produce.
+  const run = (id: string, start: string, end: string) =>
+    ev(id, start, { category: "arts", multiDayEnd: end });
+
+  it("what starts in the window comes first; runs already underway come after", () => {
+    const out = soonestFirstThenRuns(
+      [
+        run("long-run", "2026-05-23T10:00", "2027-01-10T17:00"),
+        ev("wed", "2026-07-15T20:00"),
+        run("short-run", "2026-07-01T10:00", "2026-07-20T17:00"),
+        ev("mon", "2026-07-13T20:00"),
+      ],
+      W0,
+    );
+    expect(out.map((e) => e.id)).toEqual(["mon", "wed", "short-run", "long-run"]);
+  });
+
+  it("runs are ordered ending-soonest-first, so the one about to close leads them", () => {
+    const out = soonestFirstThenRuns(
+      [
+        run("closes-later", "2026-05-01T10:00", "2027-01-10T17:00"),
+        run("closes-sooner", "2026-05-01T10:00", "2026-07-20T17:00"),
+      ],
+      W0,
+    );
+    expect(out.map((e) => e.id)).toEqual(["closes-sooner", "closes-later"]);
+  });
+
+  it("a run that STARTS inside the window is a dated event, not a run-behind", () => {
+    // It is news this week, so it sorts by its start like anything else.
+    const out = soonestFirstThenRuns(
+      [run("underway", "2026-07-01T10:00", "2026-08-30T17:00"), run("opens-tue", "2026-07-14T10:00", "2026-08-30T17:00")],
+      W0,
+    );
+    expect(out.map((e) => e.id)).toEqual(["opens-tue", "underway"]);
+  });
+
+  it("drops nothing — every event comes back exactly once", () => {
+    const input = [
+      run("a", "2026-05-23T10:00", "2027-01-10T17:00"),
+      ev("b", "2026-07-15T20:00"),
+      ev("c", "2026-07-13T20:00"),
+    ];
+    const out = soonestFirstThenRuns(input, W0);
+    expect(out).toHaveLength(3);
+    expect([...out].map((e) => e.id).sort()).toEqual(["a", "b", "c"]);
+  });
+
+  it("an empty list yields an empty list", () => {
+    expect(soonestFirstThenRuns([], W0)).toEqual([]);
   });
 });

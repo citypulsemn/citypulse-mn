@@ -1,7 +1,7 @@
 import type { EventRecord } from "./types";
-import { daysSpanned } from "./dates"; // dayTag asks a START question, legitimately
-import { spansDay } from "./multiday";
-import { timeLabel } from "./dates";
+import { dkey, evDate, timeLabel } from "./dates";
+import { isMultiDay, multiDayLabel, spansDay } from "./multiday";
+import { soonestFirstThenRuns } from "./list-view";
 
 /**
  * INSTAGRAM CARDS (roadmap 6.4) — the weekly @CityPulseMpls card copy,
@@ -71,25 +71,30 @@ export interface CardSet {
 
 /**
  * Build the week's three cards from a pool of events (feed it published
- * events in the chosen window). Deterministic: soonest-first within each
- * variant; Regular additionally capped per category for variety.
+ * events in the chosen window). Deterministic: what starts inside the window
+ * first, soonest first, then runs already underway, ending soonest; Regular
+ * additionally capped per category for variety.
  */
 export function buildCards(pool: EventRecord[], windowDays: string[]): CardSet {
-  const daySet = new Set(windowDays);
   const inWindow = pool
     .filter((e) => e.status === "published")
-    // RULE 5, the sixth and last break (5 Nov 2026). This was
-    // `daysSpanned(e).some((d) => daySet.has(d))` — the CAPPED expansion, which
-    // returns the start day alone for a run over 14 days, so a two-month
-    // exhibition could never be carded. daysSpanned' own docstring says it
-    // answers the grid's question and not this one. One line, and it is the
-    // literal shape ENGINEERING rule 5 forbids.
-    .filter((e) => windowDays.some((d) => spansDay(e, d)))
-    .sort((a, b) => a.start.localeCompare(b.start));
+    // RULE 5 (5 Nov 2026). This was `daysSpanned(e).some((d) => daySet.has(d))`
+    // — the CAPPED expansion, which returns the start day alone for a run over
+    // 14 days, so a two-month exhibition could never be carded. daysSpanned'
+    // own docstring says it answers the grid's question and not this one.
+    .filter((e) => windowDays.some((d) => spansDay(e, d)));
+
+  // ORDER (6 Nov 2026). This was `.sort((a, b) => a.start.localeCompare(b.start))`,
+  // which is ORIGINAL code, not a consequence of the filter fix above — it was
+  // wrong for as long as any run could reach a card, and the filter fix only
+  // widened it from runs ≤ 14 days to runs of any length. Measured on live data
+  // the day it was fixed: the Regular card led with two rows dated 2026-05-23
+  // and the Family card was 4 of 5 runs, on a card captioned "this week".
+  const ordered = soonestFirstThenRuns(inWindow, windowDays[0] ?? "");
 
   const excluded: CardSet["excluded"] = [];
   const clean: EventRecord[] = [];
-  for (const e of inWindow) {
+  for (const e of ordered) {
     const reason = exclusionReason(e);
     if (reason) excluded.push({ event: e, reason });
     else clean.push(e);
@@ -131,9 +136,20 @@ export function buildCards(pool: EventRecord[], windowDays: string[]): CardSet {
   return { regular, family, weird, excluded, incomplete };
 }
 
-/** "FRI 7/17" style day tag for a card line. */
+/**
+ * "FRI 7/17" for a dated event; a RUN shows its true span instead ("OCT 23 –
+ * NOV 29").
+ *
+ * This read `daysSpanned(e)[0]` — the run's START day — so a run that opened
+ * before the window printed a date outside it. Measured on live data 6 Nov
+ * 2026: 22 events in the 7-day pool carried a tag outside the window, and 7 of
+ * the 11 rows actually on the three cards did. The span is the same answer
+ * EventDayCard and the collection share card give, so a card line and the site
+ * now agree.
+ */
 function dayTag(e: EventRecord): string {
-  const d = new Date(`${daysSpanned(e)[0]}T12:00:00Z`);
+  if (isMultiDay(e)) return multiDayLabel(e).toUpperCase();
+  const d = new Date(`${dkey(evDate(e))}T12:00:00Z`);
   const wd = d.toLocaleDateString("en-US", { weekday: "short", timeZone: "UTC" }).toUpperCase();
   return `${wd} ${d.getUTCMonth() + 1}/${d.getUTCDate()}`;
 }

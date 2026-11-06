@@ -1,5 +1,5 @@
 import { DOW, MONTHS, timeLabel } from "../dates";
-import { planListView } from "../list-view";
+import { soonestFirstThenRuns } from "../list-view";
 import { KIND_META, type Place } from "../places";
 import type { CollectionSpec } from "../collections";
 import type { EventRecord, CategoryKey } from "../types";
@@ -128,8 +128,7 @@ export function collectionCardRows(
   todayKey: string,
   limit = CARD_ROWS,
 ): EventRecord[] {
-  const plan = planListView(selected, todayKey, todayKey, limit);
-  return [...plan.days.flatMap((g) => g.events), ...plan.ongoing].slice(0, limit);
+  return soonestFirstThenRuns(selected, todayKey).slice(0, limit);
 }
 
 export function collectionCaptionFor(collection: CollectionSpec, sample: EventRecord[]): string {

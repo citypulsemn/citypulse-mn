@@ -95,6 +95,31 @@ export function planListView(
   };
 }
 
+/**
+ * One ordering for every "pick N events for a card" surface: what STARTS
+ * inside the window first, soonest first; then the runs that were already
+ * underway when the window opened, ending-soonest first.
+ *
+ * Why not plain start-ascending, which is what both callers did before: once a
+ * surface became span-aware, a run that opened months earlier sorted FIRST and
+ * filled the card. "Started longest ago" is an anti-signal for "what should I
+ * do this week" — the collection share card led with an eleven-month gallery
+ * rotation, and the Instagram Regular card led with two rows dated 23 May.
+ * Both were found on 5–6 Nov 2026, a day apart, which is why the rule lives
+ * here once instead of being written a third time.
+ *
+ * Runs are NOT excluded: they top the list up when the calendar is thin, so a
+ * quiet week shows real runs rather than blank rows (rule 6).
+ */
+export function soonestFirstThenRuns(
+  events: EventRecord[],
+  windowStartKey: string,
+): EventRecord[] {
+  // cap = events.length so nothing is dropped; the caller does the limiting.
+  const plan = planListView(events, windowStartKey, windowStartKey, events.length);
+  return [...plan.days.flatMap((g) => g.events), ...plan.ongoing];
+}
+
 export function groupEventsByDay(events: EventRecord[], windowStartKey: string): DayGroup[] {
   const byDay = new Map<string, EventRecord[]>();
   for (const e of events) {

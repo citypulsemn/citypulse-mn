@@ -92,6 +92,79 @@ describe("buildCards — rule 5, the sixth break (5 Nov 2026)", () => {
   });
 });
 
+describe("buildCards + formatCard — ordering and labelling runs (6 Nov 2026)", () => {
+  // DAYS is 2026-07-17..19, so the window opens on the 17th.
+  // "arts", never "music": PER_NIGHT = {sports, music} and staleSpanIds
+  // deletes a music row carrying a multiDayEnd.
+  const run = (title: string, start: string, end: string) =>
+    ev({ title, category: "arts", start, end: "", multiDayEnd: end });
+
+  it("a run that opened before the window sorts BEHIND what starts inside it", () => {
+    // The live shape on 6 Nov 2026: the Regular card led with two rows dated
+    // 2026-05-23 because the sort was start-ascending and a run that opened
+    // months ago sorts first. "Started longest ago" decided the card.
+    const cards = buildCards(
+      [
+        run("Beach Monster Exhibit", "2026-05-23T10:00", "2027-01-10T17:00"),
+        run("Monsters on Vacation", "2026-05-23T10:00", "2027-01-10T17:00"),
+        ev({ title: "Food Truck", category: "food", start: "2026-07-17T16:00" }),
+        ev({ title: "Static Dress", category: "music", start: "2026-07-17T18:00" }),
+        ev({ title: "Volleyball", category: "sports", start: "2026-07-17T18:30" }),
+      ],
+      DAYS,
+    );
+    expect(cards.regular.map((e) => e.title).slice(0, 3)).toEqual([
+      "Food Truck",
+      "Static Dress",
+      "Volleyball",
+    ]);
+  });
+
+  it("but a thin lane still takes the run rather than running short (rule 6)", () => {
+    // The live Weird card was 1 of 5, and its only candidate was a run.
+    // Pushing runs behind dated events must not empty it.
+    const cards = buildCards(
+      [run("Haunted Basement", "2026-06-24T19:00", "2026-07-18T23:00")],
+      DAYS,
+    );
+    expect(cards.weird).toHaveLength(0); // it is arts, not weird
+    expect(cards.regular.map((e) => e.title)).toEqual(["Haunted Basement"]);
+    expect(cards.incomplete).toContain("regular");
+  });
+
+  it("a run's card line shows its TRUE SPAN, never a date outside the window", () => {
+    const cards = buildCards(
+      [run("Fall Flower Show", "2026-06-23T10:00", "2026-07-29T17:00")],
+      DAYS,
+    );
+    const copy = formatCard(cards.regular);
+    expect(copy).toContain("JUN 23 – JUL 29 · Fall Flower Show");
+    expect(copy).not.toContain("JUN 23 ·"); // not the bare start day
+  });
+
+  it("a single-day event keeps the locked DAY M/D tag", () => {
+    const cards = buildCards([ev({ title: "Static Dress", start: "2026-07-17T19:00" })], DAYS);
+    expect(formatCard(cards.regular)).toContain("FRI 7/17 · Static Dress");
+  });
+
+  it("no card line carries a day-tag dated before the window opens", () => {
+    const cards = buildCards(
+      [
+        run("Long run", "2026-05-23T10:00", "2027-01-10T17:00"),
+        ev({ title: "Friday show", start: "2026-07-17T19:00" }),
+      ],
+      DAYS,
+    );
+    const copy = formatCard(cards.regular);
+    // The old tag was daysSpanned(e)[0] — the run's START day — so this line
+    // read "SAT 5/23" on a card for 17–19 July. The dated event is untouched;
+    // the run now states its real span.
+    expect(copy).not.toContain("SAT 5/23");
+    expect(copy).toContain("MAY 23 – JAN 10 · Long run");
+    expect(copy).toContain("FRI 7/17 · Friday show");
+  });
+});
+
 describe("buildCards — the locked structural rules", () => {
   const pool = [
     // 6 family, 6 weird, plenty of regular
