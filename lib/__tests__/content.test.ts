@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { weeklyPicks, scoreEvent } from "../content/weekly-picks";
-import { captionFor, weeklyCaptionFor, hashtagsFor, shortDate, placeCaptionFor, collectionCaptionFor } from "../content/templates";
+import { captionFor, weeklyCaptionFor, hashtagsFor, shortDate, placeCaptionFor, collectionCaptionFor, collectionCardRows, CARD_ROWS } from "../content/templates";
 import { getCollection } from "../collections";
 import type { Place } from "../places";
 import type { EventRecord } from "../types";
@@ -204,5 +204,71 @@ describe("collectionCaptionFor (Instagram — demand-validated topic pages)", ()
     expect(cap).toContain(coll.tagline);
     expect(cap).toContain("citypulsemn.com/collections/food-truck-festivals");
     expect(cap).not.toContain("•"); // no event bullets
+  });
+});
+
+describe("collectionCardRows — the share card's ordering (6 Nov 2026)", () => {
+  // TODAY is Monday 13 July 2026, matching NOW above.
+  const TODAY = "2026-07-13";
+
+  // A long RUN. Category "arts", never "music": PER_NIGHT = {sports, music},
+  // so staleSpanIds deletes a music row carrying a multiDayEnd — production
+  // cannot produce that shape, and a fixture using it proves nothing.
+  const run = (title: string, start: string, end: string) =>
+    ev({ title, category: "arts", start, end: "", multiDayEnd: end });
+
+  const soon = (title: string, start: string) => ev({ title, category: "arts", start, end: "" });
+
+  it("leads with what starts soonest, not with what started longest ago", () => {
+    // The live regression: selectCollection returns start-ascending, so these
+    // three runs sorted ahead of every dated event and filled the whole card.
+    const rows = collectionCardRows(
+      [
+        run("Eleven-month rotation", "2025-08-25T10:00", "2026-07-25T17:00"),
+        run("Summer exhibit", "2026-05-23T10:00", "2027-01-10T17:00"),
+        soon("Tuesday show", "2026-07-14T20:00"),
+        soon("Wednesday show", "2026-07-15T20:00"),
+      ],
+      TODAY,
+    );
+    expect(rows.map((e) => e.title)).toEqual([
+      "Tuesday show",
+      "Wednesday show",
+      // runs only after the dated events
+      "Eleven-month rotation",
+      "Summer exhibit",
+    ]);
+  });
+
+  it("drops runs entirely when the calendar alone fills the card", () => {
+    const events = [
+      run("Long exhibit", "2026-05-23T10:00", "2027-01-10T17:00"),
+      ...Array.from({ length: CARD_ROWS }, (_, i) =>
+        soon(`Show ${i}`, `2026-07-1${4 + i}T20:00`.slice(0, 16)),
+      ),
+    ];
+    const rows = collectionCardRows(events, TODAY);
+    expect(rows).toHaveLength(CARD_ROWS);
+    expect(rows.map((e) => e.title)).not.toContain("Long exhibit");
+  });
+
+  it("fills a thin week with real runs rather than blank rows (rule 6)", () => {
+    const rows = collectionCardRows(
+      [
+        run("Long exhibit", "2026-05-23T10:00", "2027-01-10T17:00"),
+        soon("The only dated thing", "2026-07-15T20:00"),
+      ],
+      TODAY,
+    );
+    expect(rows.map((e) => e.title)).toEqual(["The only dated thing", "Long exhibit"]);
+  });
+
+  it("never returns more rows than the card has", () => {
+    const events = Array.from({ length: 30 }, (_, i) => soon(`Show ${i}`, "2026-07-15T20:00"));
+    expect(collectionCardRows(events, TODAY)).toHaveLength(CARD_ROWS);
+  });
+
+  it("an empty collection yields no rows", () => {
+    expect(collectionCardRows([], TODAY)).toEqual([]);
   });
 });

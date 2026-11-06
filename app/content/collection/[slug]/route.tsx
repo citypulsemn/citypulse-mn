@@ -1,7 +1,8 @@
 import { ImageResponse } from "next/og";
 import { getEvents } from "@/lib/events";
 import { getCollection, selectCollection } from "@/lib/collections";
-import { shortDate } from "@/lib/content/templates";
+import { collectionCardRows, shortDate } from "@/lib/content/templates";
+import { chiDayKey } from "@/lib/clock";
 import { isMultiDay, multiDayLabel } from "@/lib/multiday";
 import { oswaldSemiBold } from "@/lib/brand/oswald-font";
 
@@ -31,14 +32,19 @@ export async function GET(req: Request, ctx: { params: Promise<{ slug: string }>
   }
 
   const events = await getEvents();
-  const selected = selectCollection(events, collection, new Date());
-  // Collections went span-aware on 5 Nov 2026, so `selected` now holds mid-run
-  // events — and it is sorted by start ascending, which puts them FIRST. Their
-  // start can be months back, so `shortDate(e.start)` alone would print "May 23"
-  // on a November card. A run shows its span instead, the same rule EventDayCard
-  // uses without a dayKey. (The S4 roadmap item listed this file in its blast
-  // radius and the first cut of that change still missed it.)
-  const rows = selected.slice(0, 6).map((e) => ({
+  // One instant for the whole card, so selection and the ongoing/soon split
+  // cannot straddle midnight.
+  const now = new Date();
+  const selected = selectCollection(events, collection, now);
+  // Two things went wrong here when collections went span-aware (roadmap S4),
+  // and the first fix only caught one of them:
+  //   1. the LABEL — a mid-run row printed `shortDate(e.start)`, i.e. "May 23"
+  //      on a November card. A run shows its span instead, the same rule
+  //      EventDayCard uses without a dayKey.
+  //   2. the ORDER — `selected` is sorted by start ascending, so mid-run rows
+  //      sorted first and the card became six long exhibits and no dated
+  //      event. collectionCardRows puts what is on soon first.
+  const rows = collectionCardRows(selected, chiDayKey(now)).map((e) => ({
     title: e.title,
     sub: `${isMultiDay(e) ? multiDayLabel(e) : shortDate(e.start)} · ${e.venue}`,
   }));

@@ -1,4 +1,5 @@
 import { DOW, MONTHS, timeLabel } from "../dates";
+import { planListView } from "../list-view";
 import { KIND_META, type Place } from "../places";
 import type { CollectionSpec } from "../collections";
 import type { EventRecord, CategoryKey } from "../types";
@@ -103,6 +104,34 @@ export function placeCaptionFor(place: Place): string {
 /** Instagram caption for a collection/topic (e.g. Food Truck Festivals) — the
  *  demand-validated evergreen pages. `sample` is a few of the collection's events
  *  (may be empty; the caption degrades to just the tagline + CTA). Pure/tested. */
+/** Rows on a collection's share card. Six fits the 1080×1350 frame. */
+export const CARD_ROWS = 6;
+
+/**
+ * Which events a collection's share card lists.
+ *
+ * Collections went span-aware on 5 Nov 2026 (roadmap S4), so mid-run events
+ * reach this card for the first time — and `selectCollection` returns them
+ * sorted by start ascending, which puts them FIRST. Taking the first six
+ * therefore swapped "what's on soon" for "what started longest ago": the live
+ * Date Night card led with an eleven-month gallery rotation and carried no
+ * dated event at all. The S4 commit fixed the DATE LABEL on these rows and
+ * left the ordering, so the card was wrong in a second way nothing caught —
+ * the route renders an image, so no test read it.
+ *
+ * Soonest-starting first, topped up with runs (ending soonest, via
+ * planListView's own order) only when the calendar is thin. A quiet week shows
+ * real runs rather than blank rows, which is rule 6.
+ */
+export function collectionCardRows(
+  selected: EventRecord[],
+  todayKey: string,
+  limit = CARD_ROWS,
+): EventRecord[] {
+  const plan = planListView(selected, todayKey, todayKey, limit);
+  return [...plan.days.flatMap((g) => g.events), ...plan.ongoing].slice(0, limit);
+}
+
 export function collectionCaptionFor(collection: CollectionSpec, sample: EventRecord[]): string {
   const lines: string[] = [];
   lines.push(`🗓️ ${collection.title.toUpperCase()}`);

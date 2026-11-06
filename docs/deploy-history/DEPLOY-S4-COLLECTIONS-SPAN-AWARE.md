@@ -1,8 +1,9 @@
 # Deploy — a collection page and its own ICS feed disagreed about what was on
 
 **Date:** 5 November 2026 · **Roadmap:** [ROADMAP-SPANS.md](../ROADMAP-SPANS.md) item **S4**
-**Files:** `lib/multiday.ts`, `lib/collections.ts`, `lib/feeds.ts`,
-`app/collections/[slug]/page.tsx`, `lib/__tests__/collections.test.ts`
+**Files:** `lib/multiday.ts`, `lib/collections.ts`, `lib/feeds.ts`, `lib/instagram.ts`,
+`lib/content/templates.ts`, `app/collections/[slug]/page.tsx`,
+`app/content/collection/[slug]/route.tsx`, and their tests
 **Schema:** none. **Data:** none. Code only.
 
 The fifth break of ENGINEERING rule 5, found by the review of the fourth.
@@ -154,6 +155,48 @@ Verify on **www** with `curl -L` (the apex 308s):
 3. `https://www.citypulsemn.com/feeds/food-truck-festivals` — no event whose *title* lacks
    "food truck"
 4. `https://www.citypulsemn.com/collections/live-music` — unchanged, 43 events
+
+## Verified on production — 6 November 2026
+
+Pushed `9f5785b..ca4deee`; the deploy landed in about 60 seconds. Counts were taken
+**before and after the same deploy**, because the live set moves daily — the "43" this guide
+quoted for `live-music` the day before was already 47 by the morning, and comparing against a
+previous day's number proves nothing.
+
+| check | result |
+|---|---|
+| `/collections/date-night` | **40 → 57 events** |
+| leads with "Already running" | yes, 6 cards, `+ 11 more running` |
+| day headers | Nov 6, 7, 8 — today is the 6th, **no past-dated header** |
+| headline reconciles | 46 rendered + 11 more = **57** ✓ |
+| `ItemList` describes the rendered set | **46 entries, not 57** ✓ (the fix in `ca4deee`) |
+| `/feeds/food-truck-festivals` | 2 events, **both titles contain "food truck"** ✓ |
+| `/collections/live-music` | **47 → 47**, no "Already running" group — nothing mid-run qualifies |
+
+All six ongoing cards carry a span containing today, two of them (`Aug 17 – Dec 31`,
+`Nov 3 – Jan 3`) **longer than the 14-day grid cap** — the exact shape rule 5 was hiding.
+"Twelve Kinds of Ice" appears once, not three times: the dedupe held through the deploy.
+
+### The verification found a SECOND defect, and it was mine
+
+The share card at `/content/collection/date-night` rendered six rows, **every one a long
+museum run and not one dated event**: it led with `Collection in Focus: Martine Syms,
+Jun 25 – May 23`, an eleven-month gallery rotation, on a card headed "Date Night Ideas".
+
+`ca4deee` fixed this file's **date label** and left its **ordering**. Both broke for one
+reason — `selectCollection` returns start-ascending, so mid-run rows, newly eligible, sort
+*first* — and fixing only the label meant the card still selected for "started longest ago",
+which is an anti-signal. Nothing caught it because the route renders an **image**, so no test
+reads its contents and no HTML assertion can.
+
+**Fixed** by moving the row choice into `lib/content/templates.ts` as the pure
+`collectionCardRows` — soonest-starting first, topped up with runs (ending soonest) only when
+the calendar is thin, so a quiet week shows real runs rather than blank rows. Five golden
+tests; mutating it back to `selected.slice(0, 6)` fails three of them.
+
+**The lesson is the one this project keeps paying for:** a fix aimed at a symptom on a surface
+you cannot assert against is not verified until you *look at the surface*. The label was
+checked by reading the code; the ordering was caught by rendering the PNG and reading it.
 
 ## Rollback
 
