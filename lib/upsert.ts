@@ -6,10 +6,15 @@ import { isResaleSource } from "./source-trust";
 import { findIncomingDuplicates, type CalendarRow } from "./contradictions";
 import { chiWallClock } from "./clock";
 import type { RecentVerifyPass } from "./verify";
+import type { RecentResearchPass } from "./research-queue";
 
 /** Count populated optional fields — a rough "richness" score for a row. */
 function richness(e: DbEventInput): number {
   let n = 0;
+  // A known time outranks all six fields below. A tie used to keep the later row,
+  // and a venue sweep reading a calendar with no times arrives after the agent that
+  // read the time: seven such pairs in the 6 Nov 2026 rehearsal, all First Avenue.
+  if (!e.all_day) n += 7;
   if (e.description) n++;
   if (e.ticket_url) n++;
   if (e.image) n++;
@@ -323,6 +328,19 @@ export async function upsertEvents(events: DbEventInput[]): Promise<number> {
   // price, ticket link and image still enrich. League time changes are unaffected:
   // import-sports moves a game with its own UPDATE, not through here.
   //
+  // A DATE-ONLY RE-FIND NEVER ERASES A KNOWN TIME. An agent that read a calendar
+  // printing no times answers with a date, which the identity treats as the same
+  // event, so this clause set the row to all-day at midnight. Simulated on 6 Nov
+  // 2026: 26 live rows would have lost their start, Humbird's 8pm among them. A
+  // re-find that does carry a time still upgrades an all-day row. Its end still
+  // lands if it is later, or a run read off a date-only page would be archived on
+  // its first day.
+  //
+  // A THIN RE-FIND NEVER ERASES WHAT THE ROW KNOWS. In the same rehearsal, 72 of 92
+  // live re-finds had no address and 85 said "See listing", which would have turned
+  // First Avenue's street into "Minneapolis, MN" and a Free listing into $$. Blank
+  // and placeholder values only fill a gap, and shorter prose does not replace longer.
+  //
   // Keep prose out of the template below: a `//` line inside it is sent to
   // Postgres, and a backtick in a SQL comment ends the JS literal.
   await sql`
@@ -331,18 +349,25 @@ export async function upsertEvents(events: DbEventInput[]): Promise<number> {
       title       = case when events.corrected_at is null then excluded.title else events.title end,
       category    = excluded.category,
       venue       = case when events.corrected_at is null then excluded.venue else events.venue end,
-      address     = case when events.corrected_at is null then excluded.address else events.address end,
+      address     = case when events.corrected_at is null and excluded.address <> ''
+                         then excluded.address else events.address end,
       city        = case when events.corrected_at is null then excluded.city else events.city end,
       lat         = case when events.corrected_at is null then excluded.lat else events.lat end,
       lng         = case when events.corrected_at is null then excluded.lng else events.lng end,
-      start_at    = case when events.corrected_at is null then excluded.start_at else events.start_at end,
-      all_day     = case when events.corrected_at is null then excluded.all_day else events.all_day end,
-      end_at      = case when events.corrected_at is null then excluded.end_at else events.end_at end,
-      price       = excluded.price,
-      price_tier  = excluded.price_tier,
-      ticket_url  = excluded.ticket_url,
-      description = case when events.corrected_at is null then excluded.description else events.description end,
-      image       = excluded.image,
+      start_at    = case when events.corrected_at is null and not (excluded.all_day and not events.all_day)
+                         then excluded.start_at else events.start_at end,
+      all_day     = case when events.corrected_at is null and not (excluded.all_day and not events.all_day)
+                         then excluded.all_day else events.all_day end,
+      end_at      = case when events.corrected_at is not null then events.end_at
+                         when not (excluded.all_day and not events.all_day) then excluded.end_at
+                         when excluded.end_at > coalesce(events.end_at, events.start_at) then excluded.end_at
+                         else events.end_at end,
+      price       = case when excluded.price = 'See listing' then events.price else excluded.price end,
+      price_tier  = case when excluded.price = 'See listing' then events.price_tier else excluded.price_tier end,
+      ticket_url  = coalesce(nullif(excluded.ticket_url, ''), events.ticket_url),
+      description = case when events.corrected_at is null and length(excluded.description) >= length(events.description)
+                         then excluded.description else events.description end,
+      image       = coalesce(nullif(excluded.image, ''), events.image),
       source_url  = case when events.corrected_at is null then excluded.source_url else events.source_url end,
       source_checked_at = case when events.corrected_at is null
                                 and events.source_url is distinct from excluded.source_url
@@ -665,6 +690,28 @@ export async function recordVerifyPass(
  * enough to stand on is `standDownFor`'s decision (lib/verify.ts), not this
  * query's.
  */
+export async function recentResearchPasses(hours: number): Promise<RecentResearchPass[]> {
+  try {
+    const sql = requireSql();
+    return [
+      ...(await sql<RecentResearchPass[]>`
+        select at::text as at, patch->>'upserted' as upserted,
+               patch->>'tasksDone' as tasks_done, patch->>'tasksTotal' as tasks_total
+        from admin_audit
+        where action = 'research_pass'
+          and at >= now() - (${hours} * interval '1 hour')
+        order by at desc
+      `),
+    ];
+  } catch (err) {
+    console.error(
+      "[pipeline] could not check for a recent pass — running rather than risk skipping a week:",
+      err,
+    );
+    return [];
+  }
+}
+
 export async function recentVerifyPasses(hours: number): Promise<RecentVerifyPass[]> {
   try {
     const sql = requireSql();

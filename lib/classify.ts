@@ -85,7 +85,7 @@ const SIGNALS: Record<CategoryKey, Signal[]> = {
     { re: /\b(family)\b/, w: 5 },
   ],
   arts: [
-    { re: /\b(theatre|theater|play|musical|drama|comedy|improv|stand[- ]?up|cabaret|burlesque)\b/, w: 11 },
+    { re: /\b(theatre|theater|play|musical|drama|comedy|comedians?|improv|stand[- ]?up|cabaret|burlesque)\b/, w: 11 },
     { re: /\b(shakespeare|fringe|godot|broadway|playwright|monologue|one[- ]act)\b/, w: 11 },
     { re: /\b(exhibit|exhibition|gallery|museum|installation|retrospective|curated|curator)\b/, w: 9 },
     { re: /\b(art|arts|artist|painting|sculpture|photography|printmaking|ceramics|pottery)\b/, w: 7 },
@@ -132,7 +132,7 @@ const PLACE_WORDS: { re: RegExp; category: CategoryKey; w: number }[] = [
 
 // Venue-only hints: weak nudges (a venue suggests, it doesn't decide).
 const VENUE_HINTS: { re: RegExp; category: CategoryKey; w: number }[] = [
-  { re: /\b(first ave(nue)?|7th st(reet)? entry|turf club|icehouse|palace theatre|fine line|the cedar|dakota|amsterdam bar|hook and ladder|the armory|uptown theater|varsity theater|berlin)\b/, category: "music", w: 6 },
+  { re: /\b(first ave(nue)?|7th st(reet)? entry|turf club|icehouse|palace theat(er|re)|fine line|the cedar|dakota|amsterdam bar|hook (and|&) ladder|the armory|uptown theat(er|re)|varsity theat(er|re)|berlin)\b/, category: "music", w: 6 },
   { re: /\b(target field|target center|xcel energy|us bank stadium|allianz field|chs field|williams arena)\b/, category: "sports", w: 5 },
   { re: /\b(guthrie|orpheum|state theatre|pantages|jungle theater|children'?s theatre|walker art|mia\b|minneapolis institute of art|weisman|museum|gallery)\b/, category: "arts", w: 5 },
   { re: /\b(brewery|brewing|taproom|winery|distillery)\b/, category: "food", w: 3 }, // weak on purpose
@@ -154,6 +154,20 @@ const VENUE_HINTS: { re: RegExp; category: CategoryKey; w: number }[] = [
 const ARTS_VENUE =
   /\b(theatre|theater|playhouse|opera house|art center|arts center|art centre|museum|gallery|institute of art|walker art|guthrie|orpheum|ordway|pantages|state theatre|fringe|dinner theatres?)\b/;
 
+/**
+ * MUSIC ROOMS THAT HAPPEN TO BE CALLED A THEATER. Their name scored "theater" for
+ * arts, plus the arts venue floor, and outvoted the music hint. It only went
+ * unnoticed while agents wrote "concert" into most descriptions. Simulated 6 Nov
+ * 2026 with thin descriptions: every act at the Varsity read as arts, Russian
+ * Circles and Sueco among them. The room no longer decides; an arts word in the title
+ * still does, so a comedy night there reads as arts. An act whose title carries no
+ * such word can still read as music, such as a comedian or a play known by name: a
+ * known limit, since "Concert in the theater room" must stay music. The Parkway
+ * has no music hint because it also shows films, so with no signal the row keeps the
+ * category of the agent that found it.
+ */
+const MUSIC_ROOM_NAMED_THEATER = /\b(varsity|uptown|palace|parkway) theat(er|re)\b|\bhook (and|&) ladder\b/;
+
 function norm(s: string | undefined): string {
   return (s ?? "").toLowerCase();
 }
@@ -163,7 +177,8 @@ export function scoreCategories(ev: Classifiable): Record<CategoryKey, number> {
   const title = norm(ev.title);
   const venue = norm(ev.venue);
   const desc = norm(ev.description);
-  const inArtsVenue = ARTS_VENUE.test(venue);
+  const musicRoom = MUSIC_ROOM_NAMED_THEATER.test(venue);
+  const inArtsVenue = ARTS_VENUE.test(venue) && !musicRoom;
 
   const scores = Object.fromEntries(CATEGORY_KEYS.map((k) => [k, 0])) as Record<CategoryKey, number>;
 
@@ -174,7 +189,7 @@ export function scoreCategories(ev: Classifiable): Record<CategoryKey, number> {
       if (sig.re.test(desc)) scores[key] += sig.w;
       // Inside an arts venue, the venue's own name must not make its shows into
       // food or sports events ("Chanhassen DINNER Theatres", "Mini GOLF" at the Walker).
-      const venueMuted = inArtsVenue && (key === "food" || key === "sports");
+      const venueMuted = (inArtsVenue && (key === "food" || key === "sports")) || (musicRoom && key === "arts");
       if (!venueMuted && sig.re.test(venue)) scores[key] += Math.round(sig.w * 0.5);
     }
   }
@@ -185,9 +200,12 @@ export function scoreCategories(ev: Classifiable): Record<CategoryKey, number> {
   // EXCEPTION: an explicit family signal in the TITLE ("Mia FAMILY Day", "Family
   // Trails", "Puppet Playdate") means the museum is programming *for families* —
   // that's the point of the event, so family beats the arts floor.
-  if (inArtsVenue) {
+  // A music room damps them too: Soccer Mommy at the Palace is not sports.
+  if (inArtsVenue || musicRoom) {
     scores.sports = Math.round(scores.sports * 0.25);
     scores.food = Math.round(scores.food * 0.25);
+  }
+  if (inArtsVenue) {
     const explicitFamilyInTitle = /\b(kids?|children'?s?|toddler|all[- ]ages|family|families|playdate|story ?time)\b/.test(
       title,
     );
@@ -195,6 +213,8 @@ export function scoreCategories(ev: Classifiable): Record<CategoryKey, number> {
   }
 
   for (const hint of VENUE_HINTS) {
+    // The room's music hint must not outvote an arts word in the event's own title.
+    if (musicRoom && hint.category === "music" && SIGNALS.arts.some((s) => s.re.test(title))) continue;
     if (hint.re.test(venue)) scores[hint.category] += hint.w;
   }
 

@@ -51,8 +51,8 @@ name: Verify Upcoming Events
 # Thursday's job has itself fired up to 6.4h late, and 72h still clears that.
 #
 # The gate is on `schedule` ONLY. A manual dispatch means someone wants this to
-# run now, and the Thursday pass in weekly-digest.yml carries no gate at all —
-# an email cannot be recalled.
+# run now. The Thursday pass in weekly-digest.yml has its own 12-hour window, so
+# only a pass from that morning can stand it down: an email cannot be recalled.
 #
 # It fails OPEN: an unreachable database or a missing DATABASE_URL runs the
 # pass rather than skipping it (lib/upsert.ts recentVerifyPasses). A lost secret

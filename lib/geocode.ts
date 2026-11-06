@@ -22,8 +22,11 @@ export async function geocode(
   state = "MN",
 ): Promise<GeoResult | null> {
   if (!TOKEN) return null;
+  // A blank address must not become a query for the city. "Minneapolis, MN" gets a
+  // confident answer, and roomPin stores it as that room's pin for good. The old
+  // guard tested the joined query, which always holds the state, so it never fired.
+  if (!address.trim()) return null;
   const query = [address, city, state].filter(Boolean).join(", ");
-  if (!query.trim()) return null;
 
   const url =
     `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json` +

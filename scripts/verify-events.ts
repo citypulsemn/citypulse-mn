@@ -26,11 +26,12 @@
  *
  *   npm run verify -- --skip-if-verified-recently=72
  *
- * See docs/MANUAL-VERIFY.md. The Thursday pre-send pass in weekly-digest.yml
- * deliberately carries NO gate — an email cannot be recalled.
+ * See docs/MANUAL-VERIFY.md. The Thursday pre-send pass in weekly-digest.yml uses
+ * a 12-hour window, so only a pass from that morning can stand it down.
  */
 import { readFileSync, writeFileSync } from "node:fs";
 import { sql } from "../lib/db";
+import { flagProblem } from "../lib/cli-flags";
 import { revalidateAndReport } from "../lib/revalidate-client";
 import {
   selectForVerification,
@@ -73,53 +74,14 @@ function reportUnproven(alarm: ReturnType<typeof unprovenAlarm>): void {
   console.warn(alarm.message);
 }
 
-const VALUE_FLAGS = ["from", "emit-queue", "skip-if-verified-recently"] as const;
-
-/**
- * EVERY WAY A FLAG CAN FAIL TO ARRIVE, each of which otherwise falls through to
- * the $8.55 paid pass. This is the only guard between a typo and a real bill.
- *
- * (a) npm swallowed it. `npm run verify --from=x.json` — no bare `--` — reaches
- *     this script with NO ARGUMENTS, so an intended free apply becomes a full
- *     paid pass. npm leaves the flag in the environment, which is how we tell.
- *
- *     `--dry-run` IS on this list. An earlier version left it off, reasoning
- *     that npm's own `--dry-run` default would false-positive on every run.
- *     MEASURED on npm 11.16.0: a plain `npm run` exports no `npm_config_dry_run`
- *     at all, and a swallowed one exports `"true"` — so there is no false
- *     positive, and omitting it left the likeliest typo of the lot unguarded.
- *     It is the flag documented at the top of this file, and swallowing it turns
- *     a rehearsal into a live, billed, writing pass.
- *
- * (b) written with a space, or with no value — `--from verdicts.json`, `--from=`.
- *     `arg()` matches only `--name=value`, so both leave the variable falsy and
- *     the script walks past the free paths into the paid one.
- */
-function flagProblem(): string | null {
-  for (const [flag, envKey] of [
-    ["--from", "npm_config_from"],
-    ["--emit-queue", "npm_config_emit_queue"],
-    ["--skip-if-verified-recently", "npm_config_skip_if_verified_recently"],
-    ["--dry-run", "npm_config_dry_run"],
-  ] as const) {
-    if (process.env[envKey] && !process.argv.some((a) => a.startsWith(flag))) {
-      return `npm swallowed ${flag}. Use the bare -- separator: npm run verify -- ${flag}${flag === "--dry-run" ? "" : "=..."}`;
-    }
-  }
-  for (const n of VALUE_FLAGS) {
-    if (process.argv.includes(`--${n}`)) {
-      return `--${n} was written without a value. It needs an equals sign: --${n}=...`;
-    }
-    const hit = process.argv.find((a) => a.startsWith(`--${n}=`));
-    if (hit !== undefined && hit.slice(n.length + 3).trim() === "") {
-      return `--${n}= was given no value.`;
-    }
-  }
-  return null;
-}
-
 async function main() {
-  const problem = flagProblem();
+  const problem = flagProblem(
+    process.argv,
+    process.env,
+    "verify",
+    ["from", "emit-queue", "skip-if-verified-recently", "cap", "days", "source", "budget-mins"],
+    ["dry-run"],
+  );
   if (problem) {
     console.error(
       `[verify] ✗ ${problem}\n` +
@@ -162,7 +124,7 @@ async function main() {
 
   // ── the gate ─────────────────────────────────────────────────────────────
   // Before the API key check, so a standing-down run never needs the key.
-  // Only the Monday pass passes this flag; the pre-send pass never does.
+  // Monday's scheduled pass passes 72, the pre-send pass 12.
   if (skipHours !== null && !emitQueue && !fromFile) {
     const { pass, tooSmall } = standDownFor(await recentVerifyPasses(skipHours));
     // Rule 6: a pass that was seen and not counted is reported with its reason.

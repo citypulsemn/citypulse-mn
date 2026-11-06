@@ -11,10 +11,34 @@
  *
  * Needs env: DATABASE_URL, ANTHROPIC_API_KEY, and a Mapbox token
  * (MAPBOX_GEOCODING_TOKEN or NEXT_PUBLIC_MAPBOX_TOKEN).
+ *
+ * ── THE FREE PATH (Nov 2026) ───────────────────────────────────────────────
+ * The research can be done in a scheduled session instead of bought:
+ *
+ *   npm run pipeline -- --emit-queue=<dir>/queue.json     (one write, no model)
+ *   ... session answers each task in <dir>/<id>.md ...
+ *   npm run pipeline -- --from=<dir> --dry-run            (reads only)
+ *   npm run pipeline -- --from=<dir>                      (applies)
+ *
+ * The scheduled paid run then stands down if a full pass already landed:
+ *
+ *   npm run pipeline -- --skip-if-researched-recently=24
+ *
+ * See docs/PIPELINE.md and lib/research-queue.ts.
  */
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
+import { flagProblem } from "../lib/cli-flags";
+import {
+  buildResearchQueue,
+  replyIsReadable,
+  researchStandDownFor,
+  type ResearchTask,
+} from "../lib/research-queue";
+import { recentResearchPasses } from "../lib/upsert";
 import { CATEGORY_KEYS } from "../lib/categories";
 import { runUsageTotals } from "../lib/api-usage";
-import { researchCategory, researchVenueShard } from "../lib/agents/research-agent";
+import { researchCategory, researchVenueShard, parseAgentEvents } from "../lib/agents/research-agent";
 import type { AgentEvent } from "../lib/agents/research-agent";
 import { classifyEvent } from "../lib/classify";
 import { venuesFor, shardVenues, isVenueAnchored } from "../lib/venues";
@@ -23,7 +47,9 @@ import { isPlaceholderTitle } from "../lib/contradictions";
 import { assessCoverage, formatCoverageAlerts } from "../lib/coverage";
 import type { CoverageInput } from "../lib/coverage";
 import { VENUES_PER_SHARD, VENUE_SWEEP_SEARCHES } from "../lib/pipeline-config";
-import { roomPin } from "../lib/room-pin";
+import { roomPin, knownRoomAddress } from "../lib/room-pin";
+import { geocode } from "../lib/geocode";
+import { roomKey } from "../lib/contradictions";
 import { computeEventKey, normalizeTier } from "../lib/event-key";
 import { upsertEvents, archivePastEvents, markCancelled, dedupeNearDuplicates, collapseMultiDayRuns } from "../lib/upsert";
 import { pruneRateEvents } from "../lib/rate-limit";
@@ -38,11 +64,129 @@ import { revalidateAndReport } from "../lib/revalidate-client";
 import type { DbEventInput } from "../lib/types";
 import { recordRunSpend } from "../lib/model-spend";
 
-async function main() {
-  if (!process.env.DATABASE_URL) throw new Error("DATABASE_URL is required");
-  if (!process.env.ANTHROPIC_API_KEY) throw new Error("ANTHROPIC_API_KEY is required");
+const arg = (n: string) => process.argv.find((a) => a.startsWith(`--${n}=`))?.slice(n.length + 3);
 
-  const windows = dueWindows(new Date());
+/** What `--emit-queue` writes and `--from` reads back. */
+interface QueueFile {
+  generatedAt: string;
+  windows: ReturnType<typeof dueWindows>;
+  tasks: ResearchTask[];
+}
+
+/**
+ * Read a session's answers, naming every task that has none. The windows come from
+ * the queue, not from today, so a pass that crosses midnight still applies what it
+ * researched.
+ */
+function readAnswers(dir: string): {
+  queue: QueueFile;
+  byBand: Map<string, AgentEvent[]>;
+  done: number;
+} {
+  const queue = JSON.parse(readFileSync(join(dir, "queue.json"), "utf8")) as QueueFile;
+  const byBand = new Map<string, AgentEvent[]>();
+  let done = 0;
+  for (const t of queue.tasks) {
+    const file = join(dir, `${t.id}.md`);
+    if (!existsSync(file)) {
+      console.warn(`[pipeline] ⚠ ${t.id}: no answer, skipped`);
+      continue;
+    }
+    const text = readFileSync(file, "utf8");
+    if (!replyIsReadable(text)) {
+      console.warn(`[pipeline] ⚠ ${t.id}: answer is not a JSON list, skipped`);
+      continue;
+    }
+    done++;
+    const key = `${t.band}/${t.category}`;
+    byBand.set(key, [...(byBand.get(key) ?? []), ...parseAgentEvents(text, t.category)]);
+  }
+  return { queue, byBand, done };
+}
+
+async function main() {
+  const problem = flagProblem(
+    process.argv,
+    process.env,
+    "pipeline",
+    ["from", "emit-queue", "skip-if-researched-recently"],
+    ["dry-run"],
+  );
+  if (problem) {
+    console.error(`[pipeline] ✗ ${problem}\n           Refusing to run, because otherwise this would have been a full paid run.`);
+    process.exit(2);
+  }
+  const emitQueue = arg("emit-queue") ?? null;
+  const fromDir = arg("from") ?? null;
+  const dryRun = process.argv.includes("--dry-run");
+  const skipHoursArg = arg("skip-if-researched-recently");
+  if (emitQueue && fromDir) {
+    console.error("[pipeline] ✗ --emit-queue and --from do different jobs; pass one at a time.");
+    process.exit(2);
+  }
+  if (dryRun && !fromDir) {
+    console.error("[pipeline] ✗ --dry-run only works with --from. The paid run has no dry run, so this would have spent money.");
+    process.exit(2);
+  }
+  if (!process.env.DATABASE_URL) throw new Error("DATABASE_URL is required");
+
+  // ── the gate ─────────────────────────────────────────────────────────────
+  // Before the API key check, so a standing-down run never needs the key. It exits
+  // without a pipeline_runs row: the local pass wrote one, and a second row of
+  // zeros would poison the ops digest's baseline.
+  if (skipHoursArg !== undefined && !emitQueue && !fromDir) {
+    const hours = Math.max(1, Number(skipHoursArg) || 24);
+    const { pass, tooSmall } = researchStandDownFor(await recentResearchPasses(hours));
+    for (const p of tooSmall) {
+      console.warn(
+        `[pipeline] ignoring the pass at ${p.at} — ${p.tasks_done}/${p.tasks_total} tasks, ${p.upserted} listing(s), under the floor.`,
+      );
+    }
+    if (pass) {
+      console.log(
+        `[pipeline] a full pass completed ${pass.at} (${pass.tasks_done}/${pass.tasks_total} tasks, ` +
+          `${pass.upserted} listings) — inside the ${hours}h window, standing down and spending nothing.`,
+      );
+      return void (await sql?.end({ timeout: 5 }));
+    }
+    console.log(`[pipeline] no full pass recorded in the last ${hours}h — proceeding.`);
+  }
+
+  // ── stage 1, free: hand the queue to a session ───────────────────────────
+  if (emitQueue) {
+    const due = dueWindows(new Date());
+    const tasks = buildResearchQueue(due);
+    const payload: QueueFile = { generatedAt: new Date().toISOString(), windows: due, tasks };
+    writeFileSync(emitQueue, JSON.stringify(payload, null, 2));
+    console.log(
+      `[pipeline] wrote ${tasks.length} task(s) to ${emitQueue}: ${due.map((w) => w.label).join(", ")}. ` +
+        "No model call, nothing written to the database.",
+    );
+    return void (await sql?.end({ timeout: 5 }));
+  }
+
+  // A new room needs a geocoder, and a run without a working one drops its listings.
+  // Refusing costs one paid fallback; dropping them would look like a quiet week. A
+  // real lookup, because a mistyped or revoked token is present and still fails.
+  if (fromDir && !dryRun && !(await geocode("First Avenue", "Minneapolis"))) {
+    console.error("[pipeline] ✗ the Mapbox token is missing or not working, so listings in new rooms would be dropped. Refusing to apply.");
+    process.exit(1);
+  }
+  if (!fromDir && !process.env.ANTHROPIC_API_KEY) throw new Error("ANTHROPIC_API_KEY is required");
+
+  const answers = fromDir ? readAnswers(fromDir) : null;
+  if (answers) {
+    console.log(`[pipeline] ${fromDir}: ${answers.done}/${answers.queue.tasks.length} task(s) answered${dryRun ? " (DRY RUN)" : ""}`);
+    if (answers.done === 0) {
+      console.error("[pipeline] ✗ nothing usable in that folder — nothing applied.");
+      process.exitCode = 1;
+      return void (await sql?.end({ timeout: 5 }));
+    }
+  }
+  let wouldGeocode = 0; // dry run: rooms with no stored pin
+  let noGeocode = 0; // listings dropped because nothing could place them
+
+  const windows = answers ? answers.queue.windows : dueWindows(new Date());
   console.log(
     `[pipeline] ${windows.length} band(s) due: ` +
       windows.map((w) => `${w.label} (${w.startDate}→${w.endDate})`).join(", "),
@@ -59,7 +203,7 @@ async function main() {
   const perBand: Record<string, number> = {};
 
   let runId: number | undefined;
-  if (sql) {
+  if (sql && !dryRun) {
     const rows = await sql<{ id: number }[]>`
       insert into pipeline_runs (started_at, ok) values (now(), false) returning id
     `;
@@ -77,8 +221,8 @@ async function main() {
 
     for (const category of CATEGORY_KEYS) {
       console.log(`[pipeline] ${win.label}/${category}…`);
-      let found: AgentEvent[] = [];
-      try {
+      let found: AgentEvent[] = answers?.byBand.get(`${win.label}/${category}`) ?? [];
+      if (!answers) try {
         found = await researchCategory(category, win.startDate, win.endDate, win.maxSearchUses);
       } catch (err) {
         console.error(`[pipeline] ${win.label}/${category} agent failed:`, err);
@@ -92,7 +236,7 @@ async function main() {
       // these categories we ALSO walk the venue registry in small shards, so
       // coverage follows the venue list rather than whatever a generic search
       // happens to surface. Dedup on event_key makes the overlap harmless.
-      if (isVenueAnchored(category) && win.label === "near") {
+      if (!answers && isVenueAnchored(category) && win.label === "near") {
         const shards = shardVenues(venuesFor(category), VENUES_PER_SHARD);
         console.log(
           `[pipeline] ${win.label}/${category}: ${shards.length} venue sweeps in parallel`,
@@ -167,8 +311,21 @@ async function main() {
         }
 
         // One pin per ROOM, not per address spelling — see lib/room-pin.ts.
-        const geo = await roomPin(ev.venue, ev.address, ev.city);
+        const address = ev.address.trim() || (await knownRoomAddress(ev.venue));
+
+        // A dry run reads stored pins only: roomPin writes the first answer it gets.
+        let geo: { lat: number; lng: number } | null;
+        if (dryRun) {
+          const [stored] = await sql!<{ lat: number; lng: number }[]>`
+            select lat::float as lat, lng::float as lng from venue_coords where room_key = ${roomKey(ev.venue)}
+          `;
+          if (!stored) wouldGeocode++;
+          geo = stored ?? { lat: 0, lng: 0 };
+        } else {
+          geo = await roomPin(ev.venue, address, ev.city);
+        }
         if (!geo) {
+          noGeocode++;
           console.warn(`[pipeline] no geocode, skipping: ${ev.title} @ ${ev.venue}`);
           continue;
         }
@@ -192,7 +349,7 @@ async function main() {
           title: ev.title,
           category: classified,
           venue: ev.venue,
-          address: ev.address,
+          address,
           city: ev.city,
           lat: geo.lat,
           lng: geo.lng,
@@ -234,8 +391,8 @@ async function main() {
               `${unknownVenueReason(h.venue, h.city) ? ` — ${unknownVenueReason(h.venue, h.city)}` : ""}`,
           );
       }
-      const n = await upsertEvents(normalized);
-      const cancelled = await markCancelled(cancelledKeys);
+      const n = dryRun ? normalized.length : await upsertEvents(normalized);
+      const cancelled = dryRun ? cancelledKeys.length : await markCancelled(cancelledKeys);
       bandTotal += n;
       totalCancelled += cancelled;
       if (cancelled > 0) console.log(`[pipeline] ${win.label}/${category}: cancelled ${cancelled}`);
@@ -244,6 +401,15 @@ async function main() {
 
     perBand[win.label] = bandTotal;
     totalUpserted += bandTotal;
+  }
+
+  if (dryRun) {
+    console.log(
+      `\n[pipeline] DRY RUN, nothing written: ${totalUpserted} listing(s) before dedupe, ${totalCancelled} cancellation(s), ` +
+        `${wouldGeocode} in a room with no stored pin, ${unnamedDropped} unnamed dropped, ${improbableTimes} improbable times`,
+      perBand,
+    );
+    return void (await sql?.end({ timeout: 5 }));
   }
 
   const collapsed = await dedupeNearDuplicates();
@@ -295,7 +461,7 @@ async function main() {
       `collapsed ${runs.collapsed}${dd(runs.collapsed, prevRun?.collapsed_runs)}, ` +
       `archived ${archived}${dd(archived, prevRun?.archived)}, reclassified ${reclassified}, ` +
       `venue-swept ${venueSwept}, times normalized ${timeNormalized}, improbable ${improbableTimes}, ` +
-        `unnamed dropped ${unnamedDropped}`,
+        `unnamed dropped ${unnamedDropped}, no geocode ${noGeocode}`,
     perBand,
   );
   const stampede = stampedeReason(
@@ -353,6 +519,16 @@ async function main() {
         cost_unpriced_calls = ${spend.unpriced}
       where id = ${runId}
     `;
+  }
+
+  // The marker the scheduled run's gate reads, written after the work. Counts what
+  // landed, never what was queued. If it cannot be written the paid run goes ahead,
+  // which is the safe direction.
+  if (fromDir && !dryRun && answers && sql) {
+    const patch = { how: "file", upserted: totalUpserted, noGeocode, tasksDone: answers.done, tasksTotal: answers.queue.tasks.length };
+    await sql`insert into admin_audit (action, patch) values ('research_pass', ${sql.json(patch)})`.catch((err) =>
+      console.warn(`[pipeline] could not record the pass, so the paid run will not stand down: ${String(err)}`),
+    );
   }
   } catch (err) {
     if (sql && runId != null) {

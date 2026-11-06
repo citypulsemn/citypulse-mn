@@ -165,12 +165,23 @@ because a duplicated email is the expensive direction there. Here the expensive
 direction is an unchecked week reaching readers. A lost secret must not quietly
 switch verification off while every Actions run still shows green.
 
+### The Thursday pass (changed Nov 2026)
+
+The pre-send pass in `weekly-digest.yml` had no gate at all until November, because
+an email cannot be recalled. It now passes `--skip-if-verified-recently=12`, and a
+scheduled task runs the supervised pass at 8am Central on Thursdays. Three things
+keep the original point intact:
+
+- **12 hours, not 72.** Monday's pass is about 70 hours old by Thursday morning, so
+  a 72-hour window would have let it stand down the check before the email.
+- **The floor still applies.** A pass that decided fewer than 80 events is ignored.
+- **It still fails open.** If the local pass did not run, or the database cannot be
+  read, the paid pass runs before the email goes out, as it always did.
+
 ### What the gate does not touch
 
-- **The Thursday pre-send pass** (`weekly-digest.yml`) carries no gate at all.
-  An email cannot be recalled.
-- **Manual dispatches.** The flag is applied on `schedule` only — dispatching
-  the workflow means someone wants it to run now.
+- **Manual dispatches of `verify-events.yml`.** The flag is applied on `schedule`
+  only — dispatching the workflow means someone wants it to run now.
 
 ## The trade, stated plainly
 

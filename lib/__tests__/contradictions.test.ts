@@ -491,7 +491,9 @@ describe("the upstream guard — the pipeline must not store what it cannot name
     // here rather than silently passing on an index of -1, which is how this
     // guard went green against a call that no longer existed.
     const guard = src.indexOf("if (isPlaceholderTitle(ev.title, ev.venue))");
-    const geo = src.search(/await (roomPin|geocode)\(/);
+    // roomPin, not geocode: the script's one direct geocode call is the live test
+    // of the Mapbox token before a free-path apply, which runs before any listing.
+    const geo = src.search(/await roomPin\(/);
     expect(guard).toBeGreaterThan(-1);
     expect(geo).toBeGreaterThan(-1);
     expect(guard).toBeLessThan(geo);

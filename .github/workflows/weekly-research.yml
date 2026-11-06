@@ -28,8 +28,13 @@ jobs:
       # network + noise steps we don't need in CI (small per-run minute saving).
       - run: npm ci --prefer-offline --no-audit --no-fund
 
+      # Stands down if a full local pass landed in the last 24 hours, which the
+      # Sunday evening scheduled task aims to do (docs/PIPELINE.md). Only this step
+      # stands down: the importers and the source check below still run, and the ops
+      # digest still fires when this workflow completes. A smaller pass is ignored,
+      # and an unreadable database runs the pass. A manual dispatch always runs.
       - name: Run weekly research pipeline
-        run: npm run pipeline
+        run: npm run pipeline -- ${{ github.event_name == 'schedule' && '--skip-if-researched-recently=24' || '' }}
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           REVALIDATE_SECRET: ${{ secrets.REVALIDATE_SECRET }}

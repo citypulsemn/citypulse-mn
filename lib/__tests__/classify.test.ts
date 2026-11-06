@@ -130,6 +130,57 @@ describe("classifyEvent — golden set of real City Pulse events", () => {
   });
 });
 
+describe("a music room named Theater does not decide what its shows are", () => {
+  // 6 Nov 2026 rehearsal: with thin descriptions, every act at the Varsity read as
+  // arts, because "Theater" in the room's name outvoted the music hint.
+  const atVarsity = (title: string, description = "") =>
+    classifyEvent({ title, venue: "Varsity Theater", description, category: "music" }).category;
+
+  it("a band with no description reads as music", () => {
+    expect(atVarsity("Russian Circles")).toBe("music");
+    expect(atVarsity("Sueco")).toBe("music");
+    expect(classifyEvent({ title: "Paul Cebar & Tomorrow Sound", venue: "The Hook and Ladder Theater", category: "music" }).category).toBe("music");
+    expect(classifyEvent({ title: "Joy Oladokun", venue: "Palace Theatre", category: "music" }).category).toBe("music");
+  });
+
+  it("music outscores arts outright, so it does not rest on a tie keeping the agent's label", () => {
+    for (const venue of ["Varsity Theater", "The Hook and Ladder Theater", "Palace Theatre", "Uptown Theater"]) {
+      const s = scoreCategories({ title: "Russian Circles", venue });
+      expect(s.music).toBeGreaterThan(s.arts);
+    }
+  });
+
+  it("the title still decides, so a comedy night there is not music", () => {
+    expect(atVarsity("Stand-Up Comedy Showcase")).toBe("arts");
+    expect(atVarsity("Stand-Up Comedy Showcase", "Local comics perform in a stand-up showcase.")).toBe("arts");
+    expect(classifyEvent({ title: "Bert Kreischer Comedy Tour", venue: "Palace Theatre", category: "music" }).category).toBe("arts");
+  });
+
+  it("a band with a sports word in its name stays music, at these rooms as at an arts venue", () => {
+    expect(classifyEvent({ title: "Soccer Mommy", venue: "Palace Theatre", description: "A concert.", category: "music" }).category).toBe("music");
+    expect(atVarsity("American Football", "A concert.")).toBe("music");
+    expect(classifyEvent({ title: "Cocteau Twins Tribute", venue: "The Hook and Ladder Theater", description: "A concert.", category: "music" }).category).toBe("music");
+  });
+
+  it("each spelling of a room behaves the same, since one row can arrive either way", () => {
+    for (const venue of ["Varsity Theatre", "Uptown Theatre", "Palace Theater", "The Hook & Ladder Theater"]) {
+      const s = scoreCategories({ title: "Russian Circles", venue });
+      expect(s.music).toBeGreaterThan(s.arts);
+    }
+  });
+
+  it("the Parkway keeps the finding agent's category, because it also shows films", () => {
+    const parkway = (category: CategoryKey) => classifyEvent({ title: "Local Favorites", venue: "Parkway Theater", category }).category;
+    expect(parkway("music")).toBe("music");
+    expect(parkway("arts")).toBe("arts");
+  });
+
+  it("a real theatre is unchanged: its programming still reads as arts", () => {
+    expect(classifyEvent({ title: "Annie", venue: "Chanhassen Dinner Theatres", category: "food" }).category).toBe("arts");
+    expect(classifyEvent({ title: "A Christmas Carol", venue: "Guthrie Theater", category: "music" }).category).toBe("arts");
+  });
+});
+
 describe("classifier behavior", () => {
   it("ignores the discovery path — same event, different finding agent, same result", () => {
     const ev = { title: "Live Music at the Turf Club", venue: "Turf Club" };

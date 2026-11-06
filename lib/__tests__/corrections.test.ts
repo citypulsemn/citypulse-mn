@@ -517,12 +517,29 @@ describe("the lock — a correction survives the next research run", () => {
   const schema = readFileSync(join(__dirname, "..", "..", "db", "schema.sql"), "utf8");
   const clause = upsert.slice(upsert.indexOf("on conflict (event_key) do update set"));
 
+  const EXTRA_CONDITION: Record<string, string> = {
+    start_at: "\\s+and not \\(excluded\\.all_day and not events\\.all_day\\)",
+    all_day: "\\s+and not \\(excluded\\.all_day and not events\\.all_day\\)",
+    address: " and excluded\\.address <> ''",
+    description: " and length\\(excluded\\.description\\) >= length\\(events\\.description\\)",
+  };
+
   it("every locked column keeps its value when the row has been corrected", () => {
     for (const col of LOCKED_BY_CORRECTION) {
+      if (col === "end_at") continue; // its own test below: it has three branches
+      const extra = EXTRA_CONDITION[col] ?? "";
       expect(clause).toMatch(
-        new RegExp(`\\b${col}\\s*= case when events\\.corrected_at is null then excluded\\.${col} else events\\.${col} end`),
+        new RegExp(`\\b${col}\\s*= case when events\\.corrected_at is null${extra}\\s+then excluded\\.${col} else events\\.${col} end`),
       );
     }
+    expect(clause).toMatch(/end_at\s*= case when events\.corrected_at is not null then events\.end_at/);
+  });
+
+  it("a date-only re-find cannot erase a known time, on any of the three time columns", () => {
+    // Simulated 6 Nov 2026: 26 live rows would have gone from a real start to
+    // midnight, because the agent read a calendar that printed only the date.
+    const guarded = clause.match(/not \(excluded\.all_day and not events\.all_day\)/g) ?? [];
+    expect(guarded).toHaveLength(3);
   });
 
   it("no locked column is also written unconditionally", () => {
@@ -532,8 +549,10 @@ describe("the lock — a correction survives the next research run", () => {
   });
 
   it("research can still enrich what a correction cannot edit", () => {
-    for (const col of ["category", "price", "price_tier", "ticket_url", "image"]) {
-      expect(clause).toMatch(new RegExp(`\\b${col}\\s*= excluded\\.${col}`));
+    expect(clause).toMatch(/\bcategory\s*= excluded\.category/);
+    for (const col of ["price", "price_tier", "ticket_url", "image"]) {
+      expect(clause).toMatch(new RegExp(`\\b${col}\\s*= [^\\n]*excluded\\.${col}`));
+      expect(clause).not.toMatch(new RegExp(`\\b${col}\\s*= [^\\n]*corrected_at`));
     }
   });
 

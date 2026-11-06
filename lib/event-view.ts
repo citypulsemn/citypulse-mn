@@ -142,10 +142,11 @@ export function eventMetaDescription(event: EventRecord): string {
 export function directionsUrl(
   event: Pick<EventRecord, "venue" | "address" | "city" | "lat" | "lng">,
 ): string | null {
-  const addr = [event.address, event.city ? `${event.city}, MN` : ""]
-    .filter(Boolean)
-    .join(", ")
-    .trim();
+  // No street means no address: a bare "Minneapolis, MN" sends the reader to the
+  // middle of the city, when the pin below knows where the room is.
+  const addr = event.address?.trim()
+    ? [event.address, event.city ? `${event.city}, MN` : ""].filter(Boolean).join(", ").trim()
+    : "";
   const hasCoords =
     Number.isFinite(event.lat) &&
     Number.isFinite(event.lng) &&

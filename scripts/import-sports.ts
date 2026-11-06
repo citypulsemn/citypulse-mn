@@ -220,7 +220,7 @@ async function runTeam(source: SportsSource, today: string): Promise<TeamResult>
     // shifts it before the zone attaches (the 2026-07-20 finding).
     await sql`
       update events
-      set start_at = (${v.to}::text::timestamp at time zone 'America/Chicago')
+      set start_at = (${v.to}::text::timestamp at time zone 'America/Chicago'), all_day = false
       where id::text = ${v.id}
     `;
     await sql`

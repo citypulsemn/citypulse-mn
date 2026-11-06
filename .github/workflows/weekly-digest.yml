@@ -80,10 +80,17 @@ jobs:
       # Skipped on the safety-net run (the primary already did it, and re-running
       # would spend a full pass re-checking rows verified five hours earlier) and
       # on dry runs (a preview should not write verified_at).
+      #
+      # Stands down if a full supervised pass landed in the last 12 hours, which the
+      # 8am Central Thursday task aims to do (docs/MANUAL-VERIFY.md). 12 and not 72:
+      # Monday's pass is only about 70 hours old by now and must not count, or the
+      # list would get an email checked three days ago. A pass under the floor is
+      # ignored, and an unreadable database runs the pass, so the email never goes
+      # out on a guess.
       - name: Verify upcoming events before sending
         if: github.event.schedule != '0 20 * * 4' && github.event.inputs.dry_run != 'true'
         continue-on-error: true
-        run: npm run verify
+        run: npm run verify -- --skip-if-verified-recently=12
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           REVALIDATE_SECRET: ${{ secrets.REVALIDATE_SECRET }}

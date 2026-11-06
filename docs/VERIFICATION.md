@@ -7,7 +7,7 @@ Roadmap 4.5. Events are discovered weekly, but reality changes daily — shows g
 Twice a week, the pass re-checks the next 7 days of published events against their sources:
 
 - **Monday 20:00 UTC** — `verify-events.yml`, the paid fallback if the 11am Central supervised pass (`docs/MANUAL-VERIFY.md`) did not run, after the research pipeline and importers land the week's new listings.
-- **Thursday, immediately before the subscriber email** — a step *inside* `weekly-digest.yml`, not a separate workflow.
+- **Thursday, immediately before the subscriber email** — a step *inside* `weekly-digest.yml`, not a separate workflow. It stands down only if a full supervised pass landed that morning (8am Central).
 
 The Thursday slot lives in the digest workflow on purpose. It used to be a 16:00 cron, an hour **after** the 15:00 send, so the one surface that cannot be recalled went out ahead of the week's verification. Cron cannot fix that — this repo has seen the scheduler drift +1h02m to +3h52m, so two workflows cannot be ordered by their start times. Two steps in one job can.
 
@@ -120,7 +120,7 @@ being two.
 Use `npm run verify -- --dry-run --cap=8` to see the shape for one batch.
 
 Measured since the ledger started: **$8.55 a run, ~$74/month** — the biggest
-single API line in the project. The Monday half can be done in a supervised
-session instead (`--emit-queue` / `--from`), and the scheduled run then stands
-down via `--skip-if-verified-recently`. The Thursday pre-send pass is never
-gated. See **`docs/MANUAL-VERIFY.md`**.
+single API line in the project. Both passes can be done in a supervised session
+instead (`--emit-queue` / `--from`), and the scheduled runs then stand down via
+`--skip-if-verified-recently`: 72 hours on Monday, 12 before Thursday's email. See
+**`docs/MANUAL-VERIFY.md`**.

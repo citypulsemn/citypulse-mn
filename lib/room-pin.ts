@@ -33,6 +33,31 @@ export function clearRoomPinMemo(): void {
   memo.clear();
 }
 
+const addressMemo = new Map<string, string>();
+
+/**
+ * The street address this room's listings already carry, or "". A session leaves
+ * "address" blank when no page printed it, and a new listing in a known room should
+ * not read as "Minneapolis, MN" when the calendar already knows the street.
+ */
+export async function knownRoomAddress(venue: string): Promise<string> {
+  if (addressMemo.has(venue)) return addressMemo.get(venue)!;
+  let found = "";
+  if (sql) {
+    try {
+      const [row] = await sql<{ address: string }[]>`
+        select address from events where venue = ${venue} and address <> ''
+        group by address order by count(*) desc limit 1
+      `;
+      found = row?.address ?? "";
+    } catch (err) {
+      console.warn(`[pin] could not read a known address for "${venue}":`, err);
+    }
+  }
+  addressMemo.set(venue, found);
+  return found;
+}
+
 export async function roomPin(
   venue: string,
   address: string,
@@ -58,6 +83,31 @@ export async function roomPin(
       // Rule 1: the cache must not break the thing it speeds up. Fall through
       // to a live geocode rather than dropping the event.
       console.warn(`[pin] venue_coords unreadable for "${venue}", geocoding live:`, err);
+    }
+  }
+
+  // A room already on the calendar has coordinates, which beat one geocoder's
+  // opinion of its name. Importers write pins straight onto rows, so a room can be
+  // well pinned with nothing in venue_coords: 7th St Entry was, on 6 Nov 2026.
+  if (sql) {
+    try {
+      const [seen] = await sql<{ lat: number; lng: number }[]>`
+        select lat::float as lat, lng::float as lng from events
+        where venue = ${venue} and lat is not null and lng is not null and not (lat = 0 and lng = 0)
+        group by lat, lng order by count(*) desc limit 1
+      `;
+      if (seen) {
+        const known = { lat: seen.lat, lng: seen.lng };
+        memo.set(key, known);
+        await sql`
+          insert into venue_coords (room_key, lat, lng, label, source, agreed_m)
+          values (${key}, ${known.lat}, ${known.lng}, ${venue.slice(0, 300)}, 'existing listings', null)
+          on conflict (room_key) do nothing
+        `;
+        return known;
+      }
+    } catch (err) {
+      console.warn(`[pin] could not read existing pins for "${venue}", geocoding live:`, err);
     }
   }
 

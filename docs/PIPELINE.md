@@ -10,7 +10,7 @@ A weekly cron (Mondays 06:00 UTC) checks out the repo, installs deps, and runs `
 - Zero extra services and **no added runtime dependencies** — it just runs the same script you can run locally.
 - Free for this cadence.
 
-You can also trigger it on demand from the Actions tab (`workflow_dispatch`).
+You can also trigger it on demand from the Actions tab (`workflow_dispatch`). A manual dispatch always runs the paid research, at about $12. Only Monday's scheduled run stands down after a local pass: see [The free path](#the-free-path-nov-2026).
 
 **Optional: Trigger.dev** ([`examples/trigger-alternative/`](../examples/trigger-alternative)).
 Graduate to this when you want durable multi-step execution, automatic retries, run-level observability, or **human-in-the-loop approval** (its v4 waitpoints can pause a run until you approve a step). It's the same logic as a scheduled task. Note: the Trigger.dev SDK brings OpenTelemetry/telemetry transitive dependencies with their own advisories; those run on Trigger.dev's infrastructure and are intentionally **not** installed in the default project, which is why this lives under `examples/`.
@@ -91,6 +91,31 @@ If you ever want the old review gate (nothing goes live until you approve it), f
 # .env.local must have DATABASE_URL, ANTHROPIC_API_KEY, and a Mapbox token
 npm run pipeline
 ```
+
+That bills the API, at about $12 a run.
+
+## The free path (Nov 2026)
+
+The research itself can be done in a scheduled Claude Code session, on the subscription. The script keeps every gate after it:
+
+```bash
+npm run pipeline -- --emit-queue=<dir>/queue.json   # no model call, nothing written
+# ... the session answers each task in <dir>/<id>.md ...
+npm run pipeline -- --from=<dir> --dry-run          # reads only, writes nothing
+npm run pipeline -- --from=<dir>                    # applies
+```
+
+A scheduled task does this on Sundays at 7pm Central on Taren's PC. `lib/research-queue.ts` builds the tasks from the paid agents' own prompts, plus rules for a session's tools. `--from` then runs the answers through the same normalise, classify, geocode and upsert path, and writes a normal `pipeline_runs` row at $0.
+
+**The gate.** Monday's scheduled run passes `--skip-if-researched-recently=24`. It stands down only for a pass that answered at least 80% of its tasks and wrote at least 100 listings, recorded as a `research_pass` row in `admin_audit`. Only the paid research step stands down: the importers, the source check and the ops digest still run. A smaller pass is printed and ignored, and an unreadable database runs the paid step. A manual dispatch always runs it.
+
+**A wrong flag is refused.** `lib/cli-flags.ts` refuses a swallowed, valueless or misspelled flag, and `--dry-run` without `--from` is refused, because the paid run has no dry run. One form still reaches the paid run: a misspelled flag with no bare `--`, such as `npm run pipeline --form=x`, because npm swallows it and the name cannot be known.
+
+**A thin answer cannot damage a row.** A session often reads pages that print no address, time or price. A blank address, "See listing", a blank ticket link or image, shorter prose, or a date with no time never overwrites what the row knows. A blank address is filled from the room's other listings, and a room already on the calendar reuses its pin. A real `--from` first tests Mapbox with a live lookup, and refuses to apply if it fails.
+
+**The trade, measured on 6 Nov 2026.** Two rehearsals took about 12 minutes, 11% of a five-hour window and 1–2% of the weekly limit. Run through the real pipeline on a shadow copy of the database, the second wrote 283 listings, 151 of them new and published, against 22–117 new from the last four paid runs. A blind audit of the first rehearsal found 0 of 18 wrong, against 2 of 18 from paid runs. It reads venue calendars directly, so it is strongest on music rooms. Its weak spots are sites that refuse its fetches, including the Guthrie, Orchestra Hall, the Fillmore and the library systems, and pages that print no time, such as The Cedar's calendar. A listing with no time reads as all-day. Those rooms depend on research, so watch their future listings for thinning.
+
+See [`deploy-history/DEPLOY-LOCAL-RESEARCH.md`](deploy-history/DEPLOY-LOCAL-RESEARCH.md).
 
 ## Classification (roadmap 4.1)
 
