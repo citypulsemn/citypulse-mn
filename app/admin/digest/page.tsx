@@ -14,6 +14,7 @@ export default async function AdminDigestPage() {
 
   const { subject, html } = renderDigestEmail({
     events,
+    now,
     weekLabel: digestWeekLabel(now),
     unsubscribeUrl: "#preview",
     siteUrl: SITE_URL,

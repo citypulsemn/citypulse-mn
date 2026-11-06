@@ -98,7 +98,7 @@ import { renderDigestEmail } from "../digest";
 
 describe("renderDigestEmail with a personal section", () => {
   const base = {
-    weekLabel: "July 15–21",
+    now: NOW, weekLabel: "July 15–21",
     unsubscribeUrl: "https://citypulsemn.com/unsubscribe?id=1&t=x",
     siteUrl: "https://citypulsemn.com",
   };
@@ -134,9 +134,55 @@ describe("selectSavedUpcoming — send-morning boundary (R1.4, rule 10)", () => 
     const sendMorning = new Date("2026-07-16T15:00:00Z"); // 10 AM CDT
     const saved = [
       ev({ id: "today1pm", start: "2026-07-16T13:00" }), // old code dropped this
-      ev({ id: "run", start: "2026-07-01T10:00", multiDayEnd: "2026-07-20T23:59" }),
-      ev({ id: "over", start: "2026-07-01T10:00", multiDayEnd: "2026-07-15T23:59" }),
+      // "arts", not the helper's default "music": PER_NIGHT = {sports, music},
+      // so staleSpanIds deletes a music row carrying a multiDayEnd.
+      ev({ id: "run", category: "arts", start: "2026-07-01T10:00", multiDayEnd: "2026-07-20T23:59" }),
+      ev({ id: "over", category: "arts", start: "2026-07-01T10:00", multiDayEnd: "2026-07-15T23:59" }),
     ];
-    expect(selectSavedUpcoming(saved, sendMorning).map((e) => e.id)).toEqual(["run", "today1pm"]);
+    // ORDER CHANGED 6 Nov 2026, deliberately. This pinned ["run", "today1pm"]:
+    // the run opened on 1 July, so a start-ascending sort put it at the head of
+    // a block headed "happening this week", ahead of the 1 PM event today.
+    expect(selectSavedUpcoming(saved, sendMorning).map((e) => e.id)).toEqual(["today1pm", "run"]);
+  });
+});
+
+describe("selectSavedUpcoming — runs never outrank what is happening (6 Nov 2026)", () => {
+  const sendMorning = new Date("2026-07-16T15:00:00Z"); // Thu 10 AM CDT
+  const run = (id: string, start: string, end: string) =>
+    ev({ id, category: "arts", start, multiDayEnd: end });
+
+  it("dated events lead, runs follow, ending-soonest first", () => {
+    const saved = [
+      run("closes-later", "2026-05-01T10:00", "2026-09-30T23:59"),
+      run("closes-sooner", "2026-05-01T10:00", "2026-07-20T23:59"),
+      ev({ id: "sat", start: "2026-07-18T20:00" }),
+      ev({ id: "today", start: "2026-07-16T13:00" }),
+    ];
+    expect(selectSavedUpcoming(saved, sendMorning).map((e) => e.id)).toEqual([
+      "today",
+      "sat",
+      "closes-sooner",
+      "closes-later",
+    ]);
+  });
+
+  it("a run no longer evicts a dated event at the cap of five", () => {
+    // PERSONAL_MAX_SAVED = 5. Six qualifying rows, one a run that opened in
+    // May: the run used to take slot 1 and push the last dated row out.
+    const saved = [
+      run("exhibition", "2026-05-23T10:00", "2027-01-10T23:59"),
+      ...["16T13:00", "17T19:00", "18T20:00", "19T15:00", "20T19:00"].map((d, i) =>
+        ev({ id: "d" + i, start: "2026-07-" + d }),
+      ),
+    ];
+    const out = selectSavedUpcoming(saved, sendMorning).map((e) => e.id);
+    expect(out).toHaveLength(PERSONAL_MAX_SAVED);
+    expect(out).toEqual(["d0", "d1", "d2", "d3", "d4"]);
+    expect(out).not.toContain("exhibition");
+  });
+
+  it("but a run still leads when nothing is dated — rule 6, not an exclusion", () => {
+    const saved = [run("only-thing", "2026-05-23T10:00", "2027-01-10T23:59")];
+    expect(selectSavedUpcoming(saved, sendMorning).map((e) => e.id)).toEqual(["only-thing"]);
   });
 });

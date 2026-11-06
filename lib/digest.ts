@@ -1,6 +1,8 @@
 import { EMAIL_HEAD } from "./email-head";
 import { weeklyPicks } from "./content/weekly-picks";
 import { DOW, MONTHS, timeLabel, evDate, dkey } from "./dates";
+import { isMultiDay, multiDayLabel } from "./multiday";
+import { isEnded } from "./event-view";
 import { chiDayKey } from "./clock";
 import { CATEGORIES } from "./categories";
 import { KIND_META, type Place } from "./places";
@@ -28,6 +30,11 @@ export interface DigestData {
 
 export interface DigestOptions {
   events: EventRecord[];
+  /** The instant the email is composed. REQUIRED, and not defaulted to
+   *  `new Date()`: every date label in the email is relative to it, so a
+   *  caller that forgets it would silently render labels for the wrong day
+   *  and a test would drift as the real clock moved. */
+  now: Date;
   weekLabel: string;
   unsubscribeUrl: string;
   siteUrl: string;
@@ -174,7 +181,37 @@ function eventUrl(siteUrl: string, id: string): string {
   return `${siteUrl}/event/${id}?utm_source=email&utm_medium=digest`;
 }
 
-function whenLabel(e: EventRecord): string {
+/**
+ * The date line on an email row.
+ *
+ * A RUN states its span. This read the row's own START unconditionally, and
+ * two blocks deliberately admit rows that began before the window — the saved
+ * block (lib/digest-personal.ts selectSavedUpcoming keeps a run still in
+ * progress) and "Most saved this week" (no date filter at all until today). So
+ * a reader who saved a run that opened in May got "Saturday, May 23 · 10 AM"
+ * under a "happening this week" heading: a date five months past AND a clock
+ * that is simply not today's — the exact lie lib/day-order.ts dayTimeLabel was
+ * written to stop on day pages.
+ *
+ * The span is ONLY for a row that began before today. lib/day-order.ts states
+ * the rule this follows: "starts today -> its actual start time, EVEN IF it
+ * runs on for days. A play opening tonight at 8 PM should say 8 PM."
+ *
+ * The first cut of this fix applied the span unconditionally. Because
+ * eventRowHtml is the ONE row renderer for all four html blocks, that lost the
+ * weekday and the doors time for a festival opening this Friday - on the main
+ * body of the email, which was never the defect. A review caught it, and also
+ * caught that the trigger is wider than curated runs: isMultiDay delegates to
+ * spanEndISO, which reads an end_at landing on a later day as a span, so an
+ * ordinary show with a sloppy end_at would have lost its time too.
+ *
+ * Measured 6 Nov 2026 before the change: NOT firing — all 3 saver_tokens had
+ * empty blocks and most-saved was below its floor of 3. But 22 of 571 published
+ * rows are runs underway, and 5 of the 7 saves on record are runs, so the shape
+ * that admits it is ordinary reader behaviour, not an edge case.
+ */
+function whenLabel(e: EventRecord, todayKey: string): string {
+  if (isMultiDay(e) && e.start.slice(0, 10) < todayKey) return multiDayLabel(e);
   const d = evDate(e);
   return `${DOW[d.getDay()]}, ${MONTHS[d.getMonth()]} ${d.getDate()} · ${timeLabel(e)}`;
 }
@@ -189,7 +226,7 @@ export function esc(s: string): string {
     .replace(/"/g, "&quot;");
 }
 
-function eventRowHtml(e: EventRecord, siteUrl: string): string {
+function eventRowHtml(e: EventRecord, siteUrl: string, todayKey: string): string {
   const cat = CATEGORIES[e.category];
   const loc = [e.venue, e.city].filter(Boolean).map(esc).join(" · ");
   return `
@@ -198,7 +235,7 @@ function eventRowHtml(e: EventRecord, siteUrl: string): string {
       <tr><td style="padding:16px 18px;">
         <div style="font:600 12px/1.2 Arial,Helvetica,sans-serif;color:${GOLD};text-transform:uppercase;letter-spacing:1px;">${esc(cat.label)}</div>
         <a href="${eventUrl(siteUrl, e.id)}" style="font:700 19px/1.3 Georgia,'Times New Roman',serif;color:${CREAM};text-decoration:none;display:block;margin:6px 0 6px;">${esc(e.title)}</a>
-        <div style="font:400 14px/1.5 Arial,Helvetica,sans-serif;color:${CREAM_DIM};">${esc(whenLabel(e))}</div>
+        <div style="font:400 14px/1.5 Arial,Helvetica,sans-serif;color:${CREAM_DIM};">${esc(whenLabel(e, todayKey))}</div>
         <div style="font:400 14px/1.5 Arial,Helvetica,sans-serif;color:${CREAM_DIM};">${loc} · ${esc(e.price)}</div>
         <a href="${eventUrl(siteUrl, e.id)}" style="font:600 14px/1.2 Arial,Helvetica,sans-serif;color:${GOLD};text-decoration:none;display:inline-block;margin-top:10px;">Details &rarr;</a>
       </td></tr>
@@ -336,14 +373,26 @@ const MOST_SAVED_CAP = 3;
 
 /**
  * Resolve raw save counts (`getMostSavedCounts`) to the events to feature: only
- * those meeting `min`, present in `byId` (the current published/upcoming set — a
- * saved-then-archived or past event is silently dropped, never featured stale),
- * highest first, capped. Pure + golden-tested; honest-emptiness — returns [] when
- * thin, which renders NOTHING.
+ * those meeting `min`, present in `byId`, still running, highest first, capped.
+ * Pure + golden-tested; honest-emptiness — returns [] when thin, which renders
+ * NOTHING.
+ *
+ * Two different drops, and until 6 Nov 2026 this only did the first:
+ *  - ARCHIVED: `byId` is built from the published set, so an archived row is
+ *    absent and falls out at the `byId.get` step.
+ *  - PAST: nothing dropped it. `getMostSavedCounts` windows on the SAVE day,
+ *    not the event date, and `byId` carries every published row with no date
+ *    predicate — so a run that finished last month could still be featured
+ *    under "Most saved this week", with its own start date beside it. The
+ *    docstring claimed otherwise for both; it is true of both now.
+ *
+ * `now` is required rather than defaulted: a caller that forgets it is exactly
+ * how the past-event drop went missing in the first place.
  */
 export function selectMostSaved(
   counts: { id: string; saves: number }[],
   byId: Map<string, EventRecord>,
+  now: Date,
   min = MOST_SAVED_MIN,
   cap = MOST_SAVED_CAP,
 ): EventRecord[] {
@@ -353,13 +402,14 @@ export function selectMostSaved(
     .sort((a, b) => b.saves - a.saves)
     .map((c) => byId.get(c.id))
     .filter((e): e is EventRecord => Boolean(e))
+    .filter((e) => !isEnded(e, now))
     .slice(0, cap);
 }
 
 /** The "Most saved this week" section as email table rows. "" when empty. Pure. */
-export function mostSavedHtml(events: EventRecord[], siteUrl: string): string {
+export function mostSavedHtml(events: EventRecord[], siteUrl: string, todayKey: string): string {
   if (events.length === 0) return "";
-  const rows = events.map((e) => eventRowHtml(e, siteUrl)).join("");
+  const rows = events.map((e) => eventRowHtml(e, siteUrl, todayKey)).join("");
   return `
         <tr><td style="padding:16px 24px 0;">
           <div style="font:600 13px/1.2 Arial,Helvetica,sans-serif;color:${GOLD};text-transform:uppercase;letter-spacing:1.5px;">Most saved this week</div>
@@ -370,14 +420,14 @@ export function mostSavedHtml(events: EventRecord[], siteUrl: string): string {
 }
 
 /** The "Most saved this week" block for the plain-text part. "" when empty. Pure. */
-export function mostSavedText(events: EventRecord[], siteUrl: string): string {
+export function mostSavedText(events: EventRecord[], siteUrl: string, todayKey: string): string {
   if (events.length === 0) return "";
   return [
     "MOST SAVED THIS WEEK",
     "",
     ...events.flatMap((e) => [
       e.title,
-      `  ${whenLabel(e)}`,
+      `  ${whenLabel(e, todayKey)}`,
       `  ${[e.venue, e.city].filter(Boolean).join(" · ")} · ${e.price}`,
       `  ${eventUrl(siteUrl, e.id)}`,
       "",
@@ -387,6 +437,9 @@ export function mostSavedText(events: EventRecord[], siteUrl: string): string {
 
 export function renderDigestEmail(opts: DigestOptions): DigestData {
   const { events, weekLabel, unsubscribeUrl, siteUrl, postalAddress } = opts;
+  // One day key for every row label in this email, so the "did it begin
+  // before today" question cannot be answered two ways inside one send.
+  const todayKey = chiDayKey(opts.now);
   // R2.1 — default to the module sponsor; a caller may pass null to force none.
   const sponsor = opts.sponsor === undefined ? DIGEST_SPONSOR : opts.sponsor;
   // B2 — same contract for the support link.
@@ -403,14 +456,14 @@ export function renderDigestEmail(opts: DigestOptions): DigestData {
           // Count BOTH halves — the email carries them, so the subject must say so.
           : `This week in the Twin Cities: ${top.title} + ${events.length + (opts.laterEvents?.length ?? 0) - 1} more`;
 
-  const rows = events.map((e) => eventRowHtml(e, siteUrl)).join("");
-  const savedRows = saved.map((e) => eventRowHtml(e, siteUrl)).join("");
+  const rows = events.map((e) => eventRowHtml(e, siteUrl, todayKey)).join("");
+  const savedRows = saved.map((e) => eventRowHtml(e, siteUrl, todayKey)).join("");
 
   // The week's second half. Labels are deliberately literal: the boundary IS the
   // coming Monday, so "This weekend" / "Next week" is true for every possible
   // pick rather than a flourish we'd have to caveat.
   const later = opts.laterEvents ?? [];
-  const laterRows = later.map((e) => eventRowHtml(e, siteUrl)).join("");
+  const laterRows = later.map((e) => eventRowHtml(e, siteUrl, todayKey)).join("");
   const weekendHeading = later.length === 0 ? "" : `
         <tr><td style="padding:16px 24px 0;">
           <div style="font:600 13px/1.2 Arial,Helvetica,sans-serif;color:${GOLD};text-transform:uppercase;letter-spacing:1.5px;">This weekend</div>
@@ -429,8 +482,8 @@ export function renderDigestEmail(opts: DigestOptions): DigestData {
   const placeHtml = placeOfWeekHtml(opts.placeOfWeek ?? null, siteUrl);
   const placeText = placeOfWeekText(opts.placeOfWeek ?? null, siteUrl);
   const savedTop = opts.mostSaved ?? [];
-  const mostSavedHtmlBlock = mostSavedHtml(savedTop, siteUrl);
-  const mostSavedTextBlock = mostSavedText(savedTop, siteUrl);
+  const mostSavedHtmlBlock = mostSavedHtml(savedTop, siteUrl, todayKey);
+  const mostSavedTextBlock = mostSavedText(savedTop, siteUrl, todayKey);
   const savedSection = saved.length === 0 ? "" : `
         <tr><td style="padding:16px 24px 0;">
           <div style="font:600 13px/1.2 Arial,Helvetica,sans-serif;color:${GOLD};text-transform:uppercase;letter-spacing:1.5px;">You saved these — happening this week</div>
@@ -482,7 +535,7 @@ export function renderDigestEmail(opts: DigestOptions): DigestData {
           "",
           ...saved.flatMap((e) => [
             e.title,
-            `  ${whenLabel(e)}`,
+            `  ${whenLabel(e, todayKey)}`,
             `  ${[e.venue, e.city].filter(Boolean).join(" · ")} · ${e.price}`,
             `  ${eventUrl(siteUrl, e.id)}`,
             "",
@@ -494,7 +547,7 @@ export function renderDigestEmail(opts: DigestOptions): DigestData {
     ...(later.length > 0 ? ["THIS WEEKEND", ""] : []),
     ...events.flatMap((e) => [
       e.title,
-      `  ${whenLabel(e)}`,
+      `  ${whenLabel(e, todayKey)}`,
       `  ${[e.venue, e.city].filter(Boolean).join(" · ")} · ${e.price}`,
       `  ${eventUrl(siteUrl, e.id)}`,
       "",
@@ -502,7 +555,7 @@ export function renderDigestEmail(opts: DigestOptions): DigestData {
     ...(later.length > 0
       ? ["NEXT WEEK", "", ...later.flatMap((e) => [
           e.title,
-          `  ${whenLabel(e)}`,
+          `  ${whenLabel(e, todayKey)}`,
           `  ${[e.venue, e.city].filter(Boolean).join(" · ")} · ${e.price}`,
           `  ${eventUrl(siteUrl, e.id)}`,
           "",

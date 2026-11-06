@@ -1,6 +1,7 @@
 import type { CategoryKey, EventRecord } from "./types";
 import { CATEGORY_KEYS } from "./categories";
 import { chiWallClock } from "./clock";
+import { soonestFirstThenRuns } from "./list-view";
 
 /**
  * PERSONALIZED DIGEST (roadmap 5.3) — pure logic.
@@ -35,7 +36,7 @@ export function selectSavedUpcoming(
   const fromWall = chiWallClock(now);
   const toWall = chiWallClock(new Date(now.getTime() + days * 86_400_000));
 
-  return saved
+  const rows = saved
     .filter((e) => e.status === "published")
     .filter((e) => {
       if (!e.start) return false;
@@ -43,9 +44,18 @@ export function selectSavedUpcoming(
       // A multi-day run still in progress counts — they can still go.
       const end = e.multiDayEnd ?? e.end;
       return Boolean(end && e.start < fromWall && end >= fromWall);
-    })
-    .sort((a, b) => a.start.localeCompare(b.start))
-    .slice(0, PERSONAL_MAX_SAVED);
+    });
+
+  // ORDER (6 Nov 2026). This was `.sort((a, b) => a.start.localeCompare(b.start))`,
+  // and every row admitted by the run branch above started before the window BY
+  // CONSTRUCTION — so a run always sorted ahead of everything happening in the
+  // week, led a block headed "happening this week", and at the cap of 5 could
+  // evict a concert the reader could still catch. Same anti-signal, and the same
+  // helper, as the two card surfaces fixed this week.
+  //
+  // soonestFirstThenRuns works in day keys while this function works in wall
+  // clock, so the window start is passed as its day.
+  return soonestFirstThenRuns(rows, fromWall.slice(0, 10)).slice(0, PERSONAL_MAX_SAVED);
 }
 
 /**

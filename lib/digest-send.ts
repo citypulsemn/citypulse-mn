@@ -105,7 +105,7 @@ export async function sendWeeklyDigest(opts: { dryRun?: boolean } = {}): Promise
   const byId = new Map(allEvents.map((e) => [e.id, e]));
   let mostSaved: EventRecord[] = [];
   try {
-    mostSaved = selectMostSaved(await getMostSavedCounts(7), byId);
+    mostSaved = selectMostSaved(await getMostSavedCounts(7), byId, now);
   } catch (err) {
     console.error("[digest] most-saved read failed (section omitted):", err);
   }
@@ -135,6 +135,7 @@ export async function sendWeeklyDigest(opts: { dryRun?: boolean } = {}): Promise
     const { subject, html, text } = renderDigestEmail({
       events: myPicks,
       laterEvents: laterPicks,
+      now,
       weekLabel,
       unsubscribeUrl: unsub,
       siteUrl,

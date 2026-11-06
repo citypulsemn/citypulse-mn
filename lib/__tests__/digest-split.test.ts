@@ -108,6 +108,7 @@ describe("the rendered email", () => {
   const { soon, later } = splitDigestEvents(week, THU);
   const out = renderDigestEmail({
     events: soon, laterEvents: later,
+    now: THU,
     weekLabel: digestWeekLabel(THU),
     unsubscribeUrl: "https://x/u", siteUrl: "https://x",
   });
@@ -126,6 +127,7 @@ describe("the rendered email", () => {
   it("no second section (and no orphan heading) when next week is empty", () => {
     const solo = renderDigestEmail({
       events: soon, laterEvents: [],
+      now: THU,
       weekLabel: digestWeekLabel(THU),
       unsubscribeUrl: "https://x/u", siteUrl: "https://x",
     });

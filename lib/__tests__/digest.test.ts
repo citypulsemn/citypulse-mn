@@ -112,7 +112,7 @@ describe("renderDigestEmail", () => {
   ];
   const out = renderDigestEmail({
     events,
-    weekLabel: "July 13 – 19",
+    now: NOW, weekLabel: "July 13 – 19",
     unsubscribeUrl: "https://citypulsemn.com/unsubscribe?id=5&t=abc",
     siteUrl: "https://citypulsemn.com",
   });
@@ -139,7 +139,7 @@ describe("renderDigestEmail", () => {
   it("escapes HTML in titles", () => {
     const risky = renderDigestEmail({
       events: [ev({ id: "x", title: "Rock & <Roll>" })],
-      weekLabel: "July 13 – 19",
+      now: NOW, weekLabel: "July 13 – 19",
       unsubscribeUrl: "#",
       siteUrl: "https://citypulsemn.com",
     });
@@ -147,12 +147,13 @@ describe("renderDigestEmail", () => {
     expect(risky.html).not.toContain("<Roll>");
   });
   it("handles an empty set with a sensible subject", () => {
-    const empty = renderDigestEmail({ events: [], weekLabel: "July 13 – 19", unsubscribeUrl: "#", siteUrl: "https://citypulsemn.com" });
+    const empty = renderDigestEmail({ events: [], now: NOW, weekLabel: "July 13 – 19", unsubscribeUrl: "#", siteUrl: "https://citypulsemn.com" });
     expect(empty.subject).toBe("This week in the Twin Cities");
   });
 });
 
 describe("digest depth — most saved this week (v6 1.3)", () => {
+  const TODAY = "2026-07-13"; // chiDayKey(NOW) — the send day these rows render against
   const a = ev({ id: "a", title: "Fringe Festival" });
   const b = ev({ id: "b", title: "Art Fair" });
   const c = ev({ id: "c", title: "Restaurant Week" });
@@ -166,19 +167,20 @@ describe("digest depth — most saved this week (v6 1.3)", () => {
         { id: "c", saves: MOST_SAVED_MIN - 1 }, // below — dropped
       ],
       byId,
+      NOW,
     );
     expect(picked.map((e) => e.id)).toEqual(["a", "b"]);
   });
 
   it("stays dark when saves are thin (nothing meets the floor)", () => {
-    const picked = selectMostSaved([{ id: "a", saves: 1 }, { id: "b", saves: 2 }], byId);
+    const picked = selectMostSaved([{ id: "a", saves: 1 }, { id: "b", saves: 2 }], byId, NOW);
     expect(picked).toEqual([]);
-    expect(mostSavedHtml(picked, "https://citypulsemn.com")).toBe("");
-    expect(mostSavedText(picked, "https://citypulsemn.com")).toBe("");
+    expect(mostSavedHtml(picked, "https://citypulsemn.com", TODAY)).toBe("");
+    expect(mostSavedText(picked, "https://citypulsemn.com", TODAY)).toBe("");
   });
 
   it("drops a saved event that is no longer in the published set (never featured stale)", () => {
-    const picked = selectMostSaved([{ id: "gone", saves: 99 }, { id: "a", saves: 5 }], byId);
+    const picked = selectMostSaved([{ id: "gone", saves: 99 }, { id: "a", saves: 5 }], byId, NOW);
     expect(picked.map((e) => e.id)).toEqual(["a"]);
   });
 
@@ -188,16 +190,50 @@ describe("digest depth — most saved this week (v6 1.3)", () => {
     const picked = selectMostSaved(
       many.map((e, i) => ({ id: e.id, saves: MOST_SAVED_MIN + 10 - i })),
       bigId,
+      NOW,
     );
     expect(picked.length).toBe(3);
   });
 
+  it("drops an event that has already FINISHED (6 Nov 2026)", () => {
+    // getMostSavedCounts windows on the SAVE day, not the event date, and byId
+    // carries every published row with no date predicate — so a run that closed
+    // last month could be featured under "Most saved this week" with its own
+    // start date beside it. The docstring always claimed this was dropped.
+    const over = ev({ id: "over", title: "Closed run", start: "2026-06-01T10:00", multiDayEnd: "2026-07-05T23:59" });
+    const withOver = new Map(byId);
+    withOver.set(over.id, over);
+    const picked = selectMostSaved([{ id: "over", saves: 99 }, { id: "a", saves: 5 }], withOver, NOW);
+    expect(picked.map((e) => e.id)).toEqual(["a"]);
+  });
+
+  it("keeps a run that is still underway", () => {
+    const live = ev({ id: "live", title: "Open run", category: "arts", start: "2026-06-01T10:00", multiDayEnd: "2026-08-30T23:59" });
+    const withLive = new Map(byId);
+    withLive.set(live.id, live);
+    const picked = selectMostSaved([{ id: "live", saves: 99 }], withLive, NOW);
+    expect(picked.map((e) => e.id)).toEqual(["live"]);
+  });
+
+  it("a featured run states its SPAN, not its start day and a stale clock", () => {
+    // whenLabel read the row's own start unconditionally: "Mon, Jun 1 · 10 AM"
+    // on an email sent in July, a date five weeks past and a clock that is not
+    // today's. The span is what the site prints for a run with no day context.
+    const live = ev({ id: "live", title: "Open run", category: "arts", start: "2026-06-01T10:00", multiDayEnd: "2026-08-30T23:59" });
+    const withLive = new Map(byId);
+    withLive.set(live.id, live);
+    const picked = selectMostSaved([{ id: "live", saves: 99 }], withLive, NOW);
+    const text = mostSavedText(picked, "https://citypulsemn.com", TODAY);
+    expect(text).toContain("Jun 1 – Aug 30");
+    expect(text).not.toContain("Mon, June 1");
+  });
+
   it("renders a labeled section with the event titles when present", () => {
-    const picked = selectMostSaved([{ id: "a", saves: 5 }], byId);
-    const html = mostSavedHtml(picked, "https://citypulsemn.com");
+    const picked = selectMostSaved([{ id: "a", saves: 5 }], byId, NOW);
+    const html = mostSavedHtml(picked, "https://citypulsemn.com", TODAY);
     expect(html).toContain("Most saved this week");
     expect(html).toContain("Fringe Festival");
-    expect(mostSavedText(picked, "https://citypulsemn.com")).toContain("MOST SAVED THIS WEEK");
+    expect(mostSavedText(picked, "https://citypulsemn.com", TODAY)).toContain("MOST SAVED THIS WEEK");
   });
 });
 
@@ -246,7 +282,7 @@ describe("digest depth — place of the week (v6 1.3)", () => {
 
 describe("renderDigestEmail — 1.3 sections integration", () => {
   const events = [ev({ id: "a", title: "Trampled by Turtles" })];
-  const base = { events, weekLabel: "July 13 – 19", unsubscribeUrl: "#", siteUrl: "https://citypulsemn.com" };
+  const base = { events, now: NOW, weekLabel: "July 13 – 19", unsubscribeUrl: "#", siteUrl: "https://citypulsemn.com" };
   const place: Place = {
     slug: "como-pool", name: "Como Pool", kind: "pool", lat: 44.98, lng: -93.15,
     address: "1151 Como Ave", city: "St. Paul", neighborhood: null,
@@ -280,7 +316,7 @@ describe("newsletter sponsor slot (R2.1)", () => {
   const events = [ev({ id: "a", title: "Trampled by Turtles" })];
   const base = {
     events,
-    weekLabel: "July 13 – 19",
+    now: NOW, weekLabel: "July 13 – 19",
     unsubscribeUrl: "#",
     siteUrl: "https://citypulsemn.com",
   };
@@ -337,7 +373,7 @@ describe("reader support line (B2)", () => {
   const events = [ev({ id: "a", title: "Trampled by Turtles" })];
   const base = {
     events,
-    weekLabel: "July 13 – 19",
+    now: NOW, weekLabel: "July 13 – 19",
     unsubscribeUrl: "#",
     siteUrl: "https://citypulsemn.com",
   };
@@ -429,7 +465,7 @@ describe("digestSupport (P1) — a money ask needs a postal address", () => {
   const mail = (over: Partial<Parameters<typeof renderDigestEmail>[0]>) =>
     renderDigestEmail({
       events: [ev({ id: "a", title: "Trampled by Turtles" })],
-      weekLabel: "July 13 – 19",
+      now: NOW, weekLabel: "July 13 – 19",
       unsubscribeUrl: "#",
       siteUrl: "https://citypulsemn.com",
       ...over,
@@ -466,5 +502,53 @@ describe("digestSupport (P1) — a money ask needs a postal address", () => {
     // The send path calls digestSupport(postalAddress) with one argument.
     expect(digestSupport("", undefined)).toBeNull();
     expect(digestSupport(ADDR)).toBe(SUPPORT);
+  });
+});
+
+describe("whenLabel — the span is only for a row that began earlier (6 Nov 2026)", () => {
+  const opts = (events: EventRecord[]) => ({
+    events,
+    now: NOW, // Monday 13 July 2026
+    weekLabel: "July 13 – 19",
+    unsubscribeUrl: "#",
+    siteUrl: "https://citypulsemn.com",
+  });
+
+  it("a run that STARTS inside the window keeps its weekday and doors time", () => {
+    // The first cut of this fix applied the span unconditionally. eventRowHtml
+    // is the ONE row renderer for all four html blocks, so a festival opening
+    // on the Friday lost "Friday, July 17 · 7 PM" and read "Jul 17 – 19" on the
+    // main body of the email — which was never the defect. lib/day-order.ts
+    // states the rule: "starts today -> its actual start time, EVEN IF it runs
+    // on for days."
+    const festival = ev({
+      id: "fest", title: "Opening Friday", category: "arts",
+      start: "2026-07-17T19:00", multiDayEnd: "2026-07-19T23:00",
+    });
+    const out = renderDigestEmail(opts([festival]));
+    expect(out.html).toContain("Friday, July 17");
+    expect(out.html).not.toContain("Jul 17 – 19");
+  });
+
+  it("a single-night show with a sloppy end_at also keeps its time", () => {
+    // spanEndISO reads an end_at on a LATER DAY as a span, so this shape is
+    // multi-day to isMultiDay even though it is one night. Given the known
+    // "end_at stuffed with the run end" problem, it is not a rare shape.
+    const show = ev({
+      id: "late", title: "Late Show", category: "arts",
+      start: "2026-07-17T21:00", end: "2026-07-18T23:00",
+    });
+    const out = renderDigestEmail(opts([show]));
+    expect(out.html).toContain("Friday, July 17");
+  });
+
+  it("but a row that began BEFORE today states its span", () => {
+    const run = ev({
+      id: "underway", title: "Underway", category: "arts",
+      start: "2026-06-01T10:00", multiDayEnd: "2026-08-30T23:00",
+    });
+    const out = renderDigestEmail({ ...opts([]), savedThisWeek: [run] });
+    expect(out.html).toContain("Jun 1 – Aug 30");
+    expect(out.html).not.toContain("Monday, June 1");
   });
 });
