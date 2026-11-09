@@ -36,9 +36,10 @@ they spanned the full 1200px and started at the far left.
   centered text are harder to read than three lines with a straight left edge. If
   you'd rather it match the centered header, it's one line:
   `text-align: center` on that same rule.
-- **Collections pages are untouched.** They share the related-guides style, but
-  their whole page is full width, so the chips already line up with everything else
-  there. Places pages get a `related-guides-lg` class instead.
+- **Places pages get a `related-guides-lg` class** for their 720px column.
+  *Correction, same day:* this note first said collection pages were fine because
+  "their whole page is full width". That was wrong: their lists are a centered 620px
+  column, and their chips had the same fault. Fixed in `DEPLOY-VENUE-ALIGNMENT.md`.
 
 ## Files
 
