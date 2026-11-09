@@ -1257,6 +1257,39 @@ describe("planCollapse — who keeps the slot (9 Nov 2026)", () => {
     expect(actions[0].archiveIds.sort()).toEqual(["fireworks", "wd2", "wd3"]);
   });
 
+  it("regression (review 3, 9 Nov): a festival listed once keeps its card when its sub-event's rows contain it", () => {
+    // The carnival's three days CONTAIN the festival's one, so the festival is
+    // the fold's child here. The shorter title still keeps the card, as it did
+    // before this work; a "fold child ranks last" rule had handed it over.
+    const actions = planCollapse([
+      row({ id: "fest", title: "Woodbury Days", city: "Woodbury", start: "2026-08-01T00:00" }),
+      row({ id: "car1", title: "Woodbury Days — Carnival", city: "Woodbury", start: "2026-08-01T17:00" }),
+      row({ id: "car2", title: "Woodbury Days — Carnival", city: "Woodbury", start: "2026-08-02T17:00" }),
+      row({ id: "car3", title: "Woodbury Days — Carnival", city: "Woodbury", start: "2026-08-03T17:00" }),
+    ]);
+    expect(actions).toHaveLength(1);
+    expect(actions[0].keepId).toBe("fest");
+  });
+
+  it("regression (review 3, 9 Nov): one music row in a title group does not cost a festival card its span", () => {
+    const actions = planCollapse([
+      row({ id: "card", title: "Twin Cities Jazz Festival", category: "festival", city: "St Paul", start: "2026-06-20T00:00", endDay: "2026-06-22" }),
+      row({ id: "night", title: "Twin Cities Jazz Festival", category: "music", city: "St Paul", start: "2026-06-20T19:00" }),
+    ]);
+    expect(actions.map((a) => [a.keepId, a.archiveIds])).toEqual([["card", ["night"]]]);
+  });
+
+  it("regression (review 3, 9 Nov): a corrected row never bridges two rows into one span", () => {
+    // A corrected Dec 2 → Dec 30 card sits between a Dec 1 row and a Dec 20 night.
+    // Left in the clustering, its days joined them and wrote Dec 1 → Dec 20.
+    const actions = planCollapse([
+      row({ id: "A", title: "Holidazzle", city: "Minneapolis", start: "2026-12-01T00:00" }),
+      row({ id: "C", title: "Holidazzle", city: "Minneapolis", start: "2026-12-02T00:00", endDay: "2026-12-30", corrected: true }),
+      row({ id: "D", title: "Holidazzle", city: "Minneapolis", start: "2026-12-20T17:00" }),
+    ]);
+    expect(actions).toEqual([]);
+  });
+
   it("an operator-corrected row is never archived, and is never promoted either", () => {
     // Plymouth's sale was corrected to an all-day 14 Nov on 6 Nov. A timed
     // re-find keeps the slot by the ordinary rules, and the corrected row stays
