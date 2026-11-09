@@ -172,10 +172,13 @@ describe("soonestFirstThenRuns — the map list and the list view must agree (8 
     ev(id, start, { category: "arts", multiDayEnd: end });
 
   it("an explicit todayKey keeps the split identical to planListView's", () => {
-    // The map's month view opens on the 1st, which can be BEFORE today, and a
-    // date-picked range can open after it. ListView is handed windowStartKey
-    // and todayKey separately; the map list is handed the SAME array, so it
-    // has to ask the same question or the two halves of one screen disagree.
+    // A window start is genuinely two-sided. The month view opens on the 1st,
+    // which is BEFORE today for the current month but AFTER it the moment you
+    // page forward (ControlBar's "Next month", jumpToMonth, or a shared URL);
+    // and "weekend" opens on Friday, which is after today from Monday to
+    // Thursday. ListView is handed windowStartKey and todayKey separately; the
+    // map list gets the SAME array, so it must ask the same question or the two
+    // views disagree about what is coming up.
     const windowStartKey = "2026-07-20";
     const todayKey = "2026-07-13";
     const mid = run("mid", "2026-07-15T10:00", "2026-07-25T17:00");
