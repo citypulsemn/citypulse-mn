@@ -43,8 +43,22 @@ export default async function ThisWeekendPage() {
     "@context": "https://schema.org",
     "@type": "ItemList",
     name: "Things to do in the Twin Cities this weekend",
-    itemListElement: sections
-      .flatMap((s) => s.events)
+    // The DAY sections first, then the runs. This flattened in render order,
+    // and "Happening all weekend" renders first by design — so once that
+    // section reached 20 rows the slice below consumed the whole budget and
+    // the structured data for "Things to do this weekend" carried NOT ONE
+    // Friday, Saturday or Sunday event. Measured 9 Nov 2026: 101 rows, 23 of
+    // them runs, and 0 day events in the ItemList on every weekend tested.
+    //
+    // Only the ADVERTISED 20 are reordered; the page still renders the runs
+    // first, which is the deliberate layout. Every row here has a card on the
+    // page, so this is a choice of which 20 to surface, not a claim about
+    // something the reader cannot reach (the lesson from the collections
+    // ItemList on 5 Nov).
+    itemListElement: [
+      ...sections.filter((s) => s.key !== "ongoing").flatMap((s) => s.events),
+      ...sections.filter((s) => s.key === "ongoing").flatMap((s) => s.events),
+    ]
       .slice(0, 20)
       .map((e, i) => ({
         "@type": "ListItem",

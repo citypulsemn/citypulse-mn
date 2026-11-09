@@ -136,8 +136,14 @@ export function selectWeekend(events: EventRecord[], now: Date): WeekendSection[
   //
   // Ending soonest first — the rule lib/ongoing.ts states in words ("Last day is the
   // only urgent thing about a run that has been open for two months") and the one
-  // planListView uses. Tie-break on start then title, identical to lib/ongoing.ts, so
-  // the two files cannot drift.
+  // planListView uses for its primary key too.
+  //
+  // Tie-break on start then title: the same three keys, in the same order, as
+  // lib/ongoing.ts's day-page shelf. NOT identical code, and an earlier version of
+  // this comment claimed it was — that file sorts { event, endDay } wrappers, and its
+  // OTHER sort (the one feeding /ongoing) omits the title tiebreak entirely, so it is
+  // already two comparators rather than one. planListView's omits the start key.
+  // What is shared is the rule, which is the part that matters here.
   const endDayOf = (e: EventRecord) => dayOf(spanEnd(e) ?? e.start);
   ongoing.sort(
     (a, b) =>

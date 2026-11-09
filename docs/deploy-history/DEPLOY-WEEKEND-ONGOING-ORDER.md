@@ -1,7 +1,8 @@
 # Deploy — "Happening all weekend" ranked runs by age, not by what closes first
 
 **Date:** 8 November 2026 · **Found by:** the review of [DEPLOY-IG-CARD-ORDER-LABEL.md](DEPLOY-IG-CARD-ORDER-LABEL.md)
-**Files:** `lib/weekend.ts`, `lib/list-view.ts`, `lib/__tests__/weekend.test.ts`
+**Files:** `lib/weekend.ts`, `app/this-weekend/page.tsx`, `lib/list-view.ts`,
+`lib/__tests__/weekend.test.ts`
 **Schema:** none. **Data:** none. Code only.
 
 The fifth and last **ordering** finding from that review, and the one the previous guide
@@ -89,6 +90,32 @@ title**. The docstring now says that instead of asserting a consistency that did
 
 ---
 
+## 2. The structured data carried none of the weekend
+
+A review of the reorder found the bigger half of the same problem, one step further on.
+`app/this-weekend/page.tsx` builds its `ItemList` by flattening the sections **in render
+order** and taking the first 20 — and the ongoing section always renders first. So once
+that section reached 20 rows, it consumed the entire budget.
+
+**Measured 9 November 2026: 101 rows, 23 of them runs, and ZERO Friday/Saturday/Sunday
+events in the ItemList** — on a page whose structured data is titled *"Things to do in the
+Twin Cities this weekend"*. Same on the 13 Nov weekend and on a midweek look-ahead.
+
+Pre-existing, and **not** introduced by the reorder — but the reorder is what made it worth
+finding, and this guide claimed an ItemList improvement one section earlier, so leaving it
+would have been a half-truth. The advertised 20 now take the day sections first and the runs
+after: **0 → 20 day events**, entry count unchanged at 20.
+
+Only the advertised list is reordered. The page still renders the runs first, which is the
+deliberate layout, and every advertised row has a card — so this is a choice of which 20 to
+surface, not a claim about something the reader cannot reach. That distinction is the lesson
+from the collections `ItemList` on 5 Nov, which advertised URLs with no card at all.
+
+`/this-week` has had a page-level `ItemList` test since R1; `/this-weekend` had none. It does
+now.
+
+---
+
 ## Verification
 
 ### The rendered page (dev server, live data)
@@ -116,13 +143,14 @@ the same row. Re-measured over the pure function for the 13 Nov weekend: 23 rows
 | mutation | tests that failed |
 |---|---|
 | `ongoing.sort` back to `byStart` | **2** |
+| the `ItemList` back to a flat render-order slice | 1 |
 
 ### Quality gate
 
 | | |
 |---|---|
 | `npx tsc --noEmit` | clean |
-| `npm test` | **3,303 passed in 155 files** — see below |
+| `npm test` | **3,305 passed in 155 files** — see below |
 | `npm run build` | clean, 642 pages |
 | `npm audit` | **0 vulnerabilities** |
 
@@ -158,6 +186,9 @@ one *can* be checked with curl, unlike the map list:
 
 ## Left open
 
+- **The review that found the `ItemList` defect did not finish.** 18 of its 24 agents died on
+  a session limit, so most findings were never adversarially verified and the two reported here
+  are the ones whose refuters did run. It is a partial review, not a clean one.
 - **`lib/day-order.ts:47` sorts the day page's in-cap ongoing group by TITLE**, while the
   "Also running" shelf on the same page sorts ending-soonest. Two answers to one question on
   one screen. Not touched here — it is a fifth surface and nobody has asked for it — but it

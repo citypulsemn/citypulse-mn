@@ -1,4 +1,6 @@
 import { describe, it, expect } from "vitest";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { weekendDays, weekendLabel, dayHeading, selectWeekend } from "../weekend";
 import { spansDay } from "../multiday";
 import type { EventRecord } from "../types";
@@ -185,5 +187,24 @@ describe("selectWeekend — 'Happening all weekend' is ordered by what closes fi
     ];
     const total = selectWeekend(rows, FRI).reduce((n, s) => n + s.events.length, 0);
     expect(total).toBe(3);
+  });
+});
+
+describe("/this-weekend structured data — the ItemList must carry the weekend (9 Nov 2026)", () => {
+  const root = join(__dirname, "..", "..");
+  const page = readFileSync(join(root, "app", "this-weekend", "page.tsx"), "utf8");
+
+  it("advertises the DAY sections before the runs", () => {
+    // It flattened in render order, and "Happening all weekend" renders first,
+    // so once that section reached 20 rows the slice(0, 20) consumed the whole
+    // budget. Measured on live data: 101 rows, 23 runs, and 0 day events in
+    // the structured data for a page called "Things to do this weekend".
+    expect(page).toContain('sections.filter((s) => s.key !== "ongoing").flatMap((s) => s.events)');
+    expect(page).toContain('sections.filter((s) => s.key === "ongoing").flatMap((s) => s.events)');
+    expect(page).not.toContain("itemListElement: sections\n      .flatMap((s) => s.events)");
+  });
+
+  it("still caps the advertised list", () => {
+    expect(page).toContain(".slice(0, 20)");
   });
 });
