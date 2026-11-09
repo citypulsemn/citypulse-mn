@@ -1,5 +1,6 @@
 import { computeEventKey } from "./event-key";
 import { isAggregatorSource, isResaleSource } from "./source-trust";
+import { isDateOnlyWallClock } from "./dates";
 
 /**
  * APPLYING AN ANSWER WE ALREADY HAVE.
@@ -146,6 +147,12 @@ export interface CorrectionRow {
   source_url: string;
   description: string;
   start_local: string;
+  /**
+   * What the site prints the time as: true reads "All day" whatever `start_local`
+   * holds (`timeLabel`). Never set directly by a correction — it follows `start`,
+   * by `isDateOnlyWallClock`. See the note in `planCorrection`.
+   */
+  all_day: boolean;
   end_local: string | null;
   /** The run's last day, `YYYY-MM-DD`, or null for a single-day event. */
   multi_day_end: string | null;
@@ -153,6 +160,9 @@ export interface CorrectionRow {
   lng: number | null;
   status: string;
 }
+
+/** A value a correction can write: every CorrectionRow column type. */
+type FieldValue = string | number | boolean | null;
 
 export type CorrectionPlan =
   | { kind: "archive"; id: string; why: string; evidence?: string }
@@ -163,7 +173,7 @@ export type CorrectionPlan =
       why: string;
       evidence?: string;
       /** Only the fields that actually differ. */
-      fields: Partial<Record<keyof CorrectionRow, string | number | null>>;
+      fields: Partial<Record<keyof CorrectionRow, FieldValue>>;
       /** Non-null when identity changed and must be rewritten. */
       newKey: string | null;
       /** Human-readable `field: old → new`, for the log and the audit row. */
@@ -344,13 +354,9 @@ export function planCorrection(row: CorrectionRow, c: Correction): CorrectionPla
     return { kind: "hide", id: c.id, why: c.why, evidence: c.evidence };
   }
 
-  const fields: Partial<Record<keyof CorrectionRow, string | number | null>> = {};
+  const fields: Partial<Record<keyof CorrectionRow, FieldValue>> = {};
   const changed: string[] = [];
-  const put = (
-    key: keyof CorrectionRow,
-    next: string | number | null | undefined,
-    current: string | number | null,
-  ) => {
+  const put = (key: keyof CorrectionRow, next: FieldValue | undefined, current: FieldValue) => {
     if (next === undefined) return;
     if (next === current) return;
     fields[key] = next;
@@ -364,6 +370,14 @@ export function planCorrection(row: CorrectionRow, c: Correction): CorrectionPla
   put("source_url", c.source_url, row.source_url);
   put("description", c.description?.trim(), row.description);
   put("start_local", c.start, row.start_local);
+  // THE FLAG FOLLOWS THE CLOCK. The site prints "All day" off `all_day` alone, so
+  // a start time written without it is a time no reader sees: on 9 Nov 2026 this
+  // tool gave 15 Cedar shows, AJ McLean, Tuffie and three market weekends their
+  // real times, and all 20 went on reading "All day". Derived, never taken from the
+  // operator, by the rule the pipeline writes it with — and whenever `start` is
+  // stated, even unchanged, so re-stating a start also repairs a flag that some
+  // other writer left out of step.
+  if (c.start !== undefined) put("all_day", isDateOnlyWallClock(c.start), row.all_day);
   put("end_local", c.end, row.end_local);
   put("multi_day_end", c.multi_day_end, row.multi_day_end);
   // `status` goes through the same `put`, so a restore appears in the log, the
@@ -419,12 +433,12 @@ export function planCorrection(row: CorrectionRow, c: Correction): CorrectionPla
  * `not null default ''` and so is never cleared.
  */
 export function nextValue(
-  fields: Partial<Record<keyof CorrectionRow, string | number | null>>,
+  fields: Partial<Record<keyof CorrectionRow, FieldValue>>,
   row: CorrectionRow,
   key: keyof CorrectionRow,
-): string | number | null {
+): FieldValue {
   if (key in fields) return fields[key] ?? null;
-  return row[key] as string | number | null;
+  return row[key];
 }
 
 /** One block of log lines per plan. */

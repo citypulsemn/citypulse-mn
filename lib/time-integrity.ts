@@ -1,4 +1,5 @@
 import { toIsoWithOffset } from "./seo/event-jsonld";
+import { isDateOnlyWallClock } from "./dates";
 
 /**
  * TIME INTEGRITY (roadmap 4.6).
@@ -59,7 +60,7 @@ export function normalizeAgentTime(raw: string | null | undefined): NormalizedTi
   // An explicit midnight from an agent is a date-only answer wearing a clock —
   // real events don't start at 12:00 AM. Display it as all-day rather than
   // inventing a time. (A genuine midnight event can be set in the admin.)
-  const allDay = hh === "00" && mm === "00";
+  const allDay = isDateOnlyWallClock(wallClock);
 
   return {
     wallClock,

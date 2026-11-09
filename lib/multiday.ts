@@ -1,5 +1,5 @@
 import type { EventRecord } from "./types";
-import { MONTHS, spanEndISO, type Spannable } from "./dates";
+import { MONTHS, isDateOnlyWallClock, spanEndISO, type Spannable } from "./dates";
 
 /**
  * MULTI-DAY EVENTS & DUPLICATES (roadmap 4.4).
@@ -187,6 +187,14 @@ export interface CollapseRow {
   start: string;
   /** Day part of an existing multi_day_end span, when the row has one. */
   endDay?: string | null;
+  /**
+   * 'published' or 'draft'. Rows of different status never share a cluster, so
+   * a hidden row can neither keep the slot of a live one (the live one would be
+   * archived and the event would render nowhere) nor be archived by one (an
+   * archived row serves its event page again, which undoes a takedown).
+   * Required so a caller cannot forget it and quietly mix the two.
+   */
+  status: string;
 }
 
 export interface CollapseAction {
@@ -204,6 +212,7 @@ export interface CollapseAction {
 interface CollapseCluster {
   titleKey: string;
   cityKey: string;
+  status: string;
   sports: boolean;
   rows: CollapseRow[];
   startNum: number;
@@ -234,24 +243,27 @@ function isWordPrefix(shorter: string, longer: string): boolean {
  *  - Parent-child fold requires the child's ENTIRE interval inside the
  *    parent's span — a sub-event dated outside the festival's run stays live
  *    (conservative floor; the verify pass owns the ambiguous ones).
- *  - Survivor = earliest start; ties prefer the row that already carries the
- *    curated span, then the shorter (cleaner) title.
+ *  - A published row and a draft never meet: see CollapseRow.status.
+ *  - Survivor = earliest start DAY; ties prefer the row that already carries the
+ *    curated span, then a row that knows its time over a date-only one, then
+ *    the shorter (cleaner) title.
  *  - Spans only ever EXTEND (never shrink), from attested rows only.
  */
 export function planCollapse(rows: CollapseRow[]): CollapseAction[] {
-  // 1 — same-key interval clustering (span-aware groupRuns).
+  // 1 — same-key interval clustering (span-aware groupRuns), one status at a time.
   const byKey = new Map<string, CollapseRow[]>();
   for (const row of rows) {
-    const k = runKey(row);
+    const k = `${runKey(row)}|${row.status}`;
     (byKey.get(k) ?? byKey.set(k, []).get(k)!).push(row);
   }
 
   let clusters: CollapseCluster[] = [];
-  for (const [key, list] of byKey) {
+  for (const list of byKey.values()) {
     const sorted = [...list].sort(
       (a, b) => a.start.localeCompare(b.start) || rowEndNum(a) - rowEndNum(b),
     );
-    const [titleKey, cityKey] = key.split("|");
+    const [titleKey, cityKey] = runKey(sorted[0]).split("|");
+    const status = sorted[0].status;
     const perNight = sorted.some((r) => PER_NIGHT.has(r.category ?? ""));
     let current: CollapseRow[] = [];
     let curStart = 0;
@@ -259,7 +271,7 @@ export function planCollapse(rows: CollapseRow[]): CollapseAction[] {
 
     const flush = () => {
       if (current.length > 0)
-        clusters.push({ titleKey, cityKey, sports: perNight, rows: current, startNum: curStart, endNum: curEnd });
+        clusters.push({ titleKey, cityKey, status, sports: perNight, rows: current, startNum: curStart, endNum: curEnd });
     };
 
     for (const row of sorted) {
@@ -295,7 +307,7 @@ export function planCollapse(rows: CollapseRow[]): CollapseAction[] {
     let parent: CollapseCluster | null = null;
     for (const cand of clusters) {
       if (cand === child || cand.sports || folded.has(cand)) continue;
-      if (cand.cityKey !== child.cityKey) continue;
+      if (cand.cityKey !== child.cityKey || cand.status !== child.status) continue;
       const [a, b] = [cand.titleKey, child.titleKey];
       const related = isWordPrefix(a, b) || isWordPrefix(b, a);
       if (!related) continue;
@@ -329,6 +341,14 @@ export function planCollapse(rows: CollapseRow[]): CollapseAction[] {
       (a, b) =>
         dayOf(a.start).localeCompare(dayOf(b.start)) ||
         rowEndNum(b) - rowEndNum(a) || // ties: the row already carrying a span
+        // then the row that knows its time. Without this a date-only re-find won
+        // whenever its title was shorter or its 00:00 sorted first, and the timed
+        // row it duplicated was archived: on 8 Nov 2026 a blog's "Minnesota Merry
+        // Market" folded the fair's own Weekend 2 and 3 rows and took away their
+        // 10-4 hours. The limit: a time is not a venue. When the date-only row is
+        // the newer fact (AJ McLean moved to the Fine Line the same night), this
+        // keeps the stale room with the right time.
+        Number(isDateOnlyWallClock(a.start)) - Number(isDateOnlyWallClock(b.start)) ||
         a.title.length - b.title.length, // then the cleaner title
     );
     const keep = rowsSorted[0];

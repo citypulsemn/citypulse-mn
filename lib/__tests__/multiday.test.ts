@@ -89,6 +89,7 @@ describe("planCollapse — span-aware clustering", () => {
       category: "festival",
       start: "2026-08-14T10:00",
       endDay: null,
+      status: "published",
       ...o,
     };
   }
@@ -471,7 +472,7 @@ describe("spanEnd from the event's own end_at (second live-site audit)", () => {
 
 describe("two-night stands are not runs", () => {
   const night = (id: string, title: string, start: string, category: string) =>
-    ({ id, title, city: "Minneapolis", category, start, endDay: null });
+    ({ id, title, city: "Minneapolis", category, start, endDay: null, status: "published" });
 
   it("refuses to fold a Friday and Saturday concert into one span", () => {
     // Real: jeremy messersmith and Sylvan Esso were both about to be folded
@@ -517,6 +518,7 @@ describe("staleSpanIds — the spans the rules refuse but nothing removed", () =
     category: "festival",
     start: "2026-11-13T20:00",
     endDay: null,
+    status: "published",
     ...o,
   });
 
@@ -1058,5 +1060,109 @@ describe("planRunFolds — a weekly re-find folds onto the run it belongs to", (
       const incoming = [span({ id: "empty", title: "— — —", city: "St Paul", start: "2026-10-26T10:00", end: "2026-11-25T16:00" })];
       expect(planRunFolds(live, incoming)).toEqual([]);
     });
+  });
+});
+
+describe("planCollapse — who keeps the slot (9 Nov 2026)", () => {
+  const row = (o: Partial<CollapseRow> & { id: string }): CollapseRow => ({
+    title: "Event",
+    city: "Minneapolis",
+    category: "festival",
+    start: "2026-12-12T10:00",
+    endDay: null,
+    status: "published",
+    ...o,
+  });
+
+  it("regression: a blog's date-only re-find no longer folds the fair's own timed row", () => {
+    // Live on 8 Nov 2026: "Minnesota Merry Market" (visitsaintpaul.com, no hours)
+    // was the fold PARENT of the fair's "…at the State Fair – Weekend 2" (10-4,
+    // the fair's own page), won on its shorter title, and archived it.
+    const actions = planCollapse([
+      row({ id: "fair-wk2", title: "Minnesota Merry Market at the State Fair – Weekend 2", city: "Falcon Heights", start: "2026-12-12T10:00" }),
+      row({ id: "blog", title: "Minnesota Merry Market", city: "Falcon Heights", start: "2026-12-12T00:00" }),
+    ]);
+    expect(actions).toHaveLength(1);
+    expect(actions[0].kind).toBe("fold");
+    expect(actions[0].keepId).toBe("fair-wk2");
+    expect(actions[0].archiveIds).toEqual(["blog"]);
+  });
+
+  it("a same-day duplicate keeps the timed row even though 00:00 sorts first", () => {
+    // The AJ McLean shape: identical titles, so before this the midnight row won
+    // on sort order alone.
+    const actions = planCollapse([
+      row({ id: "dateonly", title: "AJ McLean presents Alexander James", category: "music", start: "2026-11-10T00:00" }),
+      row({ id: "timed", title: "AJ McLean presents Alexander James", category: "music", start: "2026-11-10T20:00" }),
+    ]);
+    expect(actions).toHaveLength(1);
+    expect(actions[0].kind).toBe("duplicate");
+    expect(actions[0].keepId).toBe("timed");
+    expect(actions[0].archiveIds).toEqual(["dateonly"]);
+  });
+
+  it("a sports game's timed copy survives its date-only copy", () => {
+    const actions = planCollapse([
+      row({ id: "tbd", title: "Minnesota Wild vs. Dallas Stars", category: "sports", city: "St Paul", start: "2026-12-12T00:00" }),
+      row({ id: "puck", title: "Minnesota Wild vs. Dallas Stars", category: "sports", city: "St Paul", start: "2026-12-12T19:00" }),
+    ]);
+    expect(actions.map((a) => a.keepId)).toEqual(["puck"]);
+  });
+
+  it("a curated span still outranks a timed single day — the run card is not given up for one night", () => {
+    const actions = planCollapse([
+      row({ id: "card", title: "Holidazzle", start: "2026-12-12T00:00", endDay: "2026-12-20" }),
+      row({ id: "night", title: "Holidazzle", start: "2026-12-12T17:00" }),
+    ]);
+    expect(actions).toHaveLength(1);
+    expect(actions[0].keepId).toBe("card");
+    expect(actions[0].setEnd).toBeNull();
+  });
+
+  it("between two date-only rows the cleaner title still decides", () => {
+    const actions = planCollapse([
+      row({ id: "long", title: "Holiday Bake Sale at Union Depot", city: "St Paul", start: "2026-12-12T00:00" }),
+      row({ id: "short", title: "Holiday Bake Sale", city: "St Paul", start: "2026-12-12T00:00" }),
+    ]);
+    expect(actions[0].keepId).toBe("short");
+  });
+
+  it("a hidden row never keeps the slot of a live one — even a draft that knows its time", () => {
+    // Edina/Plymouth on 8 Nov 2026 went through the dedupe, not here, but the
+    // planner took drafts as keepers the same way: the live row would have been
+    // archived and the event rendered nowhere.
+    const actions = planCollapse([
+      row({ id: "live", title: "Friends of Plymouth Library — Book Sale", start: "2026-11-14T00:00" }),
+      row({ id: "hidden", title: "Friends of Plymouth Library — Book Sale", start: "2026-11-14T09:00", status: "draft" }),
+    ]);
+    expect(actions).toEqual([]);
+  });
+
+  it("and a live row never archives a hidden one, which would serve a takedown's page again", () => {
+    const actions = planCollapse([
+      row({ id: "live", title: "Toddler Music Lab", start: "2026-11-14T10:00" }),
+      row({ id: "takedown", title: "Toddler Music Lab", start: "2026-11-14T00:00", status: "draft" }),
+    ]);
+    expect(actions.flatMap((a) => a.archiveIds)).not.toContain("takedown");
+    expect(actions).toEqual([]);
+  });
+
+  it("drafts still collapse among themselves", () => {
+    const actions = planCollapse([
+      row({ id: "d1", title: "Club Science: Halloween", status: "draft", start: "2026-10-31T00:00" }),
+      row({ id: "d2", title: "Club Science: Halloween", status: "draft", start: "2026-10-31T18:00" }),
+    ]);
+    expect(actions).toHaveLength(1);
+    expect(actions[0].keepId).toBe("d2");
+    expect(actions[0].archiveIds).toEqual(["d1"]);
+  });
+
+  it("a hidden sub-event never folds into a live parent, nor a live one into a hidden parent", () => {
+    const fair = row({ id: "fair", title: "Minnesota State Fair 2026", start: "2026-08-27T08:00", endDay: "2026-09-07", city: "St Paul" });
+    const llama = row({ id: "llama", title: "Minnesota State Fair — Llama & Alpaca Costume Contest", start: "2026-09-03T13:00", city: "St Paul" });
+    expect(planCollapse([fair, { ...llama, status: "draft" }])).toEqual([]);
+    expect(planCollapse([{ ...fair, status: "draft" }, llama])).toEqual([]);
+    // The same pair, both live, still folds — the guard is status, not the fold.
+    expect(planCollapse([fair, llama]).map((a) => a.kind)).toEqual(["fold"]);
   });
 });

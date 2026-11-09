@@ -12,6 +12,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { computeEventKey } from "../event-key";
 import { isAggregatorSource, isNonScheduleSource } from "../source-trust";
+import { normalizeAgentTime } from "../time-integrity";
 
 // The real Jigitz row as it stood on 18 Oct 2026, down to the address spelling.
 function row(overrides: Partial<CorrectionRow> = {}): CorrectionRow {
@@ -26,6 +27,7 @@ function row(overrides: Partial<CorrectionRow> = {}): CorrectionRow {
     source_url: "",
     description: "Fifty ballerinas, one small stage.",
     start_local: "2026-10-23T20:00",
+    all_day: false,
     end_local: "2026-10-23T23:00",
     multi_day_end: null,
     lat: 44.948965,
@@ -577,6 +579,84 @@ describe("the lock — a correction survives the next research run", () => {
   });
 });
 
+describe("all_day — the flag follows the clock", () => {
+  /**
+   * The site prints "All day" off `all_day` alone (`timeLabel`), and until
+   * 9 Nov 2026 this tool wrote `start_at` and never the flag. That day it gave
+   * 20 listings their real show times and every one went on reading "All day".
+   */
+  // The real Cedar row as Sunday's research pass wrote it: a date, no time.
+  const cedar = () =>
+    row({
+      id: "527108e8-fde6-4215-90d6-77cd5556034f",
+      title: "Great Lake Swimmers",
+      venue: "The Cedar Cultural Center",
+      start_local: "2026-11-10T00:00",
+      all_day: true,
+      end_local: null,
+    });
+
+  it("a show time given to an all-day row clears the flag, and keeps identity", () => {
+    const p = planCorrection(cedar(), base({ id: cedar().id, start: "2026-11-10T19:30" }));
+    expect(p.kind).toBe("edit");
+    if (p.kind !== "edit") return;
+    expect(p.fields.start_local).toBe("2026-11-10T19:30");
+    expect(p.fields.all_day).toBe(false);
+    expect(p.changed).toContain("all_day: true → false");
+    expect(p.newKey).toBeNull(); // same day, so the next research run still matches it
+  });
+
+  it("a midnight start is a date, by the pipeline's own rule", () => {
+    const p = planCorrection(row(), base({ start: "2026-10-24T00:00" }));
+    if (p.kind !== "edit") throw new Error("expected an edit");
+    expect(p.fields.all_day).toBe(true);
+    // Parity with the writer research uses, so the two cannot drift apart.
+    for (const t of ["2026-10-24T00:00", "2026-10-24T19:30", "2026-10-24T00:30", "2026-10-24T12:00"]) {
+      const expected = normalizeAgentTime(t)!.allDay;
+      // Start from the opposite flag, so the plan has to write it to agree.
+      const q = planCorrection(row({ all_day: !expected }), base({ start: t }));
+      if (q.kind !== "edit") throw new Error(`expected an edit for ${t}`);
+      expect(q.fields.all_day, t).toBe(expected);
+    }
+  });
+
+  it("a timed row moved to another time leaves the flag out of the plan", () => {
+    const p = planCorrection(row(), base({ start: "2026-10-23T19:00" }));
+    if (p.kind !== "edit") throw new Error("expected an edit");
+    expect("all_day" in p.fields).toBe(false);
+  });
+
+  it("a correction that states no start never touches the flag, even a wrong one", () => {
+    const stray = row({ start_local: "2026-12-01T19:30", all_day: true });
+    const p = planCorrection(stray, base({ title: "Black Nativity" }));
+    if (p.kind !== "edit") throw new Error("expected an edit");
+    expect("all_day" in p.fields).toBe(false);
+  });
+
+  it("re-stating an unchanged start repairs a stray flag without touching the stamp", () => {
+    // Black Nativity on 9 Nov 2026: 19:30 stored, all_day true, written by some
+    // other path. The time did not change, so the verify stamp must stay.
+    const stray = row({ start_local: "2026-12-01T19:30", all_day: true });
+    const p = planCorrection(stray, base({ start: "2026-12-01T19:30" }));
+    expect(p.kind).toBe("edit");
+    if (p.kind !== "edit") return;
+    expect(Object.keys(p.fields)).toEqual(["all_day"]);
+    expect(p.fields.all_day).toBe(false);
+    expect(p.affectsVerification).toBe(false);
+    expect(p.newKey).toBeNull();
+  });
+
+  it("re-running the file is a no-op once the flag matches", () => {
+    const fixed = row({ ...cedar(), start_local: "2026-11-10T19:30", all_day: false });
+    expect(planCorrection(fixed, base({ id: fixed.id, start: "2026-11-10T19:30" })).kind).toBe("nothing");
+  });
+
+  it("nextValue writes a false flag rather than coalescing it away", () => {
+    expect(nextValue({ all_day: false }, cedar(), "all_day")).toBe(false);
+    expect(nextValue({}, cedar(), "all_day")).toBe(true);
+  });
+});
+
 describe("nextValue — presence decides, never the value", () => {
   /**
    * The bug this exists to stop: `npm run correct` could NEVER clear an end
@@ -660,9 +740,13 @@ describe("the script actually uses it — tripwire on scripts/apply-correction.t
   });
 
   it("reads every column through nextValue, never through `?? row.`", () => {
-    for (const col of ["title", "venue", "city", "address", "source_url", "lat", "lng", "status"]) {
+    for (const col of ["title", "venue", "city", "address", "source_url", "lat", "lng", "status", "all_day"]) {
       expect(update, col).toContain(`nextValue(f, row, "${col}")`);
     }
+    // And the row the plan compares against has to carry the flag, or every
+    // plan would see `undefined` and write the derived value on every edit.
+    expect(src).toMatch(/as start_local,\s*all_day,/);
+    expect(update).toMatch(/all_day\s*=\s*\$\{nextValue\(f, row, "all_day"\)/);
     // The shape that could not tell "clear this" from "not mentioned":
     // coalescing a PLAN FIELD, whose absence and whose null mean different
     // things. `plan.newKey ?? row.event_key` is deliberately still here and is

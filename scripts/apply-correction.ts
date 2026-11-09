@@ -75,6 +75,7 @@ async function main() {
   const rows = await sql<CorrectionRow[]>`
     select id::text as id, event_key, title, venue, city, address, source_url, description,
            to_char(start_at at time zone 'America/Chicago', 'YYYY-MM-DD"T"HH24:MI') as start_local,
+           all_day,
            to_char(end_at   at time zone 'America/Chicago', 'YYYY-MM-DD"T"HH24:MI') as end_local,
            to_char(multi_day_end at time zone 'America/Chicago', 'YYYY-MM-DD') as multi_day_end,
            lat::float as lat, lng::float as lng, status
@@ -176,6 +177,7 @@ async function main() {
           lat        = ${nextValue(f, row, "lat")},
           lng        = ${nextValue(f, row, "lng")},
           start_at   = (${nextValue(f, row, "start_local") as string}::text::timestamp at time zone 'America/Chicago'),
+          all_day    = ${nextValue(f, row, "all_day") as boolean},
           end_at     = ${
             endLocal === null
               ? null

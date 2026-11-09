@@ -341,3 +341,22 @@ export function isUpcoming(ev: EventRecord, now: Date): boolean {
 export function timeLabel(ev: Pick<EventRecord, "start" | "allDay">): string {
   return ev.allDay ? "All day" : fmtTime(ev.start);
 }
+
+/**
+ * Is this Chicago wall clock (`YYYY-MM-DDTHH:MM`) a date with no time of day?
+ *
+ * THE ONE RULE, and midnight is the whole of it: an agent's explicit 00:00 is a
+ * date-only answer wearing a clock (`normalizeAgentTime`), a venue importer
+ * writes 00:00 when the calendar prints no time, and `timeLabel` above prints
+ * "All day" off the flag those set. Two writers that skipped it put the flag
+ * out of step with the clock: on 9 Nov 2026 the correction tool gave 20 rows a
+ * show time and left them reading "All day", and the collapse kept a date-only
+ * re-find over the timed row it duplicated. Both now ask this function.
+ *
+ * Lives here because lib/multiday.ts imports this module, and lib/time-integrity.ts
+ * imports lib/seo/event-jsonld.ts, which imports lib/multiday.ts — a cycle.
+ */
+export function isDateOnlyWallClock(wallClock: string): boolean {
+  const clock = wallClock.slice(11, 16);
+  return clock === "" || clock === "00:00";
+}

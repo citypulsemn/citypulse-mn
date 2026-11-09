@@ -41,8 +41,26 @@ describe("dedupeNearDuplicates (R0.3) — same-day means the same CHICAGO day", 
     expect(body).not.toMatch(/a\.start_at::date = b\.start_at::date/);
   });
 
-  it("survivorship is earliest-seen (created_at), not a UUID coin flip", () => {
-    expect(body).toContain("(a.created_at, a.id) < (b.created_at, b.id)");
+  it("survivorship: a timed row over a thin one, then earliest-seen, never a UUID coin flip", () => {
+    expect(body).toContain("(a.thin, a.created_at, a.id) < (b.thin, b.created_at, b.id)");
+    expect(body).not.toContain("on (a.created_at, a.id) < (b.created_at, b.id)");
+  });
+
+  it("thin means midnight AND single-day, so a curated run card is never thin", () => {
+    // The midnight half is isDateOnlyWallClock (lib/dates.ts) in SQL; the span
+    // half reads the TRUE span, multi_day_end first, like archivePastEvents.
+    expect(body).toMatch(/\(start_at at time zone 'America\/Chicago'\)::time = time '00:00'/);
+    expect(body).toMatch(
+      /coalesce\(multi_day_end, end_at, start_at\) at time zone 'America\/Chicago'\)::date\s*= \(start_at at time zone 'America\/Chicago'\)::date\) as thin/,
+    );
+  });
+
+  it("a draft and a published row never pair (9 Nov 2026: a hidden row archived a live one)", () => {
+    expect(body).toContain("and a.status = b.status");
+    // Both sides come from the one candidate set, so the old per-side filters
+    // are gone rather than left to disagree with it.
+    expect(body).not.toContain("a.status in ('published', 'draft')");
+    expect(body).toMatch(/from cand a\s+join cand b/);
   });
 
   it("keepers are anchored: a row archived this pass can't justify another archive", () => {
@@ -73,8 +91,18 @@ describe("getDuplicatePairs (admin view) — same R0.3 predicate", () => {
 
   it("matches the dedupe's Chicago-day and survivorship semantics", () => {
     expect(body).toContain("(a.start_at at time zone 'America/Chicago')::date");
-    expect(body).toContain("(a.created_at, a.id) < (b.created_at, b.id)");
+    expect(body).toContain("(a.thin, a.created_at, a.id) < (b.thin, b.created_at, b.id)");
+    expect(body).toContain("and a.status = b.status");
     expect(body).not.toMatch(/a\.start_at::date = b\.start_at::date/);
+  });
+
+  it("derives thin exactly as the dedupe does, so keep/dup labels cannot drift", () => {
+    const thin = (s: string) => {
+      const m = s.match(/\(\(start_at at time zone[\s\S]*?as thin/);
+      expect(m, "thin expression found").not.toBeNull();
+      return m![0].replace(/\s+/g, " ");
+    };
+    expect(thin(body)).toBe(thin(fnBody("dedupeNearDuplicates")));
   });
 });
 

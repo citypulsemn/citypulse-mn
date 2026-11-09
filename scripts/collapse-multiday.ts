@@ -26,9 +26,9 @@ async function main() {
   if (!sql) throw new Error("DATABASE_URL is required");
 
   const rows = await sql<
-    { id: string; title: string; city: string; category: string; start: string; end_day: string | null }[]
+    { id: string; title: string; city: string; category: string; status: string; start: string; end_day: string | null }[]
   >`
-    select id::text as id, title, city, category,
+    select id::text as id, title, city, category, status,
            to_char(start_at at time zone 'America/Chicago', 'YYYY-MM-DD"T"HH24:MI') as start,
            to_char(multi_day_end at time zone 'America/Chicago', 'YYYY-MM-DD') as end_day
     from events

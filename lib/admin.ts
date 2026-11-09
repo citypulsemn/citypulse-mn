@@ -167,17 +167,28 @@ export async function getAdminEvents(opts: {
 
 export async function getDuplicatePairs(): Promise<DupPair[]> {
   if (!sql) return [];
+  // Keep/dup labels follow dedupeNearDuplicates (lib/upsert.ts): same status
+  // only, and a thin (date-only, single-day) row is never the keeper over a
+  // timed one. Change the two together.
   return await sql<DupPair[]>`
+    with cand as (
+      select id, title, venue, status, start_at, created_at,
+             ((start_at at time zone 'America/Chicago')::time = time '00:00'
+              and (coalesce(multi_day_end, end_at, start_at) at time zone 'America/Chicago')::date
+                  = (start_at at time zone 'America/Chicago')::date) as thin
+      from events
+      where status in ('published','draft')
+    )
     select
       a.id::text as keep_id, b.id::text as dup_id,
       a.title as keep_title, b.title as dup_title,
       a.venue as keep_venue, b.venue as dup_venue,
       to_char(a.start_at at time zone 'America/Chicago', 'Mon DD') as day,
       round(similarity(a.title, b.title)::numeric, 2)::float8 as sim
-    from events a
-    join events b
-      on (a.created_at, a.id) < (b.created_at, b.id)
-     and a.status in ('published','draft') and b.status in ('published','draft')
+    from cand a
+    join cand b
+      on (a.thin, a.created_at, a.id) < (b.thin, b.created_at, b.id)
+     and a.status = b.status
      -- R0.3: same-day means the same CHICAGO day (bare ::date casts in the
      -- session zone, UTC — evening games paired across real days).
      and (a.start_at at time zone 'America/Chicago')::date
