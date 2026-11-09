@@ -348,10 +348,13 @@ export function timeLabel(ev: Pick<EventRecord, "start" | "allDay">): string {
  * THE ONE RULE, and midnight is the whole of it: an agent's explicit 00:00 is a
  * date-only answer wearing a clock (`normalizeAgentTime`), a venue importer
  * writes 00:00 when the calendar prints no time, and `timeLabel` above prints
- * "All day" off the flag those set. Two writers that skipped it put the flag
- * out of step with the clock: on 9 Nov 2026 the correction tool gave 20 rows a
- * show time and left them reading "All day", and the collapse kept a date-only
- * re-find over the timed row it duplicated. Both now ask this function.
+ * "All day" off the flag those set. Writers that skipped it put the flag out of
+ * step with the clock: on 9 Nov 2026 the correction tool gave 20 rows a show
+ * time and left them reading "All day" (the /admin edit form and
+ * scripts/restore-drafted.ts had the same gap), and the collapse kept a
+ * date-only re-find over the timed row it duplicated. All of them now ask this
+ * function, and corrections.test.ts fails any UPDATE of start_at that does not
+ * also say what all_day becomes.
  *
  * Lives here because lib/multiday.ts imports this module, and lib/time-integrity.ts
  * imports lib/seo/event-jsonld.ts, which imports lib/multiday.ts — a cycle.

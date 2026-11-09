@@ -25,6 +25,7 @@ import { revalidateAndReport } from "../lib/revalidate-client";
 import {
   planCorrection,
   describePlan,
+  duplicateIds,
   nextValue,
   validateCorrection,
   type Correction,
@@ -59,13 +60,16 @@ async function main() {
   const corrections: Correction[] = Array.isArray(parsed) ? parsed : [parsed as Correction];
 
   let refused = 0;
+  const twice = new Set(duplicateIds(corrections));
   const bad = corrections.flatMap((c) => {
-    const why = validateCorrection(c);
+    const why = twice.has(c.id)
+      ? "named more than once in this file — the later entry would write the earlier one's old values back; merge them"
+      : validateCorrection(c);
     return why ? [{ id: c.id ?? "(no id)", why }] : [];
   });
   for (const b of bad) console.error(`[correct] ✗ ${b.id} — ${b.why}`);
   refused += bad.length;
-  const usable = corrections.filter((c) => validateCorrection(c) === null);
+  const usable = corrections.filter((c) => !twice.has(c.id) && validateCorrection(c) === null);
   if (usable.length === 0) {
     console.error("[correct] nothing usable in that file.");
     process.exitCode = 1;

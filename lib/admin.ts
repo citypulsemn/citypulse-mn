@@ -167,17 +167,19 @@ export async function getAdminEvents(opts: {
 
 export async function getDuplicatePairs(): Promise<DupPair[]> {
   if (!sql) return [];
-  // Keep/dup labels follow dedupeNearDuplicates (lib/upsert.ts): same status
-  // only, and a thin (date-only, single-day) row is never the keeper over a
-  // timed one. Change the two together.
+  // Keep/dup labels follow dedupeNearDuplicates (lib/upsert.ts): live rows
+  // only, a corrected row first, then a timed row over a thin (date-only,
+  // single-day) one, then earliest-seen. Change the two together; a test holds
+  // the candidate set and the keeper order identical.
   return await sql<DupPair[]>`
     with cand as (
-      select id, title, venue, status, start_at, created_at,
+      select id, title, venue, start_at, created_at,
+             corrected_at is not null as corrected,
              ((start_at at time zone 'America/Chicago')::time = time '00:00'
               and (coalesce(multi_day_end, end_at, start_at) at time zone 'America/Chicago')::date
                   = (start_at at time zone 'America/Chicago')::date) as thin
       from events
-      where status in ('published','draft')
+      where status = 'published'
     )
     select
       a.id::text as keep_id, b.id::text as dup_id,
@@ -187,8 +189,7 @@ export async function getDuplicatePairs(): Promise<DupPair[]> {
       round(similarity(a.title, b.title)::numeric, 2)::float8 as sim
     from cand a
     join cand b
-      on (a.thin, a.created_at, a.id) < (b.thin, b.created_at, b.id)
-     and a.status = b.status
+      on (not a.corrected, a.thin, a.created_at, a.id) < (not b.corrected, b.thin, b.created_at, b.id)
      -- R0.3: same-day means the same CHICAGO day (bare ::date casts in the
      -- session zone, UTC — evening games paired across real days).
      and (a.start_at at time zone 'America/Chicago')::date

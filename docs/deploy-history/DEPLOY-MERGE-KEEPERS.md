@@ -1,110 +1,158 @@
-# Deploy: times survive merges, and hidden rows stop winning
+# Deploy: times survive merges, and hidden rows stay out of them
 
 **Date:** 9 November 2026 · **Schema:** none · **Order:** push only; no SQL to run
 
 ## What shipped
 
-- **Corrections set the "All day" flag.** When a correction gives a listing a start
-  time, `npm run correct` now writes `all_day` to match. Before, it changed the time
-  and left the flag on, so the page still printed "All day".
-- **The weekly merge keeps the row that has a time.** When the collapse step finds two
-  copies of one event on the same day, a row with a start time now beats a date-only
-  row. Before, the date-only copy often won because its title was shorter or its
-  midnight sorted first.
-- **Hidden rows and live rows are never merged.** The duplicate step and the collapse
-  step now only pair rows of the same status. Before, a hidden (draft) row could keep
-  the slot and archive the live listing beside it.
+- **Every tool that changes a start time now updates the "All day" flag.**
+  - **`npm run correct`:** when a correction gives a listing a start time, the tool
+    writes `all_day` to match. Before, it changed the time and left the flag on, so
+    the page still printed "All day".
+  - **The `/admin` edit form and `scripts/restore-drafted.ts`:** these had the same
+    gap and are fixed too.
+  - **A test now guards all of them.** It fails any statement in `lib/` or `scripts/`
+    that writes `start_at` without saying what `all_day` becomes.
+- **The weekly merge keeps the row that has a time**, once the older rules have
+  ruled. When the collapse finds two copies of one event, the order is:
+  1. the row whose span runs longest
+  2. the run's own rows over a sub-event folded into it
+  3. a row an operator corrected
+  4. **then, new:** a row with a start time over a date-only one
+  5. the shorter title
+
+  The duplicate step uses the same idea in its own order: a corrected row first, then
+  a timed row over a date-only single-day one, then the earliest found.
+- **The merge steps leave hidden rows alone.** Both now look at live listings only. A
+  hidden (draft) row can't keep a live row's slot, and it can't be archived either.
+  Archiving a hidden row would bring its event page back, which undoes a takedown.
+- **A correction file that names one listing twice is refused** for that listing. The
+  second entry would have quietly written the first one's old values back.
 
 ## Why
 
-Sunday's local research run (8 Nov) hit all three:
+Sunday's local research run (8 Nov) hit three problems that paid runs share:
 
 - **20 listings showed "All day"** after the 9 Nov corrections gave them their real
-  times: 15 Cedar shows, AJ McLean, Tuffie and three market weekends. They were fixed by
-  hand the same morning (backup `2026-11-09-all-day-flag-before.json`).
-- **The fair's own Merry Market rows were archived.** A blog's "Minnesota Merry Market",
-  with no hours, became the merge parent of "…at the State Fair – Weekend 2" and
-  "Weekend 3" (10 am-4 pm, from the fair's page). It won on its shorter title, and the
-  timed rows were archived.
-- **The Plymouth book sale disappeared.** The Edina sale, hidden on 6 Nov because it
-  doesn't exist, was on the same day at the same placeholder venue, with titles 0.66
-  alike. The duplicate step kept the hidden Edina row and archived Plymouth, which then
-  showed nowhere. Run on today's data, the old query would have archived Plymouth again
-  at the next pipeline run; the new one archives nothing.
+  times: 15 Cedar shows, AJ McLean, Tuffie and three market weekends. They were fixed
+  by hand the same morning (backup `2026-11-09-all-day-flag-before.json`).
+- **The fair's own Merry Market rows were archived.** A blog's "Minnesota Merry
+  Market", with no hours, became the merge parent of the fair's "…Weekend 2" and
+  "Weekend 3" rows (10 am-4 pm). It won on its shorter title, and the timed rows were
+  archived.
+- **The Plymouth book sale disappeared.** The duplicate step kept the hidden Edina row
+  (same day, same placeholder venue, titles 0.66 alike) and archived the live Plymouth
+  sale. Run on today's data, the old query would have archived Plymouth again at the
+  next pipeline run. The new one archives nothing.
+
+The first version of this fix got through the full quality gate and still had two
+regressions. An adversarial review found them: nine agents, 22 deliberate breaks to
+the code, and a second agent trying to disprove each finding.
+
+- **A run lost to one night of itself.** A run stored as a single row with its last
+  day in `end_at` would have lost to a timed night on its first day. Twelve Kinds of
+  Ice (Oct 19 to Nov 22) has exactly that shape.
+- **A festival lost to its own sub-event.** Its date-only rows would have lost to a
+  timed sub-event folded into it, such as a fireworks night.
+
+The review also found that two hidden rows could still be paired, which could archive
+an older takedown. All of this is fixed and tested here.
 
 ## Design decisions
 
-- **One midnight rule.** `isDateOnlyWallClock` in `lib/dates.ts` is now the only
-  definition of "no time of day". `normalizeAgentTime`, the correction tool and the
-  collapse all call it, and the duplicate step's SQL spells out the same test. It lives
-  in `dates.ts` because putting it in `time-integrity.ts` would create an import loop
-  through `seo/event-jsonld.ts`.
-- **The flag follows the start, never the operator.** A correction file has no `all_day`
-  field. Stating `start` sets the flag from the clock. Stating an *unchanged* start also
-  repairs a flag that some other writer left wrong, and it leaves the verified stamp
-  alone, because the time didn't change.
-- **A curated run card still beats a timed single day.** In the collapse, the row that
-  already carries a multi-day span is still preferred first, and the timed rule only
-  breaks ties after that. Otherwise a festival card could be archived for one timed
-  night inside it.
-- **In the duplicate step, "thin" means date-only and single-day.** A row whose span
-  runs past its start day is never thin, so the same protection holds there.
-- **Status separation works both ways.** A hidden row can't archive a live one, and a
-  live row can't archive a hidden one either. Archiving a hidden row would bring its
-  event page back, which undoes a takedown.
-- **The admin duplicates page follows the same rule**, so its keep and duplicate labels
-  match what the pipeline does. A test checks that the two queries match.
+- **One midnight rule.** `isDateOnlyWallClock` in `lib/dates.ts` is the only
+  definition of "no time of day". `normalizeAgentTime`, the correction tool, the admin
+  form, `restore-drafted` and the collapse all call it. The duplicate step's SQL spells
+  out the same test. The rule lives in `dates.ts` because putting it in
+  `time-integrity.ts` would create an import loop through `seo/event-jsonld.ts`.
+- **In a correction, the flag follows the start.** A correction file has no `all_day`
+  field: stating `start` sets the flag from the clock. Stating an *unchanged* start
+  also repairs a flag that some other writer left wrong. That keeps the verified stamp,
+  because the time didn't change.
+- **The admin form can still set a genuine midnight.** A real time clears the flag,
+  and midnight leaves it as it was.
+- **`restore-drafted` only clears the flag for a confirmed time.** If the time is
+  unconfirmed, it stays hidden behind "All day".
+- **The new time rule sits below the old ones.** Span length now reads both span
+  columns, through `spanEndISO`, the site's own span rule. A sub-event folded into a
+  longer run ranks after the run's own rows. A child with the *same* dates as its parent
+  is treated as the same event under a longer title. That's the Merry Market case, so
+  the time rule decides it.
+- **Hidden rows are left out entirely** rather than kept apart by status. That's the
+  only way neither direction can archive a takedown.
+- **The admin duplicates page uses the same rules,** and a test checks that its
+  candidate set and keeper order match the duplicate step's.
 
 ## Known limits
 
 - **A time isn't a venue.** If the date-only row is actually the newer fact, the timed
   row now wins with the old venue. AJ McLean moved to the Fine Line, and this rule would
-  have kept the First Avenue row: right time, wrong room. (It's fixed in the data.)
+  have kept the First Avenue row: right time, wrong room. That row is fixed by hand.
+- **The duplicate step can still archive a run card when a timed night was found
+  first.** That's the old "earliest found" behaviour: the new rule never demotes a run
+  card, but it doesn't promote one either. The collapse step, which prefers spans,
+  runs after it and never sees the archived card.
+- **The duplicate step's date-only test is by date.** A date-only row whose end falls
+  just after midnight doesn't count, so the old rule decides for it. The collapse uses
+  the site's late-night rule, so the two steps can treat that one shape differently.
 - **The insert check still lets a hidden row block a new one.** This was **not
   changed**. Before research inserts a listing, `withoutLiveDuplicates` skips it if a
-  similar row exists, and that check includes hidden ones. Measured over 60 days: it
-  skipped 235 listings, 18 of them because of a hidden row. Some of those blocks were
-  useful, stopping re-finds of hidden fabrications such as the year-shifted Toddler
-  Music Lab rows. Others hid real events: the Nokomis book sale on 14 Nov is missing
-  because of the hidden Edina row, and a Gophers game was blocked by a hidden row for a
-  different opponent. That's a product call between keeping fabrications out and
-  keeping real events in, so it's left for Taren.
-- **Hidden duplicates of live rows now stay hidden** instead of being archived. They
-  aren't shown anywhere. They just stay in the table.
-- **Corrected rows can still be merged away** by a better duplicate. The correction lock
-  protects their fields from research, not their status from the merge steps. Not
-  requested and not changed.
+  similar row exists, and that check includes hidden ones. Over 60 days it skipped 235
+  listings, 18 of them because of a hidden row.
+  - **Useful blocks:** some stopped re-finds of hidden fabrications, such as the
+    year-shifted Toddler Music Lab rows.
+  - **Harmful blocks:** others hid real events. The Nokomis book sale on 14 Nov is
+    missing because of the hidden Edina row, and a Gophers game was blocked by a hidden
+    row for a different opponent.
+
+  That's a product call between keeping fabrications out and keeping real events in,
+  so it's left for Taren.
+- **Hidden duplicates now stay in the table** instead of being archived. They aren't
+  shown anywhere.
+- **The admin form still doesn't lock its edits.** It never sets `corrected_at`. That's
+  unchanged, and the form now at least keeps the time visible.
 - **Black Nativity (1 Dec)** is still flagged all-day with a 7:30 PM start, from an
-  older writer. Once someone confirms the time on Penumbra's page, re-state its start in
-  a correction file and the flag will follow.
+  older writer. Once someone confirms the time on Penumbra's page, re-state its start
+  in a correction file and the flag will follow.
 
 ## Tested
 
-- `npx tsc --noEmit` clean. `npm test`: 156 files, 3,348 tests, all passing. The first
-  run of the day crashed Node with a native stack trace and didn't repeat on rerun.
-  `npm audit`: 0 vulnerabilities. The build ran in a separate copy, because another
-  session's dev server shares this checkout.
+- **Type check, build and audit:** `npx tsc --noEmit` is clean. `npm run build` was
+  clean for the first round, built in a separate copy because another session's dev
+  server shares this checkout. `npm audit` found 0 vulnerabilities. The full suite
+  result is in the commit message.
+- **Review, round 1:** of the 22 breaks, the tests caught 19. Two of the three misses
+  were real gaps: the `and` joining the two halves of the date-only test, and the admin
+  page's candidate filter. Both are now pinned. The third was the bare-date case of
+  `isDateOnlyWallClock`, which now has its own test.
+- **Round 2, all caught after the fixes:**
+  - **Planner:** five deliberate breaks:
+    - span tie-break blind to `end_at`
+    - sub-event rank removed
+    - corrected rank removed
+    - hidden rows planned again
+    - every fold child marked as a sub-event
+  - **Writer guard:** the new `all_day` line removed from the admin form, then from
+    `restore-drafted`.
 - **New golden tests:**
-  - **Corrections:** a show time clears the flag; midnight sets it, matching
-    `normalizeAgentTime` at four clock times; a timed-to-timed move leaves the flag out
-    of the plan; a correction with no start never touches it; re-stating a start repairs
-    a stray flag without touching the stamp; re-running the file is a no-op.
-  - **Collapse:** the real Merry Market fold, the same-day midnight-first case, a sports
-    copy, a span card beating a timed night, the title tie-break between two date-only
-    rows, both directions of status separation, drafts still collapsing among
-    themselves, and a fold across statuses being refused.
-  - **Query checks:** the dedupe's keeper order, `thin`, same-status pairing, and the
-    admin page's `thin` text being identical to the dedupe's.
-- **Live data, read-only:** the old and new duplicate rules were run side by side as
-  SELECTs. The old rule would have archived 1 row (Plymouth), the new one 0. The
-  collapse planner has 0 actions on today's data under both. The exact
-  `dedupeNearDuplicates` statement passes `EXPLAIN` against production, which plans it
-  without running it.
+  - **Merry Market:** the real fold, with and without its stored end times.
+  - **Twelve Kinds of Ice:** the run row stored as one row keeps its slot.
+  - **Woodbury Days:** the festival keeps its card over the fireworks.
+  - **Plymouth:** the corrected row keeps its slot.
+  - **Same-day and sports copies:** the timed copy wins.
+  - **Hidden rows:** left alone in both directions and in folds.
+  - **Correction-tool flag cases:** six of them.
+  - **The writer guard and the duplicate-id refusal.**
+- **Live data, read-only:**
+  - **Planned, not run:** the exact `dedupeNearDuplicates` statement from the file
+    passes `EXPLAIN`, which plans it without running it.
+  - **As a SELECT:** the same statement would archive 0 rows today. The old rule would
+    have archived 1, the Plymouth sale.
+  - **Collapse planner:** 0 actions on today's data under both versions.
 
 ## Deploy
 
 1. Push to `main`. Vercel redeploys. The only site code that changed is the admin
-   duplicates page's query.
+   duplicates page and the admin edit form.
 2. The pipeline uses the new rules from its next run. The Sunday 7 pm scheduled task
    runs from `C:\Users\mccul\Documents\Event_Site\citypulse-mn`, so that checkout must
    contain this commit. It does if you pushed from there, or after `git pull`. GitHub's
@@ -113,24 +161,39 @@ Sunday's local research run (8 Nov) hit all three:
 
 ## Verify
 
-After Sunday's run (15 Nov), in the Supabase SQL editor:
+After Sunday's run (15 Nov), in the Supabase SQL editor. Both queries read the run's
+own start and finish times from `pipeline_runs`, so they work whenever you run them.
 
 ```sql
--- 1. Did any timed row get archived beside a date-only twin that stayed live? Expect 0 rows.
-select b.title as archived, a.title as kept, to_char(b.start_at at time zone 'America/Chicago', 'Mon DD HH24:MI') as at
-from events b
+-- 1. Timed rows archived beside a date-only twin that stayed live. Expect 0 rows.
+with run as (select started_at, finished_at from pipeline_runs where ok order by started_at desc limit 1)
+select b.title as archived, a.title as kept,
+       to_char(b.start_at at time zone 'America/Chicago', 'Mon DD HH24:MI') as at
+from run, events b
 join events a
   on a.status = 'published' and b.status = 'archived'
- and b.updated_at > now() - interval '1 day'
  and (b.start_at at time zone 'America/Chicago')::time <> '00:00'
  and (a.start_at at time zone 'America/Chicago')::time = '00:00'
  and (coalesce(a.multi_day_end, a.end_at, a.start_at) at time zone 'America/Chicago')::date
      = (a.start_at at time zone 'America/Chicago')::date
  and (a.start_at at time zone 'America/Chicago')::date = (b.start_at at time zone 'America/Chicago')::date
- and similarity(a.title, b.title) > 0.4;
+ and similarity(a.title, b.title) > 0.4
+where b.updated_at between run.started_at and run.finished_at;
 
--- 2. Is the Plymouth sale still live? (It runs 14 Nov, so check before then.)
-select status from events where id = 'ae4edde1-c9df-471d-ab2b-c1c07e77050a';
+-- 2. Upcoming listings the run archived, with the live row that covers each.
+--    Paid runs archive 27-34 a week, nearly all duplicates. Expect every row to
+--    have covered_by filled; an empty one is a listing that vanished — check it.
+with run as (select started_at, finished_at from pipeline_runs where ok order by started_at desc limit 1)
+select b.title, to_char(b.start_at at time zone 'America/Chicago', 'Mon DD HH24:MI') as at,
+  (select string_agg(a.title, ' / ') from events a
+    where a.status = 'published' and similarity(a.title, b.title) > 0.4
+      and (a.start_at at time zone 'America/Chicago')::date <= (b.start_at at time zone 'America/Chicago')::date
+      and (coalesce(a.multi_day_end, a.end_at, a.start_at) at time zone 'America/Chicago')::date
+          >= (b.start_at at time zone 'America/Chicago')::date) as covered_by
+from run, events b
+where b.status = 'archived' and b.updated_at between run.started_at and run.finished_at
+  and coalesce(b.multi_day_end, b.end_at, b.start_at) > now()
+order by b.start_at;
 ```
 
 Correction tool, without writing anything. Save this as `check.json` and run
@@ -146,7 +209,7 @@ has been checked on Penumbra's page.
 
 ## Rollback
 
-`git revert <this commit>` and push. Nothing changed in the schema, and no data was
+`git revert` both commits and push. Nothing changed in the schema, and no data was
 migrated. A row that the new rules kept where the old ones would have archived it (or
 the other way round) can be fixed with a normal correction: `archive: true`, or
 `publish: true` with evidence.

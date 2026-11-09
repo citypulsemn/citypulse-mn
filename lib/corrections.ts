@@ -336,6 +336,23 @@ export function validateCorrection(c: Correction): string | null {
 }
 
 /**
+ * Ids named more than once in one correction file.
+ *
+ * Every plan is made against ONE snapshot of the row, read before anything is
+ * written, and the UPDATE writes every column through `nextValue`, falling back
+ * to that snapshot. So a second entry for the same id writes the first entry's
+ * OLD values back: `{start}` then `{source_url}` ends with the old start and,
+ * since 9 Nov 2026, the old "All day" flag, while the log reports both as
+ * applied. The script refuses every entry for such an id; merge them into one.
+ */
+export function duplicateIds(corrections: Pick<Correction, "id">[]): string[] {
+  const seen = new Set<string>();
+  const twice = new Set<string>();
+  for (const c of corrections) (seen.has(c.id) ? twice : seen).add(c.id);
+  return [...twice];
+}
+
+/**
  * What this correction would do to this row. Reports `nothing` when the row
  * already matches — re-running a correction file must be a no-op, not a second
  * audit row claiming a change.

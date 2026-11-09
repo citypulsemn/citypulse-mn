@@ -5,6 +5,7 @@ import { sql } from "./db";
 import { assertAdmin, logAudit, parseEventPatch } from "./admin";
 import { markReportReviewed } from "./event-reports";
 import { normalizeTier, computeEventKey } from "./event-key";
+import { isDateOnlyWallClock } from "./dates";
 import { EVENTS_TAG } from "./events";
 
 function requireDb() {
@@ -116,6 +117,10 @@ export async function updateEvent(formData: FormData) {
       venue       = ${p.venue},
       city        = ${p.city},
       start_at    = (${p.start}::text::timestamp at time zone 'America/Chicago'),
+      -- A real time clears "All day" (lib/dates.ts timeLabel reads the flag alone).
+      -- Midnight leaves the flag as it was, so this form can still set a genuine
+      -- midnight start on a timed row — the escape normalizeAgentTime points to.
+      all_day     = all_day and ${isDateOnlyWallClock(p.start)},
       end_at      = ${p.end ? db`(${p.end}::text::timestamp at time zone 'America/Chicago')` : null},
       price       = ${p.price},
       price_tier  = ${normalizeTier(p.price)},

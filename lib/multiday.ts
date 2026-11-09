@@ -188,11 +188,19 @@ export interface CollapseRow {
   /** Day part of an existing multi_day_end span, when the row has one. */
   endDay?: string | null;
   /**
-   * 'published' or 'draft'. Rows of different status never share a cluster, so
-   * a hidden row can neither keep the slot of a live one (the live one would be
-   * archived and the event would render nowhere) nor be archived by one (an
-   * archived row serves its event page again, which undoes a takedown).
-   * Required so a caller cannot forget it and quietly mix the two.
+   * The row's own end_at, Chicago wall clock, or null — the other place a span
+   * lives. The pipeline never writes multi_day_end, so a run inserted as one row
+   * carries its last day here (Twelve Kinds of Ice, Oct 19 → Nov 22). Read ONLY
+   * when choosing a keeper; clustering still runs on `endDay` alone.
+   */
+  end: string | null;
+  /** corrected_at is set: an operator fixed this row by hand. */
+  corrected: boolean;
+  /**
+   * Only 'published' rows are planned at all. A hidden row must not keep a live
+   * row's slot (the live one is archived and the event renders nowhere), and it
+   * must not be archived either: an archived row serves its event page again,
+   * which undoes a takedown. Required so no caller can forget to pass it.
    */
   status: string;
 }
@@ -212,7 +220,6 @@ export interface CollapseAction {
 interface CollapseCluster {
   titleKey: string;
   cityKey: string;
-  status: string;
   sports: boolean;
   rows: CollapseRow[];
   startNum: number;
@@ -225,6 +232,17 @@ function rowEndNum(row: CollapseRow): number {
     return Math.floor(new Date(`${row.endDay}T12:00:00Z`).getTime() / DAY_MS);
   }
   return startNum;
+}
+
+/**
+ * The last day a row runs by EITHER span column, through the site's own span
+ * rule (`spanEndISO`, late-night carve-out included). For choosing a keeper only:
+ * `rowEndNum` above sees multi_day_end alone, so a run carried in end_at read as
+ * one day and lost its slot to a single timed night of itself.
+ */
+function keeperEndNum(row: CollapseRow): number {
+  const last = spanEndISO({ start: row.start, multiDayEnd: row.endDay ?? null, end: row.end });
+  return dayNumber(last ?? row.start);
 }
 
 /** Proper word-prefix: "minnesota state fair" extends to "minnesota state fair llama…". */
@@ -243,27 +261,28 @@ function isWordPrefix(shorter: string, longer: string): boolean {
  *  - Parent-child fold requires the child's ENTIRE interval inside the
  *    parent's span — a sub-event dated outside the festival's run stays live
  *    (conservative floor; the verify pass owns the ambiguous ones).
- *  - A published row and a draft never meet: see CollapseRow.status.
- *  - Survivor = earliest start DAY; ties prefer the row that already carries the
- *    curated span, then a row that knows its time over a date-only one, then
- *    the shorter (cleaner) title.
+ *  - Hidden rows are never planned: see CollapseRow.status.
+ *  - Survivor = earliest start DAY; ties prefer the row whose span runs
+ *    longest (either column), then the run's own rows over a sub-event folded
+ *    into it, then an operator-corrected row, then a row that knows its time
+ *    over a date-only one, then the shorter (cleaner) title.
  *  - Spans only ever EXTEND (never shrink), from attested rows only.
  */
 export function planCollapse(rows: CollapseRow[]): CollapseAction[] {
-  // 1 — same-key interval clustering (span-aware groupRuns), one status at a time.
+  // 1 — same-key interval clustering (span-aware groupRuns), live rows only.
   const byKey = new Map<string, CollapseRow[]>();
   for (const row of rows) {
-    const k = `${runKey(row)}|${row.status}`;
+    if (row.status !== "published") continue;
+    const k = runKey(row);
     (byKey.get(k) ?? byKey.set(k, []).get(k)!).push(row);
   }
 
   let clusters: CollapseCluster[] = [];
-  for (const list of byKey.values()) {
+  for (const [key, list] of byKey) {
     const sorted = [...list].sort(
       (a, b) => a.start.localeCompare(b.start) || rowEndNum(a) - rowEndNum(b),
     );
-    const [titleKey, cityKey] = runKey(sorted[0]).split("|");
-    const status = sorted[0].status;
+    const [titleKey, cityKey] = key.split("|");
     const perNight = sorted.some((r) => PER_NIGHT.has(r.category ?? ""));
     let current: CollapseRow[] = [];
     let curStart = 0;
@@ -271,7 +290,7 @@ export function planCollapse(rows: CollapseRow[]): CollapseAction[] {
 
     const flush = () => {
       if (current.length > 0)
-        clusters.push({ titleKey, cityKey, status, sports: perNight, rows: current, startNum: curStart, endNum: curEnd });
+        clusters.push({ titleKey, cityKey, sports: perNight, rows: current, startNum: curStart, endNum: curEnd });
     };
 
     for (const row of sorted) {
@@ -301,13 +320,15 @@ export function planCollapse(rows: CollapseRow[]): CollapseAction[] {
   // chains land in their ultimate parent.
   const folded = new Set<CollapseCluster>();
   const foldKinds = new Map<CollapseCluster, boolean>();
+  // Rows of a child that sits STRICTLY inside its parent's run: a sub-event.
+  const subEventIds = new Set<string>();
   const children = [...clusters].sort((a, b) => b.titleKey.length - a.titleKey.length);
   for (const child of children) {
     if (child.sports || folded.has(child)) continue;
     let parent: CollapseCluster | null = null;
     for (const cand of clusters) {
       if (cand === child || cand.sports || folded.has(cand)) continue;
-      if (cand.cityKey !== child.cityKey || cand.status !== child.status) continue;
+      if (cand.cityKey !== child.cityKey) continue;
       const [a, b] = [cand.titleKey, child.titleKey];
       const related = isWordPrefix(a, b) || isWordPrefix(b, a);
       if (!related) continue;
@@ -327,6 +348,14 @@ export function planCollapse(rows: CollapseRow[]): CollapseAction[] {
       }
     }
     if (parent) {
+      // A child inside a LONGER run is a sub-event (the fireworks night of a
+      // three-day festival) and must never become the run's card. A child with
+      // the same interval is the same event under a longer title (the fair's own
+      // "…Weekend 2" beneath a blog's "Minnesota Merry Market"), so the ordinary
+      // keeper rules decide between them.
+      if (child.startNum > parent.startNum || child.endNum < parent.endNum) {
+        for (const r of child.rows) subEventIds.add(r.id);
+      }
       parent.rows.push(...child.rows);
       folded.add(child);
       foldKinds.set(parent, true);
@@ -340,14 +369,19 @@ export function planCollapse(rows: CollapseRow[]): CollapseAction[] {
     const rowsSorted = [...cluster.rows].sort(
       (a, b) =>
         dayOf(a.start).localeCompare(dayOf(b.start)) ||
-        rowEndNum(b) - rowEndNum(a) || // ties: the row already carrying a span
+        keeperEndNum(b) - keeperEndNum(a) || // ties: the row whose span runs longest
+        Number(subEventIds.has(a.id)) - Number(subEventIds.has(b.id)) || // the run's own rows
+        Number(b.corrected) - Number(a.corrected) || // a row an operator corrected
         // then the row that knows its time. Without this a date-only re-find won
         // whenever its title was shorter or its 00:00 sorted first, and the timed
         // row it duplicated was archived: on 8 Nov 2026 a blog's "Minnesota Merry
         // Market" folded the fair's own Weekend 2 and 3 rows and took away their
-        // 10-4 hours. The limit: a time is not a venue. When the date-only row is
-        // the newer fact (AJ McLean moved to the Fine Line the same night), this
-        // keeps the stale room with the right time.
+        // 10-4 hours. It sits BELOW the three rules above, which is what keeps a
+        // run card, a festival's own rows and a corrected row from losing to one
+        // timed night (the first draft of this rule did all three; review, 9 Nov).
+        // The limit: a time is not a venue. When the date-only row is the newer
+        // fact (AJ McLean moved to the Fine Line the same night), this keeps the
+        // stale room with the right time.
         Number(isDateOnlyWallClock(a.start)) - Number(isDateOnlyWallClock(b.start)) ||
         a.title.length - b.title.length, // then the cleaner title
     );

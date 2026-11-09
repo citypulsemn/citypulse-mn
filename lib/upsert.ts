@@ -422,10 +422,11 @@ export async function markCancelled(eventKeys: string[]): Promise<number> {
 /**
  * Collapse near-duplicates that string-based keys miss — the same real event
  * listed with a slightly different title or venue spelling ("Como Park" vs
- * "Como Regional Park", "Fest" vs "Fest 2026"). Two events of the same status on
- * the SAME day, within ~250m of each other, with similar titles are treated as
- * one: a row that knows its time is kept over a date-only one, then the
- * earliest-seen, and the others archived (recoverable, not deleted).
+ * "Como Regional Park", "Fest" vs "Fest 2026"). Two LIVE events on the SAME day,
+ * within ~250m of each other, with similar titles are treated as one: an
+ * operator-corrected row is kept first, then a row that knows its time over a
+ * date-only one, then the earliest-seen, and the others archived (recoverable,
+ * not deleted). Hidden rows are never touched.
  *
  * Uses coordinates (which don't lie about location) plus pg_trgm title
  * similarity, so it catches what normalization can't — without re-keying data.
@@ -444,33 +445,39 @@ export async function dedupeNearDuplicates(): Promise<number> {
   //    can't be the reason another row dies (stops chained pairs archiving a
   //    row >250 m from its actual survivor; the rare unmatched tail of a
   //    chain survives to the next run rather than guessing).
-  // And two more, 9 Nov 2026:
-  //  - A draft and a published row never pair. Either could be the keeper, so
-  //    a HIDDEN row archived a live one: the Edina book sale, hidden as a
-  //    fabrication on 6 Nov, kept the slot and archived the real Plymouth sale
-  //    (same placeholder venue, same day, titles 0.66 alike), which then
-  //    rendered nowhere. The other direction is no better: an archived row
-  //    serves its event page again, which undoes a takedown. Same rule as
-  //    CollapseRow.status in lib/multiday.ts.
-  //  - A thin row, date-only and single-day, loses to one that knows its time,
-  //    and only then does earliest-seen decide. `thin` is the midnight rule in
-  //    isDateOnlyWallClock (lib/dates.ts); a row carrying a multi-day span is
-  //    never thin, so a curated run card is not archived for one timed day.
+  // And three more, 9 Nov 2026:
+  //  - Live rows only. Drafts used to pair too, so a HIDDEN row archived a live
+  //    one: the Edina book sale, hidden as a fabrication on 6 Nov, kept the slot
+  //    and archived the real Plymouth sale (same placeholder venue, same day,
+  //    titles 0.66 alike), which then rendered nowhere. And archiving a hidden
+  //    row serves its event page again, which undoes a takedown — so two hidden
+  //    rows are left alone as well. Same rule as CollapseRow.status.
+  //  - An operator-corrected row is kept first; the correction lock protects its
+  //    fields from research, and this protects the row itself.
+  //  - A thin row, date-only and single-day, then loses to one that knows its
+  //    time, and only after that does earliest-seen decide. `thin` is the
+  //    midnight rule in isDateOnlyWallClock (lib/dates.ts), and its span half
+  //    is by DATE, without the late-night carve-out in spanEndISO: a date-only
+  //    row ending after midnight counts as not thin, which only means the old
+  //    earliest-seen rule decides for it. A row with a multi-day span is never
+  //    thin, so this rule never demotes a run card — but earliest-seen still can,
+  //    when a timed night of the run was found first. That is the old behaviour,
+  //    and the collapse that runs next never sees the archived card.
   const res = await sql`
     with cand as (
-      select id, title, venue, lat, lng, status, start_at, created_at,
+      select id, title, venue, lat, lng, start_at, created_at,
+             corrected_at is not null as corrected,
              ((start_at at time zone 'America/Chicago')::time = time '00:00'
               and (coalesce(multi_day_end, end_at, start_at) at time zone 'America/Chicago')::date
                   = (start_at at time zone 'America/Chicago')::date) as thin
       from events
-      where status in ('published', 'draft')
+      where status = 'published'
     ),
     pairs as (
       select a.id as keep_id, b.id as dup_id
       from cand a
       join cand b
-        on (a.thin, a.created_at, a.id) < (b.thin, b.created_at, b.id)
-       and a.status = b.status
+        on (not a.corrected, a.thin, a.created_at, a.id) < (not b.corrected, b.thin, b.created_at, b.id)
        and (a.start_at at time zone 'America/Chicago')::date
            = (b.start_at at time zone 'America/Chicago')::date
        and similarity(a.title, b.title) > 0.6
@@ -503,7 +510,7 @@ export async function dedupeNearDuplicates(): Promise<number> {
       select dup_id from pairs
       where keep_id not in (select dup_id from pairs)
     )
-      and status in ('published', 'draft')
+      and status = 'published'
   `;
   return res.count;
 }
@@ -534,10 +541,14 @@ export async function collapseMultiDayRuns(): Promise<{
   // invisible to clustering and every new "Weekend V"-style row survives
   // (the 2026-07-20 duplicate wave). planCollapse clusters on full spans.
   const rows = await sql<
-    { id: string; title: string; city: string; category: string; status: string; start: string; end_day: string | null }[]
+    {
+      id: string; title: string; city: string; category: string; status: string; corrected: boolean;
+      start: string; end: string | null; end_day: string | null;
+    }[]
   >`
-    select id::text as id, title, city, category, status,
+    select id::text as id, title, city, category, status, corrected_at is not null as corrected,
            to_char(start_at at time zone 'America/Chicago', 'YYYY-MM-DD"T"HH24:MI') as start,
+           to_char(end_at at time zone 'America/Chicago', 'YYYY-MM-DD"T"HH24:MI') as end,
            to_char(multi_day_end at time zone 'America/Chicago', 'YYYY-MM-DD') as end_day
     from events
     where status in ('published', 'draft')

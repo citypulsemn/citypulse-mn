@@ -4,11 +4,13 @@ import {
   validateCorrection,
   describePlan,
   nextValue,
+  duplicateIds,
   LOCKED_BY_CORRECTION,
   type Correction,
   type CorrectionRow,
 } from "../corrections";
-import { readFileSync } from "node:fs";
+import { isDateOnlyWallClock } from "../dates";
+import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { computeEventKey } from "../event-key";
 import { isAggregatorSource, isNonScheduleSource } from "../source-trust";
@@ -654,6 +656,67 @@ describe("all_day — the flag follows the clock", () => {
   it("nextValue writes a false flag rather than coalescing it away", () => {
     expect(nextValue({ all_day: false }, cedar(), "all_day")).toBe(false);
     expect(nextValue({}, cedar(), "all_day")).toBe(true);
+  });
+
+  it("a date with no clock at all is date-only, by the same rule", () => {
+    // Every caller passes a full wall clock today; this pins the bare-date case
+    // a review mutation could delete unnoticed.
+    expect(isDateOnlyWallClock("2026-11-10")).toBe(true);
+    expect(isDateOnlyWallClock("2026-11-10T00:00")).toBe(true);
+    expect(isDateOnlyWallClock("2026-11-10T00:01")).toBe(false);
+    expect(isDateOnlyWallClock("2026-11-10T19:30")).toBe(false);
+  });
+});
+
+describe("every writer of start_at keeps all_day in step", () => {
+  /**
+   * The site prints "All day" off the flag alone, so any UPDATE that moves
+   * start_at without saying what all_day becomes can leave a real time hidden.
+   * On 9 Nov 2026 three writers did: this tool, the /admin edit form and
+   * scripts/restore-drafted.ts. This walks lib/ and scripts/ for every
+   * `start_at = (…)` or `start_at = case` and requires an `all_day =` in the
+   * same SQL template. A new writer that forgets fails here.
+   */
+  const root = join(__dirname, "..", "..");
+  const files: string[] = [];
+  const walk = (dir: string) => {
+    for (const name of readdirSync(dir)) {
+      const p = join(dir, name);
+      if (name === "__tests__" || name === "node_modules") continue;
+      if (statSync(p).isDirectory()) walk(p);
+      else if (/\.tsx?$/.test(name)) files.push(p);
+    }
+  };
+  walk(join(root, "lib"));
+  walk(join(root, "scripts"));
+  const writers = files.flatMap((f) => {
+    const src = readFileSync(f, "utf8");
+    return [...src.matchAll(/\bstart_at\s*=\s*(\(|case\b)/g)].map((m) => {
+      const end = src.indexOf("`", m.index);
+      return { where: `${f.slice(root.length + 1)}@${m.index}`, statement: src.slice(m.index, end === -1 ? undefined : end) };
+    });
+  });
+
+  it("finds the writers at all", () => {
+    // upsert, apply-correction, admin-actions, import-sports, restore-drafted.
+    expect(writers.length).toBeGreaterThanOrEqual(5);
+  });
+
+  it("each one writes all_day in the same statement", () => {
+    for (const w of writers) expect(w.statement, w.where).toMatch(/\ball_day\s*=/);
+  });
+});
+
+describe("duplicateIds — one row named twice in one file", () => {
+  it("finds the repeat, once, and nothing else", () => {
+    expect(duplicateIds([{ id: "a" }, { id: "b" }, { id: "a" }, { id: "a" }])).toEqual(["a"]);
+    expect(duplicateIds([{ id: "a" }, { id: "b" }])).toEqual([]);
+  });
+
+  it("the script refuses every entry for such an id before planning", () => {
+    const src = readFileSync(join(__dirname, "..", "..", "scripts", "apply-correction.ts"), "utf8");
+    expect(src).toContain("const twice = new Set(duplicateIds(corrections));");
+    expect(src).toMatch(/usable = corrections\.filter\(\(c\) => !twice\.has\(c\.id\) && validateCorrection\(c\) === null\)/);
   });
 });
 
