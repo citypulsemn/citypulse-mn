@@ -205,7 +205,12 @@ November. Rationale and the measured numbers:
   them by 10.5km. `npx tsx scripts/places-coord-audit.ts` re-checks every row
   against its own published address using two independent geocoders; it writes
   nothing, and a disagreement is a question for a human, not a verdict. See
-  `docs/deploy-history/DEPLOY-PLACES-COORD-AUDIT.md`.
+  `docs/deploy-history/DEPLOY-PLACES-COORD-AUDIT.md`. **For a park amenity the
+  address is the wrong reference:** on 9 Nov 2026, 191 of 235 beach, splash-pad,
+  sledding, disc-golf, dog-park, nature-center and park pins measured more than
+  150 m from the amenity on the 2025 aerial photo, and a zero-padded `45.3350`
+  passes the 4-decimal guard. Numbers and proposed points:
+  `docs/PLACES-PIN-AUDIT-NOV-2026.md`.
 - **A new kind:** add it to `PlaceKind` + `KIND_META`, seed entries, and
   (optionally) a `PLACES_KIND_INTRO`. The index and kind pages pick it up
   automatically once it has entries; add it to the winter/summer season as
