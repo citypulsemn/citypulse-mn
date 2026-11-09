@@ -3,6 +3,7 @@ import { weeklyPicks } from "@/lib/content/weekly-picks";
 import { captionFor, weeklyCaptionFor, placeCaptionFor, collectionCaptionFor } from "@/lib/content/templates";
 import { placeOfTheWeek } from "@/lib/places";
 import { getCollection, selectCollection } from "@/lib/collections";
+import { chiDayKey } from "@/lib/clock";
 import { CopyButton } from "@/components/admin/CopyButton";
 
 export const dynamic = "force-dynamic";
@@ -73,7 +74,7 @@ export default async function AdminContentPage() {
         <CardBlock
           title={ftfCollection.title}
           cardUrl={`/content/collection/${ftfCollection.slug}`}
-          caption={collectionCaptionFor(ftfCollection, ftfSample)}
+          caption={collectionCaptionFor(ftfCollection, ftfSample, chiDayKey(now))}
           downloadName="citypulse-food-trucks.png"
         />
       )}

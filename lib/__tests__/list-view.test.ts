@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { groupEventsByDay, soonestFirstThenRuns } from "../list-view";
+import { groupEventsByDay, planListView, soonestFirstThenRuns } from "../list-view";
 import type { EventRecord } from "../types";
 
 function ev(id: string, start: string, overrides: Partial<EventRecord> = {}): EventRecord {
@@ -164,5 +164,73 @@ describe("soonestFirstThenRuns — one ordering for every card surface (6 Nov 20
 
   it("an empty list yields an empty list", () => {
     expect(soonestFirstThenRuns([], W0)).toEqual([]);
+  });
+});
+
+describe("soonestFirstThenRuns — the map list and the list view must agree (8 Nov 2026)", () => {
+  const run = (id: string, start: string, end: string) =>
+    ev(id, start, { category: "arts", multiDayEnd: end });
+
+  it("an explicit todayKey keeps the split identical to planListView's", () => {
+    // The map's month view opens on the 1st, which can be BEFORE today, and a
+    // date-picked range can open after it. ListView is handed windowStartKey
+    // and todayKey separately; the map list is handed the SAME array, so it
+    // has to ask the same question or the two halves of one screen disagree.
+    const windowStartKey = "2026-07-20";
+    const todayKey = "2026-07-13";
+    const mid = run("mid", "2026-07-15T10:00", "2026-07-25T17:00");
+
+    const plan = planListView([mid], windowStartKey, todayKey, 10);
+    expect(plan.ongoing).toEqual([]); // it has not started yet — it is dated
+    expect(plan.days.flatMap((g) => g.events).map((e) => e.id)).toEqual(["mid"]);
+
+    // Letting todayKey default to the window start answers a different
+    // question — "was it underway when the window opened" — and calls the same
+    // row already-running. That is the divergence the parameter exists to stop.
+    expect(planListView([mid], windowStartKey, windowStartKey, 10).ongoing.map((e) => e.id)).toEqual(["mid"]);
+  });
+
+  it("soonestFirstThenRuns HONOURS an explicit todayKey — the two calls must differ", () => {
+    // The first draft of this test compared two calls that a mutation would
+    // have changed identically, so it pinned nothing. This one fails the moment
+    // the parameter is ignored.
+    const windowStartKey = "2026-07-20";
+    const todayKey = "2026-07-13";
+    const mid = run("mid", "2026-07-15T10:00", "2026-07-25T17:00");
+    const later = ev("later", "2026-07-22T20:00");
+
+    // With today's date: `mid` has not started yet, so it is a DATED row,
+    // clamped to the window's first day and therefore ahead of the 22nd.
+    expect(soonestFirstThenRuns([later, mid], windowStartKey, todayKey).map((e) => e.id)).toEqual(["mid", "later"]);
+
+    // Letting it default asks "was it underway when the window opened", which
+    // calls the same row already-running and pushes it behind.
+    expect(soonestFirstThenRuns([later, mid], windowStartKey).map((e) => e.id)).toEqual(["later", "mid"]);
+  });
+
+  it("but the default is still identical when the window opens today", () => {
+    const today = "2026-07-13";
+    const events = [run("underway", "2026-07-01T10:00", "2026-07-30T17:00"), ev("tue", "2026-07-14T20:00")];
+    expect(soonestFirstThenRuns(events, today).map((e) => e.id)).toEqual(
+      soonestFirstThenRuns(events, today, today).map((e) => e.id),
+    );
+  });
+});
+
+describe("map list wiring — both halves of the screen get the same window", () => {
+  const root = join(__dirname, "..", "..");
+
+  it("MapEventList orders with the shared helper, not its own start sort", () => {
+    const map = readFileSync(join(root, "components", "MapEventList.tsx"), "utf8");
+    expect(map).toContain("soonestFirstThenRuns(events, windowStartKey, todayKey)");
+    expect(map).not.toContain("sort((a, b) => a.start.localeCompare(b.start))");
+  });
+
+  it("the explorer hands ListView and MapEventList the same keys", () => {
+    const explorer = readFileSync(join(root, "components", "EventsExplorer.tsx"), "utf8");
+    const keys = explorer.match(/windowStartKey=\{dkey\(win\.start\)\}/g) ?? [];
+    const todays = explorer.match(/todayKey=\{dkey\(now\)\}/g) ?? [];
+    expect(keys.length).toBe(2); // ListView and MapEventList
+    expect(todays.length).toBe(2);
   });
 });

@@ -114,9 +114,13 @@ export function planListView(
 export function soonestFirstThenRuns(
   events: EventRecord[],
   windowStartKey: string,
+  /** Defaults to windowStartKey, which is right when the window opens today.
+   *  Pass it separately for a window that opens LATER (the map's month view),
+   *  so this asks planListView exactly what ListView asks of the same array. */
+  todayKey: string = windowStartKey,
 ): EventRecord[] {
   // cap = events.length so nothing is dropped; the caller does the limiting.
-  const plan = planListView(events, windowStartKey, windowStartKey, events.length);
+  const plan = planListView(events, windowStartKey, todayKey, events.length);
   return [...plan.days.flatMap((g) => g.events), ...plan.ongoing];
 }
 

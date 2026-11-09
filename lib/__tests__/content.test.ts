@@ -186,13 +186,14 @@ describe("placeCaptionFor (Instagram — the evergreen Places half)", () => {
 
 describe("collectionCaptionFor (Instagram — demand-validated topic pages)", () => {
   const coll = getCollection("food-truck-festivals")!;
+  const CAP_TODAY = "2026-07-13"; // chiDayKey(NOW)
 
   it("carries the title, tagline, a few events, and the /collections bio link", () => {
     const sample = [
       ev({ id: "a", title: "Anoka Food Truck Festival", start: "2026-08-01T11:00" }),
       ev({ id: "b", title: "Rosemount Food Truck Rally", start: "2026-09-01T16:00" }),
     ];
-    const cap = collectionCaptionFor(coll, sample);
+    const cap = collectionCaptionFor(coll, sample, CAP_TODAY);
     expect(cap).toContain("FOOD TRUCK FESTIVALS");
     expect(cap).toContain(coll.tagline);
     expect(cap).toContain("Anoka Food Truck Festival");
@@ -200,7 +201,7 @@ describe("collectionCaptionFor (Instagram — demand-validated topic pages)", ()
   });
 
   it("degrades to tagline + CTA when there are no events (honest emptiness)", () => {
-    const cap = collectionCaptionFor(coll, []);
+    const cap = collectionCaptionFor(coll, [], CAP_TODAY);
     expect(cap).toContain(coll.tagline);
     expect(cap).toContain("citypulsemn.com/collections/food-truck-festivals");
     expect(cap).not.toContain("•"); // no event bullets
@@ -270,5 +271,52 @@ describe("collectionCardRows — the share card's ordering (6 Nov 2026)", () => 
 
   it("an empty collection yields no rows", () => {
     expect(collectionCardRows([], TODAY)).toEqual([]);
+  });
+});
+
+describe("collectionCaptionFor — it must match the card beside it (8 Nov 2026)", () => {
+  const coll = getCollection("food-truck-festivals")!;
+  const TODAY = "2026-07-13";
+  // "arts", never "music": PER_NIGHT = {sports, music}, so staleSpanIds deletes
+  // a music row carrying a multiDayEnd.
+  const run = (id: string, title: string, start: string, end: string) =>
+    ev({ id, title, category: "arts", start, end: "", multiDayEnd: end });
+
+  const sample = [
+    run("exhibit", "Long Exhibit", "2026-05-23T10:00", "2027-01-10T17:00"),
+    run("closing", "Closing Soon", "2026-06-01T10:00", "2026-07-20T17:00"),
+    ev({ id: "tue", title: "Tuesday Trucks", start: "2026-07-14T16:00" }),
+    ev({ id: "wed", title: "Wednesday Trucks", start: "2026-07-15T16:00" }),
+    ev({ id: "thu", title: "Thursday Trucks", start: "2026-07-16T16:00" }),
+  ];
+
+  it("lists the card's rows, in the card's order", () => {
+    // The caption took sample.slice(0, 4) off a start-ascending list, so it led
+    // with the two runs and dropped a dated event the card was showing. The
+    // card and the caption are posted together.
+    const cap = collectionCaptionFor(coll, sample, TODAY);
+    const bullets = cap.split("\n").filter((l) => l.startsWith("• "));
+    expect(bullets.map((l) => l.slice(2).split(" — ")[0])).toEqual([
+      "Tuesday Trucks",
+      "Wednesday Trucks",
+      "Thursday Trucks",
+      "Closing Soon",
+    ]);
+    expect(cap).not.toContain("Long Exhibit");
+  });
+
+  it("a run states its span, never the day it opened", () => {
+    const cap = collectionCaptionFor(coll, sample, TODAY);
+    expect(cap).toContain("Closing Soon — Jun 1 – Jul 20");
+    expect(cap).not.toContain("Closing Soon — Mon, Jun 1");
+  });
+
+  it("a dated event keeps its short date", () => {
+    expect(collectionCaptionFor(coll, sample, TODAY)).toContain("Tuesday Trucks — Tue, Jul 14");
+  });
+
+  it("still degrades to tagline + CTA with no events (rule 6)", () => {
+    const cap = collectionCaptionFor(coll, [], TODAY);
+    expect(cap).not.toContain("•");
   });
 });

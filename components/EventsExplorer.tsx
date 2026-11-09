@@ -645,7 +645,13 @@ export function EventsExplorer({
               focusId={mapFocusId}
               onPick={(ev) => openDetail(ev, "map")}
             />
-            <MapEventList events={windowedEvents} focusId={mapFocusId} onFocus={setMapFocusId} />
+            <MapEventList
+              events={windowedEvents}
+              windowStartKey={dkey(win.start)}
+              todayKey={dkey(now)}
+              focusId={mapFocusId}
+              onFocus={setMapFocusId}
+            />
           </div>
         )}
 

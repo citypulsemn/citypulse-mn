@@ -1,5 +1,6 @@
 import { DOW, MONTHS, timeLabel } from "../dates";
 import { soonestFirstThenRuns } from "../list-view";
+import { isMultiDay, multiDayLabel } from "../multiday";
 import { KIND_META, type Place } from "../places";
 import type { CollectionSpec } from "../collections";
 import type { EventRecord, CategoryKey } from "../types";
@@ -107,6 +108,9 @@ export function placeCaptionFor(place: Place): string {
 /** Rows on a collection's share card. Six fits the 1080×1350 frame. */
 export const CARD_ROWS = 6;
 
+/** Rows the matching caption lists. Fewer than the card: a caption is skimmed. */
+export const CAPTION_ROWS = 4;
+
 /**
  * Which events a collection's share card lists.
  *
@@ -131,14 +135,36 @@ export function collectionCardRows(
   return soonestFirstThenRuns(selected, todayKey).slice(0, limit);
 }
 
-export function collectionCaptionFor(collection: CollectionSpec, sample: EventRecord[]): string {
+/**
+ * The caption that ships BESIDE the collection share card, for the operator to
+ * paste. It must list the same events, in the same order, with the same dates as
+ * the card at /content/collection/<slug> — they are posted together.
+ *
+ * It did not. `sample` is selectCollection's output, start-ascending, so
+ * slice(0, 4) took the four rows that opened LONGEST AGO, and shortDate(e.start)
+ * printed each one's start — a date months before the post. The card was fixed on
+ * 6 Nov 2026 (collectionCardRows); the caption beside it was not.
+ *
+ * Measured 8 Nov 2026: the collection actually wired up (food-truck-festivals) is
+ * empty today, so nothing is firing — but 4 of the 8 collections would hand the
+ * caption different rows than the card, 3 or 4 of them dated before today.
+ */
+export function collectionCaptionFor(
+  collection: CollectionSpec,
+  sample: EventRecord[],
+  todayKey: string,
+): string {
   const lines: string[] = [];
   lines.push(`🗓️ ${collection.title.toUpperCase()}`);
   lines.push("");
   lines.push(collection.tagline);
   if (sample.length > 0) {
     lines.push("");
-    for (const e of sample.slice(0, 4)) lines.push(`• ${e.title} — ${shortDate(e.start)}`);
+    // The card's own rows, labelled the card's own way: a run states its span
+    // (app/content/collection/[slug]/route.tsx does exactly this).
+    for (const e of collectionCardRows(sample, todayKey, CAPTION_ROWS)) {
+      lines.push(`• ${e.title} — ${isMultiDay(e) ? multiDayLabel(e) : shortDate(e.start)}`);
+    }
   }
   lines.push("");
   lines.push(`See them all → citypulsemn.com/collections/${collection.slug} (link in bio)`);
