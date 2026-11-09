@@ -41,12 +41,17 @@ describe("dedupeNearDuplicates (R0.3) — same-day means the same CHICAGO day", 
     expect(body).not.toMatch(/a\.start_at::date = b\.start_at::date/);
   });
 
-  it("survivorship: corrected first, then a timed row over a thin one, then earliest-seen", () => {
-    expect(body).toContain(
-      "(not a.corrected, a.thin, a.created_at, a.id) < (not b.corrected, b.thin, b.created_at, b.id)",
-    );
-    expect(body).toContain("corrected_at is not null as corrected");
+  it("survivorship: a timed row over a thin one, then earliest-seen", () => {
+    expect(body).toContain("(a.thin, a.created_at, a.id) < (b.thin, b.created_at, b.id)");
     expect(body).not.toContain("on (a.created_at, a.id) < (b.created_at, b.id)");
+    // Corrected rows are NOT ranked first: that let a corrected single night
+    // archive an uncorrected run card (review 2, 9 Nov 2026).
+    expect(body).not.toContain("not a.corrected");
+  });
+
+  it("never archives an operator-corrected row: it can keep, never be the duplicate", () => {
+    expect(body).toContain("corrected_at is not null as corrected");
+    expect(body).toMatch(/< \(b\.thin, b\.created_at, b\.id\)\s+and not b\.corrected/);
   });
 
   it("thin means midnight AND single-day, so a curated run card is never thin", () => {
@@ -96,9 +101,8 @@ describe("getDuplicatePairs (admin view) — same R0.3 predicate", () => {
 
   it("matches the dedupe's Chicago-day and survivorship semantics", () => {
     expect(body).toContain("(a.start_at at time zone 'America/Chicago')::date");
-    expect(body).toContain(
-      "(not a.corrected, a.thin, a.created_at, a.id) < (not b.corrected, b.thin, b.created_at, b.id)",
-    );
+    expect(body).toContain("(a.thin, a.created_at, a.id) < (b.thin, b.created_at, b.id)");
+    expect(body).toMatch(/< \(b\.thin, b\.created_at, b\.id\)\s+and not b\.corrected/);
     expect(body).not.toMatch(/a\.start_at::date = b\.start_at::date/);
   });
 
@@ -106,8 +110,10 @@ describe("getDuplicatePairs (admin view) — same R0.3 predicate", () => {
     // From the corrected flag through the status filter: thin, its `and`, and
     // the candidate set. A review mutation widened only this copy's filter to
     // include archived rows and nothing caught it.
+    // Anchored to the CTE's closing paren: a lazy match stopping at the first
+    // quote let `where status = 'published' or status = 'draft'` pass (review 2).
     const cand = (s: string) => {
-      const m = s.match(/corrected_at is not null as corrected,[\s\S]*?where status = '[^']*'/);
+      const m = s.match(/corrected_at is not null as corrected,[\s\S]*?where status = '[^']*'\s*\)/);
       expect(m, "candidate block found").not.toBeNull();
       return m![0].replace(/\s+/g, " ");
     };
@@ -270,5 +276,27 @@ describe("foldRunRefinds — the gate that stops a run being re-minted weekly", 
 
   it("leaves a trail", () => {
     expect(body).toContain("'run:folded'");
+  });
+});
+
+describe("collapseMultiDayRuns — the planner's archives touch live rows only", () => {
+  const body = fnBody("collapseMultiDayRuns");
+  const script = readFileSync(join(__dirname, "..", "..", "scripts", "collapse-multiday.ts"), "utf8");
+
+  it("passes the planner the end_at span and the corrected flag", () => {
+    for (const s of [body, script]) {
+      expect(s).toContain("corrected_at is not null as corrected");
+      expect(s).toMatch(/to_char\(end_at at time zone 'America\/Chicago', 'YYYY-MM-DD"T"HH24:MI'\) as end,/);
+    }
+  });
+
+  it("archives only rows that are still published when the write lands", () => {
+    // planCollapse skips hidden rows, but a row hidden between the read and the
+    // write would still match a `status in ('published', 'draft')` guard, and an
+    // archived row serves its event page again (review 2, 9 Nov 2026).
+    for (const s of [body, script]) {
+      expect(s).toMatch(/update events set status = 'archived'\s+where id::text = any\([^)]*\)\s+and status = 'published'/);
+      expect(s).not.toMatch(/set status = 'archived'[\s\S]{0,120}status in \('published', 'draft'\)/);
+    }
   });
 });

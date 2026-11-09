@@ -689,21 +689,47 @@ describe("every writer of start_at keeps all_day in step", () => {
   };
   walk(join(root, "lib"));
   walk(join(root, "scripts"));
+  // A SET-list assignment: `start_at` right after `set` or a comma, followed by
+  // `=` but not `==`. Comparisons in a WHERE (`and start_at = …`) are not writes.
+  // Review 2 (9 Nov) showed the first version, which required `(` or `case`,
+  // missed `set start_at = ${to}::text::timestamp …` with no parentheses.
   const writers = files.flatMap((f) => {
     const src = readFileSync(f, "utf8");
-    return [...src.matchAll(/\bstart_at\s*=\s*(\(|case\b)/g)].map((m) => {
-      const end = src.indexOf("`", m.index);
-      return { where: `${f.slice(root.length + 1)}@${m.index}`, statement: src.slice(m.index, end === -1 ? undefined : end) };
+    return [...src.matchAll(/(?:\bset\s+|,\s*)start_at\s*=(?!=)/g)].map((m) => {
+      const tick = src.indexOf("`", m.index);
+      const stmt = src.slice(m.index, tick === -1 ? undefined : tick);
+      // Only the SET list counts: an all_day in the WHERE is not a write.
+      const where = stmt.search(/\bwhere\b/i);
+      return { at: `${f.slice(root.length + 1)}@${m.index}`, setList: where === -1 ? stmt : stmt.slice(0, where) };
     });
   });
 
   it("finds the writers at all", () => {
     // upsert, apply-correction, admin-actions, import-sports, restore-drafted.
     expect(writers.length).toBeGreaterThanOrEqual(5);
+    expect(writers.map((w) => w.at.split("@")[0].replace(/\\/g, "/")).sort()).toEqual(
+      expect.arrayContaining([
+        "lib/admin-actions.ts",
+        "lib/upsert.ts",
+        "scripts/apply-correction.ts",
+        "scripts/import-sports.ts",
+        "scripts/restore-drafted.ts",
+      ]),
+    );
   });
 
-  it("each one writes all_day in the same statement", () => {
-    for (const w of writers) expect(w.statement, w.where).toMatch(/\ball_day\s*=/);
+  it("each one writes all_day in the same SET list", () => {
+    for (const w of writers) expect(w.setList, w.at).toMatch(/\ball_day\s*=/);
+  });
+
+  it("the admin form and restore-drafted use the rule, not just the column", () => {
+    // Presence alone let `and` become `or`, and an inverted test, pass (review 2).
+    const admin = readFileSync(join(root, "lib", "admin-actions.ts"), "utf8");
+    expect(admin).toContain("all_day     = all_day and ${isDateOnlyWallClock(p.start)},");
+    const restore = readFileSync(join(root, "scripts", "restore-drafted.ts"), "utf8");
+    expect(restore).toContain(
+      "all_day=${isDateOnlyWallClock(act.start) ? true : act.stampVerified ? false : sql`all_day`},",
+    );
   });
 });
 
@@ -716,6 +742,8 @@ describe("duplicateIds — one row named twice in one file", () => {
   it("the script refuses every entry for such an id before planning", () => {
     const src = readFileSync(join(__dirname, "..", "..", "scripts", "apply-correction.ts"), "utf8");
     expect(src).toContain("const twice = new Set(duplicateIds(corrections));");
+    // Refused out loud and counted, not silently dropped.
+    expect(src).toContain("named more than once in this file");
     expect(src).toMatch(/usable = corrections\.filter\(\(c\) => !twice\.has\(c\.id\) && validateCorrection\(c\) === null\)/);
   });
 });

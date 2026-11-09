@@ -78,7 +78,7 @@ async function main() {
         await sql`
           update events set status = 'archived'
           where id::text = any(${a.archiveIds})
-            and status in ('published', 'draft')
+            and status = 'published'
         `;
       }
     }

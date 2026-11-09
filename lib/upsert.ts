@@ -423,10 +423,10 @@ export async function markCancelled(eventKeys: string[]): Promise<number> {
  * Collapse near-duplicates that string-based keys miss — the same real event
  * listed with a slightly different title or venue spelling ("Como Park" vs
  * "Como Regional Park", "Fest" vs "Fest 2026"). Two LIVE events on the SAME day,
- * within ~250m of each other, with similar titles are treated as one: an
- * operator-corrected row is kept first, then a row that knows its time over a
- * date-only one, then the earliest-seen, and the others archived (recoverable,
- * not deleted). Hidden rows are never touched.
+ * within ~250m of each other, with similar titles are treated as one: a row that
+ * knows its time is kept over a date-only one, then the earliest-seen, and the
+ * others archived (recoverable, not deleted). Hidden rows are never touched, and
+ * an operator-corrected row is never archived.
  *
  * Uses coordinates (which don't lie about location) plus pg_trgm title
  * similarity, so it catches what normalization can't — without re-keying data.
@@ -452,8 +452,10 @@ export async function dedupeNearDuplicates(): Promise<number> {
   //    titles 0.66 alike), which then rendered nowhere. And archiving a hidden
   //    row serves its event page again, which undoes a takedown — so two hidden
   //    rows are left alone as well. Same rule as CollapseRow.status.
-  //  - An operator-corrected row is kept first; the correction lock protects its
-  //    fields from research, and this protects the row itself.
+  //  - An operator-corrected row is never archived (`not b.corrected`); it stays
+  //    live beside its keeper. The correction lock protects its fields from
+  //    research, and this protects the row itself. Ranking corrected rows FIRST
+  //    instead let a corrected single night archive a run card (review, 9 Nov).
   //  - A thin row, date-only and single-day, then loses to one that knows its
   //    time, and only after that does earliest-seen decide. `thin` is the
   //    midnight rule in isDateOnlyWallClock (lib/dates.ts), and its span half
@@ -477,7 +479,8 @@ export async function dedupeNearDuplicates(): Promise<number> {
       select a.id as keep_id, b.id as dup_id
       from cand a
       join cand b
-        on (not a.corrected, a.thin, a.created_at, a.id) < (not b.corrected, b.thin, b.created_at, b.id)
+        on (a.thin, a.created_at, a.id) < (b.thin, b.created_at, b.id)
+       and not b.corrected
        and (a.start_at at time zone 'America/Chicago')::date
            = (b.start_at at time zone 'America/Chicago')::date
        and similarity(a.title, b.title) > 0.6
@@ -599,7 +602,7 @@ export async function collapseMultiDayRuns(): Promise<{
       const res = await sql`
         update events set status = 'archived'
         where id::text = any(${action.archiveIds})
-          and status in ('published', 'draft')
+          and status = 'published'
       `;
       archivedRows += res.count;
     }

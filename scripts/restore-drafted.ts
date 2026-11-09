@@ -101,7 +101,7 @@ async function main() {
             await sql`
               update events set status='published',
                 start_at=(${act.start}::text::timestamp at time zone 'America/Chicago'),
-                all_day=${act.stampVerified && !isDateOnlyWallClock(act.start) ? false : sql`all_day`},
+                all_day=${isDateOnlyWallClock(act.start) ? true : act.stampVerified ? false : sql`all_day`},
                 venue=${act.venue ?? row.venue},
                 event_key=${computeEventKey(row.title, act.venue ?? row.venue, act.start)},
                 source_url=${act.sourceUrl},

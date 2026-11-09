@@ -1080,18 +1080,84 @@ describe("planCollapse — who keeps the slot (9 Nov 2026)", () => {
     ...o,
   });
 
-  it("regression: a blog's date-only re-find no longer folds the fair's own timed row", () => {
+  it("KNOWN LIMIT: in a fold the parent keeps the card, even when the child is the better row", () => {
     // Live on 8 Nov 2026: "Minnesota Merry Market" (visitsaintpaul.com, no hours)
     // was the fold PARENT of the fair's "…at the State Fair – Weekend 2" (10-4,
-    // the fair's own page), won on its shorter title, and archived it.
+    // the fair's own page) and archived it. A fold cannot tell that shape from a
+    // festival and its parade (next tests), so the parent wins both. What saves
+    // the fair's rows is that they are now corrected — see the test after.
     const actions = planCollapse([
-      row({ id: "fair-wk2", title: "Minnesota Merry Market at the State Fair – Weekend 2", city: "Falcon Heights", start: "2026-12-12T10:00" }),
-      row({ id: "blog", title: "Minnesota Merry Market", city: "Falcon Heights", start: "2026-12-12T00:00" }),
+      row({ id: "fair-wk2", title: "Minnesota Merry Market at the State Fair – Weekend 2", city: "Falcon Heights", start: "2026-12-12T10:00", end: "2026-12-13T16:00" }),
+      row({ id: "blog", title: "Minnesota Merry Market", city: "Falcon Heights", start: "2026-12-12T00:00", end: "2026-12-13T00:00" }),
+    ]);
+    expect(actions.map((a) => [a.kind, a.keepId, a.archiveIds])).toEqual([["fold", "blog", ["fair-wk2"]]]);
+  });
+
+  it("a corrected fold child is never archived — today's Merry Market rows survive a blog re-find", () => {
+    const actions = planCollapse([
+      row({ id: "fair-wk2", title: "Minnesota Merry Market at the State Fair – Weekend 2", city: "Falcon Heights", start: "2026-12-12T10:00", end: "2026-12-13T16:00", corrected: true }),
+      row({ id: "blog", title: "Minnesota Merry Market", city: "Falcon Heights", start: "2026-12-12T00:00", end: "2026-12-13T00:00" }),
+    ]);
+    expect(actions).toEqual([]);
+  });
+
+  it("regression (review 2, 9 Nov): a one-day festival keeps its card over its own timed parade", () => {
+    // Same dates, so "same dates means same event" made the parade the card.
+    const actions = planCollapse([
+      row({ id: "god", title: "Grand Old Day", city: "St Paul", start: "2026-06-07T00:00" }),
+      row({ id: "parade", title: "Grand Old Day — Parade", city: "St Paul", start: "2026-06-07T09:30" }),
+    ]);
+    expect(actions.map((a) => [a.keepId, a.archiveIds])).toEqual([["god", ["parade"]]]);
+  });
+
+  it("regression (review 2, 9 Nov): a sub-event with its own multi-day end_at never becomes the card", () => {
+    const actions = planCollapse([
+      row({ id: "wd1", title: "Woodbury Days", city: "Woodbury", start: "2026-08-01T00:00" }),
+      row({ id: "wd2", title: "Woodbury Days", city: "Woodbury", start: "2026-08-02T00:00" }),
+      row({ id: "wd3", title: "Woodbury Days", city: "Woodbury", start: "2026-08-03T00:00" }),
+      row({ id: "carnival", title: "Woodbury Days — Carnival", city: "Woodbury", start: "2026-08-01T00:00", end: "2026-08-03T22:00" }),
     ]);
     expect(actions).toHaveLength(1);
-    expect(actions[0].kind).toBe("fold");
-    expect(actions[0].keepId).toBe("fair-wk2");
-    expect(actions[0].archiveIds).toEqual(["blog"]);
+    expect(actions[0].keepId).toBe("wd1");
+    expect(actions[0].archiveIds.sort()).toEqual(["carnival", "wd2", "wd3"]);
+  });
+
+  it("regression (review 2, 9 Nov): never writes a span shorter than the keeper's own end_at", () => {
+    // A theatre run Oct 10 → Nov 8 in end_at plus a dated night on Oct 11. The
+    // run is kept; writing multi_day_end = Oct 11 would end it there, because
+    // spanEndISO reads multi_day_end first.
+    const actions = planCollapse([
+      row({ id: "run", title: "Kunene and the King", category: "arts", start: "2026-10-10T00:00", end: "2026-11-08T17:00" }),
+      row({ id: "n1", title: "Kunene and the King", category: "arts", start: "2026-10-10T19:30" }),
+      row({ id: "n2", title: "Kunene and the King", category: "arts", start: "2026-10-11T19:30" }),
+    ]);
+    expect(actions).toHaveLength(1);
+    expect(actions[0].keepId).toBe("run");
+    expect(actions[0].setEnd).toBeNull();
+    // ...but a span the keeper does NOT already reach is still written.
+    const extend = planCollapse([
+      row({ id: "run", title: "Kunene and the King", category: "arts", start: "2026-10-10T00:00", end: "2026-10-10T17:00" }),
+      row({ id: "n2", title: "Kunene and the King", category: "arts", start: "2026-10-11T19:30" }),
+    ]);
+    expect(extend[0].setEnd).toBe("2026-10-11");
+  });
+
+  it("sports trusts no span: the timed game beats a copy carrying a bogus month-long end_at", () => {
+    const actions = planCollapse([
+      row({ id: "bogus", title: "Minnesota Lynx vs. Chicago Sky", category: "sports", start: "2026-08-01T00:00", end: "2026-09-15T22:00" }),
+      row({ id: "game", title: "Minnesota Lynx vs. Chicago Sky", category: "sports", start: "2026-08-01T19:00" }),
+    ]);
+    expect(actions.map((a) => [a.keepId, a.setEnd])).toEqual([["game", null]]);
+  });
+
+  it("a date-only row ending at the next midnight is one day long, by the site's late-night rule", () => {
+    // Without spanEndISO's carve-out the 00:00 → next-00:00 row would read as a
+    // two-day span and beat the timed row on span alone.
+    const actions = planCollapse([
+      row({ id: "dateonly", title: "Holiday Bake Sale", city: "St Paul", start: "2026-12-12T00:00", end: "2026-12-13T00:00" }),
+      row({ id: "timed", title: "Holiday Bake Sale", city: "St Paul", start: "2026-12-12T10:00" }),
+    ]);
+    expect(actions.map((a) => a.keepId)).toEqual(["timed"]);
   });
 
   it("a same-day duplicate keeps the timed row even though 00:00 sorts first", () => {
@@ -1164,16 +1230,6 @@ describe("planCollapse — who keeps the slot (9 Nov 2026)", () => {
     expect(actions).toEqual([]);
   });
 
-  it("the Merry Market fold holds with the rows' real end times", () => {
-    // As stored: the fair's row ends Sunday 4 PM; the blog's ends at the next
-    // midnight, which the site's span rule reads as that same day.
-    const actions = planCollapse([
-      row({ id: "fair-wk2", title: "Minnesota Merry Market at the State Fair – Weekend 2", city: "Falcon Heights", start: "2026-12-12T10:00", end: "2026-12-13T16:00" }),
-      row({ id: "blog", title: "Minnesota Merry Market", city: "Falcon Heights", start: "2026-12-12T00:00", end: "2026-12-13T00:00" }),
-    ]);
-    expect(actions.map((a) => [a.keepId, a.archiveIds])).toEqual([["fair-wk2", ["blog"]]]);
-  });
-
   it("regression (review, 9 Nov): a run carried in end_at keeps its slot over one timed night of itself", () => {
     // Twelve Kinds of Ice was live as one row, Oct 19 → Nov 22 in end_at. The
     // planner reads multi_day_end for clustering, so before keeperEndNum this run
@@ -1201,14 +1257,22 @@ describe("planCollapse — who keeps the slot (9 Nov 2026)", () => {
     expect(actions[0].archiveIds.sort()).toEqual(["fireworks", "wd2", "wd3"]);
   });
 
-  it("an operator-corrected row keeps its slot over a timed duplicate", () => {
+  it("an operator-corrected row is never archived, and is never promoted either", () => {
     // Plymouth's sale was corrected to an all-day 14 Nov on 6 Nov. A timed
-    // re-find of it must not archive the row an operator vouched for.
+    // re-find keeps the slot by the ordinary rules, and the corrected row stays
+    // live beside it: a duplicate an operator can archive, not a listing lost.
     const actions = planCollapse([
       row({ id: "corrected", title: "Friends of Plymouth Library — Book Sale", start: "2026-11-14T00:00", end: "2026-11-14T23:59", corrected: true }),
       row({ id: "refind", title: "Friends of Plymouth Library — Book Sale", start: "2026-11-14T09:00" }),
     ]);
-    expect(actions.map((a) => a.keepId)).toEqual(["corrected"]);
+    expect(actions).toEqual([]);
+    // With a third, uncorrected copy the merge still happens — around it.
+    const three = planCollapse([
+      row({ id: "corrected", title: "Friends of Plymouth Library — Book Sale", start: "2026-11-14T00:00", corrected: true }),
+      row({ id: "refind", title: "Friends of Plymouth Library — Book Sale", start: "2026-11-14T09:00" }),
+      row({ id: "copy", title: "Friends of Plymouth Library — Book Sale", start: "2026-11-14T00:00" }),
+    ]);
+    expect(three.map((a) => [a.keepId, a.archiveIds])).toEqual([["refind", ["copy"]]]);
   });
 
   it("a hidden sub-event never folds into a live parent, nor a live one into a hidden parent", () => {

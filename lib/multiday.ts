@@ -190,11 +190,12 @@ export interface CollapseRow {
   /**
    * The row's own end_at, Chicago wall clock, or null — the other place a span
    * lives. The pipeline never writes multi_day_end, so a run inserted as one row
-   * carries its last day here (Twelve Kinds of Ice, Oct 19 → Nov 22). Read ONLY
-   * when choosing a keeper; clustering still runs on `endDay` alone.
+   * carries its last day here (Twelve Kinds of Ice, Oct 19 → Nov 22). Read when
+   * choosing a keeper and when deciding what span to write; clustering still
+   * runs on `endDay` alone.
    */
   end: string | null;
-  /** corrected_at is set: an operator fixed this row by hand. */
+  /** corrected_at is set: an operator fixed this row by hand, so no merge archives it. */
   corrected: boolean;
   /**
    * Only 'published' rows are planned at all. A hidden row must not keep a live
@@ -236,9 +237,10 @@ function rowEndNum(row: CollapseRow): number {
 
 /**
  * The last day a row runs by EITHER span column, through the site's own span
- * rule (`spanEndISO`, late-night carve-out included). For choosing a keeper only:
- * `rowEndNum` above sees multi_day_end alone, so a run carried in end_at read as
- * one day and lost its slot to a single timed night of itself.
+ * rule (`spanEndISO`, late-night carve-out included). For choosing a keeper and
+ * for never writing a span shorter than the keeper's own; clustering still uses
+ * `rowEndNum`, which sees multi_day_end alone. Without it a run carried in
+ * end_at read as one day and lost its slot to a single timed night of itself.
  */
 function keeperEndNum(row: CollapseRow): number {
   const last = spanEndISO({ start: row.start, multiDayEnd: row.endDay ?? null, end: row.end });
@@ -262,11 +264,13 @@ function isWordPrefix(shorter: string, longer: string): boolean {
  *    parent's span — a sub-event dated outside the festival's run stays live
  *    (conservative floor; the verify pass owns the ambiguous ones).
  *  - Hidden rows are never planned: see CollapseRow.status.
- *  - Survivor = earliest start DAY; ties prefer the row whose span runs
- *    longest (either column), then the run's own rows over a sub-event folded
- *    into it, then an operator-corrected row, then a row that knows its time
- *    over a date-only one, then the shorter (cleaner) title.
- *  - Spans only ever EXTEND (never shrink), from attested rows only.
+ *  - Survivor = earliest start DAY; ties prefer the parent's own rows over a
+ *    folded child, then the row whose span runs longest (either column; sports
+ *    and music ignore spans), then a row that knows its time over a date-only
+ *    one, then the shorter (cleaner) title.
+ *  - An operator-corrected row is never archived; it stays live beside the keeper.
+ *  - Spans only ever EXTEND (never shrink), from attested rows only — and never
+ *    below the keeper's own end_at.
  */
 export function planCollapse(rows: CollapseRow[]): CollapseAction[] {
   // 1 — same-key interval clustering (span-aware groupRuns), live rows only.
@@ -320,8 +324,8 @@ export function planCollapse(rows: CollapseRow[]): CollapseAction[] {
   // chains land in their ultimate parent.
   const folded = new Set<CollapseCluster>();
   const foldKinds = new Map<CollapseCluster, boolean>();
-  // Rows of a child that sits STRICTLY inside its parent's run: a sub-event.
-  const subEventIds = new Set<string>();
+  // Rows that arrived by fold, as a child of a parent cluster.
+  const foldChildIds = new Set<string>();
   const children = [...clusters].sort((a, b) => b.titleKey.length - a.titleKey.length);
   for (const child of children) {
     if (child.sports || folded.has(child)) continue;
@@ -348,14 +352,13 @@ export function planCollapse(rows: CollapseRow[]): CollapseAction[] {
       }
     }
     if (parent) {
-      // A child inside a LONGER run is a sub-event (the fireworks night of a
-      // three-day festival) and must never become the run's card. A child with
-      // the same interval is the same event under a longer title (the fair's own
-      // "…Weekend 2" beneath a blog's "Minnesota Merry Market"), so the ordinary
-      // keeper rules decide between them.
-      if (child.startNum > parent.startNum || child.endNum < parent.endNum) {
-        for (const r of child.rows) subEventIds.add(r.id);
-      }
+      // A folded child never becomes the card, whatever its time or its span:
+      // the fireworks night of a three-day festival, a parade on a one-day
+      // festival's own date. The planner cannot tell those from the same event
+      // under a longer title (the fair's own "…Weekend 2" beneath a blog's
+      // "Minnesota Merry Market"), and two reviews on 9 Nov 2026 showed every
+      // attempt to tell them apart by dates made a sub-event the card.
+      for (const r of child.rows) foldChildIds.add(r.id);
       parent.rows.push(...child.rows);
       folded.add(child);
       foldKinds.set(parent, true);
@@ -366,40 +369,48 @@ export function planCollapse(rows: CollapseRow[]): CollapseAction[] {
   // 3 — actions.
   const actions: CollapseAction[] = [];
   for (const cluster of clusters) {
+    // Sports and music nights trust no span at all (the interval guard above);
+    // everything else prefers the row whose span runs longest, by either column.
+    const span = (r: CollapseRow) => (cluster.sports ? dayNumber(r.start) : keeperEndNum(r));
     const rowsSorted = [...cluster.rows].sort(
       (a, b) =>
         dayOf(a.start).localeCompare(dayOf(b.start)) ||
-        keeperEndNum(b) - keeperEndNum(a) || // ties: the row whose span runs longest
-        Number(subEventIds.has(a.id)) - Number(subEventIds.has(b.id)) || // the run's own rows
-        Number(b.corrected) - Number(a.corrected) || // a row an operator corrected
-        // then the row that knows its time. Without this a date-only re-find won
-        // whenever its title was shorter or its 00:00 sorted first, and the timed
-        // row it duplicated was archived: on 8 Nov 2026 a blog's "Minnesota Merry
-        // Market" folded the fair's own Weekend 2 and 3 rows and took away their
-        // 10-4 hours. It sits BELOW the three rules above, which is what keeps a
-        // run card, a festival's own rows and a corrected row from losing to one
-        // timed night (the first draft of this rule did all three; review, 9 Nov).
-        // The limit: a time is not a venue. When the date-only row is the newer
-        // fact (AJ McLean moved to the Fine Line the same night), this keeps the
-        // stale room with the right time.
+        Number(foldChildIds.has(a.id)) - Number(foldChildIds.has(b.id)) || // the parent's own rows
+        span(b) - span(a) || // the row whose span runs longest
+        // then the row that knows its time. Without this a date-only copy of the
+        // same event won whenever its title was shorter or its 00:00 sorted
+        // first, and the timed row was archived. It sits BELOW the fold and span
+        // rules: placed higher, one timed night archived a run card and a festival
+        // lost its card to its own fireworks (reviews, 9 Nov 2026). And a time is
+        // not a venue: when the date-only row is the newer fact (AJ McLean moved
+        // to the Fine Line the same night), this keeps the stale room.
         Number(isDateOnlyWallClock(a.start)) - Number(isDateOnlyWallClock(b.start)) ||
         a.title.length - b.title.length, // then the cleaner title
     );
     const keep = rowsSorted[0];
-    const extras = rowsSorted.slice(1);
+    // A merge never archives an operator-corrected row. It stays live beside the
+    // keeper: a visible duplicate an operator can archive, not a vouched-for
+    // listing gone. (Ranking corrected rows FIRST made a corrected sub-event the
+    // festival's card instead.) Its days are left out of the span written below.
+    const extras = rowsSorted.slice(1).filter((r) => !r.corrected);
     if (extras.length === 0) continue;
 
     const startDay = dayOf(keep.start);
+    const merged = [keep, ...extras];
     // Sports clusters never produce spans (see the interval guard above) —
     // without this, deduping a same-day pair where one row carries a legacy
     // bad span would write a fresh multi_day_end onto the survivor.
     const endNum = cluster.sports
-      ? Math.max(...cluster.rows.map((r) => dayNumber(r.start)))
-      : Math.max(...cluster.rows.map(rowEndNum));
+      ? Math.max(...merged.map((r) => dayNumber(r.start)))
+      : Math.max(...merged.map(rowEndNum));
     const endDay = new Date(endNum * DAY_MS).toISOString().slice(0, 10);
     const multiDay = endDay > startDay;
-    const keepEnd = keep.endDay && keep.endDay > startDay ? keep.endDay : null;
-    const setEnd = multiDay && (!keepEnd || keepEnd < endDay) ? endDay : null;
+    // Never write a span SHORTER than the keeper already runs: spanEndISO reads
+    // multi_day_end first, so a nearer one written over a further end_at would
+    // end a run early (a theatre run Oct 10 → Nov 8 in end_at, plus a dated night
+    // on Oct 11, came out ending Oct 11). Same guard as foldRuns in lib/upsert.ts.
+    const keepLast = cluster.sports ? dayNumber(keep.start) : keeperEndNum(keep);
+    const setEnd = multiDay && endNum > keepLast ? endDay : null;
 
     actions.push({
       kind: foldKinds.get(cluster) ? "fold" : multiDay ? "run" : "duplicate",
