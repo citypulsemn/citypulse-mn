@@ -118,7 +118,7 @@ export default async function PlacesKindPage({
         <PlacesBrowser places={places} plural={meta.plural} />
 
         {related.length > 0 && (
-          <nav className="related-guides" aria-label="More place guides">
+          <nav className="related-guides related-guides-lg" aria-label="More place guides">
             <h2 className="related-guides-title">More Twin Cities guides</h2>
             <div className="related-guides-links">
               {related.map((rk) => (

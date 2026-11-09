@@ -178,7 +178,7 @@ export default async function PlaceDetailPage({
         )}
 
         {place.tags.length > 0 && (
-          <div className="place-tags">
+          <div className="place-tags place-tags-lg">
             {place.tags.map((t) => (
               <span key={t} className="place-tag">
                 {t.replace(/-/g, " ")}
@@ -206,7 +206,7 @@ export default async function PlaceDetailPage({
             Places search pattern with evidence behind it. */}
         {nearby.length > 0 && (
           <nav
-            className="related-guides"
+            className="related-guides related-guides-lg"
             aria-label={`More ${meta.plural.toLowerCase()} nearby`}
           >
             <h2 className="related-guides-title">
@@ -230,7 +230,7 @@ export default async function PlaceDetailPage({
         )}
 
         {related.length > 0 && (
-          <nav className="related-guides" aria-label="More place guides">
+          <nav className="related-guides related-guides-lg" aria-label="More place guides">
             <h2 className="related-guides-title">More Twin Cities guides</h2>
             <div className="related-guides-links">
               <a href={`/places/${k}`} className="related-guide-link">
