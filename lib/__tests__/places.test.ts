@@ -889,16 +889,29 @@ describe("indoor-playground features (winning detail — moat)", () => {
     // Coverage-box sweep, 6 Sep 2026 — the new rows carry no `details` yet
     // (that flags block is curated per place and nothing verified it), so every
     // detail count below is deliberately unchanged.
-    expect(venues.length).toBe(15);
-    expect(venues.filter((p) => p.details?.toddlerArea === true).length).toBe(8);
-    expect(venues.filter((p) => p.details?.cafe === true).length).toBe(3);
-    expect(venues.filter((p) => p.details?.socksRequired === true).length).toBe(10);
+    // Indoor-play sweep, 8 Nov 2026: +21 rows, and these DO carry details, each
+    // badge re-read on the operator's own page for that location (+4 toddler,
+    // +4 café, +12 socks). A chain-wide template line did not earn a badge.
+    expect(venues.length).toBe(36);
+    expect(venues.filter((p) => p.details?.toddlerArea === true).length).toBe(12);
+    expect(venues.filter((p) => p.details?.cafe === true).length).toBe(7);
+    expect(venues.filter((p) => p.details?.socksRequired === true).length).toBe(22);
   });
 
   it("Café is a real café — vending machines don't earn the badge", () => {
-    // The three real cafés (Peak Cafe + the two play-cafés); vending-only venues excluded.
+    // Staffed counters only: the community-center cafés (Peak Cafe, Eden Prairie's,
+    // Shoreview's Wave Cafe), the play cafés, The Play Group's coffee bar, and Lava
+    // Island's kitchen. Vending-only venues excluded.
     const cafes = venues.filter((p) => p.details?.cafe === true).map((p) => p.slug).sort();
-    expect(cafes).toEqual(["adventure-peak-edinborough", "rebes-play-cafe", "sovereign-grounds"]);
+    expect(cafes).toEqual([
+      "adventure-peak-edinborough",
+      "lava-island-eden-prairie",
+      "prairie-play-zone",
+      "rebes-play-cafe",
+      "sovereign-grounds",
+      "the-play-group",
+      "tropical-adventure-shoreview",
+    ]);
     // InnerActive (vending only) must NOT carry the café badge.
     for (const slug of ["inneractive-mounds-view", "inneractive-plymouth", "good-times-park-eagan"]) {
       expect(venues.find((p) => p.slug === slug)?.details?.cafe).not.toBe(true);
@@ -923,11 +936,13 @@ describe("trampoline/climbing features (winning detail — activity-type moat)",
   const venues = placesByKind("trampoline-climbing");
 
   it("locks the source-confirmed activity counts", () => {
-    expect(venues.length).toBe(17);
-    expect(venues.filter((p) => p.details?.trampolines === true).length).toBe(8);
-    expect(venues.filter((p) => p.details?.ninjaCourse === true).length).toBe(10);
-    expect(venues.filter((p) => p.details?.rockClimbing === true).length).toBe(10);
-    expect(venues.filter((p) => p.details?.socksRequired === true).length).toBe(8);
+    // +10 from the 8 Nov 2026 indoor-play sweep (Sky Zone Blaine, Big Air, Fun City,
+    // Jump Start, Slick City x2, Conquer x3, Ninjas United).
+    expect(venues.length).toBe(27);
+    expect(venues.filter((p) => p.details?.trampolines === true).length).toBe(11);
+    expect(venues.filter((p) => p.details?.ninjaCourse === true).length).toBe(18);
+    expect(venues.filter((p) => p.details?.rockClimbing === true).length).toBe(12);
+    expect(venues.filter((p) => p.details?.socksRequired === true).length).toBe(14);
   });
 
   it("activity badges split the kind correctly — a bouldering gym is climbing-only", () => {

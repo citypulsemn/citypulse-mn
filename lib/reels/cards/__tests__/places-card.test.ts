@@ -287,12 +287,13 @@ describe("kind eligibility — a card is never most of the list", () => {
       expect(k.eligible, k.kind).toBe(new Set(safe.map((p) => nameOf.get(p.slug))).size);
     }
     // Counted by hand from the registry, so the rule is not grading itself:
-    // 17 trampoline and climbing gyms are 7 businesses (Sky Zone x4, Urban Air
-    // x3, Vertical Endeavors x4, Bouldering Project x2, Conquer Ninja x2, and
-    // two one-offs), and 15 indoor playgrounds are 13 (InnerActive x2, Kids
-    // Empire x2).
-    expect(card.considered).toContainEqual({ kind: "trampoline-climbing", eligible: 7, note: "below 10" });
-    expect(card.considered.find((k) => k.kind === "indoor-playground")!.eligible).toBe(13);
+    // 27 trampoline and climbing gyms are 12 businesses (Sky Zone x5, Urban Air
+    // x3, Vertical Endeavors x4, Bouldering Project x2, Conquer Ninja x5, Slick
+    // City x2, and six one-offs), and 36 indoor playgrounds are 31 (InnerActive,
+    // Kids Empire, Little Playdate, Good Times Park and We Rock the Spectrum x2).
+    // The 8 Nov 2026 indoor-play sweep lifted gyms over the floor of 10.
+    expect(card.considered).toContainEqual({ kind: "trampoline-climbing", eligible: 12, note: "eligible" });
+    expect(card.considered.find((k) => k.kind === "indoor-playground")!.eligible).toBe(31);
   });
 });
 
@@ -335,7 +336,7 @@ describe("five rows are five names", () => {
       return (opening: string) => [...new Set(ofKind.filter((p) => p.name.startsWith(opening)).map((p) => nameOf.get(p.slug)))];
     };
     const gym = named("trampoline-climbing");
-    expect(PLACES.filter((p) => p.name.startsWith("Sky Zone"))).toHaveLength(4);
+    expect(PLACES.filter((p) => p.name.startsWith("Sky Zone"))).toHaveLength(5);
     expect(gym("Sky Zone")).toEqual(["Sky Zone"]);
     expect(gym("Urban Air")).toEqual(["Urban Air"]);
     expect(gym("Vertical Endeavors")).toEqual(["Vertical Endeavors"]);
@@ -742,15 +743,15 @@ describe("rows and wording", () => {
 
   it("every real kind that can produce a card does, with the header its coverage calls for", () => {
     const kinds = [...new Set(producible.map((p) => p.kind))];
-    // Eight kinds can card on any day of the year. With an 8-week rule that is
-    // exactly enough for a card every week, and no more: lose one and the
+    // Nine kinds can card on any day of the year. With an 8-week rule, eight is
+    // exactly enough for a card every week; the ninth (gyms, over the floor of
+    // 10 businesses since the 8 Nov 2026 sweep) is one spare. Lose two and the
     // winter weeks start skipping (the rotation test below would say so).
-    for (const kind of ["playground", "park", "rink", "dog-park", "disc-golf", "nature-center", "museum", "indoor-playground"] as const) {
+    for (const kind of ["playground", "park", "rink", "dog-park", "disc-golf", "nature-center", "museum", "indoor-playground", "trampoline-climbing"] as const) {
       const days = producible.filter((p) => p.kind === kind).length;
       expect(days, kind).toBe(everyDayOf2027.length);
     }
-    // Seventeen gyms, seven businesses: under the floor, so it never cards.
-    expect(kinds).not.toContain("trampoline-climbing");
+    expect(kinds).toContain("trampoline-climbing");
     for (const { kind, card } of producible) {
       const plural = (CARD_COPY.kindNames[kind] || KIND_META[kind].plural).toUpperCase();
       expect(card.content!.header).toBe(
@@ -1059,7 +1060,7 @@ describe("two years of Wednesdays against the live registry", () => {
   // first build's rotation looked clean for ten weeks and put three Sky Zones
   // on week eleven, and what week two held depended on the go-live Wednesday.
   it.each(["2026-10-07", "2026-10-14", "2026-10-21", "2026-10-28"])(
-    "three years from a %s go-live: never one business twice, never a place straight back, never a gym card",
+    "three years from a %s go-live: never one business twice, never a place straight back",
     (start) => {
       const records = simulate((all) => all, start, 157);
       expectHonestRotation(records, 157);
@@ -1070,7 +1071,6 @@ describe("two years of Wednesdays against the live registry", () => {
         last.set(r.kind, r);
         for (const slug of r.slugs) expect(Object.keys(CARD_SAFE_BY_SLUG).filter((s) => s === slug && CARD_SAFE_BY_SLUG[s] === null)).toEqual([]);
       }
-      expect(records.map((r) => r.kind)).not.toContain("trampoline-climbing");
       // Apple Valley Sports Arena only while its entry says there is ice.
       for (const r of records.filter((x) => x.slugs.includes("apple-valley-sports-arena"))) {
         expect(r.postDate.slice(5) >= "11-01" || r.postDate.slice(5) <= "03-10", r.postDate).toBe(true);
