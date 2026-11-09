@@ -124,7 +124,27 @@ export function selectWeekend(events: EventRecord[], now: Date): WeekendSection[
   }
 
   const byStart = (a: EventRecord, b: EventRecord) => a.start.localeCompare(b.start);
-  ongoing.sort(byStart);
+
+  // ORDER (8 Nov 2026). This was `ongoing.sort(byStart)`, and EVERY member of this
+  // list started before the weekend BY CONSTRUCTION: the else branch above is reached
+  // only when startDay is not a weekend day, and the overlap check has already dropped
+  // anything starting after it. So byStart ordered the section longest-open-first,
+  // which is backwards. Measured on the live set for the weekend of 13 Nov: 23 rows,
+  // led by an exhibition that opened 23 May and runs to 10 January, while the Grinch
+  // performance CLOSING on that Friday was 23rd of 23. The same array feeds this
+  // page's schema.org ItemList, so the stalest row took position 1 there too.
+  //
+  // Ending soonest first — the rule lib/ongoing.ts states in words ("Last day is the
+  // only urgent thing about a run that has been open for two months") and the one
+  // planListView uses. Tie-break on start then title, identical to lib/ongoing.ts, so
+  // the two files cannot drift.
+  const endDayOf = (e: EventRecord) => dayOf(spanEnd(e) ?? e.start);
+  ongoing.sort(
+    (a, b) =>
+      endDayOf(a).localeCompare(endDayOf(b)) ||
+      a.start.localeCompare(b.start) ||
+      a.title.localeCompare(b.title),
+  );
 
   const sections: WeekendSection[] = [];
   if (ongoing.length > 0) {
@@ -132,6 +152,8 @@ export function selectWeekend(events: EventRecord[], now: Date): WeekendSection[
   }
   for (const d of days) {
     const list = byDay.get(d)!;
+    // byStart is CORRECT here: every row in a day bucket starts that day, so this
+    // is the clock, not an age ranking.
     list.sort(byStart);
     if (list.length > 0) sections.push({ key: d, heading: dayHeading(d), events: list });
   }

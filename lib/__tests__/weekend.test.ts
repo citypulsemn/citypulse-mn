@@ -124,3 +124,66 @@ describe("selectWeekend — self-spanned runs past the cap (R1.5, rule 5)", () =
     expect(selectWeekend([over], WED)).toEqual([]);
   });
 });
+
+describe("selectWeekend — 'Happening all weekend' is ordered by what closes first (8 Nov 2026)", () => {
+  // "arts", never the helper's default "music": PER_NIGHT = {sports, music}, so
+  // staleSpanIds deletes a music row carrying a multiDayEnd.
+  const run = (title: string, start: string, end: string) =>
+    ev({ title, category: "arts", start, multiDayEnd: end });
+
+  it("the run closing ON the weekend leads the one with months left", () => {
+    // Measured on the live set for the weekend of 13 Nov 2026: the section led
+    // with an exhibition that opened 23 May and runs to 10 January, while the
+    // performance closing on that Friday was 23rd of 23. Every member of this
+    // section started before the weekend by construction, so sorting by start
+    // ranked them by age.
+    const sections = selectWeekend(
+      [
+        run("Runs to January", "2026-07-01T10:00", "2027-01-10T17:00"),
+        run("Closes Friday", "2026-07-10T10:00", "2026-07-17T17:00"),
+        run("Closes Sunday", "2026-07-05T10:00", "2026-07-19T17:00"),
+      ],
+      FRI,
+    );
+    expect(sections[0].key).toBe("ongoing");
+    expect(sections[0].events.map((e) => e.title)).toEqual([
+      "Closes Friday",
+      "Closes Sunday",
+      "Runs to January",
+    ]);
+  });
+
+  it("ties break on start, then title — identical to lib/ongoing.ts", () => {
+    const sections = selectWeekend(
+      [
+        run("Beta", "2026-07-05T10:00", "2026-07-19T17:00"),
+        run("Alpha", "2026-07-05T10:00", "2026-07-19T17:00"),
+        run("Opened earlier", "2026-07-01T10:00", "2026-07-19T17:00"),
+      ],
+      FRI,
+    );
+    expect(sections[0].events.map((e) => e.title)).toEqual(["Opened earlier", "Alpha", "Beta"]);
+  });
+
+  it("the per-day sections still read as a CLOCK, not an age ranking", () => {
+    const sections = selectWeekend(
+      [
+        ev({ title: "Evening", start: "2026-07-18T20:00" }),
+        ev({ title: "Morning", start: "2026-07-18T09:00" }),
+      ],
+      FRI,
+    );
+    const sat = sections.find((s) => s.key === "2026-07-18")!;
+    expect(sat.events.map((e) => e.title)).toEqual(["Morning", "Evening"]);
+  });
+
+  it("re-ordering drops nothing", () => {
+    const rows = [
+      run("A", "2026-07-01T10:00", "2027-01-10T17:00"),
+      run("B", "2026-07-10T10:00", "2026-07-17T17:00"),
+      ev({ title: "C", start: "2026-07-18T09:00" }),
+    ];
+    const total = selectWeekend(rows, FRI).reduce((n, s) => n + s.events.length, 0);
+    expect(total).toBe(3);
+  });
+});

@@ -45,9 +45,17 @@ export interface ListPlan {
  * a run that overlapped the window and has since closed goes to `starting` with
  * a start before the window, which is exactly what the clamp handles.)
  *
- * So the mid-run ones get their own capped group, ordered ending-soonest, the
- * same shape `/day/<date>` and `/this-weekend` already use. `groupEventsByDay`
- * is deliberately untouched: `/this-week` shares it.
+ * So the mid-run ones get their own capped group, ordered ending-soonest.
+ *
+ * (An earlier version of this line said that was "the same shape `/day/<date>` and
+ * `/this-weekend` already use". It was wrong about both. `/this-weekend` sorted its
+ * "Happening all weekend" section by START — longest-open first — until 8 Nov 2026,
+ * when it was changed to match this. `/day` is still two different answers on one
+ * page: its "Also running" shelf is ending-soonest via lib/ongoing.ts, but the
+ * in-cap group from lib/day-order.ts sorts by TITLE. Ending-soonest is the rule
+ * lib/ongoing.ts argues for; day-order has not been changed to it.)
+ *
+ * `groupEventsByDay` is deliberately untouched: `/this-week` shares it.
  *
  * "ALREADY RUNNING" IS DECIDED FROM `todayKey`, NOT FROM THE WINDOW, and that
  * distinction is the whole correctness of the heading. The first cut split on
