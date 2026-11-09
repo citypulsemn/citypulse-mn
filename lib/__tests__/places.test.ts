@@ -797,7 +797,16 @@ describe("playground features (winning detail — moat, kind 7; fenced is rare+s
   it("locks the counts — fenced is rare (only the one that's actually enclosed)", () => {
     expect(playgrounds.length).toBe(15);
     expect(playgrounds.filter((p) => p.details?.fenced === true).length).toBe(1);
-    expect(playgrounds.filter((p) => p.details?.restrooms === true).length).toBe(10);
+    // 10 → 12 on 8 Nov 2026: Becker ("small restroom building") and Madison's
+    // Place ("Nearby restrooms are available during these hours"), each quoted
+    // word for word in lib/playground-facts.ts.
+    expect(playgrounds.filter((p) => p.details?.restrooms === true).length).toBe(12);
+    // Hyland ("ages four and younger") and French ("A play area for smaller
+    // children") — the two whose own pages name a separate toddler area.
+    expect(playgrounds.filter((p) => p.details?.toddlerArea === true).map((p) => p.slug).sort()).toEqual([
+      "french-regional-playground",
+      "hyland-chutes-and-ladders-playground",
+    ]);
   });
 
   it("the single fenced playground is the one a source confirms enclosed", () => {
@@ -805,8 +814,8 @@ describe("playground features (winning detail — moat, kind 7; fenced is rare+s
     expect(fenced).toEqual(["teddy-bear-park-playground"]);
   });
 
-  it("offers fenced / restrooms as filters (fenced first)", () => {
-    expect(activeDetailKeys(playgrounds)).toEqual(["fenced", "restrooms"]);
+  it("offers fenced / toddler area / restrooms as filters, in label order", () => {
+    expect(activeDetailKeys(playgrounds)).toEqual(["fenced", "toddlerArea", "restrooms"]);
   });
 });
 
@@ -1108,11 +1117,13 @@ describe("cross-kind discover (the everything finder)", () => {
   const JAN = new Date("2026-01-15T12:00:00Z");
 
   it("crossKindDetailKeys offers only facts that span >=2 kinds, in label order", () => {
-    // indoor (rink+pool), fenced (dog-park+playground), cafe (indoor-play+museum),
-    // socksRequired (indoor-play+trampoline), restrooms (splash-pad+playground).
+    // indoor (rink+pool), fenced (dog-park+playground), toddlerArea (indoor-play+
+    // playground, since 8 Nov 2026), cafe (indoor-play+museum), socksRequired
+    // (indoor-play+trampoline), restrooms (splash-pad+playground).
     expect(crossKindDetailKeys(PLACES)).toEqual([
       "indoor",
       "fenced",
+      "toddlerArea",
       "cafe",
       "socksRequired",
       "restrooms",

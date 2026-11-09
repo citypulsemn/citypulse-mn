@@ -137,6 +137,30 @@ and one emailed link carries both lists.
   every check, the chips, and the saved section; rename it there and it changes
   everywhere.
 
+## Playground "Before you go" (Nov 2026)
+
+The 14 outdoor playground pages carry a box of what a parent checks before
+driving: restrooms as the park's own page describes them, ages, toddler area,
+hours, the lot to park in ("Directions to the lot"), the nearest splash pad, and
+an April 2025 aerial photo of the layout. Data: `lib/playground-facts.ts`,
+keyed by slug. Component: `components/BeforeYouGo.tsx` (server, plain `<img>`).
+
+- **Every fact stores the words it was read from** (`quotes`) plus the URL and
+  `readOn`. Primary sources only; a test bans aggregators.
+- **Photos are `met25` only** (Metropolitan Council, public domain). Hennepin and
+  Dakota 6-inch flights are Nearmap-licensed — never fetch them; a test fails if
+  any file asks for another layer. `npm run playground-aerial` fetches missing
+  photos into `public/places/aerial/`; `-- --force` re-fetches after a pin moves.
+- **The pin is the play area, not the park's address.** For a park reserve the
+  address is the entrance — Hyland's was 964 m off, Waterford's sat in Lake
+  Waconia. The photo is centred on the pin, and a test fails if they drift apart.
+- **No scores, no counts from photos.** The process that produced this (the
+  aerial-playground-inventory skill) can score parks; its own rule holds that
+  until 20–30 parks are calibrated.
+- A new outdoor playground fails `playground-facts.test.ts` until it has an
+  entry. Re-check every March. Full story:
+  `docs/deploy-history/DEPLOY-PLAYGROUND-BEFORE-YOU-GO.md`.
+
 ## Place of the week
 
 `placeOfTheWeek(now)` picks the one place the Thursday email and Admin → Content

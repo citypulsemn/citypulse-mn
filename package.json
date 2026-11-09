@@ -28,6 +28,7 @@
     "inbox": "tsx --env-file-if-exists=.env.local scripts/check-inbox.ts",
     "resweep-verified": "tsx --env-file-if-exists=.env.local scripts/resweep-verified.ts",
     "places-coverage": "tsx scripts/places-coverage.ts",
+    "playground-aerial": "tsx scripts/playground-aerial.ts",
     "places-candidates": "tsx scripts/places-candidates.ts",
     "research-places": "tsx --env-file-if-exists=.env.local scripts/research-places.ts",
     "ops-digest": "tsx --env-file-if-exists=.env.local scripts/send-ops-digest.ts",

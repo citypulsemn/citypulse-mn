@@ -1185,6 +1185,13 @@ a.daycard { text-decoration: none; }
 .venue-hours-src { color: var(--cream-dim); font-size: 12.5px; line-height: 1.6; margin: 10px 0 0; }
 .venue-hours-src a { color: var(--gold); text-decoration: none; }
 .venue-hours-src a:hover { text-decoration: underline; }
+/* Playground "Before you go" reuses the venue-hours box; centred like the place badges. */
+.before-go { margin: 0 auto 20px; max-width: 720px; }
+.before-go .venue-hours-list a { color: var(--gold); text-decoration: none; }
+.before-go .venue-hours-list a:hover { text-decoration: underline; }
+.before-go-aerial { margin: 14px 0 0; }
+.before-go-aerial img { display: block; width: 100%; height: auto; border-radius: 8px; border: 1px solid var(--line); }
+.before-go-aerial figcaption { color: var(--cream-dim); font-size: 12.5px; line-height: 1.6; margin: 8px 0 0; }
 
 /* ---------- City pages (roadmap 6.2) ---------- */
 .city-districts { color: var(--cream-dim); font-size: 13px; margin-top: 10px; line-height: 1.9; }

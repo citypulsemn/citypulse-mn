@@ -4,6 +4,8 @@ import { TopBar } from "@/components/TopBar";
 import { SiteFooter } from "@/components/SiteFooter";
 import { SubscribeBand } from "@/components/SubscribeBand";
 import { VisitButton } from "@/components/VisitButton";
+import { BeforeYouGo } from "@/components/BeforeYouGo";
+import { playgroundFacts } from "@/lib/playground-facts";
 import {
   KIND_META,
   placeForKindSlug,
@@ -110,6 +112,7 @@ export default async function PlaceDetailPage({
   const nearby = nearbyOfKind(place, 6);
   const nearbyInCity = nearby.filter((p) => p.city === place.city).length;
   const citySlug = matchCitySlug(place.city);
+  const facts = k === "playground" ? playgroundFacts(place.slug) : null;
 
   const mapUrl = staticMapUrl(place.lat, place.lng, process.env.NEXT_PUBLIC_MAPBOX_TOKEN);
   const directions =
@@ -161,6 +164,8 @@ export default async function PlaceDetailPage({
             loading="lazy"
           />
         )}
+
+        {facts && <BeforeYouGo place={place} facts={facts} />}
 
         {badges.length > 0 && (
           <div className="place-details place-details-lg">
