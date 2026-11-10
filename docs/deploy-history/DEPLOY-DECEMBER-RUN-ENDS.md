@@ -171,14 +171,7 @@ one condition in one filter.
 
 ## Left open
 
-- **A live duplicate of The Music Man, which this change made visible.** `6a05455a` is published at
-  *Ordway Center for the Performing Arts* — a different spelling of the same building, so neither
-  `event_key` nor `roomKey` folds it — covering only 26–27 December, sourced from
-  `msp.kidsoutandabout.com`, a roundup. It is a fragment of the run corrected here. Before this
-  change the real row's span ended 9 December, so only the fragment appeared on those two days;
-  now both render, and `/day/2026-12-27` shows **"The Music Man" twice**. The duplicate is older
-  than this change, but this change is what put the pair side by side. Two further rows for the
-  same production are already archived.
+- ~~A live duplicate of The Music Man.~~ **Resolved the same day** — see below.
 - **The Music Man's `end_at` (2026-12-25 21:30) is wrong and now frozen.** It matches no
   performance. It is shadowed everywhere by `multi_day_end`, but it is visible in the admin editor,
   and `lib/admin-actions.ts:124` would write it straight back on any unrelated admin save.
@@ -187,3 +180,76 @@ one condition in one filter.
   Nothing is false in the columns — the model has one start time for three different days.
 - **`staleSpanIds` still ignores `status`**, so it will clear a span on a draft or archived row.
   That is harmless today and was left alone; only the `corrected` precedence was fixed.
+
+---
+
+## Addendum, 10 November 2026 — the duplicate this exposed, archived
+
+`6a05455a` was published at *Ordway Center for the Performing Arts*, a different spelling of the
+same building, so neither `event_key` nor `roomKey` ever folded it against the keeper
+(`roomKey` gives `ordway center for the performing arts` against `ordway music theater`). It
+covered 26 Dec 14:00 to 27 Dec 22:00 — exactly the last weekend of the corrected run, matching the
+Ordway's Saturday 2:00 PM and Sunday 1:30/7:00 PM performances.
+
+**The row said so itself.** Its stored description:
+
+> The Music Man plays at the Ordway Center for the Performing Arts December 8–27, 2026, with
+> performances available through December 27. The final days of the run fall within the
+> December 26–27 window.
+
+It was minted from `msp.kidsoutandabout.com`'s "101 ideas for holiday family fun" roundup, whose
+26–27 December window became the event's dates. Its ticket link was only `ordway.org`'s homepage,
+while the keeper cites the Ordway's own event page — the same weak-citation shape as the
+[Children's Museum duplicate](DEPLOY-SELFCHECK-SEES-RUNS.md).
+
+**Archived, not hidden.** The performances are real; only this row's date range is wrong. That is
+the duplicate lever, not the takedown for a fabrication.
+
+### It will not come back
+
+`status` is absent from the upsert's `on conflict` set in `lib/upsert.ts`, so a weekly
+re-find updates an archived row's fields without republishing it. `corrected_at` additionally
+freezes title, venue, start, end, description and source_url. Checked before applying, because an
+archive that reverts in seven days is not a fix. Note that `msp.kidsoutandabout.com` is **not** in
+`AGGREGATOR_HOSTS` (`lib/event-links.ts:31`) — that list is ticketing and national aggregators —
+which is how a roundup-sourced row came to be published in the first place.
+
+### Verified
+
+| | before | after |
+|---|---|---|
+| published Music Man rows | 2 | **1** |
+| `/day/2026-12-26` | not measured | **1** |
+| `/day/2026-12-27` | 2 cards, "5 events" | **1**, "4 events" |
+
+Three rows for this production are now archived and one is published. The archived row's event page
+still renders, under "THIS EVENT HAS ALREADY HAPPENED" — the documented archive behaviour, so an old
+link does not 404 and does not claim the listing is upcoming.
+
+### A rebuild was not enough, and it nearly produced a false report
+
+After archiving, `npm run build` plus a fresh `npm run start` **still served the archived row** on
+`/day/2026-12-27`. The day query filters `status = 'published'` (`lib/events.ts:221`), so the
+data layer was right the whole time; `.next/cache` had survived the rebuild, all 368 MB of it.
+`rm -rf .next/cache` and a cold rebuild gave the true page.
+
+This is recorded for worktrees in the local-smoke notes, but it bit here in the **main checkout**
+after a **data-only** change, where no code had changed at all and a rebuild looks sufficient.
+**After a correction, clear `.next/cache` before believing any local page.** The tell was the day
+header: it still read "5 events" after a row had been archived.
+
+### Files
+
+- `corrections-music-man-duplicate.json` (applied)
+- Backups: `Documents/CityPulseMN/backups/2026-11-10-music-man-duplicate-before.json` and
+  `...-music-man-duplicate-applier.json`
+- Gate re-run after the archive: `tsc` clean · **3,411 tests in 156 files** · build clean ·
+  `npm audit` 0
+
+### Still open after this
+
+- **The Grinch pile.** Children's Theatre Company's *Dr. Seuss's How the Grinch Stole Christmas!*
+  is 8 published rows under two titles for one run, two of which render back to back in the
+  homepage Trending strip. Same family, larger, and not touched here.
+- **An archived future-dated row says "THIS EVENT HAS ALREADY HAPPENED"**, which is not literally
+  true of a run that has not started. Pre-existing wording, not introduced here.

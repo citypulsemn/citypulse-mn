@@ -1,0 +1,8 @@
+[
+  {
+    "id": "6a05455a-cb77-4bd4-8c8a-5fdecc5e7978",
+    "archive": true,
+    "evidence": "https://ordway.org/events/music-man/",
+    "why": "Duplicate of \"The Music Man\" (4ba1df04-2b14-46d2-a7ac-74ceed86b943): the same production in the same building, kept as a separate row only because the venue is spelled \"Ordway Center for the Performing Arts\" here and \"Ordway Music Theater\" on the keeper, which is why neither event_key nor roomKey ever folded them. This row covers 26 Dec 14:00 to 27 Dec 22:00 - exactly the last weekend of the keeper's run, matching the Ordway's own Saturday 2:00 PM and Sunday 1:30/7:00 PM performances. It says so itself: its stored description reads \"The Music Man plays at the Ordway Center for the Performing Arts December 8-27, 2026, with performances available through December 27. The final days of the run fall within the December 26-27 window.\" It is a fragment minted from msp.kidsoutandabout.com's \"101 ideas for holiday family fun\" roundup, whose December 26-27 window became the event's dates; its ticket link is only ordway.org's homepage, while the keeper cites the Ordway's own event page. Archived, not hidden: the performances are real and only this row's date range is wrong, so the lever is the duplicate one rather than the takedown for a fabrication. The keeper's span was corrected to 27 Dec on 10 Nov 2026, which is what put the two rows side by side on /day/2026-12-26 and /day/2026-12-27."
+  }
+]
