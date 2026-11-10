@@ -804,10 +804,23 @@ export function planRunFolds(live: RunFoldRow[], incoming: RunFoldRow[]): RunFol
  *
  * So the collapse pass heals the data instead of only declining to worsen it.
  * Nothing else writes multi_day_end, which is what makes a clear durable.
+ *
+ * EXCEPT a row an operator corrected by hand (10 Nov 2026). This heal checked
+ * neither corrected_at nor status, while planCollapse (line 295, five hundred
+ * lines up) skips a corrected row outright - so the two halves of the same
+ * pass disagreed about who outranks whom, far enough apart that nobody saw it. The durability is the problem: nothing puts a cleared
+ * span back, and upsert freezes end_at once corrected_at is set, so the row
+ * silently falls back to whatever end_at holds and stays there.
+ *
+ * Found while correcting The Music Man at the Ordway MUSIC Theater - a title
+ * and a venue that are about as adversarial as lib/classify.ts will ever see.
+ * One drift of that row's category into music and its hand-checked
+ * 'Dec 8 - 27' would have quietly become 'Dec 8 - 25' on the next pipeline
+ * run, with no instrument reporting it. The guard is planCollapse's own.
  */
 export function staleSpanIds(rows: CollapseRow[]): string[] {
   return rows
-    .filter((r) => PER_NIGHT.has(r.category ?? "") && (r.endDay ?? "") > dayOf(r.start))
+    .filter((r) => !r.corrected && PER_NIGHT.has(r.category ?? "") && (r.endDay ?? "") > dayOf(r.start))
     .map((r) => r.id);
 }
 

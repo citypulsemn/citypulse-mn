@@ -1,4 +1,6 @@
 import { describe, it, expect } from "vitest";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import {
   normalizeRunTitle,
   runKey,
@@ -1344,4 +1346,105 @@ describe("beganBeforeToday — the shape whose start date must not be printed (9
     // spanEndISO reads that as a span, so a sloppy end_at reaches this rule too.
     expect(beganBeforeToday(ev({ start: "2026-07-18T21:00", end: "2026-07-21T02:00" }), TODAY)).toBe(true);
   });
+});
+
+// ---------------------------------------------------------------------------
+// An operator's correction outranks the automatic heal (10 Nov 2026)
+//
+// staleSpanIds checked neither corrected_at nor status, while planCollapse
+// skips a corrected row outright — the two halves of one pass disagreed about
+// who wins. Nothing puts a cleared span back, and upsert freezes end_at once
+// corrected_at is set, so a cleared row falls back to end_at and stays there.
+// ---------------------------------------------------------------------------
+
+describe("staleSpanIds leaves a hand-corrected row alone", () => {
+  const row = (o: Partial<CollapseRow> & { id: string }): CollapseRow => ({
+    title: "Event",
+    city: "Minneapolis",
+    category: "festival",
+    start: "2026-11-13T20:00",
+    endDay: null,
+    end: null,
+    corrected: false,
+    status: "published",
+    ...o,
+  });
+
+  it("does not clear a span an operator checked by hand", () => {
+    expect(
+      staleSpanIds([
+        row({ id: "checked", category: "music", start: "2026-11-13T20:00", endDay: "2026-11-14", corrected: true }),
+      ]),
+    ).toEqual([]);
+  });
+
+  it("still clears the uncorrected row sitting beside it", () => {
+    // The guard has to be narrow. If it were reading something that is true of
+    // every row, this pair would come back empty and the test above would pass
+    // for the wrong reason.
+    expect(
+      staleSpanIds([
+        row({ id: "checked", category: "music", start: "2026-11-13T20:00", endDay: "2026-11-14", corrected: true }),
+        row({ id: "untouched", category: "music", start: "2026-11-13T20:00", endDay: "2026-11-14", corrected: false }),
+      ]),
+    ).toEqual(["untouched"]);
+  });
+
+  it("holds the shape that prompted it: The Music Man at the Ordway MUSIC Theater", () => {
+    // Corrected to Dec 8 – 27 on 10 Nov 2026 against ordway.org's own
+    // performance list. Were lib/classify.ts ever to read that title and venue
+    // as music, the old filter would have nulled the span on the next pipeline
+    // run and the page would have fallen back to end_at — "Dec 8 – 25", a date
+    // matching no performance — with no instrument reporting it.
+    expect(
+      staleSpanIds([
+        row({
+          id: "music-man",
+          title: "The Music Man",
+          city: "Saint Paul",
+          category: "music",
+          start: "2026-12-08T19:30",
+          end: "2026-12-25T21:30",
+          endDay: "2026-12-27",
+          corrected: true,
+        }),
+      ]),
+    ).toEqual([]);
+  });
+
+  it("is the same precedence planCollapse already applies", () => {
+    // planCollapse skips a corrected row at lib/multiday.ts:295. Before this
+    // change the heal twelve lines below it did not, so one pass both spared
+    // the row and deleted its span.
+    const src = readFileSync(join(__dirname, "..", "multiday.ts"), "utf8").replace(/\r\n/g, "\n");
+    const fn = src.slice(src.indexOf("export function staleSpanIds"), src.indexOf("// ── Display"));
+    expect(fn.length).toBeGreaterThan(80);
+    expect(fn).toContain("!r.corrected");
+  });
+});
+
+describe("both staleSpanIds callers actually load the corrected flag", () => {
+  // A pure guard on a field the callers never SELECT is a no-op that reads as
+  // a fix. Each caller builds its own row set in SQL, so each is checked.
+  const callers = [
+    ["lib/upsert.ts", join(__dirname, "..", "upsert.ts")],
+    ["scripts/collapse-multiday.ts", join(__dirname, "..", "..", "scripts", "collapse-multiday.ts")],
+  ] as const;
+
+  for (const [name, path] of callers) {
+    it(`${name} selects corrected_at and hands it to staleSpanIds`, () => {
+      const src = readFileSync(path, "utf8").replace(/\r\n/g, "\n");
+      // Scoped to the region feeding THIS call, not the whole file: upsert.ts
+      // has a second query that also selects corrected_at, and a whole-file
+      // toContain passed while the staleSpanIds query was mutated away.
+      const call = src.indexOf("staleSpanIds(planRows)");
+      expect(call).toBeGreaterThan(0);
+      const region = src.slice(Math.max(0, call - 2000), call);
+      expect(region.length).toBeGreaterThan(500);
+      expect(region).toContain("corrected_at is not null as corrected");
+      // The rows that reach staleSpanIds are the mapped planRows, which spread
+      // the selected row — so the flag survives the mapping.
+      expect(region).toContain("const planRows = rows.map((r) => ({ ...r, endDay: r.end_day }))");
+    });
+  }
 });

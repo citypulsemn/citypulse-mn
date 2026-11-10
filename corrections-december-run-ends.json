@@ -1,0 +1,14 @@
+[
+  {
+    "id": "4ba1df04-2b14-46d2-a7ac-74ceed86b943",
+    "multi_day_end": "2026-12-27",
+    "evidence": "https://ordway.org/events/music-man/",
+    "why": "The stored span ended 2026-12-09, two days into a twenty-day run, so the event page read \"Dec 8 - 9\" and the site would have called the show finished from 10 December. The Ordway's own event page headlines the run \"December 8 - 27, 2026\" and its performance list - which is collapsed behind a \"View 20 more performances\" control that a scripted fetch cannot expand, and had to be opened in a browser - holds 24 performances ending Sunday, December 27, 2026 at 1:30 PM and 7:00 PM, both still on sale. The same closing date is printed on the Ordway events index and season page, in BroadwayWorld's March 2026 season announcement and September 2026 tour-extension article, on Visit Saint Paul, and on resale calendars that list a ticketed 27 December performance. Two adversarial checks, one pressing that the run might have been cut short and one pressing for a wrong year or a different production, both failed to break it; the weekday labels on the Ordway's own list (Tuesday 8 December, Sunday 27 December) pin the year to 2026. Only multi_day_end is changed: end_at still holds 2026-12-25 21:30, which matches no performance on that list and is left for a separate decision."
+  },
+  {
+    "id": "8006b69e-7f73-4bc7-b655-cc7df93d6415",
+    "multi_day_end": "2026-12-06",
+    "evidence": "https://asimn.org/experience/festivals/julmarknad/",
+    "why": "The stored span ended 2026-12-05, so the page read \"Dec 4 - 5\" and dropped the festival's closing Sunday. The American Swedish Institute's festival page states that Julmarknad \"will take place December 4-6, 2026 at the American Swedish Institute\", and its December 2026 month calendar lists exactly three Julmarknad entries and nothing after the 6th: Preview Night on Friday 4 December 5:30-8:00 PM, and Market & Festival days on Saturday 5 and Sunday 6 December, each 10:00 AM - 4:00 PM. The Sunday page calls it \"a 3-day Scandinavian marketplace\". Two adversarial checks failed to break it, and the 2026 season is current on ASI's site rather than archived - the page carries a 2026 artists list and a separate 2027 interest form. end_at already held 2026-12-06, so after this correction both columns agree."
+  }
+]
