@@ -2081,9 +2081,9 @@ export const PLACES: Place[] = [
     lat: 45.02813, lng: -93.24841, address: "3300 Central Ave NE, Minneapolis, MN 55418",
     city: "Minneapolis", neighborhood: "northeast", season: GOLF_SEASON, cost: "paid",
     tags: ["18-hole", "municipal"],
-    intro: "A Park Board 18 in Northeast, par 71, on the ground it has occupied since 1919 — rolling, tree-lined, and close in.",
+    intro: "A Park Board 18 in Northeast, par 70 — rolling, tree-lined, and close in. Its steel-arch bridge over the railroad tracks dates to 1896.",
     sourceUrl: "https://www.minneapolisparks.org/golf/courses/columbia_golf_club/",
-    verifiedAt: "2026-08-13", venueSlug: null,
+    verifiedAt: "2026-11-10", venueSlug: null,
   },
   {
     slug: "francis-gross-golf-club", name: "Francis A. Gross Golf Club", kind: "golf-course",
@@ -2214,10 +2214,10 @@ export const PLACES: Place[] = [
     // Pin re-read 10 Nov 2026, was 44.8490,-93.3490 (3.2km off): two map sources + a blind second read agree within 1m.
     lat: 44.82004, lng: -93.35401, address: "10100 Normandale Blvd, Bloomington, MN 55437",
     city: "Bloomington", neighborhood: null, season: GOLF_SEASON, cost: "paid",
-    tags: ["par-3", "municipal"],
-    intro: "Three Rivers' 9-hole par-3 in Bloomington, par 27, paired with a big driving range and short-game learning center.",
+    tags: ["9-hole", "municipal"],
+    intro: "Three Rivers' nine-hole executive course in Bloomington: eight par 3s and a 362-yard par 4 for a par of 28, plus a range with a 30,000-square-foot tee, a short-game area and a putting green.",
     sourceUrl: "https://www.threeriversparks.org/HylandGreensGolf",
-    verifiedAt: "2026-08-13", venueSlug: null,
+    verifiedAt: "2026-11-10", venueSlug: null,
   },
   {
     slug: "dwan-golf-course", name: "Dwan Golf Course", kind: "golf-course",
@@ -2283,10 +2283,10 @@ export const PLACES: Place[] = [
     // Pin re-read 10 Nov 2026, was 44.8290,-93.5310 (475m off): two map sources + a blind second read agree within 1m.
     lat: 44.82548, lng: -93.53442, address: "495 Pioneer Trail, Chanhassen, MN 55317",
     city: "Chanhassen", neighborhood: null, season: GOLF_SEASON, cost: "paid",
-    tags: ["par-3"],
-    intro: "A 9-hole executive/par-3 in Chanhassen, par 29, with a big driving range and practice area.",
+    tags: ["9-hole"],
+    intro: "A 9-hole executive course in Chanhassen, par 29, with a driving range 300 yards deep and room for 25 stalls on its grass tee.",
     sourceUrl: "https://www.hallagreens.com/",
-    verifiedAt: "2026-08-13", venueSlug: null,
+    verifiedAt: "2026-11-10", venueSlug: null,
   },
   {
     slug: "timber-creek-golf-course", name: "Timber Creek Golf Course", kind: "golf-course",
@@ -2340,9 +2340,9 @@ export const PLACES: Place[] = [
     lat: 45.27333, lng: -93.41480, address: "16659 St Francis Blvd NW, Ramsey, MN 55303",
     city: "Ramsey", neighborhood: null, season: GOLF_SEASON, cost: "paid",
     tags: ["18-hole"],
-    intro: "A par-71 daily-fee course in Ramsey, built in 1988, with a driving range.",
+    intro: "A par-71 daily-fee course in Ramsey, built in 1986, with a driving range.",
     sourceUrl: "https://www.rumriverhills.com/",
-    verifiedAt: "2026-08-13", venueSlug: null,
+    verifiedAt: "2026-11-10", venueSlug: null,
   },
   {
     slug: "links-at-northfork", name: "The Links at Northfork", kind: "golf-course",
@@ -2409,15 +2409,6 @@ export const PLACES: Place[] = [
     tags: ["18-hole"],
     intro: "A public links-style course at Blaine's National Sports Center, a PGA Tour Design Services layout open since 2003.",
     sourceUrl: "https://victorylinks.nscsports.org/",
-    verifiedAt: "2026-08-13", venueSlug: null,
-  },
-  {
-    slug: "viking-meadows-golf-club", name: "Viking Meadows Golf Club", kind: "golf-course",
-    lat: 45.3210, lng: -93.2010, address: "1788 Viking Blvd NE, East Bethel, MN 55011",
-    city: "East Bethel", neighborhood: null, season: GOLF_SEASON, cost: "paid",
-    tags: ["18-hole"],
-    intro: "A 27-hole public facility in East Bethel — an 18-hole par-72 plus a 9-hole executive.",
-    sourceUrl: "https://www.vikingmeadows.com/",
     verifiedAt: "2026-08-13", venueSlug: null,
   },
   {
@@ -2493,10 +2484,10 @@ export const PLACES: Place[] = [
     // Pin re-read 10 Nov 2026, was 44.8085,-93.0470 (1.4km off): two map sources + a blind second read agree within 0m.
     lat: 44.82023, lng: -93.04213, address: "8919 Cahill Ave, Inver Grove Heights, MN 55076",
     city: "Inver Grove Heights", neighborhood: null, season: GOLF_SEASON, cost: "paid",
-    tags: ["par-3"],
-    intro: "A 9-hole public par-3 in Inver Grove Heights — a short, walkable round.",
+    tags: ["9-hole"],
+    intro: "A 9-hole public executive course in Inver Grove Heights — par 31, five par 3s and four par 4s, with water on seven of the nine holes.",
     sourceUrl: "https://arborpointegolfclub.com",
-    verifiedAt: "2026-08-13", venueSlug: null,
+    verifiedAt: "2026-11-10", venueSlug: null,
   },
   {
     slug: "crystal-lake-golf-club", name: "Crystal Lake Golf Club", kind: "golf-course",
@@ -2528,15 +2519,6 @@ export const PLACES: Place[] = [
     verifiedAt: "2026-08-13", venueSlug: null,
   },
   {
-    slug: "fountain-valley-golf-club", name: "Fountain Valley Golf Club", kind: "golf-course",
-    lat: 44.6470, lng: -93.1800, address: "2830 220th St W, Farmington, MN 55024",
-    city: "Farmington", neighborhood: null, season: GOLF_SEASON, cost: "paid",
-    tags: ["18-hole"],
-    intro: "A public par-72 in Farmington, open since 1978.",
-    sourceUrl: "https://www.fountainvalleygolf.com",
-    verifiedAt: "2026-08-13", venueSlug: null,
-  },
-  {
     slug: "southern-hills-golf-course", name: "Southern Hills Golf Course", kind: "golf-course",
     // Pin re-read 10 Nov 2026, was 44.6730,-93.1560 (1.8km off): two map sources + a blind second read agree within 1m.
     lat: 44.67421, lng: -93.13379, address: "18950 Chippendale Ave W, Farmington, MN 55024",
@@ -2554,15 +2536,6 @@ export const PLACES: Place[] = [
     tags: ["par-3", "municipal"],
     intro: "Burnsville's city-owned 9-hole par-27 executive course — a quick, easy walk.",
     sourceUrl: "https://burnsvillemn.gov/215/Birnamwood-Golf-Course",
-    verifiedAt: "2026-08-13", venueSlug: null,
-  },
-  {
-    slug: "parkview-golf-course", name: "Parkview Golf Course", kind: "golf-course",
-    lat: 44.7940, lng: -93.1660, address: "1310 Cliff Rd, Eagan, MN 55123",
-    city: "Eagan", neighborhood: null, season: GOLF_SEASON, cost: "paid",
-    tags: ["18-hole"],
-    intro: "A public 18-hole executive course in Eagan, par 63, with a driving range — open since 1969.",
-    sourceUrl: "https://www.parkviewgolfclub.com",
     verifiedAt: "2026-08-13", venueSlug: null,
   },
   {
@@ -2657,15 +2630,6 @@ export const PLACES: Place[] = [
     tags: ["18-hole"],
     intro: "A public par-72 in Jordan, opened in 2000.",
     sourceUrl: "https://www.ridgesatsandcreek.com",
-    verifiedAt: "2026-08-13", venueSlug: null,
-  },
-  {
-    slug: "valley-view-golf-club-belle-plaine", name: "Valley View Golf Club (Belle Plaine)", kind: "golf-course",
-    lat: 44.6300, lng: -93.7500, address: "23795 Laredo Ave, Belle Plaine, MN 56011",
-    city: "Belle Plaine", neighborhood: null, season: GOLF_SEASON, cost: "paid",
-    tags: ["18-hole"],
-    intro: "A public par-71 in Belle Plaine, at the southwest edge of the metro, built in 1991.",
-    sourceUrl: "https://www.vvgolf.com",
     verifiedAt: "2026-08-13", venueSlug: null,
   },
   {

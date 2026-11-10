@@ -59,7 +59,34 @@ Golf is an **exhaustive** kind ("every public course, 7 counties"), so a closed
 course on the list is a false claim. Recommendation: double-check, then remove, as
 with Grove Cove and the farmers markets.
 
-## Intro errors found (not fixed here)
+### Outcome (10 Nov 2026, second commit) — all four removed
+
+Taren asked for a double-check against operator and city sources first. One agent
+per course tried to prove it still runs; removal needed an operator or government
+source, not just directories. All four held:
+
+- **Viking Meadows** — Anoka County: "The property is currently the Viking Meadows
+  Golf Course" being redeveloped for homes (Jun 2024); East Bethel council minutes
+  through Feb 2026 on the plat; the course's own Facebook ran an "Everything must
+  go" sale on 26 Oct 2024.
+- **Fountain Valley** — City of Farmington permit FA062506, "Demolition of
+  Clubhouse and Garage", 2830 220th St W, finaled 30 Jun 2026; rezoning approved
+  Nov 2024.
+- **Parkview** — the club's own 2013 pages selling its buildings; Eagan re-guided
+  the 80 acres from Private Recreational to Low Density Residential.
+- **Valley View (Belle Plaine)** — its own site: "Closed for Business / Thanks for
+  Playing with us" (Aug 2015); the domain parked by Mar 2016.
+
+Golf courses 85 → 81. Their detail URLs now 404.
+
+**The five intro errors below were fixed in the same commit**, each through a
+refute-first check of every claim and a second agent's refute pass on the new
+sentence (all five survived). Hyland Greens, Halla Greens and Arbor Pointe also
+lost the `par-3` tag (they are executive nines → `9-hole`). Two unattested phrases
+went: Columbia's "since 1919" (the Park Board's page gives both 1917 and 1919) and
+Arbor Pointe's "walkable".
+
+## Intro errors found
 
 - `columbia-golf-club` — par **70**, not 71 (operator page).
 - `hyland-greens-golf` — par **28**: the card has one par 4; "par 27" is wrong.
