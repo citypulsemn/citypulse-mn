@@ -1,5 +1,5 @@
 /**
- * OPEN VERIFY FLAGS — one definition, two readers.
+ * OPEN AUDIT FLAGS — one definition, three readers.
  *
  * The verify pass writes a `verify_flag` row into `admin_audit` when it cannot
  * confirm a listing against the page it cites. The audit log is append-only, so
@@ -11,6 +11,12 @@
  * over the same table on 3 Nov 2026 returned 164, then 25, against the digest's
  * 33 — because the condition is subtler than it looks (see below) and a near
  * miss is worse than no number at all. Both now come through here.
+ *
+ * IT HAD THREE (10 Nov 2026). The music-review queue — the same shape over the
+ * same two tables, one a.action value over — was still inline six lines above
+ * the openVerifyFlags() call, and it had the bug this file was created to end:
+ * a bare `verified_at is null`, with no after-stamp clause. It reported 0 while
+ * hiding 1. See openFlagCount below.
  *
  * THE SUBTLE PART: a flag is open when the listing is unverified **or when the
  * flag was raised after the stamp**. That second clause is the whole point. A
@@ -103,6 +109,33 @@ export async function openVerifyFlags(): Promise<OpenVerifyFlag[]> {
       and greatest(e.start_at, e.end_at, e.multi_day_end) >= now()
     order by e.id, a.at desc`;
   return [...rows].sort((x, y) => flagRank(x.verdict) - flagRank(y.verdict));
+}
+
+/**
+ * How many listings carry an OPEN flag of this action — the same open-state rule
+ * openVerifyFlags applies, so a second queue cannot drift from the first.
+ *
+ * Written for the music-review queue, which had computed it inline with a bare
+ * `verified_at is null`. That is the 33-vs-25 defect in miniature, and worse
+ * here than it was there: scripts/import-venues.ts inserts this flag only WHERE
+ * NOT EXISTS a prior one for the event (deliberately — a flag is a standing note,
+ * not a log line), while stamping verified_at on every row it matched. So the
+ * ordinary life of the flag is: matched and stamped in run N, calendar re-spells
+ * the listing in run N+1, first flag inserted with a.at AFTER the stamp — and a
+ * count keyed on `verified_at is null` never sees it, nor can a fresher flag row
+ * ever arrive to make it visible. Invisible permanently, by the common path.
+ * Measured 10 Nov 2026: the queue reported 0, and 1 was open.
+ */
+export async function openFlagCount(action: string): Promise<number> {
+  if (!sql) return 0;
+  const [row] = await sql<{ n: number }[]>`
+    select count(distinct a.event_id)::int as n
+    from admin_audit a join events e on e.id = a.event_id
+    where a.action = ${action}
+      and e.status = 'published'
+      and (e.verified_at is null or a.at > e.verified_at)
+      and greatest(e.start_at, e.end_at, e.multi_day_end) >= now()`;
+  return row?.n ?? 0;
 }
 
 /** Just the ids, for `/admin?status=flagged`. */

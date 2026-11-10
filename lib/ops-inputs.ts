@@ -24,7 +24,7 @@ import { actionsConfigured, getActionsHealth, type WorkflowHealth } from "./acti
 import { withDeadline } from "./vendor-health";
 import { getSourceSweepHealth } from "./source-sweep";
 import { getPendingSubmissionCount } from "./submissions";
-import { openVerifyFlags } from "./verify-flags";
+import { openFlagCount, openVerifyFlags } from "./verify-flags";
 import { getPendingReportCount, getOldestPendingReportDays, getPendingReportsWithChecks } from "./event-reports";
 import { formatCheckLine, type CheckVerdict } from "./report-check";
 import { reportActionUrl, reportActionSecret } from "./report-token";
@@ -167,17 +167,14 @@ export async function gatherOpsInputs(): Promise<OpsInputs> {
     },
     async () => {
       if (!sql) throw new Error("no database connection");
-      // OPEN, not flagged-ever. The audit log is append-only, so the count has
-      // to come from the listing's current state: still published, and still
-      // not confirmed by any source. Once a later pass hides or verifies it,
-      // the item closes itself.
-      const [m] = await sql<{ n: number }[]>`
-        select count(distinct a.event_id)::int as n
-        from admin_audit a join events e on e.id = a.event_id
-        where a.action = 'import_music_review'
-          and e.status = 'published'
-          and e.verified_at is null
-          and e.start_at >= now()`;
+      // OPEN, not flagged-ever — and through lib/verify-flags.ts since 10 Nov
+      // 2026, not inline. This was the THIRD hand-rolled copy of that rule and
+      // it carried the bug the helper exists to prevent: a bare
+      // `verified_at is null` with no after-stamp clause, so a flag raised after
+      // a stamp vanished. It reported 0 while hiding 1. The comment that used to
+      // sit here claimed the item closes itself once a later pass verifies the
+      // listing — true, and the reason the count was wrong.
+      const musicReview = await openFlagCount("import_music_review");
       // Listings the freshness pass flagged that are STILL LIVE. The predicate
       // moved to lib/verify-flags.ts on 3 Nov 2026 so this count and the
       // `/admin?status=flagged` screen cannot disagree — a hand-written query
@@ -189,7 +186,7 @@ export async function gatherOpsInputs(): Promise<OpsInputs> {
         submissions: await getPendingSubmissionCount(),
         reports: await getPendingReportCount(),
         oldestReportDays: await getOldestPendingReportDays(),
-        musicReview: m?.n ?? 0,
+        musicReview,
         verifyFlags: sorted.length,
         verifyFlagExamples: sorted
           .slice(0, 4)

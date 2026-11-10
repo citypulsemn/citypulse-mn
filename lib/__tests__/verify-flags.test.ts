@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { flagRank, openVerifyFlags, openVerifyFlagIds } from "../verify-flags";
+import { flagRank, openFlagCount, openVerifyFlags, openVerifyFlagIds } from "../verify-flags";
 import { getAdminEvents } from "../admin";
 
 describe("flagRank — most dangerous verdict first", () => {
@@ -105,5 +105,39 @@ describe("without a database, nothing claims to be flagged", () => {
     // reason and would stop meaning anything.
     expect((await getAdminEvents({ status: "all" })).length).toBeGreaterThan(0);
     expect((await getAdminEvents({ status: "published" })).length).toBeGreaterThan(0);
+  });
+});
+
+describe("openFlagCount — the open-state rule, shared with a third reader (10 Nov 2026)", () => {
+  const src = readFileSync(join(__dirname, "..", "verify-flags.ts"), "utf8").replace(/\r\n/g, "\n");
+  const gather = readFileSync(join(__dirname, "..", "ops-inputs.ts"), "utf8").replace(/\r\n/g, "\n");
+
+  it("carries the after-stamp clause the music queue was missing", () => {
+    // The music-review count was a bare `verified_at is null`. That is the
+    // 33-vs-25 defect this file exists to end, one a.action value over — and
+    // worse there, because scripts/import-venues.ts inserts the flag only
+    // WHERE NOT EXISTS a prior one while stamping verified_at on every matched
+    // row, so a flag raised after a stamp can never be replaced by a fresher
+    // one. Measured 10 Nov 2026: the queue reported 0 and 1 was open.
+    const fn = src.slice(src.indexOf("export async function openFlagCount"));
+    expect(fn).toContain("e.verified_at is null or a.at > e.verified_at");
+    expect(fn).toContain("greatest(e.start_at, e.end_at, e.multi_day_end) >= now()");
+    expect(fn).toContain("e.status = 'published'");
+  });
+
+  it("the digest asks the helper instead of hand-rolling it a third time", () => {
+    expect(gather).toContain('openFlagCount("import_music_review")');
+    expect(gather).not.toContain("a.action = 'import_music_review'");
+  });
+
+  it("parameterises the action rather than interpolating it", () => {
+    // count(distinct a.event_id) over a bound parameter — not string-built SQL.
+    const fn = src.slice(src.indexOf("export async function openFlagCount"));
+    expect(fn).toContain("where a.action = ${action}");
+  });
+
+  it("returns an honest 0 with no database, like its siblings", async () => {
+    await expect(openFlagCount("import_music_review")).resolves.toBe(0);
+    await expect(openFlagCount("verify_flag")).resolves.toBe(0);
   });
 });
