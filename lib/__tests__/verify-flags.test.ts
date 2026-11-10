@@ -34,12 +34,35 @@ describe("the open-flag predicate, as source", () => {
     expect(src).toContain("e.verified_at is null or a.at > e.verified_at");
   });
 
-  it("is self-clearing — live, upcoming, and flagged, computed not stored", () => {
+  it("is self-clearing — live, STILL ON, and flagged, computed not stored", () => {
     expect(src).toContain("e.status = 'published'");
-    expect(src).toContain("e.start_at >= now()");
     // One flag per listing, the latest one.
     expect(src).toContain("distinct on (e.id)");
     expect(src).toContain("order by e.id, a.at desc");
+  });
+
+  it("asks whether the listing is STILL ON, not whether it is still to come", () => {
+    // This was `e.start_at >= now()`, so a run that opened before today fell out
+    // of triage while staying live. Measured 9 Nov 2026: 846 listings have ever
+    // carried a verify flag and 240 of them are runs, 277 flags were cancelled or
+    // wrong_event, and the longest live run was 333 days — so a hidden cancelled
+    // run could sit unseen for most of a year. (0 were hidden on the day of the
+    // fix; this is the shape that admits it, not a count of victims.)
+    expect(src).toContain("greatest(e.start_at, e.end_at, e.multi_day_end) >= now()");
+    expect(src).not.toContain("and e.start_at >= now()");
+  });
+
+  it("uses greatest(), not the coalesce that disagrees with isEnded", () => {
+    // A bare coalesce(multi_day_end, end_at, start_at) prefers multi_day_end even
+    // when it is NOT later than the start, which is the latent disagreement
+    // lib/events.ts documents. isEnded takes the LATEST of the three.
+    //
+    // Scoped to the WHERE clause, not the whole file: the docstring above names
+    // the coalesce form in order to reject it, and a blunt not.toContain over
+    // the source matched that prose — this test failed on its own explanation.
+    const where = src.slice(src.indexOf("from admin_audit"), src.indexOf("order by e.id"));
+    expect(where).toContain("greatest(e.start_at, e.end_at, e.multi_day_end) >= now()");
+    expect(where).not.toContain("coalesce(");
   });
 });
 
