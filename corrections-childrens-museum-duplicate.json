@@ -1,0 +1,8 @@
+[
+  {
+    "id": "66d2385a-93ff-4903-9f96-2068ab8e3344",
+    "archive": true,
+    "evidence": "https://mcm.org/monsters-on-vacation-opens-may-23/",
+    "why": "Duplicate of \"Monsters on Vacation\" (e80b7021-7f9f-4e37-84f5-dec1e40ace5f): same room, same 23 May 09:00 start, same exhibit, both live since May. \"Beach Monster Exhibit\" is not the exhibit's name — the museum's own announcement reads \"Friendly monsters are taking their beach vacation\", and a roundup listing turned that phrase into a title. This row cites womenspress.com (a press organiser page) and its ticket link is only the museum homepage; the keeper cites mcm.org's announcement, whose URL names the exhibit. It also carries the run end in end_at rather than multi_day_end, the shape that mints a new row per weekly re-find. Archived, not hidden: the exhibit is real and only the title is a paraphrase, so the lever is the one for a duplicate rather than the takedown for a fabrication."
+  }
+]

@@ -310,3 +310,23 @@ nowhere I could find.
 Not touched, because every available move is a product call on a live, real
 listing: which title wins, whether the end date stands, which row is archived.
 Taking down a real exhibit to tidy a duplicate is the wrong direction of error.
+
+> **RESOLVED 10 November 2026**, on Taren's call, after the self-check was widened to see
+> still-on runs ([DEPLOY-SELFCHECK-SEES-RUNS.md](DEPLOY-SELFCHECK-SEES-RUNS.md)) and reported
+> the pair for the first time in nearly six months.
+>
+> The museum's own announcement settles all three questions, and one of them differently from
+> this note. `https://mcm.org/monsters-on-vacation-opens-may-23/` reads *"Friendly monsters are
+> taking their **beach vacation**"* — which is where the invented title came from, exactly as
+> suspected — and it also says the exhibit *"is open for play … from May 23 **through Jan. 10,
+> 2027**"*. **So the end date IS attested**, on the page the keeper already cited. The sentence
+> above saying it is "attested nowhere I could find" was true of what was checked in October and
+> is not true of the source; it needed reading further down the page, not a different page.
+>
+> `Monsters on Vacation` keeps the calendar: the museum's title, the museum's URL, start and end
+> both attested, span in `multi_day_end`. `Beach Monster Exhibit` is **archived** — it cited a
+> press-organiser page, linked only the museum homepage, and carried its run end in `end_at`,
+> the shape that mints a new row per weekly re-find. Archived rather than hidden, because the
+> exhibit is real and only the title was a paraphrase; the takedown lever is for something that
+> never happened. Backup:
+> `Documents/CityPulseMN/backups/2026-11-10-childrens-museum-duplicate-before.json`.
