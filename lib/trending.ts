@@ -117,13 +117,20 @@ export async function getTrendingEvents(): Promise<ScoredEvent[]> {
   if (!sql) return [];
   try {
     // Stats for eligible events only: published, and still attendable.
+    //
+    // greatest(), not coalesce(multi_day_end, end_at, start_at) (10 Nov 2026):
+    // "still attendable" is isEnded's question, and isEnded takes the LATEST of
+    // the three. coalesce instead PREFERS multi_day_end even when an end_at
+    // beyond it exists. 2 of 734 published rows have that shape today, both in
+    // December, and on The Music Man it is a sixteen-day difference.
+    // Both are also a data error - see DEPLOY-TRENDING-STILL-ATTENDABLE.md.
     const statRows = await sql<DbStatRow[]>`
       select s.event_id::text as id, s.day::text as day, s.action, s.count::int as n
       from event_stats s
       join events e on e.id = s.event_id
       where s.day >= (now() at time zone 'America/Chicago')::date - (${TREND_WINDOW_DAYS - 1})::int
         and e.status = 'published'
-        and coalesce(e.multi_day_end, e.end_at, e.start_at) >= now()
+        and greatest(e.start_at, e.end_at, e.multi_day_end) >= now()
     `;
     if (statRows.length === 0) return [];
 

@@ -16,7 +16,7 @@ from events where status = 'published' and start_at >= now()
 
 A **start** question. Every run already underway was absent — and a run is the shape most likely
 to *be* a duplicate, because [a long run mints a new row on each weekly
-re-find](DEPLOY-END-AT-RUN-END.md). **The detector was blind to exactly the rows that produce
+re-find](DEPLOY-RUN-REFIND-FOLD.md). **The detector was blind to exactly the rows that produce
 the problem it exists to find.**
 
 ---

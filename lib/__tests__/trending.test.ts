@@ -1,4 +1,6 @@
 import { describe, it, expect } from "vitest";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import {
   decayFactor,
   scoreRows,
@@ -11,6 +13,7 @@ import {
   type ScoredEvent,
 } from "../trending";
 import type { EventRecord } from "../types";
+import { isEnded } from "../event-view";
 
 const TODAY = "2026-07-15";
 
@@ -113,5 +116,109 @@ describe("rankTrending — the cold-start honesty policy", () => {
   it("caps the list", () => {
     const many = Array.from({ length: 30 }, (_, i) => scored(100 - i));
     expect(rankTrending(many)).toHaveLength(TREND_CAP);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// The eligibility predicate inside getTrendingEvents (10 Nov 2026)
+//
+// getTrendingEvents needs a DB, so the SQL cannot be executed here. What CAN be
+// pinned is the claim the SQL makes: that "still attendable" means what isEnded
+// means. isEnded is pure, so the two December rows that exposed the difference
+// are a golden test, and the source assertion keeps the SQL saying it.
+// ---------------------------------------------------------------------------
+
+/** The two live rows where coalesce(multi_day_end, end_at, start_at) and
+ *  greatest(start_at, end_at, multi_day_end) disagree, as stored on 10 Nov 2026.
+ *  Category "arts": PER_NIGHT covers music and sports, so staleSpanIds would
+ *  strip multiDayEnd off a music row and this shape could not exist there. */
+const JULMARKNAD = ev({
+  title: "Julmarknad Handcraft Market & Festival",
+  venue: "American Swedish Institute",
+  category: "arts",
+  start: "2026-12-04T17:00",
+  end: "2026-12-06T17:00",
+  multiDayEnd: "2026-12-05T23:59",
+});
+
+const MUSIC_MAN = ev({
+  title: "The Music Man",
+  venue: "Ordway Music Theater",
+  category: "arts",
+  start: "2026-12-08T19:30",
+  end: "2026-12-25T21:30",
+  multiDayEnd: "2026-12-09T23:59",
+});
+
+/** What the predicate the fix REPLACED would have computed. */
+function coalesceEnd(e: EventRecord): string {
+  return e.multiDayEnd || e.end || e.start;
+}
+
+describe("still attendable is isEnded's question, not multi_day_end's (10 Nov 2026)", () => {
+  it("keeps a run alive past a multi_day_end that is not the latest of the three", () => {
+    // 10 Dec: Music Man's multi_day_end has passed, its end_at has not.
+    const dec10 = new Date("2026-12-10T12:00:00-06:00");
+    expect(isEnded(MUSIC_MAN, dec10)).toBe(false);
+    expect(coalesceEnd(MUSIC_MAN) < "2026-12-10T12:00").toBe(true);
+  });
+
+  it("is a sixteen-day difference on that row, not a rounding one", () => {
+    const old = coalesceEnd(MUSIC_MAN).slice(0, 10);
+    const now = [MUSIC_MAN.start, MUSIC_MAN.end, MUSIC_MAN.multiDayEnd ?? ""]
+      .reduce((a, b) => (b > a ? b : a))
+      .slice(0, 10);
+    expect(old).toBe("2026-12-09");
+    expect(now).toBe("2026-12-25");
+  });
+
+  it("keeps the festival's closing Sunday, which multi_day_end cuts off", () => {
+    const dec6 = new Date("2026-12-06T12:00:00-06:00");
+    expect(isEnded(JULMARKNAD, dec6)).toBe(false);
+    expect(coalesceEnd(JULMARKNAD) < "2026-12-06T12:00").toBe(true);
+  });
+
+  it("drops a row only once ALL THREE stamps are behind us", () => {
+    const dec26 = new Date("2026-12-26T12:00:00-06:00");
+    expect(isEnded(MUSIC_MAN, dec26)).toBe(true);
+  });
+
+  it("is identical to coalesce whenever multi_day_end IS the latest", () => {
+    // The ordinary shape: a run whose multi_day_end is the true span end.
+    const ordinary = ev({
+      category: "arts",
+      start: "2026-12-08T19:30",
+      end: "2026-12-08T21:30",
+      multiDayEnd: "2026-12-20T23:59",
+    });
+    const latest = [ordinary.start, ordinary.end, ordinary.multiDayEnd ?? ""].reduce((a, b) =>
+      b > a ? b : a,
+    );
+    expect(coalesceEnd(ordinary)).toBe(latest);
+  });
+});
+
+describe("the trending query asks that question in SQL", () => {
+  const src = readFileSync(join(__dirname, "..", "trending.ts"), "utf8").replace(/\r\n/g, "\n");
+  // Scoped to the SQL LITERAL, not the function: the comment above it names the
+  // rejected coalesce form in order to reject it, and a whole-function slice
+  // would match that prose and fail on its own explanation.
+  const fn = src.slice(
+    src.indexOf("export async function getTrendingEvents"),
+    src.indexOf("if (statRows.length === 0)"),
+  );
+  const query = fn.slice(fn.indexOf("select s.event_id"));
+
+  it("selects on the latest of the three stamps", () => {
+    expect(query).toContain("greatest(e.start_at, e.end_at, e.multi_day_end) >= now()");
+  });
+
+  it("does not prefer multi_day_end over a later end_at", () => {
+    expect(query).not.toContain("coalesce(e.multi_day_end");
+  });
+
+  it("the slice is really the query, so the two assertions above mean something", () => {
+    expect(query.length).toBeGreaterThan(100);
+    expect(query).toContain("from event_stats s");
   });
 });
