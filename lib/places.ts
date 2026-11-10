@@ -2067,7 +2067,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "theodore-wirth-par-3", name: "Theodore Wirth Par 3", kind: "golf-course",
-    lat: 44.9958, lng: -93.3197, address: "1325 Theodore Wirth Pkwy N, Minneapolis, MN 55422",
+    // Pin re-read 10 Nov 2026, was 44.9958,-93.3197 (702m off); address was 1325 Theodore Wirth Pkwy N, Minneapolis, MN 55422: two map sources + a blind second read agree within 25m.
+    lat: 44.99153, lng: -93.32628, address: "1221 Theodore Wirth Parkway, Minneapolis, MN 55422",
     city: "Minneapolis", neighborhood: null, season: GOLF_SEASON, cost: "paid",
     tags: ["par-3", "municipal"],
     intro: "The Park Board's 9-hole par-3 in Wirth Park — a quick, walkable round and a good place to learn.",
@@ -2076,7 +2077,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "columbia-golf-club", name: "Columbia Golf Club", kind: "golf-course",
-    lat: 45.0186, lng: -93.2465, address: "3300 Central Ave NE, Minneapolis, MN 55418",
+    // Pin re-read 10 Nov 2026, was 45.0186,-93.2465 (1.1km off): two map sources + a blind second read agree within 3m.
+    lat: 45.02813, lng: -93.24841, address: "3300 Central Ave NE, Minneapolis, MN 55418",
     city: "Minneapolis", neighborhood: "northeast", season: GOLF_SEASON, cost: "paid",
     tags: ["18-hole", "municipal"],
     intro: "A Park Board 18 in Northeast, par 71, on the ground it has occupied since 1919 — rolling, tree-lined, and close in.",
@@ -2085,7 +2087,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "francis-gross-golf-club", name: "Francis A. Gross Golf Club", kind: "golf-course",
-    lat: 45.0129, lng: -93.2270, address: "2201 St Anthony Blvd, Minneapolis, MN 55418",
+    // Pin re-read 10 Nov 2026, was 45.0129,-93.2270 (1.2km off): two map sources + a blind second read agree within 2m.
+    lat: 45.00991, lng: -93.21257, address: "2201 St Anthony Blvd, Minneapolis, MN 55418",
     city: "Minneapolis", neighborhood: "northeast", season: GOLF_SEASON, cost: "paid",
     tags: ["18-hole", "municipal"],
     intro: "The Park Board's Gross course, par 71, laid along St. Anthony Boulevard in Northeast — a long-standing muni favorite.",
@@ -2094,7 +2097,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "hiawatha-golf-club", name: "Hiawatha Golf Club", kind: "golf-course",
-    lat: 44.9124, lng: -93.2385, address: "4553 Longfellow Ave, Minneapolis, MN 55407",
+    // Pin re-read 10 Nov 2026, was 44.9124,-93.2385 (1.0km off): two map sources + a blind second read agree within 0m.
+    lat: 44.92011, lng: -93.24518, address: "4553 Longfellow Ave, Minneapolis, MN 55407",
     city: "Minneapolis", neighborhood: null, season: GOLF_SEASON, cost: "paid",
     tags: ["18-hole", "municipal"],
     intro: "The Park Board's par-73 course on Lake Hiawatha in south Minneapolis — its long-term future is under review over groundwater and flooding, but it plays on.",
@@ -2130,7 +2134,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "highland-national-golf-course", name: "Highland National Golf Course", kind: "golf-course",
-    lat: 44.9147, lng: -93.1878, address: "1403 Montreal Ave, St. Paul, MN 55116",
+    // Pin re-read 10 Nov 2026, was 44.9147,-93.1878 (2.3km off): two map sources + a blind second read agree within 0m.
+    lat: 44.91316, lng: -93.15805, address: "1403 Montreal Ave, St. Paul, MN 55116",
     city: "St. Paul", neighborhood: "highland-park", season: GOLF_SEASON, cost: "paid",
     tags: ["18-hole", "municipal"],
     intro: "St. Paul's championship muni, par 72, in Highland Park — a well-kept 18 with a 9-hole companion course next door.",
@@ -2139,7 +2144,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "highland-9-golf-course", name: "Highland 9 Golf Course", kind: "golf-course",
-    lat: 44.9183, lng: -93.1808, address: "1797 Edgcumbe Rd, St. Paul, MN 55116",
+    // Pin re-read 10 Nov 2026, was 44.9183,-93.1808 (2.0km off): two map sources + a blind second read agree within 2m.
+    lat: 44.91202, lng: -93.15747, address: "1797 Edgcumbe Rd, St. Paul, MN 55116",
     city: "St. Paul", neighborhood: "highland-park", season: GOLF_SEASON, cost: "paid",
     tags: ["9-hole", "municipal"],
     intro: "The 9-hole companion to Highland National in St. Paul — a shorter, quicker round on the same hillside.",
@@ -2157,7 +2163,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "braemar-golf-course", name: "Braemar Golf Course", kind: "golf-course",
-    lat: 44.8747, lng: -93.3549, address: "6364 John Harris Dr, Edina, MN 55439",
+    // Pin re-read 10 Nov 2026, was 44.8747,-93.3549 (2.4km off): two map sources + a blind second read agree within 1m.
+    lat: 44.86723, lng: -93.38397, address: "6364 John Harris Dr, Edina, MN 55439",
     city: "Edina", neighborhood: null, season: GOLF_SEASON, cost: "paid",
     tags: ["18-hole", "municipal"],
     intro: "Edina's rebuilt muni — an 18-hole championship course plus the 9-hole par-3 Academy course, an indoor-outdoor practice center, and a restaurant.",
@@ -2175,7 +2182,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "baker-national-golf-course", name: "Baker National Golf Course", kind: "golf-course",
-    lat: 44.9835, lng: -93.6360, address: "2935 Parkview Dr, Medina, MN 55340",
+    // Pin re-read 10 Nov 2026, was 44.9835,-93.6360 (5.8km off): two map sources + a blind second read agree within 3m.
+    lat: 45.03122, lng: -93.60708, address: "2935 Parkview Dr, Medina, MN 55340",
     city: "Medina", neighborhood: null, season: GOLF_SEASON, cost: "paid",
     tags: ["18-hole", "municipal"],
     intro: "Three Rivers' 18-hole championship course inside Baker Park Reserve in Medina, with the 9-hole Evergreen executive course alongside.",
@@ -2193,7 +2201,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "eagle-lake-golf-center", name: "Eagle Lake Golf Center", kind: "golf-course",
-    lat: 44.9930, lng: -93.4590, address: "10830 County Road 9, Plymouth, MN 55442",
+    // Pin re-read 10 Nov 2026, was 44.9930,-93.4590 (8.2km off); address was 10830 County Road 9, Plymouth, MN 55442: two map sources + a blind second read agree within 5m.
+    lat: 45.06041, lng: -93.41794, address: "11000 Bass Lake Road, Plymouth, MN 55442",
     city: "Plymouth", neighborhood: null, season: GOLF_SEASON, cost: "paid",
     tags: ["9-hole", "municipal"],
     intro: "Three Rivers' youth-focused golf center in Plymouth — a 9-hole par-31, a lighted par-27 pitch-and-putt, and a lighted range.",
@@ -2202,7 +2211,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "hyland-greens-golf", name: "Hyland Greens Golf & Learning Center", kind: "golf-course",
-    lat: 44.8490, lng: -93.3490, address: "10100 Normandale Blvd, Bloomington, MN 55437",
+    // Pin re-read 10 Nov 2026, was 44.8490,-93.3490 (3.2km off): two map sources + a blind second read agree within 1m.
+    lat: 44.82004, lng: -93.35401, address: "10100 Normandale Blvd, Bloomington, MN 55437",
     city: "Bloomington", neighborhood: null, season: GOLF_SEASON, cost: "paid",
     tags: ["par-3", "municipal"],
     intro: "Three Rivers' 9-hole par-3 in Bloomington, par 27, paired with a big driving range and short-game learning center.",
@@ -2211,7 +2221,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "dwan-golf-course", name: "Dwan Golf Course", kind: "golf-course",
-    lat: 44.8565, lng: -93.3135, address: "3301 W 110th St, Bloomington, MN 55431",
+    // Pin re-read 10 Nov 2026, was 44.8565,-93.3135 (5.9km off): two map sources + a blind second read agree within 5m.
+    lat: 44.80343, lng: -93.32202, address: "3301 W 110th St, Bloomington, MN 55431",
     city: "Bloomington", neighborhood: null, season: GOLF_SEASON, cost: "paid",
     tags: ["18-hole", "municipal"],
     intro: "Bloomington's par-68 muni, executive-length and walkable, on land donated by Dr. Paul Dwan and open since 1970.",
@@ -2220,7 +2231,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "chaska-town-course", name: "Chaska Town Course", kind: "golf-course",
-    lat: 44.8055, lng: -93.5760, address: "3000 Town Course Dr, Chaska, MN 55318",
+    // Pin re-read 10 Nov 2026, was 44.8055,-93.5760 (5.1km off): two map sources + a blind second read agree within 3m.
+    lat: 44.82980, lng: -93.63155, address: "3000 Town Course Dr, Chaska, MN 55318",
     city: "Chaska", neighborhood: null, season: GOLF_SEASON, cost: "paid",
     tags: ["18-hole", "municipal"],
     intro: "Chaska's city-owned Arthur Hills design over 285 acres — consistently rated one of the best public courses in the Twin Cities.",
@@ -2238,7 +2250,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "dahlgreen-golf-club", name: "Dahlgreen Golf Club", kind: "golf-course",
-    lat: 44.7995, lng: -93.6620, address: "6940 Dahlgren Rd, Chaska, MN 55318",
+    // Pin re-read 10 Nov 2026, was 44.7995,-93.6620 (4.4km off): two map sources + a blind second read agree within 0m.
+    lat: 44.76970, lng: -93.69937, address: "6940 Dahlgren Rd, Chaska, MN 55318",
     city: "Chaska", neighborhood: null, season: GOLF_SEASON, cost: "paid",
     tags: ["18-hole"],
     intro: "An 18-hole, par-72 course west of Chaska, open to daily-fee public play since 1969.",
@@ -2247,7 +2260,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "deer-run-golf-club", name: "Deer Run Golf Club", kind: "golf-course",
-    lat: 44.8625, lng: -93.6640, address: "8661 Deer Run Dr, Victoria, MN 55386",
+    // Pin re-read 10 Nov 2026, was 44.8625,-93.6640 (1.8km off): two map sources + a blind second read agree within 3m.
+    lat: 44.84737, lng: -93.65702, address: "8661 Deer Run Dr, Victoria, MN 55386",
     city: "Victoria", neighborhood: null, season: GOLF_SEASON, cost: "paid",
     tags: ["18-hole"],
     intro: "An 18-hole public championship course in Victoria, with a driving range on site.",
@@ -2256,7 +2270,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "island-view-golf-club", name: "Island View Golf Club", kind: "golf-course",
-    lat: 44.8730, lng: -93.7580, address: "7795 Laketown Pkwy, Waconia, MN 55387",
+    // Pin re-read 10 Nov 2026, was 44.8730,-93.7580 (1.1km off): two map sources + a blind second read agree within 0m.
+    lat: 44.86320, lng: -93.75489, address: "7795 Laketown Pkwy, Waconia, MN 55387",
     city: "Waconia", neighborhood: null, season: GOLF_SEASON, cost: "paid",
     tags: ["18-hole"],
     intro: "An 18-hole semi-private course in Waconia that keeps a dedicated open-play tee sheet for the public.",
@@ -2265,7 +2280,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "halla-greens-golf", name: "Halla Greens Executive Golf Course", kind: "golf-course",
-    lat: 44.8290, lng: -93.5310, address: "495 Pioneer Trail, Chanhassen, MN 55317",
+    // Pin re-read 10 Nov 2026, was 44.8290,-93.5310 (475m off): two map sources + a blind second read agree within 1m.
+    lat: 44.82548, lng: -93.53442, address: "495 Pioneer Trail, Chanhassen, MN 55317",
     city: "Chanhassen", neighborhood: null, season: GOLF_SEASON, cost: "paid",
     tags: ["par-3"],
     intro: "A 9-hole executive/par-3 in Chanhassen, par 29, with a big driving range and practice area.",
@@ -2310,7 +2326,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "the-refuge-golf-club", name: "The Refuge Golf Club", kind: "golf-course",
-    lat: 45.3432, lng: -93.2884, address: "21250 Yellowpine St NW, Oak Grove, MN 55011",
+    // Pin re-read 10 Nov 2026, was 45.3432,-93.2884 (1.6km off): two map sources + a blind second read agree within 1m.
+    lat: 45.35487, lng: -93.29939, address: "21250 Yellowpine St NW, Oak Grove, MN 55011",
     city: "Oak Grove", neighborhood: null, season: GOLF_SEASON, cost: "paid",
     tags: ["18-hole"],
     intro: "An 18-hole daily-fee course and wedding venue in far-north Anoka County.",
@@ -2319,7 +2336,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "rum-river-hills-golf-club", name: "Rum River Hills Golf Club", kind: "golf-course",
-    lat: 45.2930, lng: -93.4020, address: "16659 St Francis Blvd NW, Ramsey, MN 55303",
+    // Pin re-read 10 Nov 2026, was 45.2930,-93.4020 (2.4km off): two map sources + a blind second read agree within 7m.
+    lat: 45.27333, lng: -93.41480, address: "16659 St Francis Blvd NW, Ramsey, MN 55303",
     city: "Ramsey", neighborhood: null, season: GOLF_SEASON, cost: "paid",
     tags: ["18-hole"],
     intro: "A par-71 daily-fee course in Ramsey, built in 1988, with a driving range.",
@@ -2328,7 +2346,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "links-at-northfork", name: "The Links at Northfork", kind: "golf-course",
-    lat: 45.2447, lng: -93.4695, address: "9333 Alpine Dr NW, Ramsey, MN 55303",
+    // Pin re-read 10 Nov 2026, was 45.2447,-93.4695 (2.9km off): two map sources + a blind second read agree within 0m.
+    lat: 45.25278, lng: -93.50417, address: "9333 Alpine Dr NW, Ramsey, MN 55303",
     city: "Ramsey", neighborhood: null, season: GOLF_SEASON, cost: "paid",
     tags: ["18-hole"],
     intro: "A Scottish links-style par-72 in Ramsey, a Joel Goldstrand design open since 1992.",
@@ -2337,7 +2356,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "majestic-oaks-golf-club", name: "Majestic Oaks Golf Club", kind: "golf-course",
-    lat: 45.2517, lng: -93.2410, address: "701 Bunker Lake Blvd NE, Ham Lake, MN 55304",
+    // Pin re-read 10 Nov 2026, was 45.2517,-93.2410 (3.4km off): two map sources + a blind second read agree within 1m.
+    lat: 45.22226, lng: -93.25232, address: "701 Bunker Lake Blvd NE, Ham Lake, MN 55304",
     city: "Ham Lake", neighborhood: null, season: GOLF_SEASON, cost: "paid",
     tags: ["18-hole"],
     intro: "A big public facility in Ham Lake — two 18-hole championship courses plus a 9-hole executive.",
@@ -2346,7 +2366,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "greenhaven-golf-course", name: "Greenhaven Golf Course", kind: "golf-course",
-    lat: 45.2247, lng: -93.3720, address: "2800 Greenhaven Rd, Anoka, MN 55303",
+    // Pin re-read 10 Nov 2026, was 45.2247,-93.3720 (2.7km off): two map sources + a blind second read agree within 0m.
+    lat: 45.20916, lng: -93.39899, address: "2800 Greenhaven Rd, Anoka, MN 55303",
     city: "Anoka", neighborhood: null, season: GOLF_SEASON, cost: "paid",
     tags: ["18-hole", "municipal"],
     intro: "The City of Anoka's par-71 muni, open since 1923, with a banquet center on site.",
@@ -2373,7 +2394,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "centerbrook-golf-course", name: "Centerbrook Golf Course", kind: "golf-course",
-    lat: 45.0730, lng: -93.3250, address: "5500 North Lilac Dr, Brooklyn Center, MN 55430",
+    // Pin re-read 10 Nov 2026, was 45.0730,-93.3250 (2.2km off): two map sources + a blind second read agree within 2m.
+    lat: 45.05490, lng: -93.31375, address: "5500 North Lilac Dr, Brooklyn Center, MN 55430",
     city: "Brooklyn Center", neighborhood: null, season: GOLF_SEASON, cost: "paid",
     tags: ["par-3", "municipal"],
     intro: "Brooklyn Center's 9-hole par-3 on 28 acres along Highway 100 — a quick, affordable round.",
@@ -2400,7 +2422,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "rush-creek-golf-club", name: "Rush Creek Golf Club", kind: "golf-course",
-    lat: 45.1015, lng: -93.5020, address: "7801 County Road 101 N, Maple Grove, MN 55311",
+    // Pin re-read 10 Nov 2026, was 45.1015,-93.5020 (1.1km off): two map sources + a blind second read agree within 23m.
+    lat: 45.09662, lng: -93.51452, address: "7801 County Road 101 N, Maple Grove, MN 55311",
     city: "Maple Grove", neighborhood: null, season: GOLF_SEASON, cost: "paid",
     tags: ["18-hole"],
     intro: "An upscale public daily-fee in Maple Grove, par 72, that has hosted LPGA events — a Fought/Cupp design from 1996.",
@@ -2418,7 +2441,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "island-lake-golf-center", name: "Island Lake Golf & Training Center", kind: "golf-course",
-    lat: 45.0975, lng: -93.1620, address: "1000 Red Fox Rd, Shoreview, MN 55126",
+    // Pin re-read 10 Nov 2026, was 45.0975,-93.1620 (4.8km off): two map sources + a blind second read agree within 2m.
+    lat: 45.05660, lng: -93.14240, address: "1000 Red Fox Rd, Shoreview, MN 55126",
     city: "Shoreview", neighborhood: null, season: GOLF_SEASON, cost: "paid",
     tags: ["9-hole"],
     intro: "A scenic 9-hole executive course in Shoreview with a learning center and driving range.",
@@ -2427,7 +2451,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "brightwood-hills-golf-course", name: "Brightwood Hills Golf Course", kind: "golf-course",
-    lat: 45.0810, lng: -93.2010, address: "1975 Silver Lake Rd NW, New Brighton, MN 55112",
+    // Pin re-read 10 Nov 2026, was 45.0810,-93.2010 (1.4km off): two map sources + a blind second read agree within 0m.
+    lat: 45.08139, lng: -93.21830, address: "1975 Silver Lake Rd NW, New Brighton, MN 55112",
     city: "New Brighton", neighborhood: null, season: GOLF_SEASON, cost: "paid",
     tags: ["9-hole", "municipal"],
     intro: "New Brighton's 9-hole executive muni, par 30, open since 1969 — a tidy, quick loop.",
@@ -2445,7 +2470,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "valleywood-golf-course", name: "Valleywood Golf Course", kind: "golf-course",
-    lat: 44.7196, lng: -93.1876, address: "4851 McAndrews Rd, Apple Valley, MN 55124",
+    // Pin re-read 10 Nov 2026, was 44.7196,-93.1876 (6.2km off): two map sources + a blind second read agree within 3m.
+    lat: 44.77180, lng: -93.15934, address: "4851 McAndrews Rd, Apple Valley, MN 55124",
     city: "Apple Valley", neighborhood: null, season: GOLF_SEASON, cost: "paid",
     tags: ["18-hole", "municipal"],
     intro: "Apple Valley's city-owned 18, par 71, with a driving range and a bar-and-grill.",
@@ -2454,7 +2480,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "inver-wood-golf-course", name: "Inver Wood Golf Course", kind: "golf-course",
-    lat: 44.8338, lng: -93.0435, address: "1850 70th St E, Inver Grove Heights, MN 55077",
+    // Pin re-read 10 Nov 2026, was 44.8338,-93.0435 (2.5km off): two map sources + a blind second read agree within 2m.
+    lat: 44.84602, lng: -93.06974, address: "1850 70th St E, Inver Grove Heights, MN 55077",
     city: "Inver Grove Heights", neighborhood: null, season: GOLF_SEASON, cost: "paid",
     tags: ["18-hole", "municipal"],
     intro: "Inver Grove Heights' city-owned 27 holes — an 18-hole championship course plus a 9-hole executive on the same wooded property.",
@@ -2463,7 +2490,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "arbor-pointe-golf-course", name: "Arbor Pointe Golf Course", kind: "golf-course",
-    lat: 44.8085, lng: -93.0470, address: "8919 Cahill Ave, Inver Grove Heights, MN 55076",
+    // Pin re-read 10 Nov 2026, was 44.8085,-93.0470 (1.4km off): two map sources + a blind second read agree within 0m.
+    lat: 44.82023, lng: -93.04213, address: "8919 Cahill Ave, Inver Grove Heights, MN 55076",
     city: "Inver Grove Heights", neighborhood: null, season: GOLF_SEASON, cost: "paid",
     tags: ["par-3"],
     intro: "A 9-hole public par-3 in Inver Grove Heights — a short, walkable round.",
@@ -2472,7 +2500,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "crystal-lake-golf-club", name: "Crystal Lake Golf Club", kind: "golf-course",
-    lat: 44.7365, lng: -93.2790, address: "16725 Innsbrook Dr, Lakeville, MN 55044",
+    // Pin re-read 10 Nov 2026, was 44.7365,-93.2790 (4.1km off): two map sources + a blind second read agree within 1m.
+    lat: 44.70483, lng: -93.25305, address: "16725 Innsbrook Dr, Lakeville, MN 55044",
     city: "Lakeville", neighborhood: null, season: GOLF_SEASON, cost: "paid",
     tags: ["18-hole"],
     intro: "A public par-71 on the Burnsville–Lakeville line near Crystal Lake.",
@@ -2481,7 +2510,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "heritage-links-golf-club", name: "Heritage Links Golf Club", kind: "golf-course",
-    lat: 44.7050, lng: -93.2170, address: "8075 Lucerne Blvd, Lakeville, MN 55044",
+    // Pin re-read 10 Nov 2026, was 44.7050,-93.2170 (13.7km off): two map sources + a blind second read agree within 2m.
+    lat: 44.63454, lng: -93.35845, address: "8075 Lucerne Blvd, Lakeville, MN 55044",
     city: "Lakeville", neighborhood: null, season: GOLF_SEASON, cost: "paid",
     tags: ["18-hole"],
     intro: "A public 18-hole championship course, par 71, in Lakeville.",
@@ -2508,7 +2538,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "southern-hills-golf-course", name: "Southern Hills Golf Course", kind: "golf-course",
-    lat: 44.6730, lng: -93.1560, address: "18950 Chippendale Ave W, Farmington, MN 55024",
+    // Pin re-read 10 Nov 2026, was 44.6730,-93.1560 (1.8km off): two map sources + a blind second read agree within 1m.
+    lat: 44.67421, lng: -93.13379, address: "18950 Chippendale Ave W, Farmington, MN 55024",
     city: "Farmington", neighborhood: null, season: GOLF_SEASON, cost: "paid",
     tags: ["18-hole"],
     intro: "A public par-71 between Rosemount and Farmington.",
@@ -2517,7 +2548,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "birnamwood-golf-course", name: "Birnamwood Golf Course", kind: "golf-course",
-    lat: 44.7480, lng: -93.2560, address: "12424 Parkwood Dr, Burnsville, MN 55337",
+    // Pin re-read 10 Nov 2026, was 44.7480,-93.2560 (3.4km off): two map sources + a blind second read agree within 1m.
+    lat: 44.77866, lng: -93.25997, address: "12424 Parkwood Dr, Burnsville, MN 55337",
     city: "Burnsville", neighborhood: null, season: GOLF_SEASON, cost: "paid",
     tags: ["par-3", "municipal"],
     intro: "Burnsville's city-owned 9-hole par-27 executive course — a quick, easy walk.",
@@ -2535,7 +2567,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "hidden-greens-golf-course", name: "Hidden Greens Golf Course", kind: "golf-course",
-    lat: 44.7000, lng: -92.9200, address: "12977 200th St E, Hastings, MN 55033",
+    // Pin re-read 10 Nov 2026, was 44.7000,-92.9200 (7.6km off): two map sources + a blind second read agree within 0m.
+    lat: 44.65928, lng: -92.84347, address: "12977 200th St E, Hastings, MN 55033",
     city: "Hastings", neighborhood: null, season: GOLF_SEASON, cost: "paid",
     tags: ["18-hole"],
     intro: "A public par-72 built into a wooded state game refuge near Hastings.",
@@ -2562,7 +2595,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "mendota-heights-par-3", name: "Mendota Heights Par 3", kind: "golf-course",
-    lat: 44.8790, lng: -93.1360, address: "1695 Dodd Rd, Mendota Heights, MN 55118",
+    // Pin re-read 10 Nov 2026, was 44.8790,-93.1360 (2.2km off): two map sources + a blind second read agree within 0m.
+    lat: 44.89483, lng: -93.11940, address: "1695 Dodd Rd, Mendota Heights, MN 55118",
     city: "Mendota Heights", neighborhood: null, season: GOLF_SEASON, cost: "paid",
     tags: ["par-3", "municipal"],
     intro: "Mendota Heights' city-owned 9-hole par-27 community course, built in 1961.",
@@ -2598,7 +2632,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "legends-club-golf", name: "Legends Club", kind: "golf-course",
-    lat: 44.7050, lng: -93.3900, address: "8670 Credit River Blvd, Prior Lake, MN 55372",
+    // Pin re-read 10 Nov 2026, was 44.7050,-93.3900 (5.3km off): two map sources + a blind second read agree within 5m.
+    lat: 44.67003, lng: -93.34353, address: "8670 Credit River Blvd, Prior Lake, MN 55372",
     city: "Prior Lake", neighborhood: null, season: GOLF_SEASON, cost: "paid",
     tags: ["18-hole"],
     intro: "A public par-72 on the Lakeville–Prior Lake line — a former National Golf Course of the Year.",
@@ -2607,7 +2642,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "cleary-lake-golf-course", name: "Cleary Lake Golf Course", kind: "golf-course",
-    lat: 44.6870, lng: -93.4020, address: "18106 Texas Ave, Prior Lake, MN 55372",
+    // Pin re-read 10 Nov 2026, was 44.6870,-93.4020 (1.2km off): two map sources + a blind second read agree within 4m.
+    lat: 44.68838, lng: -93.38700, address: "18106 Texas Ave, Prior Lake, MN 55372",
     city: "Prior Lake", neighborhood: null, season: GOLF_SEASON, cost: "paid",
     tags: ["9-hole", "municipal"],
     intro: "Three Rivers' 9-hole course inside Cleary Lake Regional Park, home to a First Tee program.",
@@ -2634,7 +2670,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "new-prague-golf-club", name: "New Prague Golf Club", kind: "golf-course",
-    lat: 44.5400, lng: -93.5760, address: "400 Lexington Ave S, New Prague, MN 56071",
+    // Pin re-read 10 Nov 2026, was 44.5400,-93.5760 (618m off): two map sources + a blind second read agree within 0m.
+    lat: 44.54042, lng: -93.56823, address: "400 Lexington Ave S, New Prague, MN 56071",
     city: "New Prague", neighborhood: null, season: GOLF_SEASON, cost: "paid",
     tags: ["18-hole", "municipal"],
     intro: "A municipal daily-fee 18, par 72, running in New Prague since 1931.",
@@ -2643,7 +2680,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "creeksbend-golf-course", name: "CreeksBend Golf Course", kind: "golf-course",
-    lat: 44.5560, lng: -93.5400, address: "26826 Langford Ave, New Prague, MN 56071",
+    // Pin re-read 10 Nov 2026, was 44.5560,-93.5400 (2.7km off): two map sources + a blind second read agree within 2m.
+    lat: 44.56075, lng: -93.50622, address: "26826 Langford Ave, New Prague, MN 56071",
     city: "New Prague", neighborhood: null, season: GOLF_SEASON, cost: "paid",
     tags: ["18-hole"],
     intro: "A public 18-hole championship course near New Prague, a Joel Goldstrand design with a 1940s barn clubhouse.",
@@ -2787,7 +2825,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "goodrich-golf-course", name: "Goodrich Golf Course", kind: "golf-course",
-    lat: 45.0208, lng: -93.0223, address: "1820 Van Dyke St, Maplewood, MN 55109",
+    // Pin re-read 10 Nov 2026, was 45.0208,-93.0223 (2.8km off): two map sources + a blind second read agree within 9m.
+    lat: 44.99594, lng: -93.02130, address: "1820 Van Dyke St, Maplewood, MN 55109",
     city: "Maplewood", neighborhood: null, season: GOLF_SEASON, cost: "paid",
     tags: ["18-hole", "municipal"],
     intro: "A Ramsey County par-70 in Maplewood, built in 1957 — flat, walkable, and affordable.",
