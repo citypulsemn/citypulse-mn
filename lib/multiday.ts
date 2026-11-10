@@ -836,6 +836,22 @@ export function isMultiDay(ev: Spannable): boolean {
   return spanEnd(ev) !== null;
 }
 
+/**
+ * A row that BEGAN BEFORE `todayKey` and runs past it: the one shape whose
+ * start date and first-day clock are both the wrong thing to print.
+ * lib/day-order.ts states the rule in both directions — "began earlier -> how
+ * much longer you have ... never a clock we cannot stand behind" and "starts
+ * today -> its actual start time, EVEN IF it runs on for days".
+ *
+ * Extracted 9 Nov 2026. The condition was written out twice, character for
+ * character, in lib/digest.ts whenLabel and components/MoreAtVenue.tsx — and
+ * this repo's own record of rule 5 is four copies of one span rule, each
+ * annotated as a mirror of the others. One home, two callers.
+ */
+export function beganBeforeToday(ev: Spannable, todayKey: string): boolean {
+  return isMultiDay(ev) && dayOf(ev.start) < todayKey;
+}
+
 /** "Jul 20 – 28" or "Jul 30 – Aug 2". */
 export function multiDayLabel(ev: Spannable): string {
   const a = new Date(`${dayOf(ev.start)}T12:00:00`);

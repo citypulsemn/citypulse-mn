@@ -10,6 +10,7 @@ import {
   type RunFoldRow,
   isMultiDay,
   multiDayLabel,
+  beganBeforeToday,
   runLength,
   spansDay,
   type CollapseRow,
@@ -1315,5 +1316,32 @@ describe("planCollapse — who keeps the slot (9 Nov 2026)", () => {
     expect(planCollapse([{ ...fair, status: "draft" }, llama])).toEqual([]);
     // The same pair, both live, still folds — the guard is status, not the fold.
     expect(planCollapse([fair, llama]).map((a) => a.kind)).toEqual(["fold"]);
+  });
+});
+
+describe("beganBeforeToday — the shape whose start date must not be printed (9 Nov 2026)", () => {
+  const TODAY = "2026-07-20";
+  const run = (start: string, end: string) => ev({ start, multiDayEnd: end });
+
+  it("a run that opened earlier and is still on", () => {
+    expect(beganBeforeToday(run("2026-05-23T10:00", "2027-01-10T17:00"), TODAY)).toBe(true);
+  });
+
+  it("a run OPENING today keeps its start time — day-order's other half", () => {
+    expect(beganBeforeToday(run("2026-07-20T19:00", "2026-07-25T23:00"), TODAY)).toBe(false);
+  });
+
+  it("a run opening later keeps its start time", () => {
+    expect(beganBeforeToday(run("2026-07-25T19:00", "2026-07-30T23:00"), TODAY)).toBe(false);
+  });
+
+  it("a single-day event is never this shape, whenever it started", () => {
+    expect(beganBeforeToday(ev({ start: "2026-05-23T10:00" }), TODAY)).toBe(false);
+    expect(beganBeforeToday(ev({ start: "2026-07-25T10:00" }), TODAY)).toBe(false);
+  });
+
+  it("an end_at landing on a LATER day counts as a run", () => {
+    // spanEndISO reads that as a span, so a sloppy end_at reaches this rule too.
+    expect(beganBeforeToday(ev({ start: "2026-07-18T21:00", end: "2026-07-21T02:00" }), TODAY)).toBe(true);
   });
 });

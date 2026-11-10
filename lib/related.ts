@@ -1,6 +1,8 @@
 import type { EventRecord } from "./types";
 import { matchVenueSlug } from "./venue-pages";
-import { chiWallClock } from "./clock";
+import { chiDayKey, chiWallClock } from "./clock";
+import { dayOf, spanEnd } from "./multiday";
+import { soonestFirstThenRuns } from "./list-view";
 
 /**
  * "MORE AT THIS VENUE" (roadmap 3.2) — internal links that earn their place.
@@ -22,26 +24,49 @@ export interface Related {
 }
 
 export function selectRelated(all: EventRecord[], current: EventRecord, now: Date): Related | null {
-  // R1.3 (rule 10): walls to walls. The old naive-parse-vs-real-now compare
-  // hid tonight's shows from the strip every afternoon on UTC servers.
+  // RULE 5 (9 Nov 2026). This asked `e.start >= nowWall` and nothing else — a
+  // START question — so a run already underway at this very venue was absent
+  // from the strip while the venue page the strip LINKS TO listed it, because
+  // that page has used the span-aware isUpcoming since 5 Nov. A page could say
+  // there was nothing else on while its own "See all" link said otherwise.
+  //
+  // The run clause is ADDED to the wall-clock floor rather than replacing it
+  // with isUpcoming, which was the first cut here and was wrong. isUpcoming is
+  // DAY-granular, so adopting it wholesale would also have brought back this
+  // morning's finished concert until midnight — and R1.3 excludes that on
+  // purpose ("the morning show is honestly past"), with two tests pinning it.
+  // That is a deliberate difference from the venue page, not a bug, and this
+  // change leaves it exactly as it was.
   const nowWall = chiWallClock(now);
+  const todayKey = chiDayKey(now);
+  /** Began earlier and has NOT closed — the reader can still go. */
+  const stillRunning = (e: EventRecord) => {
+    const end = spanEnd(e);
+    return Boolean(end && dayOf(end) >= todayKey);
+  };
   const upcoming = (e: EventRecord) =>
-    e.status === "published" && e.id !== current.id && e.start >= nowWall;
+    e.status === "published" &&
+    e.id !== current.id &&
+    (e.start >= nowWall || stillRunning(e));
 
   const slug = matchVenueSlug(current.venue);
   if (slug) {
-    const atVenue = all
-      .filter((e) => upcoming(e) && matchVenueSlug(e.venue) === slug)
-      .sort((a, b) => a.start.localeCompare(b.start))
-      .slice(0, RELATED_CAP);
+    // ORDER: the shared rule, not a start sort. Admitting runs without this
+    // would have put a months-old exhibition at the head of the strip on 129
+    // of 679 event pages (measured 9 Nov 2026) — only 5 venues and 4
+    // neighbourhoods carry an underway run, but they feed that many pages.
+    const atVenue = soonestFirstThenRuns(
+      all.filter((e) => upcoming(e) && matchVenueSlug(e.venue) === slug),
+      todayKey,
+    ).slice(0, RELATED_CAP);
     if (atVenue.length > 0) return { kind: "venue", key: slug, events: atVenue };
   }
 
   if (current.neighborhood) {
-    const nearby = all
-      .filter((e) => upcoming(e) && e.neighborhood === current.neighborhood)
-      .sort((a, b) => a.start.localeCompare(b.start))
-      .slice(0, RELATED_CAP);
+    const nearby = soonestFirstThenRuns(
+      all.filter((e) => upcoming(e) && e.neighborhood === current.neighborhood),
+      todayKey,
+    ).slice(0, RELATED_CAP);
     if (nearby.length > 0) return { kind: "neighborhood", key: current.neighborhood, events: nearby };
   }
 

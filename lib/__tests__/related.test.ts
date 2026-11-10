@@ -1,4 +1,6 @@
 import { describe, it, expect } from "vitest";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { selectRelated, RELATED_CAP } from "../related";
 import { VENUE_INTROS, NEIGHBORHOOD_INTROS } from "../editorial";
 import { VENUE_PAGES } from "../venue-pages";
@@ -111,5 +113,90 @@ describe("editorial intros — the drift guard", () => {
       expect(text.length, `${k} too short`).toBeGreaterThan(80);
       expect(text.length, `${k} too long`).toBeLessThan(520);
     }
+  });
+});
+
+describe("selectRelated — a run already on at this venue (RULE 5, 9 Nov 2026)", () => {
+  // "arts", not the helper's default "music": PER_NIGHT = {sports, music}, so
+  // staleSpanIds deletes a music row carrying a multiDayEnd.
+  const run = (id: string, start: string, end: string, over: Partial<EventRecord> = {}) =>
+    ev({ id, category: "arts", venue: "First Avenue", start, multiDayEnd: end, ...over });
+
+  it("a run underway at the same venue is IN the strip", () => {
+    // It asked `e.start >= nowWall` and nothing else, so a run that opened
+    // before today was absent here while the venue page this strip links to
+    // listed it — that page has used the span-aware isUpcoming since 5 Nov.
+    const current = ev({ id: "me", start: "2026-07-25T20:00" });
+    const exhibition = run("exhibit", "2026-05-23T10:00", "2027-01-10T17:00");
+    const r = selectRelated([current, exhibition], current, NOW)!;
+    expect(r.kind).toBe("venue");
+    expect(r.events.map((e) => e.id)).toEqual(["exhibit"]);
+  });
+
+  it("but it sorts BEHIND what is actually coming up", () => {
+    // Admitting runs on a start sort would have led 129 of 679 event pages
+    // with a months-old exhibition (measured on live data).
+    const current = ev({ id: "me", start: "2026-08-30T20:00" });
+    const r = selectRelated(
+      [
+        current,
+        run("exhibit", "2026-05-23T10:00", "2027-01-10T17:00"),
+        ev({ id: "friday", start: "2026-07-24T20:00" }),
+        ev({ id: "tomorrow", start: "2026-07-21T20:00" }),
+      ],
+      current,
+      NOW,
+    )!;
+    expect(r.events.map((e) => e.id)).toEqual(["tomorrow", "friday", "exhibit"]);
+  });
+
+  it("a run that has already CLOSED stays out", () => {
+    const current = ev({ id: "me", start: "2026-07-25T20:00" });
+    const closed = run("closed", "2026-05-01T10:00", "2026-07-10T17:00");
+    expect(selectRelated([current, closed], current, NOW)).toBeNull();
+  });
+
+  it("R1.3 is UNCHANGED: this morning's show is still honestly past", () => {
+    // The first cut of this fix swapped the whole predicate for isUpcoming,
+    // which is DAY-granular — that would have brought the morning show back
+    // until midnight. The run clause is ADDED to the wall-clock floor instead.
+    const afternoon = new Date("2026-07-20T20:30:00Z"); // 3:30 PM CDT
+    const current = ev({ id: "me" });
+    const thisMorning = ev({ id: "gone", start: "2026-07-20T09:00" });
+    const tonight = ev({ id: "tonight", start: "2026-07-20T19:00" });
+    const r = selectRelated([current, thisMorning, tonight], current, afternoon)!;
+    expect(r.events.map((e) => e.id)).toEqual(["tonight"]);
+  });
+});
+
+describe("MoreAtVenue — a run states its span, not a stale clock (9 Nov 2026)", () => {
+  // NORMALISED: a fresh Windows clone writes this file with CRLF (.gitattributes
+  // is `* text=auto`, core.autocrlf=true here), and every .claude worktree already
+  // holds it that way. An un-normalised multi-line toContain would pass in the
+  // shared checkout and in Actions, and fail in a worktree — which is where this
+  // project gates its review agents. lib/__tests__/no-horizontal-scroll.test.ts
+  // already does exactly this.
+  const src = readFileSync(join(__dirname, "..", "..", "components", "MoreAtVenue.tsx"), "utf8").replace(/\r\n/g, "\n");
+
+  // These assert WIRING only — that the component defers to the shared rule and
+  // drops the clock. The rule's BEHAVIOUR is tested in multiday.test.ts, because
+  // a string match passes whatever beganBeforeToday actually does.
+  it("defers to the shared beganBeforeToday rule rather than re-deriving it", () => {
+    expect(src).toContain("const underway = beganBeforeToday(e, todayKey);");
+  });
+
+  it("an underway row shows the span and NO time", () => {
+    // The row printed e.start's date and timeLabel(e) unconditionally, so an
+    // exhibition read "Sat, May 23 · 10 AM" — a date months past and the first
+    // day's clock, which lib/day-order.ts refuses to print.
+    expect(src).toContain("? multiDayLabel(e)");
+    expect(src).toContain("{!underway && <span className=\"more-at-time\">{timeLabel(e)}</span>}");
+  });
+
+  it("the date column fits the widest span on ONE left edge", () => {
+    const css = readFileSync(join(__dirname, "..", "..", "app", "globals.css"), "utf8").replace(/\r\n/g, "\n");
+    // 96px, not min-width: flex:none sizes to content above a floor, so min-width
+    // left the one row with a span wider than its neighbours.
+    expect(css).toContain(".more-at-date { flex: none; width: 96px;");
   });
 });

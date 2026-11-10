@@ -1246,7 +1246,14 @@ a.daycard { text-decoration: none; }
 .more-at-list { list-style: none; margin: 0; padding: 0; }
 .more-at-list li a { display: flex; gap: 12px; align-items: baseline; padding: 8px 2px; color: var(--cream); text-decoration: none; border-bottom: 1px dashed rgba(255,255,255,0.06); }
 .more-at-list li a:hover .more-at-name { color: var(--gold); }
-.more-at-date { flex: none; width: 92px; font-size: 12px; color: var(--cream-dim); font-variant-numeric: tabular-nums; }
+/* 96px, not 92: a run states its span here ("May 23 - Jan 10"), and at 12px
+   tabular-nums the widest of those measures ~95.3px, so at 92px it WRAPPED.
+   A first pass used min-width, which fixed the wrap but left that one row's
+   column wider than its neighbours (flex:none sizes to content above the
+   floor) — so the title beside a span started a few px further right than the
+   dated rows. A fixed 96px clears the widest label and keeps every row on one
+   left edge. */
+.more-at-date { flex: none; width: 96px; font-size: 12px; color: var(--cream-dim); font-variant-numeric: tabular-nums; }
 .more-at-name { flex: 1; font-size: 14px; }
 .more-at-time { flex: none; font-size: 12px; color: var(--cream-dim); }
 

@@ -1,7 +1,7 @@
 import { EMAIL_HEAD } from "./email-head";
 import { weeklyPicks } from "./content/weekly-picks";
 import { DOW, MONTHS, timeLabel, evDate, dkey } from "./dates";
-import { isMultiDay, multiDayLabel } from "./multiday";
+import { beganBeforeToday, multiDayLabel } from "./multiday";
 import { isEnded } from "./event-view";
 import { chiDayKey } from "./clock";
 import { CATEGORIES } from "./categories";
@@ -211,7 +211,7 @@ function eventUrl(siteUrl: string, id: string): string {
  * that admits it is ordinary reader behaviour, not an edge case.
  */
 function whenLabel(e: EventRecord, todayKey: string): string {
-  if (isMultiDay(e) && e.start.slice(0, 10) < todayKey) return multiDayLabel(e);
+  if (beganBeforeToday(e, todayKey)) return multiDayLabel(e);
   const d = evDate(e);
   return `${DOW[d.getDay()]}, ${MONTHS[d.getMonth()]} ${d.getDate()} · ${timeLabel(e)}`;
 }
