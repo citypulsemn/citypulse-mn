@@ -2107,7 +2107,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "fort-snelling-golf-club", name: "Fort Snelling Golf Club", kind: "golf-course",
-    lat: 44.8925, lng: -93.1815, address: "5701 Leavenworth Ave, St. Paul, MN 55111",
+    // Pin re-read 10 Nov 2026, was 44.8925,-93.1815 (1.2km off): two map sources + a blind second read agree within 3m.
+    lat: 44.88580, lng: -93.19392, address: "5701 Leavenworth Ave, St. Paul, MN 55111",
     city: "St. Paul", neighborhood: null, season: GOLF_SEASON, cost: "paid",
     tags: ["9-hole", "municipal"],
     intro: "A Park Board 9-hole, par 35, out in the Fort Snelling area — flat, quick, and cheap.",
@@ -2116,7 +2117,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "meadowbrook-golf-club", name: "Meadowbrook Golf Club", kind: "golf-course",
-    lat: 44.9316, lng: -93.3618, address: "201 Meadowbrook Rd, Hopkins, MN 55343",
+    // Pin re-read 10 Nov 2026, was 44.9316,-93.3618 (1.5km off): two map sources + a blind second read agree within 1m.
+    lat: 44.92122, lng: -93.37410, address: "201 Meadowbrook Rd, Hopkins, MN 55343",
     city: "Hopkins", neighborhood: null, season: GOLF_SEASON, cost: "paid",
     tags: ["18-hole", "municipal"],
     intro: "A Minneapolis Park Board 18 from 1926, on Excelsior Boulevard straddling Hopkins and St. Louis Park — classic parkland golf that occasionally floods.",
@@ -2154,7 +2156,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "phalen-park-golf-course", name: "Phalen Park Golf Course", kind: "golf-course",
-    lat: 44.9862, lng: -93.0558, address: "1615 Phalen Dr E, St. Paul, MN 55106",
+    // Pin re-read 10 Nov 2026, was 44.9862,-93.0558 (641m off): two map sources + a blind second read agree within 10m.
+    lat: 44.98917, lng: -93.06278, address: "1615 Phalen Dr E, St. Paul, MN 55106",
     city: "St. Paul", neighborhood: null, season: GOLF_SEASON, cost: "paid",
     tags: ["18-hole", "municipal"],
     intro: "St. Paul's par-70 muni on Lake Phalen — an approachable, scenic 18 on the east side.",
@@ -2173,7 +2176,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "brookview-golf-course", name: "Brookview Golf Course", kind: "golf-course",
-    lat: 44.9662, lng: -93.3660, address: "200 Brookview Pkwy, Golden Valley, MN 55426",
+    // Pin re-read 10 Nov 2026, was 44.9662,-93.3660 (1.9km off); address was 200 Brookview Pkwy, Golden Valley, MN 55426: two map sources + a blind second read agree within 3m.
+    lat: 44.97588, lng: -93.38541, address: "316 Brookview Parkway S, Golden Valley, MN 55426",
     city: "Golden Valley", neighborhood: null, season: GOLF_SEASON, cost: "paid",
     tags: ["18-hole", "municipal"],
     intro: "Golden Valley's muni — an 18-hole regulation course with a 9-hole par-3 and a driving range, all at the Brookview community hub.",
@@ -2192,7 +2196,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "glen-lake-golf-course", name: "Glen Lake Golf & Practice Center", kind: "golf-course",
-    lat: 44.9070, lng: -93.4815, address: "14350 County Road 62, Minnetonka, MN 55345",
+    // Pin re-read 10 Nov 2026, was 44.9070,-93.4815 (2.1km off): two map sources + a blind second read agree within 0m.
+    lat: 44.89265, lng: -93.46401, address: "14350 County Road 62, Minnetonka, MN 55345",
     city: "Minnetonka", neighborhood: null, season: GOLF_SEASON, cost: "paid",
     tags: ["9-hole", "municipal"],
     intro: "Three Rivers' 9-hole executive course in Minnetonka, par 31, with a practice center — a friendly, walkable loop.",
@@ -2241,7 +2246,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "bluff-creek-golf-course", name: "Bluff Creek Golf Course", kind: "golf-course",
-    lat: 44.8340, lng: -93.5470, address: "1025 Creekwood St, Chaska, MN 55318",
+    // Pin re-read 10 Nov 2026, was 44.8340,-93.5470 (1.4km off); address was 1025 Creekwood St, Chaska, MN 55318: two map sources + a blind second read agree within 2m.
+    lat: 44.82151, lng: -93.54657, address: "1025 Creekwood Dr., Chaska, MN 55318",
     city: "Chaska", neighborhood: null, season: GOLF_SEASON, cost: "paid",
     tags: ["18-hole"],
     intro: "An 18-hole daily-fee course near Highway 212 on the Chaska–Chanhassen edge.",
@@ -2290,7 +2296,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "timber-creek-golf-course", name: "Timber Creek Golf Course", kind: "golf-course",
-    lat: 44.9540, lng: -93.8330, address: "9750 County Road 24, Watertown, MN 55388",
+    // Pin re-read 10 Nov 2026, was 44.9540,-93.8330 (4.8km off): two map sources + a blind second read agree within 0m.
+    lat: 44.95287, lng: -93.77174, address: "9750 County Road 24, Watertown, MN 55388",
     city: "Watertown", neighborhood: null, season: GOLF_SEASON, cost: "paid",
     tags: ["18-hole"],
     intro: "An 18-hole public course in western Carver County, about 6,600 yards from the tips.",
@@ -2299,7 +2306,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "pioneer-creek-golf-course", name: "Pioneer Creek Golf Course", kind: "golf-course",
-    lat: 45.0055, lng: -93.6835, address: "705 Copeland Rd, Maple Plain, MN 55359",
+    // Pin re-read 10 Nov 2026, was 45.0055,-93.6835 (5.4km off): two map sources + a blind second read agree within 1m.
+    lat: 44.99027, lng: -93.74859, address: "705 Copeland Rd, Maple Plain, MN 55359",
     city: "Maple Plain", neighborhood: null, season: GOLF_SEASON, cost: "paid",
     tags: ["18-hole"],
     intro: "An 18-hole public course on a scenic 200-acre site in Maple Plain, with five tee sets.",
@@ -2317,7 +2325,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "chomonix-golf-course", name: "Chomonix Golf Course", kind: "golf-course",
-    lat: 45.1567, lng: -93.1156, address: "700 Aqua Ln, Lino Lakes, MN 55014",
+    // Pin re-read 10 Nov 2026, was 45.1567,-93.1156 (1.0km off): two map sources + a blind second read agree within 2m.
+    lat: 45.16083, lng: -93.10383, address: "700 Aqua Ln, Lino Lakes, MN 55014",
     city: "Lino Lakes", neighborhood: null, season: GOLF_SEASON, cost: "paid",
     tags: ["18-hole", "municipal"],
     intro: "An Anoka County par-72 in the Rice Creek Chain of Lakes reserve, with water in play on seven holes.",
@@ -2423,7 +2432,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "sundance-golf-course", name: "Sundance Golf & Bowl", kind: "golf-course",
-    lat: 45.1465, lng: -93.4720, address: "15240 113th Ave N, Maple Grove, MN 55369",
+    // Pin re-read 10 Nov 2026, was 45.1465,-93.4720 (1.5km off): two map sources + a blind second read agree within 18m.
+    lat: 45.15965, lng: -93.47441, address: "15240 113th Ave N, Maple Grove, MN 55369",
     city: "Maple Grove", neighborhood: null, season: GOLF_SEASON, cost: "paid",
     tags: ["9-hole"],
     intro: "A 9-hole public course, par 35, on the Maple Grove–Dayton edge, with bowling and a grill in the same complex.",
@@ -2452,7 +2462,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "pheasant-acres-golf-club", name: "Pheasant Acres Golf Club", kind: "golf-course",
-    lat: 45.1735, lng: -93.5560, address: "10705 County Rd 116, Rogers, MN 55374",
+    // Pin re-read 10 Nov 2026, was 45.1735,-93.5560 (2.8km off): two map sources + a blind second read agree within 5m.
+    lat: 45.14994, lng: -93.54431, address: "10705 County Rd 116, Rogers, MN 55374",
     city: "Rogers", neighborhood: null, season: GOLF_SEASON, cost: "paid",
     tags: ["18-hole"],
     intro: "A par-71 daily-fee course in Rogers, at the northwest edge of Hennepin County, built in 1987.",
@@ -2550,7 +2561,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "bellwood-oaks-golf-course", name: "Bellwood Oaks Golf Course", kind: "golf-course",
-    lat: 44.6870, lng: -92.9130, address: "13239 210th St E, Hastings, MN 55033",
+    // Pin re-read 10 Nov 2026, was 44.6870,-92.9130 (7.5km off): two map sources + a blind second read agree within 0m.
+    lat: 44.64491, lng: -92.83932, address: "13239 210th St E, Hastings, MN 55033",
     city: "Hastings", neighborhood: null, season: GOLF_SEASON, cost: "paid",
     tags: ["18-hole"],
     intro: "A public par-73 on 200-plus acres of state game refuge near Hastings.",
@@ -2559,7 +2571,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "emerald-greens-golf-course", name: "Emerald Greens Golf Course", kind: "golf-course",
-    lat: 44.6700, lng: -92.9000, address: "14425 Goodwin Ave, Hastings, MN 55033",
+    // Pin re-read 10 Nov 2026, was 44.6700,-92.9000 (9.1km off): two map sources + a blind second read agree within 3m.
+    lat: 44.73700, lng: -92.96707, address: "14425 Goodwin Ave, Hastings, MN 55033",
     city: "Hastings", neighborhood: null, season: GOLF_SEASON, cost: "paid",
     tags: ["18-hole"],
     intro: "A public 36-hole facility near Hastings — two 18-hole championship courses, Gold and Silver.",
@@ -2578,7 +2591,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "stonebrooke-golf-club", name: "Stonebrooke Golf Club", kind: "golf-course",
-    lat: 44.7620, lng: -93.5240, address: "2693 County Road 79, Shakopee, MN 55379",
+    // Pin re-read 10 Nov 2026, was 44.7620,-93.5240 (1.3km off): two map sources + a blind second read agree within 3m.
+    lat: 44.75056, lng: -93.51985, address: "2693 County Road 79, Shakopee, MN 55379",
     city: "Shakopee", neighborhood: null, season: GOLF_SEASON, cost: "paid",
     tags: ["18-hole"],
     intro: "A public 18 in Shakopee, open since 1988, with a ferry ride across Lake O'Dowd mid-round.",
@@ -2596,7 +2610,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "the-wilds-golf-club", name: "The Wilds Golf Club", kind: "golf-course",
-    lat: 44.7480, lng: -93.4600, address: "3151 Wilds Ridge Ct NW, Prior Lake, MN 55372",
+    // Pin re-read 10 Nov 2026, was 44.7480,-93.4600 (1.3km off); address was 3151 Wilds Ridge Ct NW, Prior Lake, MN 55372: two map sources + a blind second read agree within 1m.
+    lat: 44.73685, lng: -93.45739, address: "3151 Wilds Ridge, Prior Lake, MN 55372",
     city: "Prior Lake", neighborhood: null, season: GOLF_SEASON, cost: "paid",
     tags: ["18-hole"],
     intro: "A public par-72 in Prior Lake, a Weiskopf/Morrish design open since 1995.",
@@ -2625,7 +2640,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "ridges-at-sand-creek", name: "Ridges at Sand Creek", kind: "golf-course",
-    lat: 44.6480, lng: -93.6100, address: "21775 Ridges Dr, Jordan, MN 55352",
+    // Pin re-read 10 Nov 2026, was 44.6480,-93.6100 (1.6km off): two map sources + a blind second read agree within 4m.
+    lat: 44.63400, lng: -93.61267, address: "21775 Ridges Dr, Jordan, MN 55352",
     city: "Jordan", neighborhood: null, season: GOLF_SEASON, cost: "paid",
     tags: ["18-hole"],
     intro: "A public par-72 in Jordan, opened in 2000.",
@@ -2681,7 +2697,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "river-oaks-golf-course", name: "River Oaks Municipal Golf Course", kind: "golf-course",
-    lat: 44.7884, lng: -92.8874, address: "11099 S Highway 61, Cottage Grove, MN 55016",
+    // Pin re-read 10 Nov 2026, was 44.7884,-92.8874 (221m off): two map sources + a blind second read agree within 0m.
+    lat: 44.78987, lng: -92.88551, address: "11099 S Highway 61, Cottage Grove, MN 55016",
     city: "Cottage Grove", neighborhood: null, season: GOLF_SEASON, cost: "paid",
     tags: ["18-hole", "municipal"],
     intro: "Cottage Grove's city-owned par-71, a Don Herfort design along the river.",
@@ -2726,7 +2743,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "stoneridge-golf-club", name: "StoneRidge Golf Club", kind: "golf-course",
-    lat: 44.9549, lng: -92.8000, address: "13600 Hudson Blvd, Stillwater, MN 55082",
+    // Pin re-read 10 Nov 2026, was 44.9549,-92.8000 (2.4km off): two map sources + a blind second read agree within 14m.
+    lat: 44.95209, lng: -92.82987, address: "13600 Hudson Blvd, Stillwater, MN 55082",
     city: "West Lakeland Township", neighborhood: null, season: GOLF_SEASON, cost: "paid",
     tags: ["18-hole"],
     intro: "A Bobby Weed design open since 2000, often ranked the top public-access course in the Twin Cities.",
@@ -2771,7 +2789,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "oneka-ridge-golf-course", name: "Oneka Ridge Golf Course", kind: "golf-course",
-    lat: 45.1238, lng: -93.0078, address: "5610 120th St N, Hugo, MN 55110",
+    // Pin re-read 10 Nov 2026, was 45.1238,-93.0078 (1.5km off): two map sources + a blind second read agree within 0m.
+    lat: 45.12741, lng: -92.98958, address: "5610 120th St N, Hugo, MN 55110",
     city: "Hugo", neighborhood: null, season: GOLF_SEASON, cost: "paid",
     tags: ["18-hole"],
     intro: "A public 18 in Hugo, just north of White Bear Lake — privately owned, open to all.",

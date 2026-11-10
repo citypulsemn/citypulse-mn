@@ -94,12 +94,29 @@ Arbor Pointe's "walkable".
 - `rum-river-hills-golf-club` — built **1986**, not 1988.
 - `arbor-pointe-golf-course` — an executive nine, par **31**, not a par-3.
 
-## Not done in this round
+## Round two (10 Nov 2026, third commit) — the 19 single-geocoder courses
 
-- The **18 courses where only one geocoder answered** and it disagrees, plus 1 that
-  neither resolved — a second round.
+The 18 courses where only one geocoder answered (and disagreed), plus Oneka Ridge,
+which neither resolved. Same two stages; the research agent was told our pin might
+already be right and could answer "keep". None did: **all 19 moved**, by 0.2–9.1km
+(Emerald Greens 9.1km, Bellwood Oaks 7.5km, Pioneer Creek 5.4km), each matched by
+a blind second read within 18m (17 within 10m). No closures, no intro errors.
+
+Three addresses corrected to what the operators print: **Brookview** → 316
+Brookview Pkwy S, Golden Valley; **Bluff Creek** → 1025 Creekwood Dr, Chaska;
+**The Wilds** → 3151 Wilds Ridge, Prior Lake.
+
+After both rounds the golf audit has **76 of 81** courses within 500m of a geocoder
+(23 of 85 before). The five that still flag were all re-read and blind-checked —
+Halla Greens and Creeksbend in round one, Chomonix, Emerald Greens and River Oaks
+in round two — and in each the geocoder is the one that's off (a road
+interpolation, a course centroid, or no match). **Golf is done.**
+
+## Not done
+
 - The other unaudited kinds: rinks, museums, orchards, gardens, ski hills, music
   venues.
+- Beaches and the six other kinds in the aerial report wait on Taren's decision.
 
 ## Gate (observed, on the exact tree pushed — `origin/main` plus this diff, LF checkout)
 
