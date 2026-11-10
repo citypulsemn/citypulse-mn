@@ -3344,15 +3344,6 @@ export const PLACES: Place[] = [
     verifiedAt: "2026-08-13", venueSlug: null,
   },
   {
-    slug: "shakopee-farmers-market", name: "Downtown Shakopee Farmers Market", kind: "farmers-market",
-    lat: 44.7835, lng: -93.4880, address: "1455 St Francis Ave, Shakopee, MN 55379",
-    city: "Shakopee", neighborhood: null, season: MARKET_SEASON, cost: "free",
-    tags: ["tuesday"],
-    intro: "A Tuesday-midday market run by the Shakopee Chamber.",
-    sourceUrl: "https://shakopee.org/events/downtown-shakopee-farmers-market/",
-    verifiedAt: "2026-08-13", venueSlug: null,
-  },
-  {
     slug: "savage-farmers-market", name: "Savage Farmers Market", kind: "farmers-market",
     // Pin re-read 9 Nov 2026, was 44.7790,-93.3548 (1.1km off): two map sources + a blind second read agree within 1m.
     lat: 44.77867, lng: -93.34040, address: "4800 W 123rd St, Savage, MN 55378",

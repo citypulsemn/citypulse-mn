@@ -79,9 +79,10 @@ per row then tried to refute each recommendation using operator pages only.
   on a page headed "Care Team Member Events", with nothing saying the public may
   shop. The Chamber's downtown market has no evidence after 2023 and its site has
   lapsed. Re-pointing would publish a market nobody has shown runs in 2026 or is
-  open to the public. The row stays as it was (wrong pin, mixed intro) pending
-  Taren: remove it, or call the hospital ((952) 428-3000) to settle 2026 and
-  public access first.
+  open to the public. **Removed** on Taren's call later the same day (third
+  commit), so farmers markets 70 → 69 and the farmers-market pin audit confirms 0.
+  If the St. Francis market is confirmed public for a new season — the hospital's
+  main line is (952) 428-3000 — re-add it as its own row.
 
 **Intro errors found on rows whose pins did move** — one agent's reading each, not
 double-checked, so worth a quick look before editing:
