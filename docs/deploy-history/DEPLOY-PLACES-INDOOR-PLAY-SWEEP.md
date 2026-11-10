@@ -107,13 +107,31 @@ since 19 Oct) only cards a kind with 10+ different businesses. Gyms were 7, so
 the tests asserted "never a gym card". They're now 12, so gyms can card. The
 tests now say so. **Nothing posts** — the card isn't scheduled.
 
-## Found in passing (not fixed here)
+## Found in passing — two fixed, a bigger set open
 
-`scripts/places-coord-audit.ts --kind=indoor-playground` confirms two **August**
-pins are off by about a kilometre, both geocoders agreeing:
-`maple-maze-maple-grove` (we say 45.108,-93.457; suggested 45.10390,-93.44156)
-and `eagles-nest-new-brighton` (45.065,-93.202 → 45.06565,-93.19147). Check each
-against its source page before editing. None of the 31 new pins was flagged.
+`scripts/places-coord-audit.ts --kind=indoor-playground` confirmed two **August**
+pins off by about a kilometre, both geocoders agreeing. **Fixed in a follow-up
+commit the same day**, each checked first against its source page (the address
+was right; only the pin was wrong), then read from the building itself:
+
+| Place | Was | Now | Read from |
+|---|---|---|---|
+| `maple-maze-maple-grove` | 45.1080, -93.4570 (1.2km off) | 45.10376, -93.44285 | Google place record, inside OSM building way 761505323; Hennepin parcel point within 100m |
+| `eagles-nest-new-brighton` | 45.0650, -93.2020 (0.8km off) | 45.06605, -93.19130 | Google place record, inside OSM building way 443719549, 13m from its centre |
+
+The indoor-playground audit now reports zero confirmed disagreements. None of the
+31 new pins was ever flagged.
+
+**Open, and larger:** the same audit run read-only on two more kinds confirms
+**14 of 26 pools** and **31 of 72 farmers markets** — nearly all verified mid-
+August, all with padded round pins (45.1150, 44.8585). The 6 Sep audit fixed 72
+confirmed rows across the registry; these were most likely in that run's
+"one provider answered" bucket (237 rows) and so stayed questions. Three share an
+address with the two fixed above: `grove-cove-aquatic-center`,
+`maple-grove-farmers-market`, `new-brighton-farmers-market`. **Farmers markets
+need care:** a market's listed address is often a city hall or office, not the
+lot where it runs, so a disagreement there may mean the *address* is wrong rather
+than the pin. Not touched here.
 
 ## Gate (observed)
 

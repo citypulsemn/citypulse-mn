@@ -1295,7 +1295,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "bloomington-family-aquatic-center", name: "Bloomington Family Aquatic Center", kind: "pool",
-    lat: 44.8585, lng: -93.2960, address: "201 E 90th St, Bloomington, MN 55420",
+    // Pin re-read 9 Nov 2026, was 44.8585,-93.2960 (2.7km off): two map sources + a blind second read agree within 0m.
+    lat: 44.84003, lng: -93.27435, address: "201 E 90th St, Bloomington, MN 55420",
     city: "Bloomington", neighborhood: null, season: POOL_SUMMER, cost: "paid",
     tags: ["outdoor", "waterslide", "zero-depth-entry"],
     intro: "Bloomington's outdoor aquatic center off 90th — a zero-depth entry, waterslides, and shade for a reliable July afternoon.",
@@ -1315,7 +1316,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "chaska-community-center-pool", name: "Chaska Community Center Pool", kind: "pool",
-    lat: 44.8050, lng: -93.6050, address: "1661 Park Ridge Dr, Chaska, MN 55318",
+    // Pin re-read 9 Nov 2026, was 44.8050,-93.6050 (803m off): two map sources + a blind second read agree within 62m.
+    lat: 44.80597, lng: -93.59491, address: "1661 Park Ridge Dr, Chaska, MN 55318",
     city: "Chaska", neighborhood: null, season: YEAR_ROUND, cost: "paid",
     tags: ["indoor", "waterslide", "lap-lanes", "diving"],
     intro: "The indoor pool at the Chaska Community Center — a lap pool, two slides, a rope swing, and a diving platform, open year-round.",
@@ -1335,7 +1337,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "edina-aquatic-center", name: "Edina Aquatic Center", kind: "pool",
-    lat: 44.8850, lng: -93.3435, address: "4300 W 66th St, Edina, MN 55435",
+    // Pin re-read 9 Nov 2026, was 44.8850,-93.3435 (645m off): two map sources + a blind second read agree within 19m.
+    lat: 44.88481, lng: -93.33532, address: "4300 W 66th St, Edina, MN 55435",
     city: "Edina", neighborhood: null, season: POOL_SUMMER, cost: "paid",
     tags: ["outdoor", "waterslide", "zero-depth-entry", "diving"],
     intro: "Edina's long-running outdoor aquatic center off 66th, with waterslides, a zero-depth pool, and a diving well.",
@@ -1345,7 +1348,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "great-river-water-park", name: "Great River Water Park", kind: "pool",
-    lat: 44.9560, lng: -93.1470, address: "270 Lexington Pkwy N, Saint Paul, MN 55104",
+    // Pin re-read 9 Nov 2026, was 44.9560,-93.1470 (728m off): two map sources + a blind second read agree within 25m.
+    lat: 44.94949, lng: -93.14596, address: "270 Lexington Pkwy N, Saint Paul, MN 55104",
     city: "St. Paul", neighborhood: null, season: OFF_SEASON, cost: "paid",
     tags: ["indoor", "waterslide", "lap-lanes", "zero-depth-entry"],
     intro: "St. Paul's indoor water park inside the Oxford Community Center — a lap pool, two slides, and a kids' area. It runs the off-season: closed for summer, back in September.",
@@ -1355,7 +1359,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "new-hope-aquatic-park", name: "New Hope Aquatic Park", kind: "pool",
-    lat: 45.0380, lng: -93.3810, address: "4411 Xylon Ave N, New Hope, MN 55428",
+    // Pin re-read 9 Nov 2026, was 45.0380,-93.3810 (465m off): two map sources + a blind second read agree within 28m.
+    lat: 45.03610, lng: -93.38627, address: "4411 Xylon Ave N, New Hope, MN 55428",
     city: "New Hope", neighborhood: null, season: POOL_SUMMER, cost: "paid",
     tags: ["outdoor", "waterslide", "diving", "lap-lanes", "zero-depth-entry"],
     intro: "New Hope's outdoor aquatic park — an eight-lane, 50-meter pool, diving boards, a drop slide, and a zero-depth rec area with a current channel.",
@@ -1385,7 +1390,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "st-louis-park-aquatic-park", name: "St. Louis Park Aquatic Park", kind: "pool",
-    lat: 44.9430, lng: -93.3470, address: "3700 Monterey Dr, St. Louis Park, MN 55416",
+    // Pin re-read 9 Nov 2026, was 44.9430,-93.3470 (748m off): two map sources + a blind second read agree within 6m.
+    lat: 44.93672, lng: -93.34359, address: "3700 Monterey Dr, St. Louis Park, MN 55416",
     city: "St. Louis Park", neighborhood: null, season: POOL_SUMMER, cost: "paid",
     tags: ["outdoor", "waterslide", "zero-depth-entry"],
     intro: "St. Louis Park's outdoor aquatic park off Monterey, with slides and a zero-depth pool, open early June into late August.",
@@ -1395,7 +1401,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "shoreview-tropics-waterpark", name: "The Tropics Indoor Waterpark", kind: "pool",
-    lat: 45.0750, lng: -93.1350, address: "4580 Victoria St N, Shoreview, MN 55126",
+    // Pin re-read 9 Nov 2026, was 45.0750,-93.1350 (691m off): two map sources + a blind second read agree within 64m.
+    lat: 45.08070, lng: -93.13149, address: "4580 Victoria St N, Shoreview, MN 55126",
     city: "Shoreview", neighborhood: null, season: YEAR_ROUND, cost: "paid",
     tags: ["indoor", "waterslide", "lap-lanes", "zero-depth-entry"],
     intro: "The indoor Tropics water park at the Shoreview Community Center — a four-story slide, a lazy river, and a zero-depth area, open year-round.",
@@ -1415,7 +1422,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "crystal-cove-aquatic-center", name: "Crystal Cove Aquatic Center", kind: "pool",
-    lat: 45.0330, lng: -93.3580, address: "4848 Douglas Dr N, Crystal, MN 55429",
+    // Pin re-read 9 Nov 2026, was 45.0330,-93.3580 (1.1km off): two map sources + a blind second read agree within 26m.
+    lat: 45.04320, lng: -93.35818, address: "4848 Douglas Dr N, Crystal, MN 55429",
     city: "Crystal", neighborhood: null, season: POOL_SUMMER, cost: "paid",
     tags: ["outdoor", "waterslide", "zero-depth-entry"],
     intro: "Crystal's outdoor aquatic center on Douglas Drive — slides, a zero-depth pool, and a July-afternoon crowd from the northwest suburbs.",
@@ -1486,7 +1494,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "anoka-aquatic-center", name: "Anoka Aquatic Center", kind: "pool",
-    lat: 45.2085, lng: -93.3960, address: "1551 7th Ave, Anoka, MN 55303",
+    // Pin re-read 9 Nov 2026, was 45.2085,-93.3960 (2.3km off): two map sources + a blind second read agree within 32m.
+    lat: 45.19150, lng: -93.37887, address: "1551 7th Ave, Anoka, MN 55303",
     city: "Anoka", neighborhood: null, season: POOL_SUMMER, cost: "paid",
     tags: ["outdoor", "waterslides", "zero-depth"],
     intro: "Anoka's outdoor aquatic center — a 12-foot climbing wall, a 200-foot slide, a diving board, and zero-depth entry; open Memorial Day to late August.",
@@ -1506,7 +1515,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "hastings-aquatic-center", name: "Hastings Family Aquatic Center", kind: "pool",
-    lat: 44.7460, lng: -92.8530, address: "901 Maple St, Hastings, MN 55033",
+    // Pin re-read 9 Nov 2026, was 44.7460,-92.8530 (1.1km off): two map sources + a blind second read agree within 0m.
+    lat: 44.73672, lng: -92.85937, address: "901 Maple St, Hastings, MN 55033",
     city: "Hastings", neighborhood: null, season: POOL_SUMMER, cost: "paid",
     tags: ["outdoor", "waterslides", "zero-depth"],
     intro: "Hastings' outdoor family aquatic center — zero-depth entry, a 201-foot waterslide and a drop slide, a log crossing, and a rock wall.",
@@ -1516,7 +1526,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "inver-grove-heights-aquatic-center", name: "Veterans Memorial Community Center — The Grove", kind: "pool",
-    lat: 44.8480, lng: -93.0490, address: "8055 Barbara Ave, Inver Grove Heights, MN 55077",
+    // Pin re-read 9 Nov 2026, was 44.8480,-93.0490 (2.1km off): two map sources + a blind second read agree within 23m.
+    lat: 44.83232, lng: -93.06361, address: "8055 Barbara Ave, Inver Grove Heights, MN 55077",
     city: "Inver Grove Heights", neighborhood: null, season: YEAR_ROUND, cost: "paid",
     tags: ["indoor", "waterslides", "lap-lanes"],
     intro: "The Grove at Inver Grove Heights' Veterans Memorial Community Center — an indoor waterpark plus a lap pool and dive well, open year-round.",
@@ -1562,7 +1573,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "brooklyn-center-community-center-pool", name: "Brooklyn Center Community Center Pool", kind: "pool",
-    lat: 45.0680, lng: -93.3300, address: "6301 Shingle Creek Pkwy, Brooklyn Center, MN 55430",
+    // Pin re-read 9 Nov 2026, was 45.0680,-93.3300 (1.6km off): two map sources + a blind second read agree within 12m.
+    lat: 45.06894, lng: -93.30946, address: "6301 Shingle Creek Pkwy, Brooklyn Center, MN 55430",
     city: "Brooklyn Center", neighborhood: null, season: YEAR_ROUND, cost: "paid",
     tags: ["indoor", "waterslides", "lap-lanes"],
     intro: "Brooklyn Center's community center pool — an indoor 50-meter pool with a 150-foot waterslide and a zero-depth wading area, open year-round.",
@@ -2916,7 +2928,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "four-sisters-farmers-market", name: "Four Sisters Farmers Market", kind: "farmers-market",
-    lat: 44.9626, lng: -93.2472, address: "1414 E Franklin Ave, Minneapolis, MN 55404",
+    // Pin re-read 9 Nov 2026, was 44.9626,-93.2472 (557m off): two map sources + a blind second read agree within 1m.
+    lat: 44.96295, lng: -93.25426, address: "1414 E Franklin Ave, Minneapolis, MN 55404",
     city: "Minneapolis", neighborhood: null, season: MARKET_SEASON, cost: "free",
     tags: ["thursday"],
     intro: "An Indigenous-focused Thursday market in the American Indian Cultural Corridor, run by NACDI — SNAP/EBT with a $10 match, plus Market Bucks.",
@@ -2979,7 +2992,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "st-lukes-farmers-market", name: "St. Luke's Farmers Market", kind: "farmers-market",
-    lat: 44.9179, lng: -93.1817, address: "1807 Field Ave, Saint Paul, MN 55116",
+    // Pin re-read 9 Nov 2026, was 44.9179,-93.1817 (1.7km off): two map sources + a blind second read agree within 6m.
+    lat: 44.90297, lng: -93.17645, address: "1807 Field Ave, Saint Paul, MN 55116",
     city: "St. Paul", neighborhood: "highland-park", season: MARKET_SEASON, cost: "free",
     tags: ["saturday"],
     intro: "A Saturday-morning market in the St. Luke Church lot in Highland Park.",
@@ -2988,7 +3002,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "hmongtown-farmers-market", name: "HmongTown Marketplace Farmers Market", kind: "farmers-market",
-    lat: 44.9679, lng: -93.1179, address: "217 Como Ave, Saint Paul, MN 55103",
+    // Pin re-read 9 Nov 2026, was 44.9679,-93.1179 (970m off): two map sources + a blind second read agree within 0m.
+    lat: 44.96192, lng: -93.10893, address: "217 Como Ave, Saint Paul, MN 55103",
     city: "St. Paul", neighborhood: null, season: MARKET_SEASON, cost: "free",
     tags: ["multi-day"],
     intro: "A large outdoor Hmong-grower produce market attached to the year-round HmongTown Marketplace — open most days in season.",
@@ -2997,7 +3012,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "maple-grove-farmers-market", name: "Maple Grove Farmers Market", kind: "farmers-market",
-    lat: 45.1189, lng: -93.4636, address: "12951 Weaver Lake Rd, Maple Grove, MN 55369",
+    // Pin re-read 9 Nov 2026, was 45.1189,-93.4636 (2.3km off): two map sources + a blind second read agree within 20m.
+    lat: 45.10275, lng: -93.44600, address: "12951 Weaver Lake Rd, Maple Grove, MN 55369",
     city: "Maple Grove", neighborhood: null, season: MARKET_SEASON, cost: "free",
     tags: ["thursday"],
     intro: "A Thursday-afternoon market at the Maple Grove Community Center.",
@@ -3015,7 +3031,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "coon-rapids-farmers-market", name: "Coon Rapids Farmers Market", kind: "farmers-market",
-    lat: 45.2013, lng: -93.3437, address: "11000 Crooked Lake Blvd NW, Coon Rapids, MN 55433",
+    // Pin re-read 9 Nov 2026, was 45.2013,-93.3437 (3.5km off): two map sources + a blind second read agree within 5m.
+    lat: 45.16983, lng: -93.34271, address: "11000 Crooked Lake Blvd NW, Coon Rapids, MN 55433",
     city: "Coon Rapids", neighborhood: null, season: MARKET_SEASON, cost: "free",
     tags: ["wednesday"],
     intro: "A Wednesday market at the Coon Rapids Ice Center, run by the Anoka County Growers Association.",
@@ -3024,7 +3041,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "blaine-farmers-market-saturday", name: "Blaine Farmers Market (Saturday)", kind: "farmers-market",
-    lat: 45.1548, lng: -93.2360, address: "707 89th Ave NE, Blaine, MN 55434",
+    // Pin re-read 9 Nov 2026, was 45.1548,-93.2360 (2.8km off): two map sources + a blind second read agree within 2m.
+    lat: 45.13247, lng: -93.25290, address: "707 89th Ave NE, Blaine, MN 55434",
     city: "Blaine", neighborhood: null, season: MARKET_SEASON, cost: "free",
     tags: ["saturday"],
     intro: "A Saturday-morning market at St. Timothy's, run by the Anoka County Growers Association. Takes SNAP/EBT.",
@@ -3033,7 +3051,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "blaine-farmers-market-tuesday", name: "Blaine Farmers Market (Tuesday)", kind: "farmers-market",
-    lat: 45.1548, lng: -93.2360, address: "707 89th Ave NE, Blaine, MN 55434",
+    // Pin re-read 9 Nov 2026, was 45.1548,-93.2360 (2.8km off): two map sources + a blind second read agree within 12m.
+    lat: 45.13253, lng: -93.25305, address: "707 89th Ave NE, Blaine, MN 55434",
     city: "Blaine", neighborhood: null, season: MARKET_SEASON, cost: "free",
     tags: ["tuesday"],
     intro: "The Tuesday-afternoon session of Blaine's market at St. Timothy's, Anoka County Growers Association.",
@@ -3051,7 +3070,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "ramsey-farmers-market", name: "Ramsey Farmers Market", kind: "farmers-market",
-    lat: 45.2595, lng: -93.4535, address: "7401 Ramsey Pkwy, Ramsey, MN 55303",
+    // Pin re-read 9 Nov 2026, was 45.2595,-93.4535 (2.9km off): two map sources + a blind second read agree within 2m.
+    lat: 45.23370, lng: -93.45497, address: "7401 Ramsey Pkwy, Ramsey, MN 55303",
     city: "Ramsey", neighborhood: null, season: MARKET_SEASON, cost: "free",
     tags: ["tuesday"],
     intro: "A Tuesday-afternoon market by The Draw amphitheater in Ramsey.",
@@ -3087,7 +3107,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "brooklyn-park-farmers-market", name: "Brooklyn Park Farmers Market", kind: "farmers-market",
-    lat: 45.1035, lng: -93.3560, address: "7411 85th Ave N, Brooklyn Park, MN 55445",
+    // Pin re-read 9 Nov 2026, was 45.1035,-93.3560 (1.6km off): two map sources + a blind second read agree within 87m.
+    lat: 45.10426, lng: -93.37592, address: "7411 85th Ave N, Brooklyn Park, MN 55445",
     city: "Brooklyn Park", neighborhood: null, season: MARKET_SEASON, cost: "free",
     tags: ["wednesday"],
     intro: "A Wednesday market at North Hennepin Community College, with Market Bucks matching SNAP/EBT 2-to-1.",
@@ -3096,7 +3117,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "brooklyn-center-farmers-market", name: "Brooklyn Center Farmers Market", kind: "farmers-market",
-    lat: 45.0810, lng: -93.3310, address: "7200 Brooklyn Blvd, Brooklyn Center, MN 55429",
+    // Pin re-read 9 Nov 2026, was 45.0810,-93.3310 (847m off): two map sources + a blind second read agree within 14m.
+    lat: 45.08441, lng: -93.34064, address: "7200 Brooklyn Blvd, Brooklyn Center, MN 55429",
     city: "Brooklyn Center", neighborhood: null, season: MARKET_SEASON, cost: "free",
     tags: ["thursday"],
     intro: "A Thursday market hosted by CAPI and the city, off Brooklyn Boulevard.",
@@ -3123,7 +3145,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "new-brighton-farmers-market", name: "New Brighton Farmers Market", kind: "farmers-market",
-    lat: 45.0655, lng: -93.2065, address: "400 10th St NW, New Brighton, MN 55112",
+    // Pin re-read 9 Nov 2026, was 45.0655,-93.2065 (1.2km off): two map sources + a blind second read agree within 14m.
+    lat: 45.06598, lng: -93.19133, address: "400 10th St NW, New Brighton, MN 55112",
     city: "New Brighton", neighborhood: null, season: MARKET_SEASON, cost: "free",
     tags: ["wednesday"],
     intro: "A Wednesday market at the New Brighton Community Center — around 35 vendors and food trucks, plus a monthly winter market.",
@@ -3132,7 +3155,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "shoreview-farmers-market", name: "Shoreview Farmers Market", kind: "farmers-market",
-    lat: 45.0805, lng: -93.1470, address: "4580 Victoria St N, Shoreview, MN 55126",
+    // Pin re-read 9 Nov 2026, was 45.0805,-93.1470 (1.3km off): two map sources + a blind second read agree within 1m.
+    lat: 45.08015, lng: -93.13075, address: "4580 Victoria St N, Shoreview, MN 55126",
     city: "Shoreview", neighborhood: null, season: MARKET_SEASON, cost: "free",
     tags: ["tuesday"],
     intro: "A Tuesday market at the Shoreview Community Center, with an indoor winter market January through April.",
@@ -3141,7 +3165,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "roseville-farmers-market", name: "Roseville Farmers' Market", kind: "farmers-market",
-    lat: 45.0209, lng: -93.1772, address: "2131 Fairview Ave N, Roseville, MN 55113",
+    // Pin re-read 9 Nov 2026, was 45.0209,-93.1772 (1.8km off): two map sources + a blind second read agree within 0m.
+    lat: 45.00498, lng: -93.17854, address: "2131 Fairview Ave N, Roseville, MN 55113",
     city: "Roseville", neighborhood: null, season: MARKET_SEASON, cost: "free",
     tags: ["tuesday"],
     intro: "A Tuesday-morning market at Corpus Christi Church, run by the St. Paul Growers' Association.",
@@ -3195,7 +3220,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "forest-lake-farmers-market", name: "Forest Lake Farmers Market", kind: "farmers-market",
-    lat: 45.2735, lng: -92.9855, address: "1408 Lake St S, Forest Lake, MN 55025",
+    // Pin re-read 9 Nov 2026, was 45.2735,-92.9855 (824m off): two map sources + a blind second read agree within 24m.
+    lat: 45.26609, lng: -92.98545, address: "1408 Lake St S, Forest Lake, MN 55025",
     city: "Forest Lake", neighborhood: null, season: MARKET_SEASON, cost: "free",
     tags: ["saturday"],
     intro: "A Saturday-morning market at Forest Lake City Hall.",
@@ -3204,7 +3230,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "oakdale-farmers-market", name: "Oakdale Farmers Market", kind: "farmers-market",
-    lat: 44.9838, lng: -92.9663, address: "1584 Hadley Ave N, Oakdale, MN 55128",
+    // Pin re-read 9 Nov 2026, was 44.9838,-92.9663 (1.4km off): two map sources + a blind second read agree within 2m.
+    lat: 44.97097, lng: -92.96820, address: "1584 Hadley Ave N, Oakdale, MN 55128",
     city: "Oakdale", neighborhood: null, season: MARKET_SEASON, cost: "free",
     tags: ["wednesday"],
     intro: "A Wednesday-afternoon market at Richard Walton Memorial Park in Oakdale.",
@@ -3213,7 +3240,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "woodbury-farmers-market", name: "Woodbury Farmers' Market", kind: "farmers-market",
-    lat: 44.9227, lng: -92.9206, address: "3311 Commonwealth Ave, Woodbury, MN 55125",
+    // Pin re-read 9 Nov 2026, was 44.9227,-92.9206 (3.3km off): two map sources + a blind second read agree within 6m.
+    lat: 44.89908, lng: -92.94651, address: "3311 Commonwealth Ave, Woodbury, MN 55125",
     city: "Woodbury", neighborhood: null, season: MARKET_SEASON, cost: "free",
     tags: ["sunday"],
     intro: "A Sunday market at Red Rock Elementary, run by the St. Paul Growers' Association.",
@@ -3258,7 +3286,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "minnetonka-farmers-market", name: "Minnetonka Farmers Market", kind: "farmers-market",
-    lat: 44.9418, lng: -93.4907, address: "15000 Minnetonka Blvd, Minnetonka, MN 55345",
+    // Pin re-read 9 Nov 2026, was 44.9418,-93.4907 (1.6km off): two map sources + a blind second read agree within 113m.
+    lat: 44.93802, lng: -93.47043, address: "15000 Minnetonka Blvd, Minnetonka, MN 55345",
     city: "Minnetonka", neighborhood: null, season: MARKET_SEASON, cost: "free",
     tags: ["tuesday"],
     intro: "A Tuesday-afternoon market in the Marsh lot on Minnetonka Boulevard. Takes EBT.",
@@ -3267,7 +3296,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "bloomington-farmers-market", name: "Bloomington Farmers Market", kind: "farmers-market",
-    lat: 44.8307, lng: -93.2990, address: "1800 W Old Shakopee Rd, Bloomington, MN 55431",
+    // Pin re-read 9 Nov 2026, was 44.8307,-93.2990 (538m off): two map sources + a blind second read agree within 17m.
+    lat: 44.82597, lng: -93.30045, address: "1800 W Old Shakopee Rd, Bloomington, MN 55431",
     city: "Bloomington", neighborhood: null, season: MARKET_SEASON, cost: "free",
     tags: ["saturday"],
     intro: "A Saturday market at Civic Plaza, with a midweek summer session and a February indoor winter market.",
@@ -3276,7 +3306,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "richfield-farmers-market", name: "Richfield Farmers Market", kind: "farmers-market",
-    lat: 44.8752, lng: -93.2672, address: "6335 Portland Ave, Richfield, MN 55423",
+    // Pin re-read 9 Nov 2026, was 44.8752,-93.2672 (1.5km off): two map sources + a blind second read agree within 1m.
+    lat: 44.88838, lng: -93.26605, address: "6335 Portland Ave, Richfield, MN 55423",
     city: "Richfield", neighborhood: null, season: MARKET_SEASON, cost: "free",
     tags: ["saturday"],
     intro: "A Saturday-morning market under the pavilion at Veterans Memorial Park in Richfield — rain or shine.",
@@ -3357,7 +3388,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "savage-farmers-market", name: "Savage Farmers Market", kind: "farmers-market",
-    lat: 44.7790, lng: -93.3548, address: "4800 W 123rd St, Savage, MN 55378",
+    // Pin re-read 9 Nov 2026, was 44.7790,-93.3548 (1.1km off): two map sources + a blind second read agree within 1m.
+    lat: 44.77867, lng: -93.34040, address: "4800 W 123rd St, Savage, MN 55378",
     city: "Savage", neighborhood: null, season: MARKET_SEASON, cost: "free",
     tags: ["sunday"],
     intro: "A Sunday market near the Dan Patch depot in Savage. Takes EBT and Market Bucks.",
@@ -3375,7 +3407,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "burnsville-farmers-market-saturday", name: "Burnsville Farmers Market (Saturday)", kind: "farmers-market",
-    lat: 44.7690, lng: -93.2870, address: "200 Burnsville Pkwy W, Burnsville, MN 55337",
+    // Pin re-read 9 Nov 2026, was 44.7690,-93.2870 (581m off): two map sources + a blind second read agree within 33m.
+    lat: 44.77268, lng: -93.28178, address: "200 Burnsville Pkwy W, Burnsville, MN 55337",
     city: "Burnsville", neighborhood: null, season: MARKET_SEASON, cost: "free",
     tags: ["saturday"],
     intro: "A Saturday market at the Diamondhead Education Center, run by the St. Paul Farmers' Market. Takes EBT.",
@@ -3384,7 +3417,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "burnsville-farmers-market-thursday", name: "Burnsville Farmers Market (Thursday)", kind: "farmers-market",
-    lat: 44.7772, lng: -93.2468, address: "3333 Cliff Rd E, Burnsville, MN 55337",
+    // Pin re-read 9 Nov 2026, was 44.7772,-93.2468 (1.9km off): two map sources + a blind second read agree within 10m.
+    lat: 44.78908, lng: -93.22994, address: "3333 Cliff Rd E, Burnsville, MN 55337",
     city: "Burnsville", neighborhood: null, season: MARKET_SEASON, cost: "free",
     tags: ["thursday"],
     intro: "A Thursday-midday market at Mary, Mother of the Church, run by the St. Paul Farmers' Market. Takes EBT.",
@@ -3393,7 +3427,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "apple-valley-farmers-market", name: "Apple Valley Farmers Market", kind: "farmers-market",
-    lat: 44.7309, lng: -93.2170, address: "7100 147th St W, Apple Valley, MN 55124",
+    // Pin re-read 9 Nov 2026, was 44.7309,-93.2170 (789m off): two map sources + a blind second read agree within 0m.
+    lat: 44.73429, lng: -93.20823, address: "7100 147th St W, Apple Valley, MN 55124",
     city: "Apple Valley", neighborhood: null, season: MARKET_SEASON, cost: "free",
     tags: ["wednesday"],
     intro: "A Wednesday market at the Apple Valley Municipal Center, run by the St. Paul Farmers' Market.",
@@ -3411,7 +3446,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "eagan-market-fest", name: "Eagan Market Fest", kind: "farmers-market",
-    lat: 44.8340, lng: -93.1650, address: "1501 Central Pkwy, Eagan, MN 55121",
+    // Pin re-read 9 Nov 2026, was 44.8340,-93.1650 (1.0km off): two map sources + a blind second read agree within 3m.
+    lat: 44.84024, lng: -93.17449, address: "1501 Central Pkwy, Eagan, MN 55121",
     city: "Eagan", neighborhood: null, season: MARKET_SEASON, cost: "free",
     tags: ["wednesday"],
     intro: "A Wednesday-evening city market at the Eagan Festival Grounds, with live music and food. Takes SNAP/EBT.",
@@ -3420,7 +3456,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "rosemount-farmers-market", name: "Rosemount Farmers Market", kind: "farmers-market",
-    lat: 44.7398, lng: -93.1247, address: "13885 South Robert Trail, Rosemount, MN 55068",
+    // Pin re-read 9 Nov 2026, was 44.7398,-93.1247 (924m off): two map sources + a blind second read agree within 12m.
+    lat: 44.74790, lng: -93.12730, address: "13885 South Robert Trail, Rosemount, MN 55068",
     city: "Rosemount", neighborhood: null, season: MARKET_SEASON, cost: "free",
     tags: ["tuesday"],
     intro: "A Tuesday-afternoon market at the Rosemount Community Center, run by the St. Paul Farmers' Market. Takes EBT.",
@@ -3438,7 +3475,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "hastings-farmers-market", name: "Hastings Farm Market", kind: "farmers-market",
-    lat: 44.7466, lng: -92.8790, address: "1250 Vermillion St, Hastings, MN 55033",
+    // Pin re-read 9 Nov 2026, was 44.7466,-92.8790 (1.1km off); address was 1250 Vermillion St, Hastings, MN 55033: two map sources + a blind second read agree within 0m.
+    lat: 44.73680, lng: -92.88093, address: "1355 S Frontage Rd, Hastings, MN 55033",
     city: "Hastings", neighborhood: null, season: MARKET_SEASON, cost: "free",
     tags: ["tuesday", "saturday"],
     intro: "A Tuesday and Saturday market at the Westview Shopping Center in Hastings.",
@@ -3447,7 +3485,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "inver-grove-heights-farmers-market", name: "Inver Grove Heights Farmers Market", kind: "farmers-market",
-    lat: 44.8483, lng: -93.0422, address: "8055 Barbara Ave, Inver Grove Heights, MN 55077",
+    // Pin re-read 9 Nov 2026, was 44.8483,-93.0422 (2.5km off): two map sources + a blind second read agree within 1m.
+    lat: 44.83298, lng: -93.06521, address: "8055 Barbara Ave, Inver Grove Heights, MN 55077",
     city: "Inver Grove Heights", neighborhood: null, season: MARKET_SEASON, cost: "free",
     tags: ["sunday"],
     intro: "A Sunday market at the Veterans Memorial Community Center, run by the St. Paul Farmers' Market. Takes EBT.",
@@ -5538,7 +5577,10 @@ export const PLACES: Place[] = [
   },
   {
     slug: "maple-maze-maple-grove", name: "Maple Maze (Maple Grove Community Center)", kind: "indoor-playground",
-    lat: 45.1080, lng: -93.4570, address: "12951 Weaver Lake Rd, Maple Grove, MN 55369",
+    // Pin re-read 8 Nov 2026 (was 45.1080,-93.4570, 1.2km off): Google's place record
+    // for the community center, inside its OSM outline (way 761505323); Hennepin's
+    // parcel point agrees within 100m.
+    lat: 45.10376, lng: -93.44285, address: "12951 Weaver Lake Rd, Maple Grove, MN 55369",
     city: "Maple Grove", neighborhood: null, season: YEAR_ROUND, cost: "paid",
     tags: ["community-center", "toddler-zone", "slides"],
     intro: "A two-story jungle treehouse with four slides at the Maple Grove Community Center, plus a separate toddler section for ages three and under. $6.50 a visit, under-ones free.",
@@ -5558,7 +5600,9 @@ export const PLACES: Place[] = [
   },
   {
     slug: "eagles-nest-new-brighton", name: "Eagles Nest (New Brighton Community Center)", kind: "indoor-playground",
-    lat: 45.0650, lng: -93.2020, address: "400 10th St NW, New Brighton, MN 55112",
+    // Pin re-read 8 Nov 2026 (was 45.0650,-93.2020, 0.8km off): Google's place record
+    // for the community center, inside its OSM outline (way 443719549), 13m from its centre.
+    lat: 45.06605, lng: -93.19130, address: "400 10th St NW, New Brighton, MN 55112",
     city: "New Brighton", neighborhood: null, season: YEAR_ROUND, cost: "paid",
     tags: ["community-center", "toddler-zone", "slides"],
     intro: "A 36-foot quadruple-wave slide and a 23-foot web tower at the New Brighton Community Center, for ages twelve and under with a toddler area for the under-threes. $9 a child, adults free.",
