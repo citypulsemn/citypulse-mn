@@ -241,7 +241,31 @@ export async function gatherOpsInputs(): Promise<OpsInputs> {
         select id::text as id, venue, title, category,
                (verified_at is not null) as verified,
                to_char(start_at at time zone 'America/Chicago', 'YYYY-MM-DD"T"HH24:MI') as start
-        from events where status = 'published' and start_at >= now()`;
+        -- STILL ON, not still to come (10 Nov 2026). This asked
+        -- start_at >= now(), so every run already underway was absent from the
+        -- only instrument that reports a live duplicate pair — and a run is the
+        -- shape most likely to BE one: docs/.../DEPLOY-END-AT-RUN-END records a
+        -- new row minted per weekly re-find of a long run. The detector was
+        -- blind to exactly the rows that produce the problem it exists to find.
+        --
+        -- Measured before changing it: 683 rows in -> 701, and the report goes
+        -- from 1 conflict to 2, with duplicates and placeholder venues
+        -- unchanged at 0. ONE new finding, ZERO false positives — and the new
+        -- one is real: Minnesota Children's Museum, both rows starting
+        -- 2026-05-23 at the same minute, which DEPLOY-VERIFY-YEAR-GATE.md
+        -- already judged one exhibit under two names and left alone.
+        --
+        -- The clash logic holds over the wider set because CONCURRENT_VENUES
+        -- already exempts the rooms that run concurrent programming by design
+        -- (the Walker, Mia, the Science Museum). That is why the widening does
+        -- not flood: the museums whose exhibitions legitimately overlap are
+        -- listed, and the one that is not listed had a genuine duplicate.
+        from events where status = 'published'
+          and greatest(start_at, end_at, multi_day_end) >= now()`;
+      // The grouping key is roomKey|START DAY, and for these rows that is the
+      // day they OPENED — which is the finding itself here ("both of these
+      // began on 23 May at the same minute"), not a stale label of the kind
+      // every other widening in this chain had to repair.
       const report = findContradictions([...rows]);
       const titles = findPlaceholderTitles([...rows]);
       return {

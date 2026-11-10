@@ -770,3 +770,71 @@ describe("roomKey — one room is one venue, and two rooms are never one", () =>
     expect(report.conflicts).toHaveLength(1);
   });
 });
+
+describe("a run already underway is a shape this detector must see (10 Nov 2026)", () => {
+  // The self-check fed it `start_at >= now()`, so every run already open was
+  // absent — and a run is the shape most likely to BE a duplicate, because a
+  // long run mints a new row on each weekly re-find. The detector was blind to
+  // exactly the rows that produce the problem it exists to find.
+  it("two rows of one run, same room and same opening minute, are a duplicate", () => {
+    const r = findContradictions([
+      row("a", "Parkway Theater", "2026-05-23T10:00", "Beach Monster Exhibit", "arts"),
+      row("b", "Parkway Theater", "2026-05-23T10:00", "Beach Monster Exhibit (Special)", "arts"),
+    ]);
+    expect(r.duplicates).toHaveLength(1);
+    expect(r.conflicts).toHaveLength(0);
+  });
+
+  it("two DIFFERENT things opening the same minute in one room are a conflict", () => {
+    // One room cannot begin two different things at one instant, however well
+    // sourced each is — the apart === 0 escape. This is the live shape the
+    // widening surfaced: Minnesota Children's Museum, both rows 2026-05-23.
+    const r = findContradictions([
+      { ...row("a", "Minnesota Children's Museum (St Paul)", "2026-05-23T10:00", "Beach Monster Exhibit", "arts"), verified: true },
+      { ...row("b", "Minnesota Children's Museum (St Paul)", "2026-05-23T10:00", "Monsters on Vacation", "arts"), verified: true },
+    ]);
+    expect(r.conflicts).toHaveLength(1);
+    expect(formatFinding(r.conflicts[0])).toContain("2026-05-23");
+  });
+
+  it("a room that runs concurrent programming by design is still exempt", () => {
+    // Why the widening did not flood: CONCURRENT_VENUES already lists the
+    // museums whose exhibitions legitimately overlap, so their runs produce no
+    // conflict even when they open on the same day.
+    expect(CONCURRENT_VENUES[roomKey("Walker Art Center")]).toBeTruthy();
+    expect(CONCURRENT_VENUES[roomKey("Minneapolis Institute of Art")]).toBeTruthy();
+    const r = findContradictions([
+      row("a", "Walker Art Center", "2026-05-23T10:00", "Paris Couture", "arts"),
+      row("b", "Walker Art Center", "2026-05-23T10:00", "Design Triennial", "arts"),
+    ]);
+    expect(r.conflicts).toHaveLength(0);
+  });
+});
+
+describe("the self-check feeds it every STILL-ON row, not every upcoming one", () => {
+  const gather = readFileSync(join(__dirname, "..", "ops-inputs.ts"), "utf8").replace(/\r\n/g, "\n");
+  // Sliced from a UNIQUE IDENTIFIER, not from a guess at the surrounding
+  // whitespace. Three assertions in this chain have silently measured an empty
+  // string because an offset anchor moved; an empty slice then passes every
+  // not.toContain and fails every toContain for the wrong reason.
+  const start = gather.indexOf("const contradictions = await wrap");
+  const end = gather.indexOf("const report = findContradictions");
+  const block = gather.slice(start, end);
+
+  it("selects on the true span end, so an open run reaches the detector", () => {
+    expect(block).toContain("greatest(start_at, end_at, multi_day_end) >= now()");
+    expect(block).not.toContain("and start_at >= now()");
+  });
+});
+
+describe("the slice guard — an empty region must fail loudly, not silently pass", () => {
+  it("the self-check block is actually found before anything is asserted about it", () => {
+    // The lesson from three broken assertions: assert the SLICE first.
+    const gather = readFileSync(join(__dirname, "..", "ops-inputs.ts"), "utf8").replace(/\r\n/g, "\n");
+    const start = gather.indexOf("const contradictions = await wrap");
+    const end = gather.indexOf("const report = findContradictions");
+    expect(start).toBeGreaterThan(-1);
+    expect(end).toBeGreaterThan(start);
+    expect(gather.slice(start, end).length).toBeGreaterThan(200);
+  });
+});
