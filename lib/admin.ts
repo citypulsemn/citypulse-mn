@@ -142,8 +142,8 @@ export async function getAdminEvents(opts: {
 
   // "flagged" is not a status column — it is the verify pass's open-flag
   // predicate, which lives in lib/verify-flags.ts so this screen and the Monday
-  // email's count cannot drift. Two round trips on a nine-row table, in exchange
-  // for one definition.
+  // email's count cannot drift. Two round trips, in exchange for one definition.
+  // (That comment said "on a nine-row table" until 10 Nov 2026. It was 71.)
   const flaggedOnly = status === "flagged";
   const flaggedIds = flaggedOnly ? await openVerifyFlagIds() : [];
   if (flaggedOnly && flaggedIds.length === 0) return [];
@@ -159,7 +159,18 @@ export async function getAdminEvents(opts: {
     from events
     where ${flaggedOnly ? sql`id = any(${flaggedIds}::uuid[])` : status ? sql`status = ${status}` : sql`true`}
       and ${q ? sql`(title ilike ${like} or venue ilike ${like} or city ilike ${like})` : sql`true`}
-    order by ${flaggedOnly ? sql`start_at asc` : sql`created_at desc`}
+    -- MOST DANGEROUS FIRST, matching the email. openVerifyFlagIds() returns
+    -- the ids already ranked by flagRank (wrong_event, then cancelled, then the
+    -- rest), soonest first within a rank; array_position replays that order
+    -- here instead of throwing it away. This screen sorted start_at asc, so on
+    -- 10 Nov 2026 the four wrong_event listings — the venue's own calendar
+    -- contradicting us, the strongest negative the pass produces — sat at
+    -- positions 7, 19, 33 and 45 of 71, under thirty unproven rows.
+    --
+    -- It also fixes which rows the limit drops: truncating a rank-ordered list
+    -- loses the least dangerous, where truncating a date-ordered one lost
+    -- whatever happened to be latest.
+    order by ${flaggedOnly ? sql`array_position(${flaggedIds}::uuid[], id)` : sql`created_at desc`}
     limit ${limit}
   `;
   return rows.map(adminRowToEvent);

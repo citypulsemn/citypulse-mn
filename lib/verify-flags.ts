@@ -57,6 +57,8 @@ export interface OpenVerifyFlag {
   verdict: string;
   title: string;
   venue: string;
+  /** Chicago wall start, for ordering. Not for display; `day` is that. */
+  start: string;
   /**
    * Chicago "Mon DD" for a single day, "Mon DD – Mon DD" for a run — the
    * operator's question is whether the listing is still ON, and a run's start
@@ -75,6 +77,26 @@ export function flagRank(verdict: string): number {
   return verdict === "wrong_event" ? 0 : verdict === "cancelled" ? 1 : 2;
 }
 
+/**
+ * The order both readers use: most dangerous verdict, then soonest, then title.
+ *
+ * Extracted 10 Nov 2026, and the tiebreaks are the point. Sorting by rank alone
+ * leaned on Array.sort being stable to keep whatever the DB had underneath —
+ * and that was `distinct on (e.id) ... order by e.id`, i.e. UUID order. So
+ * WHICH four flags the Monday email printed as its examples was effectively
+ * arbitrary within a verdict, and a reader could not tell two runs of the same
+ * data apart. `/admin?status=flagged` then threw the rank away entirely and
+ * sorted start_at asc, so on 10 Nov 2026 the four wrong_event listings sat at
+ * positions 7, 19, 33 and 45 of 71, under thirty unproven rows.
+ */
+export function byDanger(a: OpenVerifyFlag, b: OpenVerifyFlag): number {
+  return (
+    flagRank(a.verdict) - flagRank(b.verdict) ||
+    a.start.localeCompare(b.start) ||
+    a.title.localeCompare(b.title)
+  );
+}
+
 /** Every listing with an open verify flag, most dangerous verdict first. */
 export async function openVerifyFlags(): Promise<OpenVerifyFlag[]> {
   if (!sql) return [];
@@ -83,6 +105,7 @@ export async function openVerifyFlags(): Promise<OpenVerifyFlag[]> {
            e.id::text as id,
            coalesce(a.patch->>'verdict', 'flag') as verdict,
            e.title, e.venue,
+           to_char(e.start_at at time zone 'America/Chicago', 'YYYY-MM-DD"T"HH24:MI') as start,
            -- A RUN states its span. Widening the window clause below made runs
            -- reachable here for the first time, and this printed start_at alone,
            -- so a cancelled exhibition would have reached the operator email as
@@ -108,7 +131,7 @@ export async function openVerifyFlags(): Promise<OpenVerifyFlag[]> {
       and (e.verified_at is null or a.at > e.verified_at)
       and greatest(e.start_at, e.end_at, e.multi_day_end) >= now()
     order by e.id, a.at desc`;
-  return [...rows].sort((x, y) => flagRank(x.verdict) - flagRank(y.verdict));
+  return [...rows].sort(byDanger);
 }
 
 /**

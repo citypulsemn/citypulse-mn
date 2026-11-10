@@ -1,7 +1,8 @@
 import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { flagRank, openFlagCount, openVerifyFlags, openVerifyFlagIds } from "../verify-flags";
+import { flagRank, byDanger, openFlagCount, openVerifyFlags, openVerifyFlagIds } from "../verify-flags";
+import type { OpenVerifyFlag } from "../verify-flags";
 import { getAdminEvents } from "../admin";
 
 describe("flagRank — most dangerous verdict first", () => {
@@ -56,7 +57,8 @@ describe("the open-flag predicate, as source", () => {
     // Widening the window made runs reachable, and `day` was to_char(start_at)
     // alone — so a cancelled exhibition would have reached the operator email as
     // "· May 23", a date months past for something still on.
-    const select = src.slice(src.indexOf("select distinct on"), src.indexOf("from admin_audit"));
+    const fn = src.slice(src.indexOf("export async function openVerifyFlags"));
+    const select = fn.slice(fn.indexOf("select distinct on"), fn.indexOf("from admin_audit"));
     expect(select).toContain("end as day");
     expect(select).toContain("|| ' – ' ||");
   });
@@ -69,7 +71,14 @@ describe("the open-flag predicate, as source", () => {
     // Scoped to the WHERE clause, not the whole file: the docstring above names
     // the coalesce form in order to reject it, and a blunt not.toContain over
     // the source matched that prose — this test failed on its own explanation.
-    const where = src.slice(src.indexOf("from admin_audit"), src.indexOf("order by e.id"));
+    //
+    // Scoped to openVerifyFlags BY FUNCTION, not by the first "from admin_audit"
+    // and the first "order by e.id" in the file: both of those markers now appear
+    // earlier, in openFlagCount's query and in byDanger's docstring, and this
+    // assertion silently sliced an empty string the moment they did. Twice now a
+    // whole-file offset has made a source test measure the wrong region.
+    const fn = src.slice(src.indexOf("export async function openVerifyFlags"));
+    const where = fn.slice(fn.indexOf("from admin_audit"), fn.indexOf("order by e.id"));
     expect(where).toContain("greatest(e.start_at, e.end_at, e.multi_day_end) >= now()");
     expect(where).not.toContain("coalesce(");
   });
@@ -139,5 +148,55 @@ describe("openFlagCount — the open-state rule, shared with a third reader (10 
   it("returns an honest 0 with no database, like its siblings", async () => {
     await expect(openFlagCount("import_music_review")).resolves.toBe(0);
     await expect(openFlagCount("verify_flag")).resolves.toBe(0);
+  });
+});
+
+describe("byDanger — the one order both readers use (10 Nov 2026)", () => {
+  const f = (verdict: string, start: string, title = "T"): OpenVerifyFlag => ({
+    id: `${verdict}-${start}-${title}`, verdict, title, venue: "V", start, day: "Mon 01",
+  });
+
+  it("most dangerous verdict first", () => {
+    const out = [f("unproven", "2026-01-01"), f("wrong_event", "2026-12-01"), f("cancelled", "2026-06-01")]
+      .sort(byDanger)
+      .map((x) => x.verdict);
+    expect(out).toEqual(["wrong_event", "cancelled", "unproven"]);
+  });
+
+  it("soonest first WITHIN a verdict — the tiebreak that was missing", () => {
+    // Rank alone leaned on Array.sort being stable to keep the DB's order
+    // underneath, and that order was `distinct on (e.id) ... order by e.id` —
+    // UUID. So which four the Monday email printed was effectively arbitrary.
+    const out = [
+      f("wrong_event", "2026-12-01T20:00", "late"),
+      f("wrong_event", "2026-11-12T19:00", "early"),
+      f("wrong_event", "2026-11-20T19:00", "mid"),
+    ]
+      .sort(byDanger)
+      .map((x) => x.title);
+    expect(out).toEqual(["early", "mid", "late"]);
+  });
+
+  it("title breaks a full tie, so two runs of the same data agree", () => {
+    const out = [f("moved", "2026-11-12T19:00", "Beta"), f("moved", "2026-11-12T19:00", "Alpha")]
+      .sort(byDanger)
+      .map((x) => x.title);
+    expect(out).toEqual(["Alpha", "Beta"]);
+  });
+
+  it("a rank-2 verdict never outranks a rank-0 one, however soon it is", () => {
+    const out = [f("unproven", "2026-01-01T09:00", "today"), f("wrong_event", "2027-12-31T09:00", "far")]
+      .sort(byDanger)
+      .map((x) => x.title);
+    expect(out).toEqual(["far", "today"]);
+  });
+});
+
+describe("the flagged screen replays that order instead of discarding it", () => {
+  const admin = readFileSync(join(__dirname, "..", "admin.ts"), "utf8").replace(/\r\n/g, "\n");
+
+  it("orders by array_position over the ranked ids, not by start_at", () => {
+    expect(admin).toContain("array_position(${flaggedIds}::uuid[], id)");
+    expect(admin).not.toContain("sql`start_at asc`");
   });
 });
