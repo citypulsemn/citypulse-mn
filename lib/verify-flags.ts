@@ -23,19 +23,25 @@
  * it, or re-verifies it against a real page, the item leaves the set without
  * anyone closing a ticket.
  *
- * STILL ON, not still to come (9 Nov 2026). The window clause asked
+ * STILL ON, not still to come (10 Nov 2026). The window clause asked
  * `e.start_at >= now()` — a START question — so a RUN that opened before today
  * and is still on dropped out of triage while staying live on the site. A
  * `cancelled` verdict on a run is exactly the honest-data failure the ranking
  * above exists to surface, and it could sit unseen for the length of the run:
- * the longest live run measured on 9 Nov 2026 was 333 days.
+ * the longest live run measured on 10 Nov 2026 was 333 days.
  *
  * greatest(), not coalesce(): lib/event-view.ts isEnded takes the LATEST of
  * start/end/multiDayEnd, and a bare `coalesce(multi_day_end, end_at, start_at)`
  * prefers multi_day_end even when it is not later than the start — the latent
  * disagreement lib/events.ts:305 documents. Postgres greatest() ignores NULLs,
- * so this is the same rule isEnded applies, and lib/upsert.ts already uses
- * greatest() on these three columns for the same reason.
+ * so this is the same rule isEnded applies.
+ *
+ * (An earlier version of this paragraph added "and lib/upsert.ts already uses
+ * greatest() over these same three columns for the same reason". Wrong on both
+ * counts: that call is greatest(extendTo, multi_day_end, end_at) — start_at is
+ * not among them — and its reason is that a span may only EXTEND during a fold,
+ * not that an ended test wants the latest of three. There IS precedent for
+ * greatest() on span columns in SQL here; it is not this rule.)
  */
 import { sql } from "./db";
 

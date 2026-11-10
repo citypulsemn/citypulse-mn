@@ -4,9 +4,15 @@
 **Two changes:** the window predicate, and the date label the widening made reachable.
 **Schema:** none. **Data:** none. One SQL predicate.
 
-The last start-only predicate in this chain that is arguably a defect. Not a page — the
-**reader-report and verify triage path**, which feeds the Monday ops digest and
+Not a page — the **verify triage path**, which feeds the Monday ops digest and
 `/admin?status=flagged`.
+
+> **Two corrections to how an earlier draft framed this.** It called the path "reader-report
+> and verify triage": wrong — `verify_flag` rows are written by the verify pass
+> (`lib/upsert.ts:656`), and reader reports never touch this query. And it called this "the
+> last start-only predicate in this chain that is arguably a defect", which is false. A
+> review found an identical sibling **six lines above the call site this fixes**, and two
+> more in the same gather block. They are listed under Left open, with numbers.
 
 ---
 
@@ -153,6 +159,24 @@ signature change.
   today reads as over from 00:01. **Measured at 0 rows today**, and it is unchanged by this
   commit — the old predicate excluded them identically — so it is a pre-existing gap, named
   rather than fixed inside a one-line change.
+- **`lib/ops-inputs.ts:177` is the same shape, six lines above the call this fixed — and it
+  is hiding a row RIGHT NOW.** The music-review queue counts
+  `a.action = 'import_music_review'` over the same two tables, and its window clause is
+  `e.verified_at is null` with **no `or a.at > e.verified_at`**. That is the exact 33-vs-25
+  defect this file's docstring calls "the whole point" and "the most dangerous flag there
+  is", one `a.action` value over. **Measured 10 Nov 2026: the queue reports 0; with the
+  after-stamp clause it is 1.** Of 21 listings ever flagged this way, 1 was flagged after a
+  stamp — and the importer inserts the flag only `where not exists` a prior one, so that row
+  can never get a fresher flag to be seen by. It is invisible permanently. The start-only
+  half costs nothing there (0 rows), because the importer mints rows with no `end_at` and no
+  `multi_day_end`. **Not fixed here** — it is a different file and a different defect from
+  the one asked for, and it deserves its own measurement rather than a quiet ride-along.
+- **`/admin?status=flagged` discards `flagRank`.** `lib/admin.ts:162` orders
+  `start_at asc`, and `openVerifyFlagIds()` drops the ranking the email applies. Measured
+  today the screen opens on `unproven, not_found, unproven, not_found, moved` while the
+  email leads with three `wrong_event`. Pre-existing — but this widening also means an
+  underway run now sorts to the TOP of that screen, above every upcoming flag, the moment
+  one is flagged. Not fixed here.
 - **`lib/trending.ts:126`** still carries the bare `coalesce(e.multi_day_end, e.end_at,
   e.start_at) >= now()` form. Same latent disagreement with `isEnded`, on a reader-facing
   surface, unmeasured here.

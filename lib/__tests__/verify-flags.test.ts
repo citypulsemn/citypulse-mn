@@ -43,7 +43,7 @@ describe("the open-flag predicate, as source", () => {
 
   it("asks whether the listing is STILL ON, not whether it is still to come", () => {
     // This was `e.start_at >= now()`, so a run that opened before today fell out
-    // of triage while staying live. Measured 9 Nov 2026: 846 listings have ever
+    // of triage while staying live. Measured 10 Nov 2026: 846 listings have ever
     // carried a verify flag and 240 of them are runs, 277 flags were cancelled or
     // wrong_event, and the longest live run was 333 days — so a hidden cancelled
     // run could sit unseen for most of a year. (0 were hidden on the day of the
