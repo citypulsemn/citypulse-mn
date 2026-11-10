@@ -733,20 +733,18 @@ describe("pool features (winning detail — moat, kind 5; source-verified)", () 
     // waterSlide stays at 22; Lorraine adds one zero-depth (20 → 21).
     // 27 → 26 on 5 Oct 2026: Northview pulled — it did not open in 2026 and the
     // city gives no reopening date. It carried none of the three badges.
-    expect(pools.length).toBe(26);
-    expect(pools.filter((p) => p.details?.waterSlide === true).length).toBe(22);
+    // 26 → 24 on 9 Nov 2026: Grove Cove pulled (closed 8 Sep 2026 for renovation,
+    // reopening ~June 2028 — indoor + slide, so indoor 6 → 5, waterSlide 22 → 21),
+    // and the Eagan Community Center "pool" removed: the city's own pages for that
+    // building list no pool at all. It carried no badges.
+    expect(pools.length).toBe(24);
+    expect(pools.filter((p) => p.details?.waterSlide === true).length).toBe(21);
     expect(pools.filter((p) => p.details?.zeroDepth === true).length).toBe(21);
-    expect(pools.filter((p) => p.details?.indoor === true).length).toBe(6);
+    expect(pools.filter((p) => p.details?.indoor === true).length).toBe(5);
   });
 
   it("offers exactly indoor / water slide / zero-depth as filters", () => {
     expect(activeDetailKeys(pools)).toEqual(["indoor", "waterSlide", "zeroDepth"]);
-  });
-
-  it("honest emptiness: the unverifiable Eagan CC pool carries no badges", () => {
-    // Its official page lists no pool at all — nothing to assert.
-    const eagan = pools.find((p) => p.slug === "eagan-community-center-pool");
-    expect(eagan?.details).toBeUndefined();
   });
 
   it("pool details use only aquatic facts — no dog/ski keys leaked in", () => {

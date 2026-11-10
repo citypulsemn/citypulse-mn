@@ -53,6 +53,36 @@ Moving the pin would have made these look more right than they are.
 | `shakopee-farmers-market` | The row mixes two markets: the Chamber's downtown market (no 2024–26 evidence) and St. Francis Regional Medical Center's own Tuesday market (the stored address). | Re-point to the St. Francis market, or remove |
 | `lake-elmo-farmers-market` | Moved from Lake Elmo Elementary to the **Washington County Fairgrounds** (12300 40th St N, Stillwater); 2026 season ran there, Saturdays. | Apply: new address, pin, intro and city — needs your nod since the name says Lake Elmo |
 
+### Outcome (9 Nov 2026, second commit)
+
+Taren approved the recommendations "after a double-check". One skeptic agent
+per row then tried to refute each recommendation using operator pages only.
+
+- **Removed — confirmed:** `eagan-community-center-pool` (every City of Eagan
+  page for the building omits a pool; Eagan's only city pool is Cascade Bay),
+  `grove-cove-aquatic-center` (city: "Our pools are closed for renovations…
+  reopen in 2028"; nothing stayed open — same rule as Northview on 5 Oct; re-add
+  with a new intro when it reopens), `camden-farmers-market` (absent from the
+  City of Minneapolis 2026 market layer, and from its 2022 and 2023 lists),
+  `fridley-farmers-market` (the market's own Facebook last posted March 2019;
+  nothing on fridleymn.gov). Pools 26 → 24, farmers markets 72 → 70. Their
+  detail URLs now 404, which is honest for places that aren't there.
+- **Updated — confirmed:** `lake-elmo-farmers-market` → Washington County
+  Fairgrounds, 12300 40th St N (the fair's own address; the Facebook "12398 43rd
+  St N" is not a real address point), city **Baytown Township** (the registry's
+  pattern for a township with a Stillwater mailing address), Saturdays 9–1 per the
+  market's own 2026 posts. Pin: the west parking field, read twice blind, 13m
+  apart. Season stays `MARKET_SEASON` — the June start is attested only by
+  aggregators.
+- **Shakopee — NOT applied; the double-check did not support the re-point.**
+  St. Francis Regional Medical Center's market is documented only for **2025**,
+  on a page headed "Care Team Member Events", with nothing saying the public may
+  shop. The Chamber's downtown market has no evidence after 2023 and its site has
+  lapsed. Re-pointing would publish a market nobody has shown runs in 2026 or is
+  open to the public. The row stays as it was (wrong pin, mixed intro) pending
+  Taren: remove it, or call the hospital ((952) 428-3000) to settle 2026 and
+  public access first.
+
 **Intro errors found on rows whose pins did move** — one agent's reading each, not
 double-checked, so worth a quick look before editing:
 

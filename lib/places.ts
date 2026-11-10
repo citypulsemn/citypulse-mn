@@ -1441,25 +1441,6 @@ export const PLACES: Place[] = [
     details: { waterSlide: true, zeroDepth: true },
     verifiedAt: "2026-08-17", venueSlug: null,
   },
-  {
-    slug: "grove-cove-aquatic-center", name: "Grove Cove Aquatic Center", kind: "pool",
-    lat: 45.1150, lng: -93.4570, address: "12951 Weaver Lake Rd, Maple Grove, MN 55369",
-    city: "Maple Grove", neighborhood: null, season: YEAR_ROUND, cost: "paid",
-    tags: ["indoor", "waterslide", "zero-depth-entry"],
-    intro: "The indoor water park at the Maple Grove Community Center — a 130-foot slide, a zero-depth beach area, and lap lanes, open year-round.",
-    sourceUrl: "https://www.maplegrovemn.gov/335/Swimming-pool",
-    details: { indoor: true, waterSlide: true },
-    verifiedAt: "2026-08-17", venueSlug: null,
-  },
-  {
-    slug: "eagan-community-center-pool", name: "Eagan Community Center Pool", kind: "pool",
-    lat: 44.8330, lng: -93.1630, address: "1501 Central Pkwy, Eagan, MN 55121",
-    city: "Eagan", neighborhood: null, season: YEAR_ROUND, cost: "paid",
-    tags: ["indoor", "lap-lanes"],
-    intro: "The year-round indoor pool at the Eagan Community Center — an easy winter fallback when Cascade Bay is closed.",
-    sourceUrl: "https://cityofeagan.com/eagan-community-center",
-    verifiedAt: "2026-08-07", venueSlug: null,
-  },
 
   // ── Pools — metro sweep (Aug 2026, F2.7) ─────────────────────────────────
   {
@@ -2909,15 +2890,6 @@ export const PLACES: Place[] = [
     verifiedAt: "2026-08-13", venueSlug: null,
   },
   {
-    slug: "camden-farmers-market", name: "Camden Farmers Market", kind: "farmers-market",
-    lat: 44.9975, lng: -93.3005, address: "4400 Osseo Rd, Minneapolis, MN 55412",
-    city: "Minneapolis", neighborhood: null, season: MARKET_SEASON, cost: "free",
-    tags: ["thursday"],
-    intro: "A Thursday-afternoon market in the Webber-Camden neighborhood, taking SNAP/EBT, WIC, and senior nutrition vouchers.",
-    sourceUrl: "https://nfmd.org/mn/minneapolis/1000122/",
-    verifiedAt: "2026-08-13", venueSlug: null,
-  },
-  {
     slug: "uptown-farmers-market", name: "Uptown Farmers Market", kind: "farmers-market",
     lat: 44.9485, lng: -93.2977, address: "1330 Lagoon Ave, Minneapolis, MN 55408",
     city: "Minneapolis", neighborhood: null, season: MARKET_SEASON, cost: "free",
@@ -3126,15 +3098,6 @@ export const PLACES: Place[] = [
     verifiedAt: "2026-08-13", venueSlug: null,
   },
   {
-    slug: "fridley-farmers-market", name: "Fridley Farmers' Market", kind: "farmers-market",
-    lat: 45.0855, lng: -93.2570, address: "6085 7th St NE, Fridley, MN 55432",
-    city: "Fridley", neighborhood: null, season: MARKET_SEASON, cost: "free",
-    tags: ["saturday"],
-    intro: "A Saturday-morning market in Fridley. Takes SNAP/EBT.",
-    sourceUrl: "https://foodhelpminnesota.org/listing/fridley-farmers-market-association/",
-    verifiedAt: "2026-08-13", venueSlug: null,
-  },
-  {
     slug: "columbia-heights-farmers-market", name: "Columbia Heights Farmers Market", kind: "farmers-market",
     lat: 45.0435, lng: -93.2465, address: "4030 Jackson St NE, Columbia Heights, MN 55421",
     city: "Columbia Heights", neighborhood: null, season: MARKET_SEASON, cost: "free",
@@ -3249,13 +3212,16 @@ export const PLACES: Place[] = [
     verifiedAt: "2026-08-13", venueSlug: null,
   },
   {
-    slug: "lake-elmo-farmers-market", name: "Lake Elmo Farmers' Market", kind: "farmers-market",
-    lat: 44.9955, lng: -92.8895, address: "11030 Stillwater Blvd N, Lake Elmo, MN 55042",
-    city: "Lake Elmo", neighborhood: null, season: MARKET_SEASON, cost: "free",
+    slug: "lake-elmo-farmers-market", name: "Lake Elmo Farmers Market", kind: "farmers-market",
+    // Moved 9 Nov 2026 from Lake Elmo Elementary: the market's own 2026 posts put it at
+    // the Washington County Fairgrounds (Baytown Township; Stillwater is the mailing
+    // city). Pin: the west parking field, two blind map reads 13m apart.
+    lat: 45.01160, lng: -92.86120, address: "12300 40th St N, Stillwater, MN 55082",
+    city: "Baytown Township", neighborhood: null, season: MARKET_SEASON, cost: "free",
     tags: ["saturday"],
-    intro: "A Saturday-morning market at Lake Elmo Elementary.",
-    sourceUrl: "https://minnesotagrown.com/member/lake-elmo-farmers-market/",
-    verifiedAt: "2026-08-13", venueSlug: null,
+    intro: "A Saturday market at the Washington County Fairgrounds, open 9 a.m. to 1 p.m.",
+    sourceUrl: "https://www.facebook.com/lakeelmofarmersmarket",
+    verifiedAt: "2026-11-09", venueSlug: null,
   },
   {
     slug: "stillwater-farmers-market", name: "Stillwater Farmers' Market", kind: "farmers-market",
