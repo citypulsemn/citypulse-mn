@@ -459,6 +459,10 @@ a.daycard { text-decoration: none; }
 .day-nav { display: flex; justify-content: space-between; gap: 12px; margin-top: 14px; }
 .day-nav-link { font-size: 12.5px; color: var(--gold); text-decoration: none; white-space: nowrap; min-height: 44px; display: inline-flex; align-items: center; }
 .day-nav-link:hover { text-decoration: underline; }
+/* Two full dates don't fit side by side on a phone, and nowrap pushed the page sideways.
+   Let each one wrap in place instead; the header's text-align: center would center them. */
+.day-nav .day-nav-link { white-space: normal; text-align: left; }
+.day-nav .day-nav-link[rel="next"] { text-align: right; justify-content: flex-end; }
 /* Onward-discovery strip: routes ranking pages (day/event) to the curated
    shop-windows (/this-week, /this-weekend). Reuses .day-nav-link styling. */
 .onward { display: flex; flex-wrap: wrap; gap: 20px; margin: 22px auto 4px; max-width: 620px; }
@@ -1106,7 +1110,7 @@ a.daycard { text-decoration: none; }
 .pf-nearme:disabled { opacity: 0.6; cursor: default; }
 /* Feature toggles — multi-select, styled to echo the gold ✓ detail badges so
    they read as a different axis than the cost segmented control. */
-.pf-details { border-color: transparent; padding: 0; }
+.pf-details { border-color: transparent; padding: 0; flex-wrap: wrap; }
 .pf-details .pf-chip { border: 1px solid rgba(201,169,97,0.35); color: var(--gold); padding: 6px 12px; }
 .pf-details .pf-chip:hover { border-color: var(--gold); }
 .pf-details .pf-chip.is-on { color: var(--navy-900); background: var(--gold); border-color: var(--gold); }
