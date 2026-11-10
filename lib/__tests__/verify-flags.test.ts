@@ -52,6 +52,15 @@ describe("the open-flag predicate, as source", () => {
     expect(src).not.toContain("and e.start_at >= now()");
   });
 
+  it("prints a SPAN for a run, not the day it opened", () => {
+    // Widening the window made runs reachable, and `day` was to_char(start_at)
+    // alone — so a cancelled exhibition would have reached the operator email as
+    // "· May 23", a date months past for something still on.
+    const select = src.slice(src.indexOf("select distinct on"), src.indexOf("from admin_audit"));
+    expect(select).toContain("end as day");
+    expect(select).toContain("|| ' – ' ||");
+  });
+
   it("uses greatest(), not the coalesce that disagrees with isEnded", () => {
     // A bare coalesce(multi_day_end, end_at, start_at) prefers multi_day_end even
     // when it is NOT later than the start, which is the latent disagreement

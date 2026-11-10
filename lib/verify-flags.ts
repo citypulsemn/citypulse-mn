@@ -45,7 +45,11 @@ export interface OpenVerifyFlag {
   verdict: string;
   title: string;
   venue: string;
-  /** Chicago "Mon DD", for the operator email. */
+  /**
+   * Chicago "Mon DD" for a single day, "Mon DD – Mon DD" for a run — the
+   * operator's question is whether the listing is still ON, and a run's start
+   * day does not answer it.
+   */
   day: string;
 }
 
@@ -67,7 +71,24 @@ export async function openVerifyFlags(): Promise<OpenVerifyFlag[]> {
            e.id::text as id,
            coalesce(a.patch->>'verdict', 'flag') as verdict,
            e.title, e.venue,
-           to_char(e.start_at at time zone 'America/Chicago', 'Mon DD') as day
+           -- A RUN states its span. Widening the window clause below made runs
+           -- reachable here for the first time, and this printed start_at alone,
+           -- so a cancelled exhibition would have reached the operator email as
+           -- "May 23" — a date months past for something still on. Sixth time
+           -- in this chain that a widened filter met a label written for the
+           -- narrow set.
+           --
+           -- Deliberately NOT a port of lib/multiday.ts multiDayLabel, which
+           -- collapses a same-month span to "Oct 19 – 23". This is one line in an
+           -- operator email; repeating the month is clearer there than teaching
+           -- SQL a display rule, and nothing compares the two strings.
+           case when (greatest(e.start_at, e.end_at, e.multi_day_end) at time zone 'America/Chicago')::date
+                     > (e.start_at at time zone 'America/Chicago')::date
+                then to_char(e.start_at at time zone 'America/Chicago', 'Mon DD')
+                     || ' – ' ||
+                     to_char(greatest(e.start_at, e.end_at, e.multi_day_end) at time zone 'America/Chicago', 'Mon DD')
+                else to_char(e.start_at at time zone 'America/Chicago', 'Mon DD')
+           end as day
     from admin_audit a
     join events e on e.id = a.event_id
     where a.action = 'verify_flag'

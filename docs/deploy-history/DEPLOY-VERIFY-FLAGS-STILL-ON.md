@@ -1,6 +1,7 @@
 # Deploy — a flagged run dropped out of triage while staying live
 
 **Date:** 10 November 2026 · **Files:** `lib/verify-flags.ts`, `lib/__tests__/verify-flags.test.ts`
+**Two changes:** the window predicate, and the date label the widening made reachable.
 **Schema:** none. **Data:** none. One SQL predicate.
 
 The last start-only predicate in this chain that is arguably a defect. Not a page — the
@@ -68,6 +69,29 @@ three columns for the same reason.
 
 ---
 
+## And the label the widening made reachable
+
+**Sixth time in this chain that a widened filter met a label written for the narrow set.**
+`day` was `to_char(e.start_at …)`, and `lib/ops-inputs.ts:196` prints it straight into the
+operator email. The moment runs became eligible, a cancelled exhibition would have arrived as:
+
+```
+cancelled: "Monsters on Vacation" @ Minnesota Children's Museum · May 23
+```
+
+— a date months past for something still on, and useless for the operator's actual question,
+which is whether the listing is still live. A run now states its span:
+
+```
+cancelled: "Monsters on Vacation" @ Minnesota Children's Museum · May 23 – Jan 10
+```
+
+Deliberately **not** a port of `multiDayLabel`, which collapses a same-month span to
+"Oct 19 – 23". This is one line in an operator email; repeating the month is clearer there
+than teaching SQL a display rule, and nothing compares the two strings.
+
+---
+
 ## Verification
 
 Source-text tests cannot run SQL, so the predicate was also exercised against the live
@@ -75,6 +99,8 @@ database directly:
 
 - `openVerifyFlags()` → **71 rows**, `openVerifyFlagIds()` → 71 ids, no row missing
   `id`/`title`/`day`
+- the `day` expression run over the longest live runs returns `Jun 25 – May 23`,
+  `May 23 – Jan 10`, `Aug 15 – Feb 28`; single-day rows still return `Nov 08`
 - ranking intact: the first three verdicts are `wrong_event`, `wrong_event`, `wrong_event`
 - the widened query returns a strict superset of the old one — **0 lost**
 
@@ -84,6 +110,7 @@ database directly:
 |---|---|
 | back to `e.start_at >= now()` | 2 |
 | to a bare `coalesce(multi_day_end, end_at, start_at)` | 2 |
+| `day` back to the start day alone | 1 |
 
 One of the new tests **failed on its own explanation** first: a blunt
 `expect(src).not.toContain("coalesce(multi_day_end")` matched the docstring where the coalesce
@@ -94,7 +121,7 @@ form is *named in order to reject it*. It is now scoped to the `WHERE` clause.
 | | |
 |---|---|
 | `npx tsc --noEmit` | clean |
-| `npm test` | **3,382 passed in 156 files** |
+| `npm test` | **3,383 passed in 156 files** |
 | `npm run build` | clean, 637 pages |
 | `npm audit` | **0 vulnerabilities** |
 
