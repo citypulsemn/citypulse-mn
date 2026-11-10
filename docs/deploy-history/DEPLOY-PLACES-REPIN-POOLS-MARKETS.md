@@ -84,8 +84,16 @@ per row then tried to refute each recommendation using operator pages only.
   If the St. Francis market is confirmed public for a new season — the hospital's
   main line is (952) 428-3000 — re-add it as its own row.
 
-**Intro errors found on rows whose pins did move** — one agent's reading each, not
-double-checked, so worth a quick look before editing:
+**Intro errors found on rows whose pins did move.** *Fixed 10 Nov 2026 (fourth
+commit):* all five were real. Each went through a refute-first check of every
+claim in the intro, then a second agent tried to refute the corrected sentence;
+all five corrections survived. Four rows also got an operator source in place of
+a homepage or aggregator (St. Paul Farmers' Market's schedule, Eagan's Market Fest
+page, Shoreview's farmers-market page, Savage's Things to Do page). Brooklyn
+Center's season stays `YEAR_ROUND` — the registry has no way to express a one-off
+closure, so the intro carries the dates and "open now" will still say open from
+14 Dec; **re-check it in late June 2027** and drop the closure sentence when it
+reopens. The original findings:
 
 - `brooklyn-center-community-center-pool` — closes **14 Dec 2026** for renovation,
   reopening mid/late June 2027; intro says "open year-round".
