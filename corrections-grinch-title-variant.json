@@ -1,0 +1,8 @@
+[
+  {
+    "id": "649bdcda-f20c-4c50-a791-0f80527a6a9b",
+    "archive": true,
+    "evidence": "https://childrenstheatre.org/whats-on/how-the-grinch-stole-christmas-26-27/",
+    "why": "Duplicate of \"Dr. Seuss's How the Grinch Stole Christmas!\" (abdc06be-f369-4f13-bc26-c3b8e32addd6): one 11:00 performance on 14 November inside a run the keeper already carries as 3 November to 3 January. Both rows cite the same Children's Theatre page and describe the same production - the keeper's description says \"running November 3, 2026 through January 3, 2027\" and this row's says \"Children's Theatre Company presents its high-production take on the beloved Dr. Seuss story How the Grinch Stole Christmas\". The collapse pass could not fold it because runKey compares normalised titles exactly, and \"how the grinch stole christmas\" is a word SUFFIX of \"dr seusss how the grinch stole christmas\", not a prefix, so neither the key match nor the parent-child fold (isWordPrefix) reaches it. That matcher gap is reported rather than tuned: changing normalizeRunTitle to strip a leading brand possessive would be a global rule written to fit one row. Its own duplicate at the same minute, created a week later, was already archived. Archived, not hidden: the performance is real and only the row is redundant."
+  }
+]

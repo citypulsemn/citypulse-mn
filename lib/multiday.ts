@@ -237,10 +237,25 @@ function rowEndNum(row: CollapseRow): number {
 
 /**
  * The last day a row runs by EITHER span column, through the site's own span
- * rule (`spanEndISO`, late-night carve-out included). Clustering and the keeper
- * order still use `rowEndNum` (multi_day_end alone), exactly as before 9 Nov
- * 2026; this is read only to keep a written span from ending before the
- * keeper's own end_at, and to decide whether a row is thin.
+ * rule (`spanEndISO`, late-night carve-out included).
+ *
+ * CLUSTERING reads this (10 Nov 2026). It used to read `rowEndNum`, which sees
+ * multi_day_end alone — so a run whose span sits in end_at, the shape the
+ * pipeline inserts when it finds a whole run as one row, clustered as a SINGLE
+ * DAY and could absorb nothing. The docstring below promises "only a row whose
+ * days touch a run's span joins"; for those runs there was no span to touch.
+ *
+ * Measured on the Children's Theatre Grinch: one engagement, dark Mondays, had
+ * become EIGHT live rows because each unbroken week formed its own keeper while
+ * the row that knew the real run (3 Nov -> 3 Jan, in end_at) sat beside them
+ * unable to take any of them in. The same split was live and ongoing for Dune:
+ * Part Three (5 keepers) and Winter Waltz (3).
+ *
+ * This does NOT widen the gap rule: a single-day row still has start == end, so
+ * "weekly series never merge" is untouched. Only rows that genuinely carry a
+ * span stop being mistaken for single days. The KEEPER ORDER still uses
+ * `rowEndNum` deliberately - three review rounds on 9 Nov 2026 regressed on
+ * reordering it, so it was left exactly as it was.
  */
 function keeperEndNum(row: CollapseRow): number {
   const last = spanEndISO({ start: row.start, multiDayEnd: row.endDay ?? null, end: row.end });
@@ -272,6 +287,8 @@ function isWordPrefix(shorter: string, longer: string): boolean {
  *  - SPORTS never merge across days and never fold — every game is real.
  *  - Weekly series never merge: a 7-day gap between single-day rows always
  *    splits clusters. Only a row whose days touch a run's span (gap ≤ 1) joins.
+ *    A row's span is read from EITHER column (keeperEndNum), so a run carried
+ *    in end_at is a span to touch rather than a single day.
  *  - Parent-child fold requires the child's ENTIRE interval inside the
  *    parent's span — a sub-event dated outside the festival's run stays live
  *    (conservative floor; the verify pass owns the ambiguous ones).
@@ -320,7 +337,7 @@ export function planCollapse(rows: CollapseRow[]): CollapseAction[] {
       // archive — every real game the pipeline inserts inside its window,
       // defeating the sports rule from the inside. (Found Jul 20: 14 legacy
       // sports rows with spans written by the pre-reclassify collapse era.)
-      const e = perNight ? s : rowEndNum(row);
+      const e = perNight ? s : keeperEndNum(row);
       const gap = perNight ? 0 : 1; // sports/music: same-day only, as in groupRuns
       if (current.length > 0 && s <= curEnd + gap) {
         current.push(row);
@@ -398,9 +415,14 @@ export function planCollapse(rows: CollapseRow[]): CollapseAction[] {
     // Sports clusters never produce spans (see the interval guard above) —
     // without this, deduping a same-day pair where one row carries a legacy
     // bad span would write a fresh multi_day_end onto the survivor.
+    // keeperEndNum, not rowEndNum (10 Nov 2026): once clustering reads a span
+    // out of end_at, the span WRITTEN has to read the same column, or an
+    // absorbed row is archived and the days it attested are lost. Measured on
+    // "And Then There Were None" at the Guthrie - a Dec 12-25 row absorbing a
+    // Dec 26 - Jan 26 row wrote a span of Dec 26 and dropped a month of the run.
     const endNum = cluster.sports
       ? Math.max(...cluster.rows.map((r) => dayNumber(r.start)))
-      : Math.max(...cluster.rows.map(rowEndNum));
+      : Math.max(...cluster.rows.map(keeperEndNum));
     const endDay = new Date(endNum * DAY_MS).toISOString().slice(0, 10);
     const multiDay = endDay > startDay;
     // Never write a span SHORTER than the keeper already runs: spanEndISO reads

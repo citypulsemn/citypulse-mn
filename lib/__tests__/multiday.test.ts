@@ -1448,3 +1448,138 @@ describe("both staleSpanIds callers actually load the corrected flag", () => {
     });
   }
 });
+
+// ---------------------------------------------------------------------------
+// A run whose span lives in end_at is a span, not a single day (10 Nov 2026)
+//
+// Clustering read rowEndNum, which sees multi_day_end alone. The pipeline
+// inserts a whole run as ONE row carrying its last day in end_at, so that row
+// clustered as a single day and could absorb nothing. The rule list promises
+// "only a row whose days touch a run's span joins" — for those runs there was
+// no span to touch, and each unbroken week of performances formed its own
+// keeper instead.
+//
+// Measured on Children's Theatre Company's Grinch: 8 live rows for one
+// engagement. Dune: Part Three (5 keepers) and Winter Waltz (3) were the same
+// split, still being planned that way the day this was written.
+// ---------------------------------------------------------------------------
+
+describe("a run carried in end_at absorbs the nights inside it", () => {
+  const row = (o: Partial<CollapseRow> & { id: string }): CollapseRow => ({
+    title: "Dr. Seuss's How the Grinch Stole Christmas!",
+    city: "Minneapolis",
+    category: "arts",
+    start: "2026-11-03T19:30",
+    endDay: null,
+    end: null,
+    corrected: false,
+    status: "published",
+    ...o,
+  });
+
+  /** The eight live rows, dark Mondays and all, as stored on 10 Nov 2026. */
+  const grinch = () => [
+    row({ id: "run", start: "2026-11-03T19:30", end: "2027-01-03T21:00" }),
+    row({ id: "n12", start: "2026-11-12T19:00", endDay: "2026-11-13" }),
+    row({ id: "n15", start: "2026-11-15T17:00" }),
+    row({ id: "n19", start: "2026-11-19T19:00", endDay: "2026-11-22" }),
+    row({ id: "n24", start: "2026-11-24T19:00", endDay: "2026-11-25" }),
+    row({ id: "n27", start: "2026-11-27T19:00", endDay: "2026-11-29" }),
+    row({ id: "d02", start: "2026-12-02T19:00", endDay: "2026-12-06" }),
+  ];
+
+  it("folds one engagement into one card instead of one card per week", () => {
+    const actions = planCollapse(grinch());
+    expect(actions).toHaveLength(1);
+    expect(actions[0].keepId).toBe("run");
+    expect([...actions[0].archiveIds].sort()).toEqual(
+      ["d02", "n12", "n15", "n19", "n24", "n27"],
+    );
+  });
+
+  it("writes no span, because the keeper's end_at already reaches further", () => {
+    // setEnd must stay null: spanEndISO prefers multi_day_end, so writing the
+    // cluster's 6 Dec over an end_at of 3 Jan would END THE RUN A MONTH EARLY.
+    expect(planCollapse(grinch())[0].setEnd).toBeNull();
+  });
+
+  it("is the column, not the dates: the same run in multi_day_end always worked", () => {
+    // Identical shape with the span in the other column. This passed before the
+    // fix and after it — which is what makes the case above a column bug.
+    const viaMultiDayEnd = grinch().map((r) =>
+      r.id === "run" ? { ...r, end: null, endDay: "2027-01-03" } : r,
+    );
+    const actions = planCollapse(viaMultiDayEnd);
+    expect(actions).toHaveLength(1);
+    expect(actions[0].keepId).toBe("run");
+  });
+
+  it("does not drop days an absorbed row attested — the Guthrie regression", () => {
+    // Caught by the old-vs-new differential, not by review: once clustering
+    // reads end_at, the span WRITTEN must read it too. "And Then There Were
+    // None" at the Guthrie absorbed a 26 Dec – 26 Jan row and wrote a span of
+    // 26 Dec, losing a month of the run, because the write path still used
+    // multi_day_end alone.
+    const actions = planCollapse([
+      row({ id: "first", title: "And Then There Were None", start: "2026-12-12T19:30", end: "2026-12-25T21:00" }),
+      row({ id: "rest", title: "And Then There Were None", start: "2026-12-26T13:00", end: "2027-01-26T21:30" }),
+    ]);
+    expect(actions).toHaveLength(1);
+    expect(actions[0].keepId).toBe("first");
+    expect(actions[0].setEnd).toBe("2027-01-26");
+  });
+});
+
+describe("the gap rule is untouched by reading the other span column", () => {
+  const row = (o: Partial<CollapseRow> & { id: string }): CollapseRow => ({
+    title: "Trivia Night",
+    city: "Minneapolis",
+    category: "arts",
+    start: "2026-11-03T19:00",
+    endDay: null,
+    end: null,
+    corrected: false,
+    status: "published",
+    ...o,
+  });
+
+  it("a weekly series still never merges", () => {
+    // The invariant the rule list protects. A single-day row's span IS its
+    // start day by either column, so widening which column is read cannot
+    // widen the gap. If this ever fails, the fix has become a gap change.
+    const weekly = [3, 10, 17, 24].map((d) =>
+      row({ id: `w${d}`, start: `2026-11-${d < 10 ? "0" : ""}${d}T19:00`, end: `2026-11-${d < 10 ? "0" : ""}${d}T21:00` }),
+    );
+    expect(planCollapse(weekly)).toEqual([]);
+  });
+
+  it("two single-day rows two days apart still do not cluster", () => {
+    expect(
+      planCollapse([
+        row({ id: "a", start: "2026-11-03T19:00", end: "2026-11-03T21:00" }),
+        row({ id: "b", start: "2026-11-05T19:00", end: "2026-11-05T21:00" }),
+      ]),
+    ).toEqual([]);
+  });
+
+  it("a late night is still not a span, so two of them stay apart", () => {
+    // spanEndISO's carve-out: a 9 PM show ending at 1 AM is one night.
+    expect(
+      planCollapse([
+        row({ id: "ln1", title: "DJ Set", start: "2026-11-03T21:00", end: "2026-11-04T01:00" }),
+        row({ id: "ln2", title: "DJ Set", start: "2026-11-10T21:00", end: "2026-11-11T01:00" }),
+      ]),
+    ).toEqual([]);
+  });
+
+  it("a music run in end_at is still clamped to single nights", () => {
+    // PER_NIGHT forces single-day intervals before either helper is consulted,
+    // so the sports rule and its music sibling are reached first.
+    expect(
+      planCollapse([
+        row({ id: "m1", title: "The Suburbs", category: "music", start: "2026-11-03T20:00", end: "2026-11-08T23:00" }),
+        row({ id: "m2", title: "The Suburbs", category: "music", start: "2026-11-04T20:00" }),
+      ]),
+    ).toEqual([]);
+  });
+});
