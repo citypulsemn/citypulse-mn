@@ -1583,3 +1583,86 @@ describe("the gap rule is untouched by reading the other span column", () => {
     ).toEqual([]);
   });
 });
+
+// ---------------------------------------------------------------------------
+// The word-SUFFIX rule was measured and DECLINED (12 Nov 2026)
+//
+// Asked for after one Grinch row survived a collapse because "how the grinch
+// stole christmas" is a suffix of "dr seusss how the grinch stole christmas".
+// The numbers are in lib/multiday.ts beside the other two declined widenings.
+// These pin what a suffix rule would break, so the next attempt has to face
+// them rather than rediscover them.
+// ---------------------------------------------------------------------------
+
+describe("a word-suffix title rule stays declined", () => {
+  const row = (o: Partial<CollapseRow> & { id: string }): CollapseRow => ({
+    title: "Event",
+    city: "Minneapolis",
+    category: "arts",
+    start: "2026-11-03T19:00",
+    endDay: null,
+    end: null,
+    corrected: false,
+    status: "published",
+    ...o,
+  });
+
+  it("does not absorb a one-night programme into the exhibition it is about", () => {
+    // Live on 12 Nov 2026 at Mia. A suffix rule plus the parent-child interval
+    // test would swallow the 3 Dec programme, because its title ENDS with the
+    // exhibition's. "Meet at Mia: Paris Couture" is an event about the show,
+    // not another listing of it — and absorbing it loses a dated evening.
+    const actions = planCollapse([
+      row({ id: "exhibition", title: "Paris Couture (Exhibition)", start: "2026-10-04T10:00", end: "2027-01-17T17:00" }),
+      row({ id: "programme", title: "Mafic Ocean x Meet at Mia: Paris Couture", start: "2026-12-03T19:00" }),
+    ]);
+    expect(actions).toEqual([]);
+  });
+
+  it("does not let a one-word title act as a wildcard", () => {
+    // The reason a suffix test cannot be used bare: it has no anchor at the
+    // front, so the SHORTER title matches anything ending in it. Measured on
+    // the corpus, "show" suffix-matches 51 other titles and 35 titles of two
+    // tokens or fewer match something. One junk title would fold them all.
+    const actions = planCollapse([
+      row({ id: "junk", title: "Show", start: "2026-11-03T20:00" }),
+      row({ id: "turf", title: "Turf Club Show", start: "2026-11-03T20:00", city: "St. Paul" }),
+      row({ id: "variety", title: "That Felt Good Weekly Friday Variety Show", start: "2026-11-03T20:00" }),
+    ]);
+    expect(actions).toEqual([]);
+  });
+
+  it("does not fold a co-headline bill into one of its acts", () => {
+    // Both in Minneapolis, both live on 12 Nov 2026. "Gill Weather and Eldest
+    // Daughter" ends with "Eldest Daughter", but a shared act is not a shared
+    // event — two different bills at two different rooms.
+    const actions = planCollapse([
+      row({ id: "bill", title: "Gill Weather and Eldest Daughter", start: "2026-11-12T20:00" }),
+      row({ id: "solo", title: "Eldest Daughter", start: "2027-02-05T20:00" }),
+    ]);
+    expect(actions).toEqual([]);
+  });
+
+  it("leaves the Grinch pair apart, which is why that row was archived by hand", () => {
+    // The case that prompted the question. planCollapse keys on the normalised
+    // title exactly and folds only on a word PREFIX, so a brand possessive in
+    // front is out of reach in both directions. Declined as a rule; the row
+    // was archived with evidence instead.
+    const actions = planCollapse([
+      row({ id: "run", title: "Dr. Seuss's How the Grinch Stole Christmas!", start: "2026-11-03T19:30", end: "2027-01-03T21:00" }),
+      row({ id: "variant", title: "How the Grinch Stole Christmas", start: "2026-11-14T11:00" }),
+    ]);
+    expect(actions).toEqual([]);
+  });
+
+  it("still folds a word PREFIX, so declining the mirror cost nothing that worked", () => {
+    // The guard that the entry above is about the SUFFIX direction only.
+    const actions = planCollapse([
+      row({ id: "fair", title: "Minnesota State Fair", start: "2026-08-22T09:00", endDay: "2026-09-07", city: "Falcon Heights" }),
+      row({ id: "llama", title: "Minnesota State Fair Llama Costume Contest", start: "2026-08-30T13:00", city: "Falcon Heights" }),
+    ]);
+    expect(actions).toHaveLength(1);
+    expect(actions[0].keepId).toBe("fair");
+    expect(actions[0].archiveIds).toEqual(["llama"]);
+  });
+});

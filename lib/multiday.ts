@@ -527,8 +527,8 @@ export interface RunFold {
  * This is not a similarity score — it equates only titles a reader would call
  * identically spelled. Similarity is a separate rule below (`DRIFT_MIN`), added
  * after this one and measured on its own; keeping them apart is what lets the
- * fold say which of the two matched it. Two further rules were measured and
- * DECLINED, both recorded in docs/deploy-history/DEPLOY-RUN-REFIND-FOLD.md:
+ * fold say which of the two matched it. Three further rules were measured
+ * and DECLINED, all recorded in docs/deploy-history/DEPLOY-RUN-REFIND-FOLD.md:
  *
  *   - `planCollapse`'s `isWordPrefix` parent-child rule (the third row above,
  *     and the widening originally asked for). It renames the survivor on 3 of
@@ -546,6 +546,28 @@ export interface RunFold {
  *     appears, and this project holds coverage loss to be worse than
  *     duplication. The cost of declining it: the Monsters cluster folds to
  *     two rows rather than one.
+ *   - a word-SUFFIX rule, the mirror of isWordPrefix (12 Nov 2026), asked for
+ *     after one Grinch row survived a collapse because "how the grinch stole
+ *     christmas" is a suffix of "dr seusss how the grinch stole christmas".
+ *     Measured over the whole corpus: among 701 published rows there are just
+ *     3 distinct suffix shapes and 4 row pairs, 2 of them touching PER_NIGHT
+ *     rows that never merge anyway, and a version guarded by every condition
+ *     worth having (short title >= 3 tokens, same venue, one interval inside
+ *     the other, neither per-night) catches ZERO live pairs. The Grinch is not
+ *     a pattern but an instance: of 149 distinct suffix shapes in the whole
+ *     5,220-row corpus, exactly ONE has a brand possessive in front.
+ *     The simple form is worse than useless - a short title is a wildcard,
+ *     because a suffix test has no anchor. "show" suffix-matches 51 other
+ *     titles, "minnesota lynx" 8, and 35 titles of two tokens or fewer match
+ *     something. One junk title would fold 51 unrelated productions.
+ *     The real recurring shape behind it is a VENUE name prefixed onto the
+ *     title (minnesota zoo, walker art center, como zoo - 29 of the 149), and
+ *     that is an import artefact which has already stopped on its own: 143
+ *     such rows were created in August 2026, 5 in November, and 355 of 360 are
+ *     already archived. It also could not be fixed by rewriting stored titles,
+ *     for the reason lib/title-hygiene.ts gives for cleaning on READ instead -
+ *     changing a stored title changes the key and duplicates the event on the
+ *     next re-find. The one row this was asked about was archived by hand.
  *
  * The alias stays HERE rather than in `normalizeRunTitle`, and that matters:
  * unwrapping parens in the normaliser would also SPLIT pairs that merge today

@@ -403,3 +403,88 @@ touch. Its benefit is entirely prospective; its cost lands immediately.
 - **`isUpcoming`** reads `daysSpanned().at(-1)`, so an over-cap run is not
   upcoming the day after it opens and leaves the venue, city and neighborhood
   pages. Unrelated to this change, and the larger of the two code defects.
+
+---
+
+## The word-SUFFIX rule, measured and declined — 12 November 2026
+
+The third widening declined on this gate, and the second asked for by name.
+
+**Why it was asked.** Collapsing the Children's Theatre Grinch
+([DEPLOY-RUN-IN-END-AT-CLUSTERING.md](DEPLOY-RUN-IN-END-AT-CLUSTERING.md)) took 8 live rows to 2.
+The survivor was a title variant: `How the Grinch Stole Christmas` is a word **suffix** of
+`Dr. Seuss's How the Grinch Stole Christmas!`. `runKey` compares normalised titles exactly and the
+parent-child fold uses `isWordPrefix`, so a brand possessive in front is out of reach in both
+directions. That row was archived by hand. The question was whether the mirror of `isWordPrefix`
+should exist.
+
+### It has nothing to do
+
+Measured over the corpus — 5,220 rows, 701 published — counting only pairs in the same city that
+the existing gates do **not** already reach (exact key, word prefix):
+
+| | live rows | all rows |
+|---|---|---|
+| distinct suffix **shapes** | **3** | 149 |
+| suffix **row pairs** | **4** | 842 |
+| shapes touching a `PER_NIGHT` row (never merge anyway) | 2 of 3 | 83 of 149 |
+| shapes where every pair is same-venue **and** overlapping | **0** | 26 |
+
+A version guarded by every condition worth having — short title ≥ 3 tokens, same venue, one
+interval inside the other, neither row per-night — catches **zero live pairs**. It finds 77
+historical pairs, all already archived.
+
+### The Grinch is an instance, not a pattern
+
+Of the 149 distinct suffix shapes in the whole corpus, the leading words are overwhelmingly
+**venue names** — `minnesota zoo` (9 shapes), `walker art center` (8), `como zoo` (5),
+`como conservatory` (3), `guthrie theater`, `turf club`. Exactly **one** is a brand possessive:
+`dr seusss`.
+
+### The simple form is worse than useless
+
+A suffix test has no anchor at the front, so the **shorter** title is a wildcard:
+
+| normalised title | tokens | other titles it suffix-matches |
+|---|---|---|
+| `show` | 1 | **51** |
+| `minnesota lynx` | 2 | 8 |
+| `storytime` | 1 | 5 |
+
+35 titles of two tokens or fewer match something. One junk title would fold 51 unrelated
+productions — and `show` is not hypothetical: **7 stored rows normalise to it**, titled
+`Show (Sep 23)`, `Show (Sep 2 Evening)` and so on, because the normaliser strips the
+parenthetical that was doing all the work. That is coverage loss, which this project holds to be
+worse than duplication.
+
+### The live pairs it *would* act on are all wrong or protected
+
+- `Paris Couture (Exhibition)` (4 Oct – 17 Jan, Mia) vs `Mafic Ocean x Meet at Mia: Paris Couture`
+  (3 Dec). A one-night programme **about** the exhibition, sitting inside its interval — so a
+  suffix rule plus the parent-child containment test absorbs it and a dated evening disappears.
+- `Eldest Daughter` (7th St Entry, 5 Feb 2027) vs `Gill Weather and Eldest Daughter` (The Cedar,
+  12 Nov 2026). A shared act is not a shared event.
+- Two `SPCO: Williams' Zodiac Suite…` pairs — consecutive nights, `PER_NIGHT`, never merged.
+
+### The real shape behind it is an import artefact, and it already stopped
+
+Rows whose title begins with their own venue name: **360 total, 5 live** (355 archived). Created
+per month: **June 62 · July 112 · August 143 · September 18 · October 20 · November 5.** It
+collapsed after August without anyone building a matcher, and none of the 5 live rows is a
+duplicate (the two `Day Block Brewing Wednesday Date Night` rows are different Wednesdays of a
+weekly series, which the gap rule correctly keeps apart).
+
+It could not be fixed by rewriting stored titles either, for the reason `lib/title-hygiene.ts`
+gives for cleaning on **read**: changing a stored title changes the dedup key and duplicates the
+event on the next re-find.
+
+### Pinned
+
+Five tests in `lib/__tests__/multiday.test.ts` hold the decision. Simulating the rule — a suffix
+branch added to the parent-child fold's `related` test — fails **2 of the 5**: the Mia programme
+and the Grinch pair. The other three (the `show` wildcard, the co-headline bill, and a guard that
+a word **prefix** still folds) cover a different insertion point, `runKey` / `runAliasKeys`,
+because the parent-child fold already has a two-word floor and an interval test of its own. Said
+plainly so the next attempt knows which pin covers which door.
+
+**Cost of declining:** one hand-archived row, already done.
