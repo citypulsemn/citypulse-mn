@@ -373,7 +373,8 @@ export const PLACES: Place[] = [
   // ── Beaches ───────────────────────────────────────────────────────────────
   {
     slug: "lake-nokomis-main-beach", name: "Lake Nokomis Main Beach", kind: "beach",
-    lat: 44.9126, lng: -93.2452, address: "5001 Lake Nokomis Pkwy W, Minneapolis, MN 55417",
+    // Pin re-read 9 Nov 2026 off the April 2025 aerial photo, was 44.9126,-93.2452 (224m off): the centre of the sand, high confidence (docs/PLACES-PIN-AUDIT-NOV-2026.md).
+    lat: 44.912133, lng: -93.242435, address: "5001 Lake Nokomis Pkwy W, Minneapolis, MN 55417",
     city: "Minneapolis", neighborhood: null, season: SUMMER, cost: "free",
     tags: ["lifeguard-seasonal", "sand", "restrooms"],
     intro: "The metro's roomiest lake beach — a wide sand crescent with a beach house, a guarded swimming area, and paddleboard rentals a short walk down the shore.",
@@ -382,7 +383,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "lake-harriet-north-beach", name: "Lake Harriet North Beach", kind: "beach",
-    lat: 44.9268, lng: -93.3065, address: "Lake Harriet, Minneapolis, MN 55419",
+    // Pin re-read 9 Nov 2026 off the April 2025 aerial photo, was 44.9268,-93.3065 (258m off): the centre of the sand, medium confidence (docs/PLACES-PIN-AUDIT-NOV-2026.md).
+    lat: 44.928375, lng: -93.304098, address: "Lake Harriet, Minneapolis, MN 55419",
     city: "Minneapolis", neighborhood: "southwest-lakes", season: SUMMER, cost: "free",
     tags: ["lifeguard-seasonal", "sand"],
     intro: "The smaller, quieter beach at the north end of Lake Harriet, a short walk from the bandshell and the Rose Garden.",
@@ -391,7 +393,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "bde-maka-ska-thomas-beach", name: "Bde Maka Ska Thomas Beach", kind: "beach",
-    lat: 44.9385, lng: -93.3130, address: "Bde Maka Ska, Minneapolis, MN 55416",
+    // Pin re-read 9 Nov 2026 off the April 2025 aerial photo, was 44.9385,-93.3130 (358m off): the centre of the sand, high confidence (docs/PLACES-PIN-AUDIT-NOV-2026.md).
+    lat: 44.936030, lng: -93.315919, address: "Bde Maka Ska, Minneapolis, MN 55416",
     city: "Minneapolis", neighborhood: "southwest-lakes", season: SUMMER, cost: "free",
     tags: ["lifeguard-seasonal", "sand"],
     intro: "The wide southwest-shore beach on Bde Maka Ska, with grass to spread out on above the sand and the lake loop right behind you.",
@@ -400,7 +403,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "cedar-lake-point-beach", name: "Cedar Lake Point Beach", kind: "beach",
-    lat: 44.9585, lng: -93.3068, address: "Cedar Lake, Minneapolis, MN 55405",
+    // Pin re-read 9 Nov 2026 off the April 2025 aerial photo, was 44.9585,-93.3068 (1.3km off): the centre of the sand, high confidence (docs/PLACES-PIN-AUDIT-NOV-2026.md).
+    lat: 44.960458, lng: -93.322643, address: "Cedar Lake, Minneapolis, MN 55405",
     city: "Minneapolis", neighborhood: null, season: SUMMER, cost: "free",
     tags: ["lifeguard-seasonal", "sand"],
     intro: "The main beach on Cedar Lake, a short walk from the parking — sand, calm water, and the least crowded of the chain most mornings.",
@@ -409,7 +413,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "lake-hiawatha-beach", name: "Lake Hiawatha Beach", kind: "beach",
-    lat: 44.9232, lng: -93.23351, address: "2701 E 44th St, Minneapolis, MN 55406",
+    // Pin re-read 9 Nov 2026 off the April 2025 aerial photo, was 44.9232,-93.23351 (232m off): the centre of the sand, high confidence (docs/PLACES-PIN-AUDIT-NOV-2026.md).
+    lat: 44.921134, lng: -93.233091, address: "2701 E 44th St, Minneapolis, MN 55406",
     city: "Minneapolis", neighborhood: null, season: SUMMER, cost: "free",
     tags: ["lifeguard-seasonal", "sand"],
     intro: "A neighborhood lake beach off the Hiawatha parkway, with a guarded swimming area and the regional trail running past.",
@@ -418,7 +423,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "phalen-regional-park-beach", name: "Phalen Regional Park Beach", kind: "beach",
-    lat: 44.9803, lng: -93.0575, address: "1400 Phalen Dr, Saint Paul, MN 55106",
+    // Pin re-read 9 Nov 2026 off the April 2025 aerial photo, was 44.9803,-93.0575 (420m off): the centre of the sand, high confidence (docs/PLACES-PIN-AUDIT-NOV-2026.md).
+    lat: 44.983040, lng: -93.053817, address: "1400 Phalen Dr, Saint Paul, MN 55106",
     city: "St. Paul", neighborhood: null, season: SUMMER, cost: "free",
     tags: ["lifeguard-seasonal", "sand", "restrooms"],
     intro: "St. Paul's big guarded beach on Lake Phalen, with a sand swimming area, a splash pad next door, and free parking.",
@@ -427,7 +433,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "bde-maka-ska-32nd-street-beach", name: "Bde Maka Ska 32nd Street Beach", kind: "beach",
-    lat: 44.9430, lng: -93.3055, address: "Bde Maka Ska, Minneapolis, MN 55408",
+    // Pin re-read 9 Nov 2026 off the April 2025 aerial photo, was 44.9430,-93.3055 (202m off): the centre of the sand, high confidence (docs/PLACES-PIN-AUDIT-NOV-2026.md).
+    lat: 44.944796, lng: -93.305119, address: "Bde Maka Ska, Minneapolis, MN 55408",
     city: "Minneapolis", neighborhood: "southwest-lakes", season: SUMMER, cost: "free",
     tags: ["lifeguard-seasonal", "sand"],
     intro: "The east-side beach on Bde Maka Ska, closest to the Uptown end of the lake and the busiest on a hot afternoon.",
@@ -436,7 +443,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "bde-maka-ska-north-beach", name: "Bde Maka Ska North Beach", kind: "beach",
-    lat: 44.9505, lng: -93.3075, address: "Bde Maka Ska, Minneapolis, MN 55408",
+    // Pin re-read 9 Nov 2026 off the April 2025 aerial photo, was 44.9505,-93.3075 (544m off): the centre of the sand, high confidence (docs/PLACES-PIN-AUDIT-NOV-2026.md).
+    lat: 44.949036, lng: -93.314101, address: "Bde Maka Ska, Minneapolis, MN 55408",
     city: "Minneapolis", neighborhood: "southwest-lakes", season: SUMMER, cost: "free",
     tags: ["lifeguard-seasonal", "sand"],
     intro: "The north-end beach on Bde Maka Ska, a short walk from the refectory and the sailboat docks.",
@@ -445,7 +453,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "cedar-lake-east-beach", name: "Cedar Lake East Beach", kind: "beach",
-    lat: 44.9548, lng: -93.3020, address: "Cedar Lake, Minneapolis, MN 55405",
+    // Pin re-read 9 Nov 2026 off the April 2025 aerial photo, was 44.9548,-93.3020 (1.5km off): the centre of the sand, medium confidence (docs/PLACES-PIN-AUDIT-NOV-2026.md).
+    lat: 44.961239, lng: -93.318313, address: "Cedar Lake, Minneapolis, MN 55405",
     city: "Minneapolis", neighborhood: null, season: SUMMER, cost: "free",
     tags: ["lifeguard-seasonal", "sand"],
     intro: "The east-shore beach on Cedar Lake, backed by woods and reached off the Cedar Lake Trail.",
@@ -454,7 +463,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "cedar-lake-south-beach", name: "Cedar Lake South Beach", kind: "beach",
-    lat: 44.9520, lng: -93.3090, address: "Cedar Lake, Minneapolis, MN 55416",
+    // Pin re-read 9 Nov 2026 off the April 2025 aerial photo, was 44.9520,-93.3090 (930m off): the centre of the sand, high confidence (docs/PLACES-PIN-AUDIT-NOV-2026.md).
+    lat: 44.953604, lng: -93.320599, address: "Cedar Lake, Minneapolis, MN 55416",
     city: "Minneapolis", neighborhood: null, season: SUMMER, cost: "free",
     tags: ["sand"],
     intro: "The small south beach on Cedar Lake, shaded and quieter than the Point up the shore.",
@@ -463,7 +473,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "lake-harriet-southeast-beach", name: "Lake Harriet Southeast Beach", kind: "beach",
-    lat: 44.9190, lng: -93.3025, address: "Lake Harriet, Minneapolis, MN 55419",
+    // Pin re-read 9 Nov 2026 off the April 2025 aerial photo, was 44.9190,-93.3025 (260m off): the centre of the sand, high confidence (docs/PLACES-PIN-AUDIT-NOV-2026.md).
+    lat: 44.917086, lng: -93.300597, address: "Lake Harriet, Minneapolis, MN 55419",
     city: "Minneapolis", neighborhood: "southwest-lakes", season: SUMMER, cost: "free",
     tags: ["lifeguard-seasonal", "sand"],
     intro: "The southeast beach on Lake Harriet, near the bandshell and the streetcar line.",
@@ -481,7 +492,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "wirth-lake-beach", name: "Wirth Lake Beach", kind: "beach",
-    lat: 44.9860, lng: -93.3230, address: "Theodore Wirth Park, Minneapolis, MN 55422",
+    // Pin re-read 9 Nov 2026 off the April 2025 aerial photo, was 44.9860,-93.3230 (672m off): the centre of the sand, high confidence (docs/PLACES-PIN-AUDIT-NOV-2026.md).
+    lat: 44.979963, lng: -93.323266, address: "Theodore Wirth Park, Minneapolis, MN 55422",
     city: "Minneapolis", neighborhood: null, season: SUMMER, cost: "free",
     tags: ["lifeguard-seasonal", "sand"],
     intro: "The guarded beach at Theodore Wirth Park, the metro's largest regional park, with a beach house and the trails behind it.",
@@ -490,7 +502,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "french-regional-park-beach", name: "French Regional Park Beach", kind: "beach",
-    lat: 45.0195, lng: -93.4165, address: "12605 Rockford Rd, Plymouth, MN 55441",
+    // Pin re-read 9 Nov 2026 off the April 2025 aerial photo, was 45.0195,-93.4165 (1.1km off): the centre of the sand, medium confidence (docs/PLACES-PIN-AUDIT-NOV-2026.md).
+    lat: 45.017677, lng: -93.429907, address: "12605 Rockford Rd, Plymouth, MN 55441",
     city: "Plymouth", neighborhood: null, season: SUMMER, cost: "free",
     tags: ["sand"],
     intro: "A sand swimming beach on the north shore of Medicine Lake in Plymouth, part of Three Rivers' French Regional Park.",
@@ -499,7 +512,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "bryant-lake-regional-park-beach", name: "Bryant Lake Regional Park Beach", kind: "beach",
-    lat: 44.8720, lng: -93.4440, address: "6402 Rowland Rd, Eden Prairie, MN 55344",
+    // Pin re-read 9 Nov 2026 off the April 2025 aerial photo, was 44.8720,-93.4440 (1.6km off): the centre of the sand, high confidence (docs/PLACES-PIN-AUDIT-NOV-2026.md).
+    lat: 44.881226, lng: -93.428726, address: "6402 Rowland Rd, Eden Prairie, MN 55344",
     city: "Eden Prairie", neighborhood: null, season: SUMMER, cost: "free",
     tags: ["sand", "concessions"],
     intro: "An unguarded sand beach on Bryant Lake in Eden Prairie, with a concession stand and the regional park's trails and picnic spots.",
@@ -508,7 +522,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "elm-creek-swim-pond", name: "Elm Creek Swim Pond", kind: "beach",
-    lat: 45.13837, lng: -93.43719, address: "12420 James Deane Pkwy, Maple Grove, MN 55369",
+    // Pin re-read 9 Nov 2026 off the April 2025 aerial photo, was 45.13837,-93.43719 (1.1km off): the centre of the sand, high confidence (docs/PLACES-PIN-AUDIT-NOV-2026.md).
+    lat: 45.144837, lng: -93.427320, address: "12420 James Deane Pkwy, Maple Grove, MN 55369",
     city: "Maple Grove", neighborhood: null, season: SUMMER, cost: "paid",
     tags: ["sand", "restrooms", "concessions"],
     intro: "Three Rivers' chlorinated swim pond at Elm Creek Park Reserve in Maple Grove — filtered water, a sand beach, a changing shelter, and concessions. A daily or season wristband is required.",
@@ -517,7 +532,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "bush-lake-beach", name: "Bush Lake Beach", kind: "beach",
-    lat: 44.83858, lng: -93.37583, address: "9140 E Bush Lake Rd, Bloomington, MN 55438",
+    // Pin re-read 9 Nov 2026 off the April 2025 aerial photo, was 44.83858,-93.37583 (353m off): the centre of the sand, high confidence (docs/PLACES-PIN-AUDIT-NOV-2026.md).
+    lat: 44.837322, lng: -93.379947, address: "9140 E Bush Lake Rd, Bloomington, MN 55438",
     city: "Bloomington", neighborhood: null, season: SUMMER, cost: "free",
     tags: ["sand", "concessions"],
     intro: "One of the state's most-visited beaches — a wide sand beach on Bush Lake in Bloomington's Hyland area, now run by Three Rivers, with a volleyball court and a concession stand.",
@@ -526,7 +542,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "fish-lake-regional-park-beach", name: "Fish Lake Regional Park Beach", kind: "beach",
-    lat: 45.07684, lng: -93.46901, address: "14900 Bass Lake Rd, Maple Grove, MN 55311",
+    // Pin re-read 9 Nov 2026 off the April 2025 aerial photo, was 45.07684,-93.46901 (905m off): the centre of the sand, medium confidence (docs/PLACES-PIN-AUDIT-NOV-2026.md).
+    lat: 45.084656, lng: -93.465792, address: "14900 Bass Lake Rd, Maple Grove, MN 55311",
     city: "Maple Grove", neighborhood: null, season: SUMMER, cost: "free",
     tags: ["sand"],
     intro: "A clean, shallow sand beach on Fish Lake in Maple Grove — gentle water that suits young kids, free and unguarded.",
@@ -535,7 +552,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "cleary-lake-regional-park-beach", name: "Cleary Lake Regional Park Beach", kind: "beach",
-    lat: 44.6850, lng: -93.3980, address: "18106 Texas Ave, Prior Lake, MN 55372",
+    // Pin re-read 9 Nov 2026 off the April 2025 aerial photo, was 44.6850,-93.3980 (910m off): the centre of the sand, medium confidence (docs/PLACES-PIN-AUDIT-NOV-2026.md).
+    lat: 44.690390, lng: -93.389345, address: "18106 Texas Ave, Prior Lake, MN 55372",
     city: "Prior Lake", neighborhood: null, season: SUMMER, cost: "free",
     tags: ["sand"],
     intro: "The swimming beach at Cleary Lake Regional Park in Prior Lake, part of a big park with a golf course, campground, and trails.",
@@ -544,7 +562,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "baker-park-reserve-beach", name: "Baker Park Reserve Beach", kind: "beach",
-    lat: 45.0280, lng: -93.6300, address: "2501 Baker Park Rd, Maple Plain, MN 55359",
+    // Pin re-read 9 Nov 2026 off the April 2025 aerial photo, was 45.0280,-93.6300 (631m off): the centre of the sand, medium confidence (docs/PLACES-PIN-AUDIT-NOV-2026.md).
+    lat: 45.024496, lng: -93.636317, address: "2501 Baker Park Rd, Maple Plain, MN 55359",
     city: "Maple Plain", neighborhood: null, season: SUMMER, cost: "free",
     tags: ["sand"],
     intro: "Two sand beaches on Lake Independence at Three Rivers' Baker Park Reserve in Maple Plain, with a creative play area a short walk off.",
@@ -553,7 +572,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "lake-minnetonka-swim-pond", name: "Lake Minnetonka Swim Pond", kind: "beach",
-    lat: 44.9350, lng: -93.6600, address: "4610 County Rd 44, Minnetrista, MN 55331",
+    // Pin re-read 9 Nov 2026 off the April 2025 aerial photo, was 44.9350,-93.6600 (4.5km off): the centre of the sand, high confidence (docs/PLACES-PIN-AUDIT-NOV-2026.md).
+    lat: 44.894953, lng: -93.669810, address: "4610 County Rd 44, Minnetrista, MN 55331",
     city: "Minnetrista", neighborhood: null, season: SUMMER, cost: "paid",
     tags: ["sand", "restrooms"],
     intro: "A chlorinated, sand-bottomed swim pond at Lake Minnetonka Regional Park in Minnetrista — lake-swimming feel with pool-clean water. A daily pass is required.",
@@ -570,7 +590,8 @@ export const PLACES: Place[] = [
   // the chlorinated Lake Elmo swim pond charges per person.
   {
     slug: "long-lake-regional-park-beach", name: "Long Lake Regional Park Beach", kind: "beach",
-    lat: 45.0745, lng: -93.2170, address: "Long Lake Regional Park, New Brighton, MN 55112",
+    // Pin re-read 9 Nov 2026 off the April 2025 aerial photo, was 45.0745,-93.2170 (1.4km off): the centre of the sand, high confidence (docs/PLACES-PIN-AUDIT-NOV-2026.md).
+    lat: 45.074455, lng: -93.199345, address: "Long Lake Regional Park, New Brighton, MN 55112",
     city: "New Brighton", neighborhood: null, season: SUMMER, cost: "free",
     tags: ["sand", "lifeguards"],
     intro: "Ramsey County's only lifeguarded beach — Long Lake Regional Park in New Brighton, with guards on duty Thursday through Sunday afternoons in summer.",
@@ -579,7 +600,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "white-bear-lake-county-beach", name: "White Bear Lake County Park Beach", kind: "beach",
-    lat: 45.0800, lng: -93.0060, address: "White Bear Lake County Park, White Bear Lake, MN 55110",
+    // Pin re-read 9 Nov 2026 off the April 2025 aerial photo, was 45.0800,-93.0060 (1.7km off): the centre of the sand, high confidence (docs/PLACES-PIN-AUDIT-NOV-2026.md).
+    lat: 45.093924, lng: -92.996712, address: "White Bear Lake County Park, White Bear Lake, MN 55110",
     city: "White Bear Lake", neighborhood: null, season: SUMMER, cost: "free",
     tags: ["sand"],
     intro: "A Ramsey County sand beach on the big, boat-busy White Bear Lake — unguarded, open dawn to dusk through the summer.",
@@ -588,7 +610,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "tony-schmidt-lake-johanna-beach", name: "Tony Schmidt Regional Park Beach", kind: "beach",
-    lat: 45.0435, lng: -93.1770, address: "Tony Schmidt Regional Park, Arden Hills, MN 55112",
+    // Pin re-read 9 Nov 2026 off the April 2025 aerial photo, was 45.0435,-93.1770 (447m off): the centre of the sand, high confidence (docs/PLACES-PIN-AUDIT-NOV-2026.md).
+    lat: 45.047453, lng: -93.175982, address: "Tony Schmidt Regional Park, Arden Hills, MN 55112",
     city: "Arden Hills", neighborhood: null, season: SUMMER, cost: "free",
     tags: ["sand"],
     intro: "The Lake Johanna beach at Tony Schmidt Regional Park in Arden Hills — a Ramsey County sand beach with trails and picnic spots around it.",
@@ -606,7 +629,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "lake-mccarrons-county-beach", name: "Lake McCarrons County Park Beach", kind: "beach",
-    lat: 44.9975, lng: -93.1290, address: "Lake McCarrons County Park, Roseville, MN 55113",
+    // Pin re-read 9 Nov 2026 off the April 2025 aerial photo, was 44.9975,-93.1290 (1.7km off): the centre of the sand, high confidence (docs/PLACES-PIN-AUDIT-NOV-2026.md).
+    lat: 44.996314, lng: -93.107595, address: "Lake McCarrons County Park, Roseville, MN 55113",
     city: "Roseville", neighborhood: null, season: SUMMER, cost: "free",
     tags: ["sand"],
     intro: "Roseville's Lake McCarrons beach — a small, close-in Ramsey County sand beach just north of St. Paul.",
@@ -615,7 +639,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "lake-owasso-county-beach", name: "Lake Owasso County Park Beach", kind: "beach",
-    lat: 45.0330, lng: -93.1490, address: "Lake Owasso County Park, Shoreview, MN 55126",
+    // Pin re-read 9 Nov 2026 off the April 2025 aerial photo, was 45.0330,-93.1490 (2.9km off): the centre of the sand, high confidence (docs/PLACES-PIN-AUDIT-NOV-2026.md).
+    lat: 45.042100, lng: -93.114933, address: "Lake Owasso County Park, Shoreview, MN 55126",
     city: "Shoreview", neighborhood: null, season: SUMMER, cost: "free",
     tags: ["sand"],
     intro: "A Ramsey County beach on Lake Owasso in Shoreview, with a playground and picnic area next to the sand.",
@@ -624,7 +649,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "turtle-lake-county-beach", name: "Turtle Lake County Park Beach", kind: "beach",
-    lat: 45.0980, lng: -93.1530, address: "Turtle Lake County Park, Shoreview, MN 55126",
+    // Pin re-read 9 Nov 2026 off the April 2025 aerial photo, was 45.0980,-93.1530 (1.8km off): the centre of the sand, medium confidence (docs/PLACES-PIN-AUDIT-NOV-2026.md).
+    lat: 45.092144, lng: -93.130984, address: "Turtle Lake County Park, Shoreview, MN 55126",
     city: "Shoreview", neighborhood: null, season: SUMMER, cost: "free",
     tags: ["sand"],
     intro: "A quiet Ramsey County sand beach on Turtle Lake in northern Shoreview — unguarded, open through the summer.",
@@ -633,7 +659,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "snail-lake-beach", name: "Snail Lake Beach", kind: "beach",
-    lat: 45.0610, lng: -93.1200, address: "Vadnais-Snail Lakes Regional Park, Shoreview, MN 55126",
+    // Pin re-read 9 Nov 2026 off the April 2025 aerial photo, was 45.0610,-93.1200 (794m off): the centre of the sand, medium confidence (docs/PLACES-PIN-AUDIT-NOV-2026.md).
+    lat: 45.067764, lng: -93.123243, address: "Vadnais-Snail Lakes Regional Park, Shoreview, MN 55126",
     city: "Shoreview", neighborhood: null, season: SUMMER, cost: "free",
     tags: ["sand"],
     intro: "The Snail Lake beach at Vadnais-Snail Lakes Regional Park in Shoreview — a Ramsey County sand beach with trails around the lakes.",
@@ -642,7 +669,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "lake-gervais-county-beach", name: "Lake Gervais County Park Beach", kind: "beach",
-    lat: 45.0180, lng: -93.0830, address: "Lake Gervais County Park, Little Canada, MN 55117",
+    // Pin re-read 9 Nov 2026 off the April 2025 aerial photo, was 45.0180,-93.0830 (776m off): the centre of the sand, medium confidence (docs/PLACES-PIN-AUDIT-NOV-2026.md).
+    lat: 45.013707, lng: -93.075222, address: "Lake Gervais County Park, Little Canada, MN 55117",
     city: "Little Canada", neighborhood: null, season: SUMMER, cost: "free",
     tags: ["sand"],
     intro: "A small Ramsey County beach on Lake Gervais in Little Canada — unguarded, open dawn to dusk in summer.",
@@ -651,7 +679,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "coon-lake-county-beach", name: "Coon Lake County Park Beach", kind: "beach",
-    lat: 45.32625, lng: -93.13195, address: "5450 197th Ave NE, Columbus, MN 55092",
+    // Pin re-read 9 Nov 2026 off the April 2025 aerial photo, was 45.32625,-93.13195 (414m off): the centre of the sand, high confidence (docs/PLACES-PIN-AUDIT-NOV-2026.md).
+    lat: 45.322540, lng: -93.132398, address: "5450 197th Ave NE, Columbus, MN 55092",
     city: "Columbus", neighborhood: null, season: SUMMER, cost: "free",
     tags: ["sand"],
     intro: "An Anoka County sand beach on Coon Lake in Columbus, at the north edge of the metro — a vehicle permit gets you in.",
@@ -660,7 +689,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "lake-george-regional-beach", name: "Lake George Regional Park Beach", kind: "beach",
-    lat: 45.3350, lng: -93.2900, address: "3100 217th Ave NW, Oak Grove, MN 55011",
+    // Pin re-read 9 Nov 2026 off the April 2025 aerial photo, was 45.3350,-93.2900 (5.1km off): the centre of the sand, medium confidence (docs/PLACES-PIN-AUDIT-NOV-2026.md).
+    lat: 45.361506, lng: -93.343630, address: "3100 217th Ave NW, Oak Grove, MN 55011",
     city: "Oak Grove", neighborhood: null, season: SUMMER, cost: "free",
     tags: ["sand"],
     intro: "Anoka County's Lake George Regional Park in Oak Grove — a sand swimming beach with a boat launch, picnic areas, and miles of trails.",
@@ -678,7 +708,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "rice-creek-chain-beach", name: "Rice Creek Chain of Lakes Beach", kind: "beach",
-    lat: 45.17221, lng: -93.06956, address: "7373 Main St, Lino Lakes, MN 55038",
+    // Pin re-read 9 Nov 2026 off the April 2025 aerial photo, was 45.17221,-93.06956 (1.1km off): the centre of the sand, medium confidence (docs/PLACES-PIN-AUDIT-NOV-2026.md).
+    lat: 45.165366, lng: -93.080289, address: "7373 Main St, Lino Lakes, MN 55038",
     city: "Lino Lakes", neighborhood: null, season: SUMMER, cost: "free",
     tags: ["sand"],
     intro: "The swimming beach at Anoka County's Rice Creek Chain of Lakes Park Reserve in Lino Lakes, with camping and trails through the reserve.",
@@ -687,7 +718,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "schulze-lake-beach", name: "Schulze Lake Beach", kind: "beach",
-    lat: 44.78828, lng: -93.12828, address: "860 Cliff Road, Eagan, MN 55123",
+    // Pin re-read 9 Nov 2026 off the April 2025 aerial photo, was 44.78828,-93.12828 (370m off): the centre of the sand, high confidence (docs/PLACES-PIN-AUDIT-NOV-2026.md).
+    lat: 44.785001, lng: -93.127520, address: "860 Cliff Road, Eagan, MN 55123",
     city: "Eagan", neighborhood: null, season: SUMMER, cost: "free",
     tags: ["sand"],
     intro: "The Schulze Lake beach at Lebanon Hills Regional Park in Eagan — Dakota County's main swimming beach, with water tested weekly through the season.",
@@ -705,7 +737,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "greenwood-shores-beach", name: "Greenwood Shores Beach", kind: "beach",
-    lat: 44.8710, lng: -93.5560, address: "7110 Utica Lane, Chanhassen, MN 55317",
+    // Pin re-read 9 Nov 2026 off the April 2025 aerial photo, was 44.8710,-93.5560 (368m off): the centre of the sand, medium confidence (docs/PLACES-PIN-AUDIT-NOV-2026.md).
+    lat: 44.874306, lng: -93.556127, address: "7110 Utica Lane, Chanhassen, MN 55317",
     city: "Chanhassen", neighborhood: null, season: SUMMER, cost: "free",
     tags: ["sand"],
     intro: "A smaller, quieter Lake Ann beach in Chanhassen — Greenwood Shores, with a picnic area and trails and no boat launch crowd.",
@@ -714,7 +747,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "lake-minnewashta-regional-beach", name: "Lake Minnewashta Regional Park Beach", kind: "beach",
-    lat: 44.8790, lng: -93.6060, address: "6900 Hazeltine Blvd, Chanhassen, MN 55331",
+    // Pin re-read 9 Nov 2026 off the April 2025 aerial photo, was 44.8790,-93.6060 (457m off): the centre of the sand, high confidence (docs/PLACES-PIN-AUDIT-NOV-2026.md).
+    lat: 44.882306, lng: -93.602552, address: "6900 Hazeltine Blvd, Chanhassen, MN 55331",
     city: "Chanhassen", neighborhood: null, season: SUMMER, cost: "free",
     tags: ["sand"],
     intro: "Carver County's Lake Minnewashta Regional Park in Chanhassen — a sand beach with paddle rentals, a fishing pier, and sand volleyball.",
@@ -732,7 +766,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "lake-waconia-regional-beach", name: "Lake Waconia Regional Park Beach", kind: "beach",
-    lat: 44.85375, lng: -93.76306, address: "8170 Paradise Lane, Waconia, MN 55387",
+    // Pin re-read 9 Nov 2026 off the April 2025 aerial photo, was 44.85375,-93.76306 (226m off): the centre of the sand, high confidence (docs/PLACES-PIN-AUDIT-NOV-2026.md).
+    lat: 44.855637, lng: -93.764137, address: "8170 Paradise Lane, Waconia, MN 55387",
     city: "Waconia", neighborhood: null, season: SUMMER, cost: "free",
     tags: ["sand"],
     intro: "A sand beach on big Lake Waconia at Carver County's regional park, with kayak and paddleboard rentals at the water's edge.",
@@ -741,7 +776,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "square-lake-park-beach", name: "Square Lake Park Beach", kind: "beach",
-    lat: 45.1630, lng: -92.7920, address: "Square Lake Park, Stillwater, MN 55082",
+    // Pin re-read 9 Nov 2026 off the April 2025 aerial photo, was 45.1630,-92.7920 (1.1km off): the centre of the sand, high confidence (docs/PLACES-PIN-AUDIT-NOV-2026.md).
+    lat: 45.153612, lng: -92.795414, address: "Square Lake Park, Stillwater, MN 55082",
     city: "Stillwater", neighborhood: null, season: SUMMER, cost: "free",
     tags: ["sand", "lifeguards"],
     intro: "One of the metro's clearest swimming lakes — Washington County's Square Lake north of Stillwater, staffed with lifeguards on summer afternoons and popular with divers.",
@@ -750,7 +786,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "big-marine-park-beach", name: "Big Marine Park Reserve Beach", kind: "beach",
-    lat: 45.1350, lng: -92.8280, address: "Big Marine Park Reserve, Marine on St. Croix, MN 55047",
+    // Pin re-read 9 Nov 2026 off the April 2025 aerial photo, was 45.1350,-92.8280 (8.4km off): the centre of the sand, medium confidence (docs/PLACES-PIN-AUDIT-NOV-2026.md).
+    lat: 45.204474, lng: -92.871659, address: "Big Marine Park Reserve, Marine on St. Croix, MN 55047",
     city: "Marine on St. Croix", neighborhood: null, season: SUMMER, cost: "free",
     tags: ["sand"],
     intro: "A wide sand beach on Big Marine Lake at Washington County's park reserve, open Memorial Day to Labor Day, with camping and trails nearby.",
@@ -759,7 +796,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "lake-elmo-swim-pond", name: "Lake Elmo Park Reserve Swim Pond", kind: "beach",
-    lat: 44.97121, lng: -92.9032, address: "1515 Keats Ave N, Lake Elmo, MN 55042",
+    // Pin re-read 9 Nov 2026 off the April 2025 aerial photo, was 44.97121,-92.9032 (1.7km off): the centre of the sand, high confidence (docs/PLACES-PIN-AUDIT-NOV-2026.md).
+    lat: 44.984011, lng: -92.891897, address: "1515 Keats Ave N, Lake Elmo, MN 55042",
     city: "Lake Elmo", neighborhood: null, season: SUMMER, cost: "paid",
     tags: ["sand", "lifeguards"],
     intro: "A chlorinated, sand-bottomed swim pond at Washington County's Lake Elmo Park Reserve — lake feel with pool-clean water and lifeguards. A daily pass is required.",
@@ -768,7 +806,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "point-douglas-park-beach", name: "Point Douglas Park Beach", kind: "beach",
-    lat: 44.7470, lng: -92.8080, address: "Point Douglas Park, Hastings, MN 55033",
+    // Pin re-read 9 Nov 2026 off the April 2025 aerial photo, was 44.7470,-92.8080 (502m off): the centre of the sand, high confidence (docs/PLACES-PIN-AUDIT-NOV-2026.md).
+    lat: 44.750054, lng: -92.812680, address: "Point Douglas Park, Hastings, MN 55033",
     city: "Hastings", neighborhood: null, season: SUMMER, cost: "free",
     tags: ["sand"],
     intro: "A St. Croix River beach at the southern tip of Washington County, where the St. Croix meets the Mississippi — unguarded, open through the summer.",
@@ -788,7 +827,8 @@ export const PLACES: Place[] = [
   // ── Splash pads ─────────────────────────────────────────────────────────
   {
     slug: "bottineau-field-splash-pad", name: "Bottineau Field Park Splash Pad", kind: "splash-pad",
-    lat: 44.9998, lng: -93.2560, address: "2000 2nd St NE, Minneapolis, MN 55418",
+    // Pin re-read 9 Nov 2026 off the April 2025 aerial photo, was 44.9998,-93.2560 (233m off): the pad, high confidence (docs/PLACES-PIN-AUDIT-NOV-2026.md).
+    lat: 45.000015, lng: -93.253052, address: "2000 2nd St NE, Minneapolis, MN 55418",
     city: "Minneapolis", neighborhood: "northeast", season: SUMMER, cost: "free",
     tags: ["adjacent-playground"],
     intro: "A free splash pad in Northeast, beside the ballfields and the rec center — good for cooling off after the playground.",
@@ -808,7 +848,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "currie-park-splash-pad", name: "Currie Park Splash Pad", kind: "splash-pad",
-    lat: 44.9688, lng: -93.2452, address: "500 15th Ave S, Minneapolis, MN 55454",
+    // Pin re-read 9 Nov 2026 off the April 2025 aerial photo, was 44.9688,-93.2452 (458m off): the pad, medium confidence (docs/PLACES-PIN-AUDIT-NOV-2026.md).
+    lat: 44.970121, lng: -93.250709, address: "500 15th Ave S, Minneapolis, MN 55454",
     city: "Minneapolis", neighborhood: null, season: SUMMER, cost: "free",
     tags: [],
     intro: "A free splash pad on the West Bank near the university, tucked among the towers of Cedar-Riverside.",
@@ -818,7 +859,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "franklin-steele-square-splash-pad", name: "Franklin Steele Square Splash Pad", kind: "splash-pad",
-    lat: 44.9618, lng: -93.2668, address: "1600 Portland Ave S, Minneapolis, MN 55404",
+    // Pin re-read 9 Nov 2026 off the April 2025 aerial photo, was 44.9618,-93.2668 (591m off): the pad, high confidence (docs/PLACES-PIN-AUDIT-NOV-2026.md).
+    lat: 44.967002, lng: -93.268349, address: "1600 Portland Ave S, Minneapolis, MN 55404",
     city: "Minneapolis", neighborhood: null, season: SUMMER, cost: "free",
     tags: [],
     intro: "A small neighborhood splash pad at Franklin Steele Square, a green block just east of downtown.",
@@ -868,7 +910,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "maple-grove-central-park-splash-pad", name: "Maple Grove Central Park Splash Pad", kind: "splash-pad",
-    lat: 45.101, lng: -93.43347, address: "12000 Central Park Way, Maple Grove, MN 55369",
+    // Pin re-read 9 Nov 2026 off the April 2025 aerial photo, was 45.101,-93.43347 (157m off): the pad, high confidence (docs/PLACES-PIN-AUDIT-NOV-2026.md).
+    lat: 45.102240, lng: -93.432514, address: "12000 Central Park Way, Maple Grove, MN 55369",
     city: "Maple Grove", neighborhood: null, season: SUMMER, cost: "free",
     tags: ["adjacent-playground"],
     intro: "The interactive fountain at Maple Grove's Central Park — dozens of jets on a plaza that becomes an LED light show after dark, with the playground and Arbor Lakes shops next door.",
@@ -878,7 +921,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "woodbury-sports-center-splash-pad", name: "M Health Fairview Sports Center Splash Pad", kind: "splash-pad",
-    lat: 44.88828, lng: -92.94152, address: "4125 Radio Dr, Woodbury, MN 55129",
+    // Pin re-read 9 Nov 2026 off the April 2025 aerial photo, was 44.88828,-92.94152 (239m off): the pad, medium confidence (docs/PLACES-PIN-AUDIT-NOV-2026.md).
+    lat: 44.887507, lng: -92.938695, address: "4125 Radio Dr, Woodbury, MN 55129",
     city: "Woodbury", neighborhood: null, season: SUMMER, cost: "free",
     tags: ["restrooms"],
     intro: "A free splash pad at the M Health Fairview Sports Center in Woodbury — press a button to restart the jets, with restrooms on site.",
@@ -898,7 +942,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "round-lake-park-splash-pad", name: "Round Lake Park Splash Pad", kind: "splash-pad",
-    lat: 44.87001, lng: -93.48948, address: "16691 Valley View Rd, Eden Prairie, MN 55346",
+    // Pin re-read 9 Nov 2026 off the April 2025 aerial photo, was 44.87001,-93.48948 (233m off): the pad, high confidence (docs/PLACES-PIN-AUDIT-NOV-2026.md).
+    lat: 44.867926, lng: -93.489721, address: "16691 Valley View Rd, Eden Prairie, MN 55346",
     city: "Eden Prairie", neighborhood: null, season: SUMMER, cost: "free",
     tags: ["adjacent-playground"],
     intro: "A free splash pad at Round Lake Park in Eden Prairie, a short walk from the lake's swimming beach and the playground.",
@@ -918,7 +963,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "oak-hill-park-splash-pad", name: "Oak Hill Park Splash Pad", kind: "splash-pad",
-    lat: 44.94527, lng: -93.37819, address: "3201 Rhode Island Ave S, St. Louis Park, MN 55426",
+    // Pin re-read 9 Nov 2026 off the April 2025 aerial photo, was 44.94527,-93.37819 (285m off): the pad, high confidence (docs/PLACES-PIN-AUDIT-NOV-2026.md).
+    lat: 44.942808, lng: -93.377201, address: "3201 Rhode Island Ave S, St. Louis Park, MN 55426",
     city: "St. Louis Park", neighborhood: null, season: SUMMER, cost: "free",
     tags: ["adjacent-playground"],
     intro: "St. Louis Park's splash pad at Oak Hill Park — bubbling hoses, nozzles, and sprinkler arches kids can set off themselves.",
@@ -928,7 +974,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "lions-park-splash-pad", name: "Lions Park Splash Pad", kind: "splash-pad",
-    lat: 44.78596, lng: -93.54089, address: "1103 Adams St S, Shakopee, MN 55379",
+    // Pin re-read 9 Nov 2026 off the April 2025 aerial photo, was 44.78596,-93.54089 (280m off): the pad, high confidence (docs/PLACES-PIN-AUDIT-NOV-2026.md).
+    lat: 44.783903, lng: -93.538855, address: "1103 Adams St S, Shakopee, MN 55379",
     city: "Shakopee", neighborhood: null, season: SUMMER, cost: "free",
     tags: ["adjacent-playground"],
     intro: "A free splash pad at Lions Park in Shakopee, next to the Fun For All accessible playground.",
@@ -968,7 +1015,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "cliff-fen-splash-pad", name: "Cliff Fen Park Splash Pad", kind: "splash-pad",
-    lat: 44.7800, lng: -93.2780, address: "120 E Cliff Rd, Burnsville, MN 55337",
+    // Pin re-read 9 Nov 2026 off the April 2025 aerial photo, was 44.7800,-93.2780 (804m off): the pad, high confidence (docs/PLACES-PIN-AUDIT-NOV-2026.md).
+    lat: 44.787151, lng: -93.276511, address: "120 E Cliff Rd, Burnsville, MN 55337",
     city: "Burnsville", neighborhood: null, season: SUMMER, cost: "free",
     tags: [],
     intro: "The splash pad at Cliff Fen Park in Burnsville, open late into the evening through the summer.",
@@ -985,7 +1033,8 @@ export const PLACES: Place[] = [
   // paid aquatic centers (those are the pool category) and playground misters.
   {
     slug: "phalen-beach-splash-pad", name: "Phalen Regional Park Beach Splash Pad", kind: "splash-pad",
-    lat: 44.9795, lng: -93.0575, address: "1400 Phalen Drive, Saint Paul, MN 55106",
+    // Pin re-read 9 Nov 2026 off the April 2025 aerial photo, was 44.9795,-93.0575 (468m off): the pad, medium confidence (docs/PLACES-PIN-AUDIT-NOV-2026.md).
+    lat: 44.983058, lng: -93.054327, address: "1400 Phalen Drive, Saint Paul, MN 55106",
     city: "St. Paul", neighborhood: null, season: SUMMER, cost: "free",
     tags: ["restrooms"],
     intro: "A free splash pad right at Phalen Beach — cool off in the sprays without getting in the lake, with restrooms and picnic spots close by.",
@@ -995,7 +1044,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "eagan-central-park-splash-pad", name: "Eagan Central Park Splash Pad", kind: "splash-pad",
-    lat: 44.83864, lng: -93.17111, address: "1501 Central Parkway, Eagan, MN 55121",
+    // Pin re-read 9 Nov 2026 off the April 2025 aerial photo, was 44.83864,-93.17111 (336m off): the pad, high confidence (docs/PLACES-PIN-AUDIT-NOV-2026.md).
+    lat: 44.840616, lng: -93.174337, address: "1501 Central Parkway, Eagan, MN 55121",
     city: "Eagan", neighborhood: null, season: SUMMER, cost: "free",
     tags: ["shade"],
     intro: "Ground sprays, overhead fountains, and dump buckets at Eagan's Central Park, with a sun shelter and picnic tables alongside.",
@@ -1005,7 +1055,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "rosemount-central-park-splash-pad", name: "Rosemount Central Park Splash Pad", kind: "splash-pad",
-    lat: 44.7388, lng: -93.1288, address: "2893 145th St W, Rosemount, MN 55068",
+    // Pin re-read 9 Nov 2026 off the April 2025 aerial photo, was 44.7388,-93.1288 (460m off): the pad, medium confidence (docs/PLACES-PIN-AUDIT-NOV-2026.md).
+    lat: 44.740777, lng: -93.123687, address: "2893 145th St W, Rosemount, MN 55068",
     city: "Rosemount", neighborhood: null, season: SUMMER, cost: "free",
     tags: ["shade"],
     intro: "A big rain-deck splash pad in Rosemount with a 'Water Journey' maze of ground nozzles, plus a covered shelter and drinking fountain.",
@@ -1025,7 +1076,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "harmon-park-splash-pad", name: "Harmon Park Splash Pad", kind: "splash-pad",
-    lat: 44.9151, lng: -93.0935, address: "230 Bernard St W, West St. Paul, MN 55118",
+    // Pin re-read 9 Nov 2026 off the April 2025 aerial photo, was 44.9151,-93.0935 (163m off): the pad, high confidence (docs/PLACES-PIN-AUDIT-NOV-2026.md).
+    lat: 44.915837, lng: -93.095290, address: "230 Bernard St W, West St. Paul, MN 55118",
     city: "West St. Paul", neighborhood: null, season: SUMMER, cost: "free",
     tags: ["adjacent-playground", "restrooms", "shade"],
     intro: "West St. Paul's touch-activated spray park: 25-plus features on four-minute cycles, a playground next door, and shade trees over the benches.",
@@ -1035,7 +1087,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "miller-park-splash-pad", name: "Miller Park Splash Pad", kind: "splash-pad",
-    lat: 44.8557, lng: -93.4854, address: "8208 Eden Prairie Rd, Eden Prairie, MN 55347",
+    // Pin re-read 9 Nov 2026 off the April 2025 aerial photo, was 44.8557,-93.4854 (915m off): the pad, medium confidence (docs/PLACES-PIN-AUDIT-NOV-2026.md).
+    lat: 44.852763, lng: -93.496244, address: "8208 Eden Prairie Rd, Eden Prairie, MN 55347",
     city: "Eden Prairie", neighborhood: null, season: SUMMER, cost: "free",
     tags: ["adjacent-playground"],
     intro: "One of Eden Prairie's four splash pads — push-button sprays beside a sand-and-water play area and an accessible playground.",
@@ -1045,7 +1098,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "homeward-hills-splash-pad", name: "Homeward Hills Park Splash Pad", kind: "splash-pad",
-    lat: 44.8206, lng: -93.4301, address: "12000 Silverwood Dr, Eden Prairie, MN 55347",
+    // Pin re-read 9 Nov 2026 off the April 2025 aerial photo, was 44.8206,-93.4301 (264m off): the pad, medium confidence (docs/PLACES-PIN-AUDIT-NOV-2026.md).
+    lat: 44.822460, lng: -93.432177, address: "12000 Silverwood Dr, Eden Prairie, MN 55347",
     city: "Eden Prairie", neighborhood: null, season: SUMMER, cost: "free",
     tags: ["adjacent-playground"],
     intro: "An Eden Prairie splash pad with a playground and picnic shelter a few steps away, off Homeward Hills Road.",
@@ -1115,7 +1169,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "cologne-city-square-splash-pad", name: "Cologne City Square Park Splash Pad", kind: "splash-pad",
-    lat: 44.7712, lng: -93.7860, address: "107 John Ave N, Cologne, MN 55322",
+    // Pin re-read 9 Nov 2026 off the April 2025 aerial photo, was 44.7712,-93.7860 (267m off): the pad, high confidence (docs/PLACES-PIN-AUDIT-NOV-2026.md).
+    lat: 44.770311, lng: -93.782857, address: "107 John Ave N, Cologne, MN 55322",
     city: "Cologne", neighborhood: null, season: SUMMER, cost: "free",
     tags: [],
     intro: "A zero-depth splash pad with button-timed spray zones in downtown Cologne's City Square Park — it shuts off below 70 degrees.",
@@ -1154,7 +1209,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "lakeside-commons-splash-pad", name: "Lakeside Commons Park Splash Pad", kind: "splash-pad",
-    lat: 45.1725, lng: -93.2080, address: "3020 Lakes Parkway NE, Blaine, MN 55449",
+    // Pin re-read 9 Nov 2026 off the April 2025 aerial photo, was 45.1725,-93.2080 (2.4km off): the pad, high confidence (docs/PLACES-PIN-AUDIT-NOV-2026.md).
+    lat: 45.191544, lng: -93.192617, address: "3020 Lakes Parkway NE, Blaine, MN 55449",
     city: "Blaine", neighborhood: null, season: SUMMER, cost: "free",
     tags: ["adjacent-playground", "restrooms"],
     intro: "A free splash pad next to the beach and playground at Blaine's Lakeside Commons, with restrooms in the beach house.",
@@ -1183,7 +1239,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "huset-park-splash-pad", name: "Huset Park Splash Pad", kind: "splash-pad",
-    lat: 45.0407, lng: -93.2470, address: "520 Mill St NE, Columbia Heights, MN 55421",
+    // Pin re-read 9 Nov 2026 off the April 2025 aerial photo, was 45.0407,-93.2470 (934m off): the pad, medium confidence (docs/PLACES-PIN-AUDIT-NOV-2026.md).
+    lat: 45.039192, lng: -93.258700, address: "520 Mill St NE, Columbia Heights, MN 55421",
     city: "Columbia Heights", neighborhood: null, season: SUMMER, cost: "free",
     tags: ["adjacent-playground", "shade"],
     intro: "Columbia Heights' Huset Park splash pad — 40-plus sprayers under a triple-sail shade system, next to the playground.",
@@ -1193,7 +1250,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "becker-park-splash-pad", name: "Becker Park Splash Pad", kind: "splash-pad",
-    lat: 45.05193, lng: -93.36014, address: "5530 Douglas Dr N, Crystal, MN 55429",
+    // Pin re-read 9 Nov 2026 off the April 2025 aerial photo, was 45.05193,-93.36014 (199m off): the pad, medium confidence (docs/PLACES-PIN-AUDIT-NOV-2026.md).
+    lat: 45.053718, lng: -93.360228, address: "5530 Douglas Dr N, Crystal, MN 55429",
     city: "Crystal", neighborhood: null, season: SUMMER, cost: "free",
     tags: ["adjacent-playground", "restrooms"],
     intro: "Crystal's splash pad sits at the center of the rebuilt, inclusive Becker Park playground, with a small restroom building in the park.",
@@ -1203,7 +1261,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "manor-park-splash-pad", name: "Manor Park Splash Pad", kind: "splash-pad",
-    lat: 45.0108, lng: -93.3256, address: "3129 Abbott Ave N, Robbinsdale, MN 55422",
+    // Pin re-read 9 Nov 2026 off the April 2025 aerial photo, was 45.0108,-93.3256 (309m off): the pad, medium confidence (docs/PLACES-PIN-AUDIT-NOV-2026.md).
+    lat: 45.012911, lng: -93.323034, address: "3129 Abbott Ave N, Robbinsdale, MN 55422",
     city: "Robbinsdale", neighborhood: null, season: SUMMER, cost: "free",
     tags: ["adjacent-playground"],
     intro: "Buckets and fountains at Robbinsdale's Manor Park, with a playground, picnic shelter, and a tennis court alongside.",
@@ -1576,7 +1635,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "theodore-wirth-regional-park", name: "Theodore Wirth Regional Park", kind: "park",
-    lat: 44.9880, lng: -93.3200, address: "1221 Theodore Wirth Pkwy, Minneapolis, MN 55411",
+    // Pin re-read 9 Nov 2026 off the April 2025 aerial photo, was 44.9880,-93.3200 (643m off): the main arrival point, medium confidence (docs/PLACES-PIN-AUDIT-NOV-2026.md).
+    lat: 44.991639, lng: -93.326351, address: "1221 Theodore Wirth Pkwy, Minneapolis, MN 55411",
     city: "Minneapolis", neighborhood: null, season: YEAR_ROUND, cost: "free",
     tags: ["trails", "disc-golf"],
     intro: "The metro's biggest city park — mountain-bike singletrack, a wildflower garden, a swimming beach, and the Loppet's Trailhead for winter skiing, all a few minutes from downtown.",
@@ -1585,7 +1645,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "como-regional-park", name: "Como Regional Park", kind: "park",
-    lat: 44.9820, lng: -93.1500, address: "1199 Midway Pkwy, Saint Paul, MN 55103",
+    // Pin re-read 9 Nov 2026 off the April 2025 aerial photo, was 44.9820,-93.1500 (191m off): the main arrival point, medium confidence (docs/PLACES-PIN-AUDIT-NOV-2026.md).
+    lat: 44.981416, lng: -93.152286, address: "1199 Midway Pkwy, Saint Paul, MN 55103",
     city: "St. Paul", neighborhood: "como", season: YEAR_ROUND, cost: "free",
     tags: ["trails"],
     intro: "The free zoo, the glass conservatory that stays 75 degrees in February, the lakeside pavilion, and a whole day's worth of paths around Como Lake.",
@@ -1594,7 +1655,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "lebanon-hills-regional-park", name: "Lebanon Hills Regional Park", kind: "park",
-    lat: 44.7830, lng: -93.1850, address: "860 Cliff Rd, Eagan, MN 55123",
+    // Pin re-read 9 Nov 2026 off the April 2025 aerial photo, was 44.7830,-93.1850 (4.5km off): the main arrival point, high confidence (docs/PLACES-PIN-AUDIT-NOV-2026.md).
+    lat: 44.786470, lng: -93.128772, address: "860 Cliff Rd, Eagan, MN 55123",
     city: "Eagan", neighborhood: null, season: YEAR_ROUND, cost: "free",
     tags: ["trails", "fishing-pier", "dog-friendly"],
     intro: "Dakota County's biggest park — nearly 2,000 acres of trails, lakes, a swimming beach at Schulze Lake, canoe routes, and camping on the metro's south edge.",
@@ -1603,7 +1665,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "hyland-lake-park-reserve", name: "Hyland Lake Park Reserve", kind: "park",
-    lat: 44.8330, lng: -93.3780, address: "10145 Bush Lake Rd, Bloomington, MN 55438",
+    // Pin re-read 9 Nov 2026 off the April 2025 aerial photo, was 44.8330,-93.3780 (1.0km off): the main arrival point, high confidence (docs/PLACES-PIN-AUDIT-NOV-2026.md).
+    lat: 44.824825, lng: -93.371668, address: "10145 Bush Lake Rd, Bloomington, MN 55438",
     city: "Bloomington", neighborhood: null, season: YEAR_ROUND, cost: "free",
     tags: ["trails", "disc-golf"],
     intro: "Bloomington's big Three Rivers reserve — the award-winning Chutes and Ladders playground, a visitor center, prairie-and-woods trails, and a chairlift-served tubing hill in winter.",
@@ -1612,7 +1675,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "elm-creek-park-reserve", name: "Elm Creek Park Reserve", kind: "park",
-    lat: 45.1550, lng: -93.4550, address: "12400 James Deane Pkwy, Maple Grove, MN 55369",
+    // Pin re-read 9 Nov 2026 off the April 2025 aerial photo, was 45.1550,-93.4550 (2.3km off): the main arrival point, medium confidence (docs/PLACES-PIN-AUDIT-NOV-2026.md).
+    lat: 45.138157, lng: -93.437946, address: "12400 James Deane Pkwy, Maple Grove, MN 55369",
     city: "Maple Grove", neighborhood: null, season: YEAR_ROUND, cost: "free",
     tags: ["trails", "disc-golf"],
     intro: "The largest park in the Three Rivers district — 5,300 acres of trails, a swim pond, a nature center, and a tubing-and-ski hill, on the metro's northwest edge.",
@@ -1621,7 +1685,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "silverwood-park", name: "Silverwood Park", kind: "park",
-    lat: 45.0330, lng: -93.2200, address: "2500 County Rd E W, St. Anthony, MN 55421",
+    // Pin re-read 9 Nov 2026 off the April 2025 aerial photo, was 45.0330,-93.2200 (1.6km off): the main arrival point, high confidence (docs/PLACES-PIN-AUDIT-NOV-2026.md).
+    lat: 45.047193, lng: -93.225664, address: "2500 County Rd E W, St. Anthony, MN 55421",
     city: "St. Anthony", neighborhood: null, season: YEAR_ROUND, cost: "free",
     tags: ["trails", "fishing-pier"],
     intro: "A Three Rivers park built around art and nature on Silver Lake — a gallery and café in the visitor center, restored prairie and oak woods, and classes year-round.",
@@ -1640,7 +1705,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "battle-creek-regional-park", name: "Battle Creek Regional Park", kind: "park",
-    lat: 44.9380, lng: -93.0100, address: "2300 Upper Afton Rd, Maplewood, MN 55119",
+    // Pin re-read 9 Nov 2026 off the April 2025 aerial photo, was 44.9380,-93.0100 (926m off): the main arrival point, high confidence (docs/PLACES-PIN-AUDIT-NOV-2026.md).
+    lat: 44.943659, lng: -93.001376, address: "2300 Upper Afton Rd, Maplewood, MN 55119",
     city: "Maplewood", neighborhood: null, season: YEAR_ROUND, cost: "free",
     tags: ["trails", "dog-friendly"],
     intro: "A big east-metro Ramsey County park — paved and mountain-bike trails, a dog park, and the seasonal Battle Creek Waterworks splash park for the under-10 crowd.",
@@ -1649,7 +1715,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "gold-medal-park", name: "Gold Medal Park", kind: "park",
-    lat: 44.9770, lng: -93.2560, address: "2nd St & 11th Ave S, Minneapolis, MN 55415",
+    // Pin re-read 9 Nov 2026 off the April 2025 aerial photo, was 44.9770,-93.2560 (226m off): the main arrival point, high confidence (docs/PLACES-PIN-AUDIT-NOV-2026.md).
+    lat: 44.977764, lng: -93.253333, address: "2nd St & 11th Ave S, Minneapolis, MN 55415",
     city: "Minneapolis", neighborhood: "downtown-minneapolis", season: YEAR_ROUND, cost: "free",
     tags: ["trails"],
     intro: "The spiral-mound park behind the Guthrie in Downtown East — climb the 32-foot mound for a river-and-skyline view, best at dusk. Privately built, always free.",
@@ -1658,7 +1725,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "bunker-hills-regional-park", name: "Bunker Hills Regional Park", kind: "park",
-    lat: 45.1980, lng: -93.2760, address: "701 County Pkwy A, Coon Rapids, MN 55433",
+    // Pin re-read 9 Nov 2026 off the April 2025 aerial photo, was 45.1980,-93.2760 (1.5km off): the main arrival point, medium confidence (docs/PLACES-PIN-AUDIT-NOV-2026.md).
+    lat: 45.210114, lng: -93.285255, address: "701 County Pkwy A, Coon Rapids, MN 55433",
     city: "Coon Rapids", neighborhood: null, season: YEAR_ROUND, cost: "free",
     tags: ["trails", "dog-friendly"],
     intro: "Anoka County's 1,700-acre park in Coon Rapids — 10-plus miles of trails, archery, camping, and Bunker Beach water park in summer. (A vehicle permit is required to enter.)",
@@ -1667,7 +1735,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "boom-island-park", name: "Boom Island Park", kind: "park",
-    lat: 44.9920, lng: -93.2630, address: "Sibley St NE, Minneapolis, MN 55413",
+    // Pin re-read 9 Nov 2026 off the April 2025 aerial photo, was 44.9920,-93.2630 (545m off): the main arrival point, medium confidence (docs/PLACES-PIN-AUDIT-NOV-2026.md).
+    lat: 44.992910, lng: -93.269815, address: "Sibley St NE, Minneapolis, MN 55413",
     city: "Minneapolis", neighborhood: "northeast", season: YEAR_ROUND, cost: "free",
     tags: ["trails", "fishing-pier"],
     intro: "A riverfront park on the Mississippi in Northeast — a little lighthouse, a paddleboat dock, a playground, and the Nicollet Island footbridge into the old milling district.",
@@ -1676,7 +1745,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "crosby-farm-regional-park", name: "Crosby Farm Regional Park", kind: "park",
-    lat: 44.9050, lng: -93.1800, address: "2595 Crosby Farm Rd, Saint Paul, MN 55116",
+    // Pin re-read 9 Nov 2026 off the April 2025 aerial photo, was 44.9050,-93.1800 (1.4km off): the main arrival point, high confidence (docs/PLACES-PIN-AUDIT-NOV-2026.md).
+    lat: 44.897709, lng: -93.165952, address: "2595 Crosby Farm Rd, Saint Paul, MN 55116",
     city: "St. Paul", neighborhood: "highland-park", season: YEAR_ROUND, cost: "free",
     tags: ["trails", "fishing-pier"],
     intro: "St. Paul's largest natural park — nearly seven miles of paved trail through floodplain forest along the Mississippi and around Crosby Lake, below the Highland bluff.",
@@ -1913,7 +1983,8 @@ export const PLACES: Place[] = [
   // ── Sledding hills (P2.1 — winter) ───────────────────────────────────────
   {
     slug: "theodore-wirth-sledding-hill", name: "Theodore Wirth Sledding Hill", kind: "sledding",
-    lat: 44.9980, lng: -93.3180, address: "Theodore Wirth Pkwy, Minneapolis, MN 55422",
+    // Pin re-read 9 Nov 2026 off the April 2025 aerial photo, was 44.9980,-93.3180 (641m off): the slope, medium confidence (docs/PLACES-PIN-AUDIT-NOV-2026.md).
+    lat: 44.993213, lng: -93.322538, address: "Theodore Wirth Pkwy, Minneapolis, MN 55422",
     city: "Minneapolis", neighborhood: null, season: WINTER, cost: "free",
     tags: ["steep", "parking-nearby"],
     intro: "The metro's marquee sledding hill, just north of the Wirth Chalet — long runs with a warming chalet steps away, open 7 am to 9 pm all winter.",
@@ -1931,7 +2002,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "powderhorn-park-sledding-hill", name: "Powderhorn Park Sledding Hill", kind: "sledding",
-    lat: 44.9380, lng: -93.2640, address: "3400 15th Ave S, Minneapolis, MN 55407",
+    // Pin re-read 9 Nov 2026 off the April 2025 aerial photo, was 44.9380,-93.2640 (683m off): the slope, medium confidence (docs/PLACES-PIN-AUDIT-NOV-2026.md).
+    lat: 44.943075, lng: -93.259113, address: "3400 15th Ave S, Minneapolis, MN 55407",
     city: "Minneapolis", neighborhood: "south-minneapolis", season: WINTER, cost: "free",
     tags: ["gentle"],
     intro: "The west slope above Powderhorn Lake in south Minneapolis — a friendly neighborhood hill, and home each January to the gloriously absurd Art Sled Rally.",
@@ -1994,7 +2066,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "staring-lake-sledding-hill", name: "Staring Lake Sledding Hill", kind: "sledding",
-    lat: 44.8530, lng: -93.4650, address: "14800 Pioneer Trail, Eden Prairie, MN 55347",
+    // Pin re-read 9 Nov 2026 off the April 2025 aerial photo, was 44.8530,-93.4650 (1.9km off): the slope, medium confidence (docs/PLACES-PIN-AUDIT-NOV-2026.md).
+    lat: 44.835953, lng: -93.462197, address: "14800 Pioneer Trail, Eden Prairie, MN 55347",
     city: "Eden Prairie", neighborhood: null, season: WINTER, cost: "free",
     tags: ["steep", "parking-nearby"],
     intro: "Eden Prairie's 700-foot mega hill at Staring Lake — one of the metro's longest sled runs, with parking and the amphitheater nearby.",
@@ -2042,7 +2115,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "hyland-lake-sledding-hill", name: "Hyland Lake Park Reserve Sledding Hill", kind: "sledding",
-    lat: 44.8636, lng: -93.3936, address: "10145 Bush Lake Rd, Bloomington, MN 55438",
+    // Pin re-read 9 Nov 2026 off the April 2025 aerial photo, was 44.8636,-93.3936 (2.8km off): the slope, medium confidence (docs/PLACES-PIN-AUDIT-NOV-2026.md).
+    lat: 44.842814, lng: -93.372651, address: "10145 Bush Lake Rd, Bloomington, MN 55438",
     city: "Bloomington", neighborhood: null, season: WINTER, cost: "free",
     tags: [],
     intro: "Free sledding in the shadow of the Hyland ski hill, with the chalet and nine and a half miles of groomed ski trail on the same site.",
@@ -3520,7 +3594,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "lake-of-the-isles-off-leash-dog-park", name: "Lake of the Isles Off-Leash Dog Park", kind: "dog-park",
-    lat: 44.9548, lng: -93.3082, address: "2845 W Lake of the Isles Parkway, Minneapolis, MN 55405",
+    // Pin re-read 9 Nov 2026 off the April 2025 aerial photo, was 44.9548,-93.3082 (418m off): the off-leash area, high confidence (docs/PLACES-PIN-AUDIT-NOV-2026.md).
+    lat: 44.951072, lng: -93.308898, address: "2845 W Lake of the Isles Parkway, Minneapolis, MN 55405",
     city: "Minneapolis", neighborhood: null, season: YEAR_ROUND, cost: "paid",
     tags: ["fenced", "small-dog-area", "permit"],
     intro: "A fully fenced 1.87-acre run on the southwest lakes, with a separate pen for small dogs. MPRB permit, annual or daily.",
@@ -3540,7 +3615,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "victory-prairie-off-leash-dog-park", name: "Victory Prairie Off-Leash Dog Park", kind: "dog-park",
-    lat: 45.0355, lng: -93.3095, address: "4701 Russell Ave N, Minneapolis, MN 55412",
+    // Pin re-read 9 Nov 2026 off the April 2025 aerial photo, was 45.0355,-93.3095 (580m off): the off-leash area, medium confidence (docs/PLACES-PIN-AUDIT-NOV-2026.md).
+    lat: 45.040207, lng: -93.312715, address: "4701 Russell Ave N, Minneapolis, MN 55412",
     city: "Minneapolis", neighborhood: null, season: YEAR_ROUND, cost: "paid",
     tags: ["fenced", "permit"],
     intro: "A fenced 2.62-acre run on the North Side, with walking paths and prairie views. MPRB permit, annual or daily.",
@@ -3560,7 +3636,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "st-anthony-parkway-off-leash-dog-park", name: "St. Anthony Parkway Off-Leash Dog Park", kind: "dog-park",
-    lat: 45.0228, lng: -93.2472, address: "700 St. Anthony Parkway, Minneapolis, MN 55418",
+    // Pin re-read 9 Nov 2026 off the April 2025 aerial photo, was 45.0228,-93.2472 (706m off): the off-leash area, medium confidence (docs/PLACES-PIN-AUDIT-NOV-2026.md).
+    lat: 45.024243, lng: -93.255950, address: "700 St. Anthony Parkway, Minneapolis, MN 55418",
     city: "Minneapolis", neighborhood: null, season: YEAR_ROUND, cost: "paid",
     tags: ["fenced", "permit"],
     intro: "A fenced 2.17-acre run along the parkway with Mississippi River views, across from the Columbia golf learning center. MPRB permit required.",
@@ -3570,7 +3647,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "dinky-off-leash-dog-park", name: "Dinky Off-Leash Dog Park", kind: "dog-park",
-    lat: 44.9848, lng: -93.2265, address: "711 11th Ave SE, Minneapolis, MN 55414",
+    // Pin re-read 9 Nov 2026 off the April 2025 aerial photo, was 44.9848,-93.2265 (888m off): the off-leash area, medium confidence (docs/PLACES-PIN-AUDIT-NOV-2026.md).
+    lat: 44.986031, lng: -93.237657, address: "711 11th Ave SE, Minneapolis, MN 55414",
     city: "Minneapolis", neighborhood: null, season: YEAR_ROUND, cost: "paid",
     tags: ["fenced", "permit"],
     intro: "Tiny — 0.08 acres — but fenced and stocked with agility equipment, tucked by Dinkytown. MPRB permit required.",
@@ -3590,7 +3668,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "lyndale-farmstead-off-leash-dog-park", name: "Lyndale Farmstead Off-Leash Dog Park", kind: "dog-park",
-    lat: 44.9262, lng: -93.2938, address: "3845 Dupont Ave S, Minneapolis, MN 55409",
+    // Pin re-read 9 Nov 2026 off the April 2025 aerial photo, was 44.9262,-93.2938 (699m off): the off-leash area, medium confidence (docs/PLACES-PIN-AUDIT-NOV-2026.md).
+    lat: 44.932443, lng: -93.292784, address: "3845 Dupont Ave S, Minneapolis, MN 55409",
     city: "Minneapolis", neighborhood: null, season: YEAR_ROUND, cost: "paid",
     tags: ["fenced", "permit"],
     intro: "A fenced 0.62-acre run behind the Lyndale Farmstead, surfaced in crushed granite because it doubles as stormwater storage. MPRB permit required.",
@@ -3602,7 +3681,8 @@ export const PLACES: Place[] = [
   // -- Three Rivers Park District — all require a Three Rivers off-leash dog pass --
   {
     slug: "bryant-lake-dog-off-leash-area", name: "Bryant Lake Dog Off-Leash Area", kind: "dog-park",
-    lat: 44.8757, lng: -93.4492, address: "6402 Rowland Road, Eden Prairie, MN 55344",
+    // Pin re-read 9 Nov 2026 off the April 2025 aerial photo, was 44.8757,-93.4492 (1.8km off): the off-leash area, medium confidence (docs/PLACES-PIN-AUDIT-NOV-2026.md).
+    lat: 44.886839, lng: -93.432715, address: "6402 Rowland Road, Eden Prairie, MN 55344",
     city: "Eden Prairie", neighborhood: null, season: YEAR_ROUND, cost: "paid",
     tags: ["fenced", "small-dog-area", "water-access"],
     intro: "9.3 fenced acres in Eden Prairie with a small-dog section, double-gated entry, and water access. Three Rivers dog pass, annual or daily.",
@@ -3612,7 +3692,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "carver-dog-off-leash-area", name: "Carver Dog Off-Leash Area", kind: "dog-park",
-    lat: 44.8821, lng: -93.7031, address: "7200 Park Drive, Victoria, MN 55386",
+    // Pin re-read 9 Nov 2026 off the April 2025 aerial photo, was 44.8821,-93.7031 (3.9km off): the off-leash area, high confidence (docs/PLACES-PIN-AUDIT-NOV-2026.md).
+    lat: 44.873811, lng: -93.654719, address: "7200 Park Drive, Victoria, MN 55386",
     city: "Victoria", neighborhood: null, season: YEAR_ROUND, cost: "paid",
     tags: ["fenced", "small-dog-area"],
     intro: "Twenty-seven fully fenced acres in Carver Park Reserve, with a small/frail-dog section and dog-walking trails. Three Rivers pass required.",
@@ -3622,7 +3703,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "cleary-lake-dog-off-leash-area", name: "Cleary Lake Dog Off-Leash Area", kind: "dog-park",
-    lat: 44.6742, lng: -93.3806, address: "6246 190th Street East, Prior Lake, MN 55372",
+    // Pin re-read 9 Nov 2026 off the April 2025 aerial photo, was 44.6742,-93.3806 (1.1km off): the off-leash area, medium confidence (docs/PLACES-PIN-AUDIT-NOV-2026.md).
+    lat: 44.675476, lng: -93.393786, address: "6246 190th Street East, Prior Lake, MN 55372",
     city: "Prior Lake", neighborhood: null, season: YEAR_ROUND, cost: "paid",
     tags: ["fenced", "water-access"],
     intro: "Twenty-eight fenced acres around a wetland pond in Cleary Lake Regional Park. Three Rivers pass, annual or daily.",
@@ -3632,7 +3714,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "crow-hassan-dog-off-leash-area", name: "Crow-Hassan Dog Off-Leash Area", kind: "dog-park",
-    lat: 45.1918, lng: -93.6636, address: "27100 Territorial Road, Rogers, MN 55374",
+    // Pin re-read 9 Nov 2026 off the April 2025 aerial photo, was 45.1918,-93.6636 (3.7km off): the off-leash area, high confidence (docs/PLACES-PIN-AUDIT-NOV-2026.md).
+    lat: 45.207189, lng: -93.621547, address: "27100 Territorial Road, Rogers, MN 55374",
     city: "Rogers", neighborhood: null, season: YEAR_ROUND, cost: "paid",
     tags: ["unfenced", "permit"],
     intro: "The district's biggest — 40 unfenced acres of open prairie in Crow-Hassan Park Reserve, for dogs that stay close. Three Rivers pass required.",
@@ -3641,7 +3724,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "elm-creek-dog-off-leash-area", name: "Elm Creek Dog Off-Leash Area", kind: "dog-park",
-    lat: 45.1712, lng: -93.4162, address: "11750 Zachary Lane N, Champlin, MN 55316",
+    // Pin re-read 9 Nov 2026 off the April 2025 aerial photo, was 45.1712,-93.4162 (499m off): the off-leash area, medium confidence (docs/PLACES-PIN-AUDIT-NOV-2026.md).
+    lat: 45.168518, lng: -93.421298, address: "11750 Zachary Lane N, Champlin, MN 55316",
     city: "Champlin", neighborhood: null, season: YEAR_ROUND, cost: "paid",
     tags: ["fenced", "small-dog-area", "water-access"],
     intro: "Twenty-nine fenced acres in Elm Creek Park Reserve, with a fenced wetland pond for swimming and a small-dog section. Three Rivers pass required.",
@@ -3651,7 +3735,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "fish-lake-dog-off-leash-area", name: "Fish Lake Dog Off-Leash Area", kind: "dog-park",
-    lat: 45.0927, lng: -93.4719, address: "14900 Bass Lake Road, Maple Grove, MN 55311",
+    // Pin re-read 9 Nov 2026 off the April 2025 aerial photo, was 45.0927,-93.4719 (1.3km off): the off-leash area, medium confidence (docs/PLACES-PIN-AUDIT-NOV-2026.md).
+    lat: 45.081562, lng: -93.465299, address: "14900 Bass Lake Road, Maple Grove, MN 55311",
     city: "Maple Grove", neighborhood: null, season: YEAR_ROUND, cost: "paid",
     tags: ["fenced"],
     intro: "A fenced 6.7-acre run in Fish Lake Regional Park, Maple Grove. Three Rivers pass, annual or daily.",
@@ -3660,7 +3745,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "lake-sarah-dog-off-leash-area", name: "Lake Sarah Dog Off-Leash Area", kind: "dog-park",
-    lat: 45.0428, lng: -93.7524, address: "6670 West Sarah Lake Drive, Rockford, MN 55373",
+    // Pin re-read 9 Nov 2026 off the April 2025 aerial photo, was 45.0428,-93.7524 (4.7km off): the off-leash area, high confidence (docs/PLACES-PIN-AUDIT-NOV-2026.md).
+    lat: 45.072917, lng: -93.711225, address: "6670 West Sarah Lake Drive, Rockford, MN 55373",
     city: "Rockford", neighborhood: null, season: YEAR_ROUND, cost: "paid",
     tags: ["fenced"],
     intro: "About thirty fenced acres near Lake Rebecca, out in Rockford, with occasional Wednesday-morning maintenance closures. Three Rivers pass required.",
@@ -3690,7 +3776,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "spring-lake-dog-off-leash-area", name: "Spring Lake Dog Off-Leash Area", kind: "dog-park",
-    lat: 44.7351, lng: -93.4948, address: "15851 Howard Lake Road NW, Prior Lake, MN 55372",
+    // Pin re-read 9 Nov 2026 off the April 2025 aerial photo, was 44.7351,-93.4948 (2.8km off): the off-leash area, medium confidence (docs/PLACES-PIN-AUDIT-NOV-2026.md).
+    lat: 44.715506, lng: -93.473183, address: "15851 Howard Lake Road NW, Prior Lake, MN 55372",
     city: "Prior Lake", neighborhood: null, season: YEAR_ROUND, cost: "paid",
     tags: ["fenced", "small-dog-area", "water-access"],
     intro: "Ten fenced acres in Prior Lake — nine for big dogs and one for small, with a watering station. Three Rivers pass required.",
@@ -3702,7 +3789,8 @@ export const PLACES: Place[] = [
   // -- St. Paul + Ramsey County — all free (some want a home dog license) --
   {
     slug: "arlington-arkwright-off-leash-dog-area", name: "Arlington/Arkwright Off-Leash Dog Area", kind: "dog-park",
-    lat: 44.9862, lng: -93.0952, address: "400 Arlington Ave E, St. Paul, MN 55130",
+    // Pin re-read 9 Nov 2026 off the April 2025 aerial photo, was 44.9862,-93.0952 (1.1km off): the off-leash area, medium confidence (docs/PLACES-PIN-AUDIT-NOV-2026.md).
+    lat: 44.981709, lng: -93.082349, address: "400 Arlington Ave E, St. Paul, MN 55130",
     city: "St. Paul", neighborhood: null, season: YEAR_ROUND, cost: "free",
     tags: ["unfenced"],
     intro: "Nearly five acres of wooded trails and an open bowl on the East Side, gated at the park perimeter rather than fully fenced. No on-site water. Free.",
@@ -3712,7 +3800,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "high-bridge-off-leash-dog-park", name: "High Bridge Off-Leash Dog Park", kind: "dog-park",
-    lat: 44.9300, lng: -93.1130, address: "59 Randolph Ave, St. Paul, MN 55102",
+    // Pin re-read 9 Nov 2026 off the April 2025 aerial photo, was 44.9300,-93.1130 (588m off): the off-leash area, medium confidence (docs/PLACES-PIN-AUDIT-NOV-2026.md).
+    lat: 44.934042, lng: -93.108171, address: "59 Randolph Ave, St. Paul, MN 55102",
     city: "St. Paul", neighborhood: null, season: YEAR_ROUND, cost: "free",
     tags: ["fenced"],
     intro: "Seven fully fenced acres on a cleaned-up former power-plant lot on the West Side. No on-site water. Free.",
@@ -3731,7 +3820,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "lowertown-off-leash-dog-park", name: "Lowertown Off-Leash Dog Park", kind: "dog-park",
-    lat: 44.9482, lng: -93.0845, address: "386 Broadway St, St. Paul, MN 55101",
+    // Pin re-read 9 Nov 2026 off the April 2025 aerial photo, was 44.9482,-93.0845 (407m off): the off-leash area, medium confidence (docs/PLACES-PIN-AUDIT-NOV-2026.md).
+    lat: 44.951533, lng: -93.082353, address: "386 Broadway St, St. Paul, MN 55101",
     city: "St. Paul", neighborhood: null, season: YEAR_ROUND, cost: "free",
     tags: ["fenced"],
     intro: "A fully fenced run near CHS Field in Lowertown, rebuilt when the ballpark went up. Free.",
@@ -3741,7 +3831,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "lilydale-off-leash-dog-park", name: "Lilydale Off-Leash Dog Park", kind: "dog-park",
-    lat: 44.9130, lng: -93.1180, address: "400 Water St, St. Paul, MN 55107",
+    // Pin re-read 9 Nov 2026 off the April 2025 aerial photo, was 44.9130,-93.1180 (953m off): the off-leash area, medium confidence (docs/PLACES-PIN-AUDIT-NOV-2026.md).
+    lat: 44.915248, lng: -93.129674, address: "400 Water St, St. Paul, MN 55107",
     city: "St. Paul", neighborhood: null, season: YEAR_ROUND, cost: "free",
     tags: ["fenced", "small-dog-area"],
     intro: "Opened in 2022 in Lilydale Regional Park, with separate fenced large- and small-dog areas. Park in the boat-launch lot. Free.",
@@ -3751,7 +3842,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "unci-makha-off-leash-dog-park", name: "Unci Makha Off-Leash Dog Park", kind: "dog-park",
-    lat: 44.9155, lng: -93.1800, address: "2230 Montreal Ave, St. Paul, MN 55116",
+    // Pin re-read 9 Nov 2026 off the April 2025 aerial photo, was 44.9155,-93.1800 (1.1km off): the off-leash area, high confidence (docs/PLACES-PIN-AUDIT-NOV-2026.md).
+    lat: 44.912401, lng: -93.193024, address: "2230 Montreal Ave, St. Paul, MN 55116",
     city: "St. Paul", neighborhood: null, season: YEAR_ROUND, cost: "free",
     tags: ["fenced", "small-dog-area"],
     intro: "In the Highland Bridge development, two fenced areas — one for high-energy dogs, one calmer with a picnic shelter. Free.",
@@ -3761,7 +3853,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "battle-creek-off-leash-dog-area", name: "Battle Creek Off-Leash Dog Area", kind: "dog-park",
-    lat: 44.9375, lng: -93.0005, address: "2300 Upper Afton Road, Maplewood, MN 55119",
+    // Pin re-read 9 Nov 2026 off the April 2025 aerial photo, was 44.9375,-93.0005 (278m off): the off-leash area, medium confidence (docs/PLACES-PIN-AUDIT-NOV-2026.md).
+    lat: 44.939881, lng: -93.001580, address: "2300 Upper Afton Road, Maplewood, MN 55119",
     city: "Maplewood", neighborhood: null, season: YEAR_ROUND, cost: "free",
     tags: ["fenced", "small-dog-area"],
     intro: "Ramsey County's biggest — 35 fenced acres in Maplewood with trails, natural swamp, and a section for dogs under 30 pounds. Free, 6am–10pm.",
@@ -3771,7 +3864,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "rice-creek-off-leash-dog-area", name: "Rice Creek Off-Leash Dog Area", kind: "dog-park",
-    lat: 45.0785, lng: -93.1470, address: "2375 County Road I, Shoreview, MN 55112",
+    // Pin re-read 9 Nov 2026 off the April 2025 aerial photo, was 45.0785,-93.1470 (4.7km off): the off-leash area, high confidence (docs/PLACES-PIN-AUDIT-NOV-2026.md).
+    lat: 45.118237, lng: -93.166514, address: "2375 County Road I, Shoreview, MN 55112",
     city: "Shoreview", neighborhood: null, season: YEAR_ROUND, cost: "free",
     tags: ["fenced", "small-dog-area", "water-access"],
     intro: "About thirteen fenced acres along the Rice Creek trail in Shoreview, with prairie paths, water access, and a small-dog area. Free.",
@@ -3781,7 +3875,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "otter-lake-off-leash-dog-area", name: "Otter Lake Off-Leash Dog Area", kind: "dog-park",
-    lat: 45.1120, lng: -93.0490, address: "750 Otter Lake Road, White Bear Township, MN 55110",
+    // Pin re-read 9 Nov 2026 off the April 2025 aerial photo, was 45.1120,-93.0490 (790m off): the off-leash area, medium confidence (docs/PLACES-PIN-AUDIT-NOV-2026.md).
+    lat: 45.114515, lng: -93.039578, address: "750 Otter Lake Road, White Bear Township, MN 55110",
     city: "White Bear Township", neighborhood: null, season: YEAR_ROUND, cost: "free",
     tags: ["fenced", "small-dog-area", "water-access"],
     intro: "About ten wooded acres in Bald Eagle–Otter Lakes Regional Park, with a footpath, water access, and a small-dog section. Free.",
@@ -3803,7 +3898,8 @@ export const PLACES: Place[] = [
   // -- North & west suburbs (city-operated) --
   {
     slug: "bloomington-nesbitt-off-leash-dog-area", name: "Bloomington Off-Leash Dog Area (Nesbitt)", kind: "dog-park",
-    lat: 44.8470, lng: -93.3765, address: "Nesbitt Ave S & W 111th St, Bloomington, MN 55438",
+    // Pin re-read 9 Nov 2026 off the April 2025 aerial photo, was 44.8470,-93.3765 (5.0km off): the off-leash area, high confidence (docs/PLACES-PIN-AUDIT-NOV-2026.md).
+    lat: 44.802501, lng: -93.363851, address: "Nesbitt Ave S & W 111th St, Bloomington, MN 55438",
     city: "Bloomington", neighborhood: null, season: YEAR_ROUND, cost: "free",
     tags: ["fenced", "water-access"],
     intro: "Twenty-five acres at Nesbitt and 111th with hills, trees, a separate fenced section, and a pond. Free, but bring proof of a current dog license and rabies shot.",
@@ -3812,7 +3908,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "flying-cloud-dog-park", name: "Flying Cloud Dog Park", kind: "dog-park",
-    lat: 44.8615, lng: -93.4300, address: "7171 Flying Cloud Dr, Eden Prairie, MN 55344",
+    // Pin re-read 9 Nov 2026 off the April 2025 aerial photo, was 44.8615,-93.4300 (1.8km off): the off-leash area, high confidence (docs/PLACES-PIN-AUDIT-NOV-2026.md).
+    lat: 44.873696, lng: -93.414257, address: "7171 Flying Cloud Dr, Eden Prairie, MN 55344",
     city: "Eden Prairie", neighborhood: null, season: YEAR_ROUND, cost: "free",
     tags: ["fenced", "small-dog-area"],
     intro: "A year-round fenced run in Eden Prairie with a separate pen for small or fragile dogs. Free, but an Eden Prairie dog license is required.",
@@ -3832,7 +3929,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "plymouth-dog-park", name: "Plymouth Dog Park", kind: "dog-park",
-    lat: 45.0475, lng: -93.5060, address: "17005 Chankahda Trail, Plymouth, MN 55446",
+    // Pin re-read 9 Nov 2026 off the April 2025 aerial photo, was 45.0475,-93.5060 (1.7km off): the off-leash area, medium confidence (docs/PLACES-PIN-AUDIT-NOV-2026.md).
+    lat: 45.060694, lng: -93.496327, address: "17005 Chankahda Trail, Plymouth, MN 55446",
     city: "Plymouth", neighborhood: null, season: YEAR_ROUND, cost: "free",
     tags: ["fenced", "small-dog-area", "water-access"],
     intro: "Plymouth's largest — fully fenced with a small-dog area and a dog swimming area. Free.",
@@ -3842,7 +3940,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "four-paws-dog-park", name: "4 Paws Dog Park", kind: "dog-park",
-    lat: 45.0140, lng: -93.4230, address: "10011 36th Ave N, Plymouth, MN 55441",
+    // Pin re-read 9 Nov 2026 off the April 2025 aerial photo, was 45.0140,-93.4230 (1.7km off): the off-leash area, medium confidence (docs/PLACES-PIN-AUDIT-NOV-2026.md).
+    lat: 45.021215, lng: -93.403363, address: "10011 36th Ave N, Plymouth, MN 55441",
     city: "Plymouth", neighborhood: null, season: YEAR_ROUND, cost: "free",
     tags: ["fenced"],
     intro: "A fenced run at Plymouth Playfield, open year-round. Free.",
@@ -3852,7 +3951,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "brookdale-dog-park", name: "Brookdale Dog Park", kind: "dog-park",
-    lat: 45.0800, lng: -93.3230, address: "7650 June Ave N, Brooklyn Park, MN 55443",
+    // Pin re-read 9 Nov 2026 off the April 2025 aerial photo, was 45.0800,-93.3230 (1.7km off): the off-leash area, medium confidence (docs/PLACES-PIN-AUDIT-NOV-2026.md).
+    lat: 45.093026, lng: -93.333429, address: "7650 June Ave N, Brooklyn Park, MN 55443",
     city: "Brooklyn Park", neighborhood: null, season: YEAR_ROUND, cost: "free",
     tags: ["fenced", "small-dog-area"],
     intro: "Fully fenced in Brooklyn Park with separate big- and small-dog areas and a double-gated entrance. Free.",
@@ -3862,7 +3962,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "swanson-dog-park", name: "Swanson Dog Park", kind: "dog-park",
-    lat: 45.1720, lng: -93.2350, address: "9230 Central Ave NE, Blaine, MN 55449",
+    // Pin re-read 9 Nov 2026 off the April 2025 aerial photo, was 45.1720,-93.2350 (3.8km off): the off-leash area, medium confidence (docs/PLACES-PIN-AUDIT-NOV-2026.md).
+    lat: 45.137929, lng: -93.236717, address: "9230 Central Ave NE, Blaine, MN 55449",
     city: "Blaine", neighborhood: null, season: YEAR_ROUND, cost: "free",
     tags: ["fenced", "small-dog-area"],
     intro: "Fenced runs for large and small dogs in Blaine, with a heated shelter and drinking fountains. Free.",
@@ -3882,7 +3983,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "bassett-creek-dog-park", name: "Bassett Creek Dog Park", kind: "dog-park",
-    lat: 45.0120, lng: -93.3610, address: "6029 32nd Ave N, Crystal, MN 55429",
+    // Pin re-read 9 Nov 2026 off the April 2025 aerial photo, was 45.0120,-93.3610 (383m off): the off-leash area, medium confidence (docs/PLACES-PIN-AUDIT-NOV-2026.md).
+    lat: 45.011101, lng: -93.356297, address: "6029 32nd Ave N, Crystal, MN 55429",
     city: "Crystal", neighborhood: null, season: YEAR_ROUND, cost: "free",
     tags: ["fenced", "small-dog-area", "water-access"],
     intro: "A grassy, shaded run in Crystal with a separate pen for small or shy dogs and a water spigot. Free; two dogs per handler.",
@@ -3892,7 +3994,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "new-hope-lions-off-leash-area", name: "Lions Park Off-Leash Area (New Hope)", kind: "dog-park",
-    lat: 45.0180, lng: -93.3830, address: "3810 Oregon Ave N, New Hope, MN 55427",
+    // Pin re-read 9 Nov 2026 off the April 2025 aerial photo, was 45.0180,-93.3830 (1.3km off): the off-leash area, medium confidence (docs/PLACES-PIN-AUDIT-NOV-2026.md).
+    lat: 45.016498, lng: -93.367141, address: "3810 Oregon Ave N, New Hope, MN 55427",
     city: "New Hope", neighborhood: null, season: WARM_SEASON, cost: "free",
     tags: ["fenced"],
     intro: "A grassy off-leash enclosure with a wooded nature strip in New Hope. Seasonal, April–October, daylight hours. Free.",
@@ -3902,7 +4005,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "new-hope-liberty-off-leash-area", name: "Liberty Park Off-Leash Area (New Hope)", kind: "dog-park",
-    lat: 45.0560, lng: -93.3870, address: "9015 60th Ave N, New Hope, MN 55428",
+    // Pin re-read 9 Nov 2026 off the April 2025 aerial photo, was 45.0560,-93.3870 (861m off): the off-leash area, medium confidence (docs/PLACES-PIN-AUDIT-NOV-2026.md).
+    lat: 45.061377, lng: -93.394889, address: "9015 60th Ave N, New Hope, MN 55428",
     city: "New Hope", neighborhood: null, season: WARM_SEASON, cost: "free",
     tags: ["fenced"],
     intro: "A fenced run inside the outdoor hockey-rink enclosure in New Hope. Seasonal, April–October. Free.",
@@ -3912,7 +4016,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "gearty-park-off-leash-pet-area", name: "Gearty Park Off-Leash Pet Area", kind: "dog-park",
-    lat: 45.0000, lng: -93.3450, address: "3101 Regent Ave N, Golden Valley, MN 55422",
+    // Pin re-read 9 Nov 2026 off the April 2025 aerial photo, was 45.0000,-93.3450 (269m off): the off-leash area, high confidence (docs/PLACES-PIN-AUDIT-NOV-2026.md).
+    lat: 44.997590, lng: -93.344708, address: "3101 Regent Ave N, Golden Valley, MN 55422",
     city: "Golden Valley", neighborhood: null, season: WARM_SEASON, cost: "free",
     tags: ["fenced"],
     intro: "Set up in the outdoor hockey rink spring through fall, then closed when the ice goes in. Golden Valley; pets licensed and vaccinated. Free.",
@@ -3921,7 +4026,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "golden-valley-lions-off-leash-pet-area", name: "Lions Park Off-Leash Pet Area (Golden Valley)", kind: "dog-park",
-    lat: 44.9880, lng: -93.3620, address: "151 Louisiana Ave N, Golden Valley, MN 55427",
+    // Pin re-read 9 Nov 2026 off the April 2025 aerial photo, was 44.9880,-93.3620 (1.2km off): the off-leash area, medium confidence (docs/PLACES-PIN-AUDIT-NOV-2026.md).
+    lat: 44.980241, lng: -93.372214, address: "151 Louisiana Ave N, Golden Valley, MN 55427",
     city: "Golden Valley", neighborhood: null, season: WARM_SEASON, cost: "free",
     tags: ["fenced"],
     intro: "The Louisiana Avenue hockey rink becomes an off-leash area spring through fall in Golden Valley. Free; pets licensed and vaccinated.",
@@ -3940,7 +4046,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "van-valkenburg-off-leash-dog-area", name: "Van Valkenburg Off-Leash Dog Area", kind: "dog-park",
-    lat: 44.9070, lng: -93.3800, address: "4935 Lincoln Dr, Edina, MN 55436",
+    // Pin re-read 9 Nov 2026 off the April 2025 aerial photo, was 44.9070,-93.3800 (1.7km off): the off-leash area, medium confidence (docs/PLACES-PIN-AUDIT-NOV-2026.md).
+    lat: 44.914737, lng: -93.398073, address: "4935 Lincoln Dr, Edina, MN 55436",
     city: "Edina", neighborhood: null, season: YEAR_ROUND, cost: "paid",
     tags: ["fenced", "small-dog-area", "permit"],
     intro: "A fully fenced Edina run with a small/large separation, a water fountain, and shaded seating. Off-leash permit and collar required.",
@@ -3950,7 +4057,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "roosevelt-off-leash-dog-park", name: "Roosevelt Off-Leash Dog Park", kind: "dog-park",
-    lat: 44.8710, lng: -93.2720, address: "7644 4th Ave S, Richfield, MN 55423",
+    // Pin re-read 9 Nov 2026 off the April 2025 aerial photo, was 44.8710,-93.2720 (743m off): the off-leash area, high confidence (docs/PLACES-PIN-AUDIT-NOV-2026.md).
+    lat: 44.864705, lng: -93.268829, address: "7644 4th Ave S, Richfield, MN 55423",
     city: "Richfield", neighborhood: null, season: YEAR_ROUND, cost: "free",
     tags: ["fenced", "small-dog-area"],
     intro: "Richfield's first dog park (2020), fully fenced with separate small and large areas, grooming stations, and lights. Free; a city license is required.",
@@ -3991,7 +4099,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "thresher-fields-off-leash-dog-area", name: "Thresher Fields Off-Leash Dog Area", kind: "dog-park",
-    lat: 44.8411, lng: -93.1267, address: "3200 Borchert Lane, Eagan, MN 55121",
+    // Pin re-read 9 Nov 2026 off the April 2025 aerial photo, was 44.8411,-93.1267 (444m off): the off-leash area, high confidence (docs/PLACES-PIN-AUDIT-NOV-2026.md).
+    lat: 44.837638, lng: -93.123905, address: "3200 Borchert Lane, Eagan, MN 55121",
     city: "Eagan", neighborhood: null, season: YEAR_ROUND, cost: "free",
     tags: ["fenced", "small-dog-area", "water-access"],
     intro: "Fully fenced down to the lakeshore in Eagan, with a small-dog area and seasonal water and restrooms. Free; an Eagan dog license is required.",
@@ -4011,7 +4120,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "chaska-lions-off-leash-dog-area", name: "Lions Park Off-Leash Dog Area (Chaska)", kind: "dog-park",
-    lat: 44.8060, lng: -93.5957, address: "1661 Park Ridge Drive, Chaska, MN 55318",
+    // Pin re-read 9 Nov 2026 off the April 2025 aerial photo, was 44.8060,-93.5957 (823m off): the off-leash area, medium confidence (docs/PLACES-PIN-AUDIT-NOV-2026.md).
+    lat: 44.800497, lng: -93.588724, address: "1661 Park Ridge Drive, Chaska, MN 55318",
     city: "Chaska", neighborhood: null, season: YEAR_ROUND, cost: "free",
     tags: ["fenced", "small-dog-area", "water-access"],
     intro: "Two fenced areas in Chaska — a small-dog area with a shelter, and a four-acre wooded run — with drinking and wash stations. Free.",
@@ -4021,7 +4131,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "southbridge-off-leash-dog-park", name: "Southbridge Off-Leash Dog Park", kind: "dog-park",
-    lat: 44.7793, lng: -93.4302, address: "7101 Southbridge Parkway, Shakopee, MN 55379",
+    // Pin re-read 9 Nov 2026 off the April 2025 aerial photo, was 44.7793,-93.4302 (162m off): the off-leash area, high confidence (docs/PLACES-PIN-AUDIT-NOV-2026.md).
+    lat: 44.780002, lng: -93.428405, address: "7101 Southbridge Parkway, Shakopee, MN 55379",
     city: "Shakopee", neighborhood: null, season: YEAR_ROUND, cost: "free",
     tags: ["fenced", "small-dog-area", "water-access"],
     intro: "A ten-acre all-breed run plus a half-acre small-dog area in Shakopee, with a water station and trails. Free; a Shakopee dog license is required.",
@@ -4061,7 +4172,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "stillwater-dog-park", name: "Stillwater Dog Park", kind: "dog-park",
-    lat: 45.0552, lng: -92.8126, address: "2000 Myrtle Street West, Stillwater, MN 55082",
+    // Pin re-read 9 Nov 2026 off the April 2025 aerial photo, was 45.0552,-92.8126 (1.6km off): the off-leash area, high confidence (docs/PLACES-PIN-AUDIT-NOV-2026.md).
+    lat: 45.058302, lng: -92.832676, address: "2000 Myrtle Street West, Stillwater, MN 55082",
     city: "Stillwater", neighborhood: null, season: YEAR_ROUND, cost: "free",
     tags: ["fenced"],
     intro: "A fenced off-leash park on Stillwater city parkland, run with the Friends of Stillwater Area Dog Park since 2014. Open 8am to sunset. Free.",
@@ -4071,7 +4183,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "rivertown-dog-park", name: "Rivertown Dog Park", kind: "dog-park",
-    lat: 44.7363, lng: -92.8448, address: "851 10th Street East, Hastings, MN 55033",
+    // Pin re-read 9 Nov 2026 off the April 2025 aerial photo, was 44.7363,-92.8448 (430m off): the off-leash area, medium confidence (docs/PLACES-PIN-AUDIT-NOV-2026.md).
+    lat: 44.736030, lng: -92.839371, address: "851 10th Street East, Hastings, MN 55033",
     city: "Hastings", neighborhood: null, season: YEAR_ROUND, cost: "free",
     tags: ["fenced"],
     intro: "5.5 fenced acres in Hastings, open 6am–10pm, three dogs per person. Free; dogs licensed and vaccinated.",
@@ -4081,7 +4194,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "kaposia-landing-off-leash-dog-area", name: "Kaposia Landing Off-Leash Dog Area", kind: "dog-park",
-    lat: 44.9043, lng: -93.0509, address: "800 Bryant Avenue, South St. Paul, MN 55075",
+    // Pin re-read 9 Nov 2026 off the April 2025 aerial photo, was 44.9043,-93.0509 (942m off): the off-leash area, medium confidence (docs/PLACES-PIN-AUDIT-NOV-2026.md).
+    lat: 44.912772, lng: -93.050636, address: "800 Bryant Avenue, South St. Paul, MN 55075",
     city: "South St. Paul", neighborhood: null, season: YEAR_ROUND, cost: "paid",
     tags: ["fenced", "small-dog-area", "permit"],
     intro: "A 6.3-acre fenced run along the Mississippi in South St. Paul, with a small/timid-dog area and nearly two miles of paved trails. A permit is required.",
@@ -4100,7 +4214,8 @@ export const PLACES: Place[] = [
   // and Three Rivers courses need a vehicle permit or a disc golf pass.
   {
     slug: "wabun-disc-golf", name: "Wabun Disc Golf Course", kind: "disc-golf",
-    lat: 44.9095, lng: -93.2085, address: "4655 46th Ave S, Minneapolis, MN 55406",
+    // Pin re-read 9 Nov 2026 off the April 2025 aerial photo, was 44.9095,-93.2085 (774m off): the course start or fairways, medium confidence (docs/PLACES-PIN-AUDIT-NOV-2026.md).
+    lat: 44.916273, lng: -93.206258, address: "4655 46th Ave S, Minneapolis, MN 55406",
     city: "Minneapolis", neighborhood: null, season: YEAR_ROUND, cost: "free",
     tags: ["9-hole", "beginner-friendly"],
     intro: "Nine free holes on flat, tree-lined ground at the Wabun picnic area in Minnehaha Park — short (57–83 yards), concrete tees, an easy first course. Sunrise to sunset.",
@@ -4115,7 +4230,8 @@ export const PLACES: Place[] = [
   // words. (The weekly still card keeps it to the warm season on its own.)
   {
     slug: "theodore-wirth-disc-golf", name: "Theodore Wirth Disc Golf Course", kind: "disc-golf",
-    lat: 44.9958, lng: -93.3197, address: "1325 Theodore Wirth Pkwy, Minneapolis, MN 55422",
+    // Pin re-read 9 Nov 2026 off the April 2025 aerial photo, was 44.9958,-93.3197 (913m off): the course start or fairways, medium confidence (docs/PLACES-PIN-AUDIT-NOV-2026.md).
+    lat: 44.990359, lng: -93.328397, address: "1325 Theodore Wirth Pkwy, Minneapolis, MN 55422",
     city: "Minneapolis", neighborhood: null, season: YEAR_ROUND, cost: "paid",
     tags: ["18-hole"],
     intro: "The Park Board's 18-hole par-3 course alongside the Wirth par-3 golf — 46 to 156 yards, beginner and intermediate tees, sunrise to sunset. A small fee to play.",
@@ -4125,7 +4241,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "highland-park-disc-golf", name: "Highland Park Disc Golf Course", kind: "disc-golf",
-    lat: 44.9148, lng: -93.1830, address: "1200 Montreal Ave, St. Paul, MN 55116",
+    // Pin re-read 9 Nov 2026 off the April 2025 aerial photo, was 44.9148,-93.1830 (2.2km off): the course start or fairways, medium confidence (docs/PLACES-PIN-AUDIT-NOV-2026.md).
+    lat: 44.913464, lng: -93.155258, address: "1200 Montreal Ave, St. Paul, MN 55116",
     city: "St. Paul", neighborhood: null, season: YEAR_ROUND, cost: "free",
     tags: ["18-hole"],
     intro: "St. Paul's full 18, free and open sunrise to sunset off Montreal Avenue in Highland — the city's go-to public course.",
@@ -4145,7 +4262,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "riverfront-13-disc-golf", name: "Riverfront 13 Disc Golf Course", kind: "disc-golf",
-    lat: 45.1975, lng: -93.3970, address: "Riverfront Regional Park, Anoka, MN 55303",
+    // Pin re-read 9 Nov 2026 off the April 2025 aerial photo, was 45.1975,-93.3970 (18.0km off): the course start or fairways, medium confidence (docs/PLACES-PIN-AUDIT-NOV-2026.md).
+    lat: 45.057644, lng: -93.281677, address: "Riverfront Regional Park, Anoka, MN 55303",
     city: "Anoka", neighborhood: null, season: YEAR_ROUND, cost: "paid",
     tags: ["13-hole"],
     intro: "Thirteen holes with two tee pads each along the Mississippi at Riverfront Regional Park in Anoka. A county vehicle permit is required ($7 daily / $30 annual).",
@@ -4227,7 +4345,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "red-oak-disc-golf", name: "Red Oak Park Disc Golf Course", kind: "disc-golf",
-    lat: 44.7490, lng: -93.2740, address: "12100 River Hills Dr, Burnsville, MN 55337",
+    // Pin re-read 9 Nov 2026 off the April 2025 aerial photo, was 44.7490,-93.2740 (4.9km off): the course start or fairways, medium confidence (docs/PLACES-PIN-AUDIT-NOV-2026.md).
+    lat: 44.783168, lng: -93.233850, address: "12100 River Hills Dr, Burnsville, MN 55337",
     city: "Burnsville", neighborhood: null, season: YEAR_ROUND, cost: "free",
     tags: ["20-hole", "wooded"],
     intro: "Burnsville's scenic wooded course at Red Oak Park, with multiple tees and pins set up to play 20 holes. Free, during regular park hours.",
@@ -4237,7 +4356,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "rosland-park-disc-golf", name: "Kenneth Rosland Park Disc Golf Course", kind: "disc-golf",
-    lat: 44.8760, lng: -93.3230, address: "4300 W 66th St, Edina, MN 55435",
+    // Pin re-read 9 Nov 2026 off the April 2025 aerial photo, was 44.8760,-93.3230 (1.5km off): the course start or fairways, medium confidence (docs/PLACES-PIN-AUDIT-NOV-2026.md).
+    lat: 44.885210, lng: -93.337236, address: "4300 W 66th St, Edina, MN 55435",
     city: "Edina", neighborhood: null, season: YEAR_ROUND, cost: "free",
     tags: ["free"],
     intro: "Disc golf at Kenneth Rosland Park in Edina, sharing the 22-acre park with tennis courts, ballfields, and a fishing pier. Free.",
@@ -4246,7 +4366,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "garlough-park-disc-golf", name: "Garlough Park Disc Golf Course", kind: "disc-golf",
-    lat: 44.9070, lng: -93.1050, address: "Charlton St, West St. Paul, MN 55118",
+    // Pin re-read 9 Nov 2026 off the April 2025 aerial photo, was 44.9070,-93.1050 (1.8km off): the course start or fairways, medium confidence (docs/PLACES-PIN-AUDIT-NOV-2026.md).
+    lat: 44.892452, lng: -93.095238, address: "Charlton St, West St. Paul, MN 55118",
     city: "West St. Paul", neighborhood: null, season: YEAR_ROUND, cost: "free",
     tags: ["9-hole", "wooded"],
     intro: "Nine free holes at Garlough Park in West St. Paul — a short, wooded neighborhood course.",
@@ -4256,7 +4377,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "brockway-disc-golf", name: "Brockway Park Disc Golf Course", kind: "disc-golf",
-    lat: 44.7360, lng: -93.1230, address: "13669 Bronze Pkwy, Rosemount, MN 55068",
+    // Pin re-read 9 Nov 2026 off the April 2025 aerial photo, was 44.7360,-93.1230 (1.7km off): the course start or fairways, medium confidence (docs/PLACES-PIN-AUDIT-NOV-2026.md).
+    lat: 44.751234, lng: -93.122597, address: "13669 Bronze Pkwy, Rosemount, MN 55068",
     city: "Rosemount", neighborhood: null, season: YEAR_ROUND, cost: "free",
     tags: ["10-hole"],
     intro: "Ten free holes at Brockway Park in Rosemount, an easy walk-on course on the city's south side.",
@@ -4275,7 +4397,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "north-valley-disc-golf", name: "North Valley Disc Golf Course", kind: "disc-golf",
-    lat: 44.8420, lng: -93.0510, address: "8150 Barbara Ave, Inver Grove Heights, MN 55077",
+    // Pin re-read 9 Nov 2026 off the April 2025 aerial photo, was 44.8420,-93.0510 (983m off): the course start or fairways, medium confidence (docs/PLACES-PIN-AUDIT-NOV-2026.md).
+    lat: 44.850059, lng: -93.045889, address: "8150 Barbara Ave, Inver Grove Heights, MN 55077",
     city: "Inver Grove Heights", neighborhood: null, season: YEAR_ROUND, cost: "paid",
     tags: ["18-hole"],
     intro: "An 18-hole course at North Valley Park in Inver Grove Heights. A pass is required May through September ($6 daily, season passes available); free the rest of the year.",
@@ -4285,7 +4408,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "staring-lake-disc-golf", name: "Staring Lake Park Disc Golf Course", kind: "disc-golf",
-    lat: 44.8490, lng: -93.4620, address: "Staring Lake Park, 14800 Pioneer Trail, Eden Prairie, MN 55347",
+    // Pin re-read 9 Nov 2026 off the April 2025 aerial photo, was 44.8490,-93.4620 (1.8km off): the course start or fairways, medium confidence (docs/PLACES-PIN-AUDIT-NOV-2026.md).
+    lat: 44.832719, lng: -93.458332, address: "Staring Lake Park, 14800 Pioneer Trail, Eden Prairie, MN 55347",
     city: "Eden Prairie", neighborhood: null, season: YEAR_ROUND, cost: "free",
     tags: ["9-hole"],
     intro: "A free nine-hole course at Staring Lake Park in Eden Prairie — park in the east lot and follow the trail to the first tee. Open year-round, 6am to 10pm.",
@@ -4303,7 +4427,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "shakopee-lions-disc-golf", name: "Lions Park Disc Golf Course", kind: "disc-golf",
-    lat: 44.78596, lng: -93.54089, address: "1103 Adams St S, Shakopee, MN 55379",
+    // Pin re-read 9 Nov 2026 off the April 2025 aerial photo, was 44.78596,-93.54089 (386m off): the course start or fairways, medium confidence (docs/PLACES-PIN-AUDIT-NOV-2026.md).
+    lat: 44.782726, lng: -93.539127, address: "1103 Adams St S, Shakopee, MN 55379",
     city: "Shakopee", neighborhood: null, season: YEAR_ROUND, cost: "free",
     tags: ["18-hole"],
     intro: "A free full-length 18 at Lions Park in Shakopee, off Adams Street on the south side — no fee, walk right on.",
@@ -4313,7 +4438,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "ham-lake-disc-golf", name: "Ham Lake Park Disc Golf Course", kind: "disc-golf",
-    lat: 45.2350, lng: -93.2130, address: "1843 153rd Ave NE, Ham Lake, MN 55304",
+    // Pin re-read 9 Nov 2026 off the April 2025 aerial photo, was 45.2350,-93.2130 (1.9km off): the course start or fairways, medium confidence (docs/PLACES-PIN-AUDIT-NOV-2026.md).
+    lat: 45.251234, lng: -93.222013, address: "1843 153rd Ave NE, Ham Lake, MN 55304",
     city: "Ham Lake", neighborhood: null, season: YEAR_ROUND, cost: "free",
     tags: ["18-hole"],
     intro: "Eighteen free holes at the 90-acre Ham Lake Park, sharing the shoreline with a fishing pier, boat launch, and playground. Open until 10pm.",
@@ -4366,7 +4492,8 @@ export const PLACES: Place[] = [
   // site. They are real leads, not entries — the next sweep can source them.
   {
     slug: "central-park-brooklyn-park-disc-golf", name: "Central Park Disc Golf Course", kind: "disc-golf",
-    lat: 45.1476, lng: -93.3503, address: "8440 Regent Ave N, Brooklyn Park, MN 55443",
+    // Pin re-read 9 Nov 2026 off the April 2025 aerial photo, was 45.1476,-93.3503 (4.7km off): the course start or fairways, medium confidence (docs/PLACES-PIN-AUDIT-NOV-2026.md).
+    lat: 45.105543, lng: -93.346172, address: "8440 Regent Ave N, Brooklyn Park, MN 55443",
     city: "Brooklyn Park", neighborhood: null, season: YEAR_ROUND, cost: "free",
     tags: ["9-hole"],
     intro: "Nine free holes threading through Central Park. Discs and refreshments are sold at the Brookland Golf Park clubhouse next door, so you can turn up without gear.",
@@ -4411,7 +4538,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "acorn-park-disc-golf", name: "Acorn Park Disc Golf Course", kind: "disc-golf",
-    lat: 45.02113, lng: -93.16854, address: "286 County Road C W, Roseville, MN 55113",
+    // Pin re-read 9 Nov 2026 off the April 2025 aerial photo, was 45.02113,-93.16854 (4.5km off): the course start or fairways, medium confidence (docs/PLACES-PIN-AUDIT-NOV-2026.md).
+    lat: 45.018859, lng: -93.112000, address: "286 County Road C W, Roseville, MN 55113",
     city: "Roseville", neighborhood: null, season: YEAR_ROUND, cost: "free",
     tags: ["18-hole"],
     intro: "Eighteen holes redesigned in 2015, with baskets left up year-round — rolling grass on one half, wooded finesse on the other.",
@@ -4445,7 +4573,8 @@ export const PLACES: Place[] = [
   // preserve/play yard remains) and Warner Nature Center (permanently closed).
   {
     slug: "kroening-nature-center", name: "Carl W. Kroening Nature Center", kind: "nature-center",
-    lat: 45.0330, lng: -93.2790, address: "4900 N Mississippi Dr, Minneapolis, MN 55430",
+    // Pin re-read 9 Nov 2026 off the April 2025 aerial photo, was 45.0330,-93.2790 (1.2km off): the building, medium confidence (docs/PLACES-PIN-AUDIT-NOV-2026.md).
+    lat: 45.043276, lng: -93.283284, address: "4900 N Mississippi Dr, Minneapolis, MN 55430",
     city: "Minneapolis", neighborhood: null, season: YEAR_ROUND, cost: "free",
     tags: ["trails", "river", "exhibits"],
     intro: "The Park Board's interpretive center at North Mississippi Regional Park, right on the river — exhibits inside, trails and river access out back. Free.",
@@ -4455,7 +4584,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "dodge-nature-center", name: "Dodge Nature Center", kind: "nature-center",
-    lat: 44.9060, lng: -93.1010, address: "365 Marie Ave W, West St. Paul, MN 55118",
+    // Pin re-read 9 Nov 2026 off the April 2025 aerial photo, was 44.9060,-93.1010 (1.6km off): the building, medium confidence (docs/PLACES-PIN-AUDIT-NOV-2026.md).
+    lat: 44.891987, lng: -93.100531, address: "365 Marie Ave W, West St. Paul, MN 55118",
     city: "West St. Paul", neighborhood: null, season: YEAR_ROUND, cost: "free",
     tags: ["trails", "farm"],
     intro: "A nonprofit preserve in West St. Paul with a working farm, prairie, and woodland trails. The trails are free to walk; the farm animals are the draw for kids.",
@@ -4465,7 +4595,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "springbrook-nature-center", name: "Springbrook Nature Center", kind: "nature-center",
-    lat: 45.1075, lng: -93.2530, address: "100 85th Ave NW, Fridley, MN 55432",
+    // Pin re-read 9 Nov 2026 off the April 2025 aerial photo, was 45.1075,-93.2530 (2.4km off): the building, high confidence (docs/PLACES-PIN-AUDIT-NOV-2026.md).
+    lat: 45.123418, lng: -93.274194, address: "100 85th Ave NW, Fridley, MN 55432",
     city: "Fridley", neighborhood: null, season: YEAR_ROUND, cost: "free",
     tags: ["trails", "wetland", "boardwalk"],
     intro: "A 127-acre Fridley preserve with three-plus miles of trails through woods and wetland, plus an interpretive building and boardwalks. Free.",
@@ -4475,7 +4606,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "westwood-hills-nature-center", name: "Westwood Hills Nature Center", kind: "nature-center",
-    lat: 44.9450, lng: -93.3830, address: "8300 W Franklin Ave, St. Louis Park, MN 55426",
+    // Pin re-read 9 Nov 2026 off the April 2025 aerial photo, was 44.9450,-93.3830 (2.3km off): the building, high confidence (docs/PLACES-PIN-AUDIT-NOV-2026.md).
+    lat: 44.965859, lng: -93.387314, address: "8300 W Franklin Ave, St. Louis Park, MN 55426",
     city: "St. Louis Park", neighborhood: null, season: YEAR_ROUND, cost: "free",
     tags: ["trails", "boardwalk", "exhibits"],
     intro: "160 acres of prairie, forest, and marsh in St. Louis Park, with three miles of trail — paved, boardwalk, and wood-chip — and a modern net-zero interpretive center. Free.",
@@ -4485,7 +4617,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "tamarack-nature-center", name: "Tamarack Nature Center", kind: "nature-center",
-    lat: 45.1160, lng: -93.0470, address: "5287 Otter Lake Rd, White Bear Township, MN 55110",
+    // Pin re-read 9 Nov 2026 off the April 2025 aerial photo, was 45.1160,-93.0470 (1.7km off): the building, high confidence (docs/PLACES-PIN-AUDIT-NOV-2026.md).
+    lat: 45.101492, lng: -93.038725, address: "5287 Otter Lake Rd, White Bear Township, MN 55110",
     city: "White Bear Township", neighborhood: null, season: YEAR_ROUND, cost: "free",
     tags: ["trails", "play-area"],
     intro: "A 320-acre Ramsey County preserve in White Bear Township, with trails, a discovery hollow, and a big natural play area. Free; donations welcome.",
@@ -4495,7 +4628,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "wood-lake-nature-center", name: "Wood Lake Nature Center", kind: "nature-center",
-    lat: 44.88262, lng: -93.29085, address: "6710 Lake Shore Dr S, Richfield, MN 55423",
+    // Pin re-read 9 Nov 2026 off the April 2025 aerial photo, was 44.88262,-93.29085 (183m off): the building, high confidence (docs/PLACES-PIN-AUDIT-NOV-2026.md).
+    lat: 44.881048, lng: -93.290152, address: "6710 Lake Shore Dr S, Richfield, MN 55423",
     city: "Richfield", neighborhood: null, season: YEAR_ROUND, cost: "free",
     tags: ["trails", "boardwalk", "wetland"],
     intro: "Richfield's 150-acre marsh preserve, with a floating boardwalk out over the water and an interpretive building. Free.",
@@ -4505,7 +4639,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "eastman-nature-center", name: "Eastman Nature Center", kind: "nature-center",
-    lat: 45.1660, lng: -93.4350, address: "13351 Elm Creek Rd, Dayton, MN 55327",
+    // Pin re-read 9 Nov 2026 off the April 2025 aerial photo, was 45.1660,-93.4350 (1.7km off): the building, high confidence (docs/PLACES-PIN-AUDIT-NOV-2026.md).
+    lat: 45.154371, lng: -93.449968, address: "13351 Elm Creek Rd, Dayton, MN 55327",
     city: "Dayton", neighborhood: null, season: YEAR_ROUND, cost: "free",
     tags: ["trails", "prairie", "exhibits"],
     intro: "The Three Rivers nature center at Elm Creek Park Reserve in Dayton — trails through prairie and big woods, with exhibits and naturalist programs. Free.",
@@ -4515,7 +4650,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "richardson-nature-center", name: "Richardson Nature Center", kind: "nature-center",
-    lat: 44.8430, lng: -93.3760, address: "8737 E Bush Lake Rd, Bloomington, MN 55438",
+    // Pin re-read 9 Nov 2026 off the April 2025 aerial photo, was 44.8430,-93.3760 (420m off): the building, high confidence (docs/PLACES-PIN-AUDIT-NOV-2026.md).
+    lat: 44.843000, lng: -93.370679, address: "8737 E Bush Lake Rd, Bloomington, MN 55438",
     city: "Bloomington", neighborhood: null, season: YEAR_ROUND, cost: "free",
     tags: ["trails", "raptors", "prairie"],
     intro: "The Three Rivers nature center at Hyland Lake Park Reserve in Bloomington, known for its raptors and restored prairie. Trails and exhibits, free.",
@@ -4525,7 +4661,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "lowry-nature-center", name: "Lowry Nature Center", kind: "nature-center",
-    lat: 44.8760, lng: -93.7050, address: "7025 Victoria Dr, Victoria, MN 55386",
+    // Pin re-read 9 Nov 2026 off the April 2025 aerial photo, was 44.8760,-93.7050 (1.8km off): the building, high confidence (docs/PLACES-PIN-AUDIT-NOV-2026.md).
+    lat: 44.882474, lng: -93.683449, address: "7025 Victoria Dr, Victoria, MN 55386",
     city: "Victoria", neighborhood: null, season: YEAR_ROUND, cost: "free",
     tags: ["trails", "maple-syrup", "exhibits"],
     intro: "The first public nature center built in the Twin Cities, at Carver Park Reserve in Victoria — trails, exhibits, and a spring maple-syrup season. Free.",
@@ -4935,7 +5072,8 @@ export const PLACES: Place[] = [
   // a DNR vehicle permit (paid); regional parks and the refuge are free.
   {
     slug: "fort-snelling-state-park", name: "Fort Snelling State Park", kind: "park",
-    lat: 44.8930, lng: -93.1800, address: "101 Snelling Lake Rd, St. Paul, MN 55111",
+    // Pin re-read 9 Nov 2026 off the April 2025 aerial photo, was 44.8930,-93.1800 (285m off): the main arrival point, high confidence (docs/PLACES-PIN-AUDIT-NOV-2026.md).
+    lat: 44.891068, lng: -93.182384, address: "101 Snelling Lake Rd, St. Paul, MN 55111",
     city: "St. Paul", neighborhood: null, season: YEAR_ROUND, cost: "paid",
     tags: ["trails", "river", "state-park"],
     intro: "Where the Minnesota and Mississippi meet — Pike Island trails, a swimming lake, and the old fort on the bluff above. A state-park vehicle permit gets you in.",
@@ -4944,7 +5082,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "afton-state-park", name: "Afton State Park", kind: "park",
-    lat: 44.8450, lng: -92.7930, address: "6959 Peller Ave S, Hastings, MN 55033",
+    // Pin re-read 9 Nov 2026 off the April 2025 aerial photo, was 44.8450,-92.7930 (1.7km off): the main arrival point, high confidence (docs/PLACES-PIN-AUDIT-NOV-2026.md).
+    lat: 44.853534, lng: -92.774555, address: "6959 Peller Ave S, Hastings, MN 55033",
     city: "Hastings", neighborhood: null, season: YEAR_ROUND, cost: "paid",
     tags: ["trails", "bluffs", "state-park"],
     intro: "Rugged St. Croix bluff country in Afton — 20 miles of hiking and ski trails climbing the river ravines, plus a swimming beach. A state-park permit is required.",
@@ -4953,7 +5092,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "william-obrien-state-park", name: "William O'Brien State Park", kind: "park",
-    lat: 45.2250, lng: -92.7650, address: "16821 O'Brien Trail N, Marine on St. Croix, MN 55047",
+    // Pin re-read 9 Nov 2026 off the April 2025 aerial photo, was 45.2250,-92.7650 (333m off): the main arrival point, high confidence (docs/PLACES-PIN-AUDIT-NOV-2026.md).
+    lat: 45.222907, lng: -92.768036, address: "16821 O'Brien Trail N, Marine on St. Croix, MN 55047",
     city: "Marine on St. Croix", neighborhood: null, season: YEAR_ROUND, cost: "paid",
     tags: ["trails", "river", "state-park"],
     intro: "A gentle family state park on the St. Croix near Marine — river paddling, sandy swimming, and rolling trails. A state-park permit is required.",
@@ -4962,7 +5102,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "minnesota-valley-wildlife-refuge", name: "Minnesota Valley National Wildlife Refuge", kind: "park",
-    lat: 44.8550, lng: -93.2400, address: "3815 E 80th St, Bloomington, MN 55425",
+    // Pin re-read 9 Nov 2026 off the April 2025 aerial photo, was 44.8550,-93.2400 (1.9km off): the main arrival point, high confidence (docs/PLACES-PIN-AUDIT-NOV-2026.md).
+    lat: 44.859748, lng: -93.216240, address: "3815 E 80th St, Bloomington, MN 55425",
     city: "Bloomington", neighborhood: null, season: YEAR_ROUND, cost: "free",
     tags: ["trails", "wildlife"],
     intro: "A 14,000-acre river-valley refuge along the Minnesota, with a Bloomington visitor center, boardwalks, and miles of trails right by the airport. Free.",
@@ -4971,7 +5112,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "mississippi-gateway-regional-park", name: "Mississippi Gateway Regional Park", kind: "park",
-    lat: 45.1440, lng: -93.3115, address: "10360 W River Rd, Brooklyn Park, MN 55444",
+    // Pin re-read 9 Nov 2026 off the April 2025 aerial photo, was 45.1440,-93.3115 (465m off): the main arrival point, high confidence (docs/PLACES-PIN-AUDIT-NOV-2026.md).
+    lat: 45.140209, lng: -93.314009, address: "10360 W River Rd, Brooklyn Park, MN 55444",
     city: "Brooklyn Park", neighborhood: null, season: YEAR_ROUND, cost: "free",
     tags: ["trails", "river"],
     intro: "Three Rivers' riverfront park in Brooklyn Park (formerly Coon Rapids Dam) — walk across the dam, watch for eagles, and hit the trails and interpretive center. Free.",
@@ -4989,7 +5131,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "phalen-regional-park", name: "Phalen Regional Park", kind: "park",
-    lat: 44.99056, lng: -93.06123, address: "1600 Phalen Dr, St. Paul, MN 55106",
+    // Pin re-read 9 Nov 2026 off the April 2025 aerial photo, was 44.99056,-93.06123 (331m off): the main arrival point, medium confidence (docs/PLACES-PIN-AUDIT-NOV-2026.md).
+    lat: 44.989617, lng: -93.057231, address: "1600 Phalen Dr, St. Paul, MN 55106",
     city: "St. Paul", neighborhood: null, season: YEAR_ROUND, cost: "free",
     tags: ["lake", "beach", "trails"],
     intro: "St. Paul's East Side lake park — a swimming beach, a golf course, a paved loop, and a Chinese garden on the island. Free.",
@@ -4998,7 +5141,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "lilydale-regional-park", name: "Lilydale Regional Park", kind: "park",
-    lat: 44.9160, lng: -93.1180, address: "400 Water St, St. Paul, MN 55107",
+    // Pin re-read 9 Nov 2026 off the April 2025 aerial photo, was 44.9160,-93.1180 (530m off): the main arrival point, high confidence (docs/PLACES-PIN-AUDIT-NOV-2026.md).
+    lat: 44.919368, lng: -93.122761, address: "400 Water St, St. Paul, MN 55107",
     city: "St. Paul", neighborhood: null, season: YEAR_ROUND, cost: "free",
     tags: ["trails", "river", "fossils"],
     intro: "River-bluff trails and fossil-hunting flats along the Mississippi below the West Side — quiet, wild, and minutes from downtown St. Paul. Free.",
@@ -5007,7 +5151,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "baker-park-reserve", name: "Baker Park Reserve", kind: "park",
-    lat: 45.0170, lng: -93.6400, address: "2309 Baker Park Rd, Maple Plain, MN 55359",
+    // Pin re-read 9 Nov 2026 off the April 2025 aerial photo, was 45.0170,-93.6400 (623m off): the main arrival point, high confidence (docs/PLACES-PIN-AUDIT-NOV-2026.md).
+    lat: 45.021898, lng: -93.636154, address: "2309 Baker Park Rd, Maple Plain, MN 55359",
     city: "Maple Plain", neighborhood: null, season: YEAR_ROUND, cost: "free",
     tags: ["trails", "beach", "campground"],
     intro: "A Three Rivers reserve near Lake Independence in Maple Plain — a sand swimming beach, a golf course, a campground, and trails. Free day use.",
@@ -5352,7 +5497,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "wargo-nature-center", name: "Wargo Nature Center", kind: "nature-center",
-    lat: 45.18373, lng: -93.07159, address: "7701 Main St, Lino Lakes, MN 55038",
+    // Pin re-read 9 Nov 2026 off the April 2025 aerial photo, was 45.18373,-93.07159 (1.1km off): the building, high confidence (docs/PLACES-PIN-AUDIT-NOV-2026.md).
+    lat: 45.182030, lng: -93.085352, address: "7701 Main St, Lino Lakes, MN 55038",
     city: "Lino Lakes", neighborhood: null, season: YEAR_ROUND, cost: "free",
     tags: ["trails", "wetland", "exhibits"],
     intro: "Anoka County's nature center in the Rice Creek Chain of Lakes reserve at Lino Lakes — a lakeside interpretive building, boardwalks, and trails through marsh and woods. Free.",
@@ -5852,7 +5998,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "silverwood-visitor-center", name: "Silverwood Visitor Center", kind: "nature-center",
-    lat: 45.0297, lng: -93.2098, address: "2500 County Road E, St. Anthony, MN 55421",
+    // Pin re-read 9 Nov 2026 off the April 2025 aerial photo, was 45.0297,-93.2098 (2.2km off): the building, high confidence (docs/PLACES-PIN-AUDIT-NOV-2026.md).
+    lat: 45.046565, lng: -93.224584, address: "2500 County Road E, St. Anthony, MN 55421",
     city: "St. Anthony", neighborhood: null, season: YEAR_ROUND, cost: "free",
     tags: ["art", "cafe"],
     intro: "A nature centre that is also an art gallery, on the bank of Silver Lake. Rotating shows, a café doing local snacks, and canoes and kayaks to rent from Memorial Day to Labor Day. Daily 9 to 5.",
@@ -5861,7 +6008,8 @@ export const PLACES: Place[] = [
   },
   {
     slug: "harriet-alexander-nature-center", name: "Harriet Alexander Nature Center", kind: "nature-center",
-    lat: 45.0072, lng: -93.1475, address: "2660 Civic Center Dr, Roseville, MN 55113",
+    // Pin re-read 9 Nov 2026 off the April 2025 aerial photo, was 45.0072,-93.1475 (2.0km off): the building, high confidence (docs/PLACES-PIN-AUDIT-NOV-2026.md).
+    lat: 45.016629, lng: -93.125485, address: "2660 Civic Center Dr, Roseville, MN 55113",
     city: "Roseville", neighborhood: null, season: YEAR_ROUND, cost: "free",
     tags: ["boardwalk", "exhibits"],
     intro: "Fifty-two acres of marsh and forest with boardwalk through both, free to walk. The interpretive building is open Tuesday to Saturday 10–4 and Sunday afternoons — painted turtles on the logs, migrating songbirds in spring.",

@@ -121,35 +121,69 @@ describe("places registry — drift guards (the honesty anchors)", () => {
     // ~11m. This does not prove a coordinate is right, but it does refuse the
     // shape that was reliably wrong.
     //
-    // Read the SOURCE TEXT, not the parsed value: `lat: 44.9520` is a real
-    // four-decimal coordinate, but the number it parses to stringifies as
-    // "44.952" and would look estimated. What matters is how many decimals the
-    // author wrote, and only the file still knows that.
+    // Count SIGNIFICANT decimals in the source text, and take the better of
+    // the pair. The first version counted written decimals, so
+    // `45.3350, -93.2900` passed: a 3- and a 2-decimal guess with zeros typed
+    // on. On 9 Nov 2026, 85 of the 86 padded pins measured against the aerial
+    // photo were more than 150 m from the place (docs/PLACES-PIN-AUDIT-NOV-2026.md).
+    // A real read can end in a zero, so one axis may (`44.9520, -93.2347`
+    // passes); both axes ending short is the tell.
     const src = readFileSync(new URL("../places.ts", import.meta.url), "utf8");
-    const written = new Map<string, number>();
+    const significant = (digits: string) => digits.replace(/0+$/, "").length;
+    const decimals = new Map<string, number>();
     for (const m of src.matchAll(
       /slug: "([^"]+)"[\s\S]{0,400}?\n\s*lat: (-?\d+\.?(\d*)), lng: (-?\d+\.?(\d*)),/g,
     )) {
-      written.set(m[1], Math.max(m[3].length, m[5].length));
+      decimals.set(m[1], Math.max(significant(m[3]), significant(m[5])));
     }
+    // Known estimates, still to be read. This list only shrinks: a new row may
+    // not join it, and a row that has been read must leave it (checked below).
+    // arboretum-applehouse stays deliberately: Census has no match for
+    // 7485 Rolling Acres Rd and OSM has no AppleHouse feature, so there is
+    // nothing to correct it TO (docs/deploy-history/DEPLOY-PLACES-COORD-AUDIT.md).
     const KNOWN_ROUND = new Set([
-      // Single-provider disagreement, uncorroborated: Census has no match for
-      // 7485 Rolling Acres Rd and OSM has no AppleHouse feature, so there is
-      // nothing to correct it TO. Left as found, deliberately, rather than
-      // moved on one geocoder's word. See docs/deploy-history/
-      // DEPLOY-PLACES-COORD-AUDIT.md.
-      "arboretum-applehouse",
+      "aamodts-apple-farm", "adventure-peak-edinborough", "afton-alps", "andover-farmers-market",
+      "apple-jack-orchards", "arboretum-applehouse", "bakken-museum", "battle-creek-sledding-hill",
+      "blaine-lochness-disc-golf", "bloomington-ice-garden", "boulevard-plaza-splash-pad",
+      "braemar-arena", "brookland-golf-park", "brookview-backyard", "bunker-beach-water-park",
+      "carpenter-nature-center", "cascade-bay-water-park", "centennial-lakes-skating",
+      "columbia-park-sledding-hill", "como-park-ski-center", "como-park-sledding-hill",
+      "conquer-ninja-blaine", "conquer-ninja-woodbury", "cowles-conservatory",
+      "dakota-park-dog-park", "deardorff-orchards", "eagan-northview-disc-golf",
+      "edinborough-adventure-peak", "elm-creek-winter-recreation-area", "everly-farms",
+      "galloway-park-disc-golf", "gibbs-farm", "good-times-park-eagan", "groveland-ice-rinks",
+      "hansen-park-disc-golf", "highlands-park-splash-pad", "historic-fort-snelling",
+      "james-j-hill-house", "john-rose-minnesota-oval", "lake-ann-park-beach",
+      "lake-josephine-county-beach", "lake-nokomis-50th-street-beach", "lake-nokomis-park",
+      "longfellow-gardens", "lookout-ridge-woodbury", "margaret-park-sledding-hill",
+      "marjorie-mcneely-conservatory", "martin-linwood-beach", "meadows-at-mystic-lake",
+      "merriam-park-sledding-hill", "mill-city-museum", "minnesota-landscape-arboretum",
+      "minnesota-museum-of-american-art", "minnesota-transportation-museum",
+      "museum-of-russian-art", "noerenberg-memorial-gardens", "obstacle-academy", "palace-rec-rink",
+      "parade-ice-garden", "rich-valley-golf-club", "richfield-outdoor-pool", "roc-st-louis-park",
+      "roseville-central-park-sledding-hill", "running-park-sledding-hill",
+      "science-museum-of-minnesota", "severs-fall-festival", "silverview-park-disc-golf",
+      "sky-zone-eagan", "sky-zone-maple-grove", "sovereign-grounds", "st-croix-bluffs-beach",
+      "staring-lake-off-leash-dog-area", "sweetland-orchard", "the-landing-shakopee",
+      "theodore-wirth-golf-course", "tria-rink", "urban-air-apple-valley",
+      "vertical-endeavors-minneapolis", "vertical-endeavors-st-paul", "victory-memorial-splash-pad",
+      "webber-natural-swimming-pool", "weisman-art-museum", "welch-village",
+      "wells-fargo-winterskate", "whistling-well-farm", "wild-things-indoor-playground",
     ]);
     // If the regex ever stops finding rows, the guard has silently stopped
     // guarding — that is worse than a failure, so assert the reach first.
-    expect(written.size, "the source scan found no coordinates — fix the guard").toBe(PLACES.length);
+    expect(decimals.size, "the source scan found no coordinates — fix the guard").toBe(PLACES.length);
 
     for (const p of PLACES) {
-      if (KNOWN_ROUND.has(p.slug)) continue;
-      expect(
-        written.get(p.slug),
-        `${p.slug} (${p.lat},${p.lng}) looks estimated, not read — check it against the address`,
-      ).toBeGreaterThanOrEqual(4);
+      const d = decimals.get(p.slug);
+      if (KNOWN_ROUND.has(p.slug)) {
+        expect(d, `${p.slug} now reads as a real coordinate — take it off KNOWN_ROUND`).toBeLessThan(4);
+        continue;
+      }
+      expect(d, `${p.slug} (${p.lat},${p.lng}) looks estimated, not read — read it off a map`).toBeGreaterThanOrEqual(4);
+    }
+    for (const slug of KNOWN_ROUND) {
+      expect(decimals.has(slug), `${slug} is no longer in the registry — take it off KNOWN_ROUND`).toBe(true);
     }
   });
 

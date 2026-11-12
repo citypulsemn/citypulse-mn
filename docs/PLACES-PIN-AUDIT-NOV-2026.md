@@ -1,6 +1,10 @@
 # Places pins vs. the thing they mark — measured 9 November 2026
 
-**A measurement, not a fix. No pin has been changed.** Follow-up to the playground "Before you go"
+**Status, 12 Nov 2026:** the 148 high- and medium-confidence pins below have been moved
+(`docs/deploy-history/DEPLOY-PLACES-REPIN-AMENITIES.md`). The 43 low-confidence rows and the 14 not-found
+rows are unchanged.
+
+**A measurement, not a fix.** Follow-up to the playground "Before you go"
 item (`e5c81ba`, `docs/deploy-history/DEPLOY-PLAYGROUND-BEFORE-YOU-GO.md`), which found 7 of 14
 playground pins more than 700 m from the playground, and Waterford's in Lake Waconia.
 

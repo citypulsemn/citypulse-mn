@@ -199,18 +199,20 @@ November. Rationale and the measured numbers:
   house-voice intro length, banned-word check, coordinates inside the metro
   bounding box, valid cost. Never invent a fact — trace every field to the source.
 - **The coordinate specifically:** read it off a map, don't estimate it. Two
-  guards enforce this — a pin written with fewer than 4 decimals is rejected as
-  a guess, and two places at different addresses may not share a pin. Both
-  exist because the 6 Sep 2026 audit found 74 pins in the wrong place, one of
-  them by 10.5km. `npx tsx scripts/places-coord-audit.ts` re-checks every row
+  guards enforce this — a pin with fewer than 4 *significant* decimals on both
+  axes is rejected as a guess (`45.3350, -93.2900` is a padded guess), and two
+  places at different addresses may not share a pin. `KNOWN_ROUND` in
+  `lib/__tests__/places.test.ts` names the estimates still waiting for a read;
+  it only shrinks. Both guards exist because the 6 Sep 2026 audit found 74 pins
+  in the wrong place, one of them by 10.5km. `npx tsx scripts/places-coord-audit.ts` re-checks every row
   against its own published address using two independent geocoders; it writes
   nothing, and a disagreement is a question for a human, not a verdict. See
   `docs/deploy-history/DEPLOY-PLACES-COORD-AUDIT.md`. **For a park amenity the
   address is the wrong reference:** on 9 Nov 2026, 191 of 235 beach, splash-pad,
   sledding, disc-golf, dog-park, nature-center and park pins measured more than
-  150 m from the amenity on the 2025 aerial photo, and a zero-padded `45.3350`
-  passes the 4-decimal guard. Numbers and proposed points:
-  `docs/PLACES-PIN-AUDIT-NOV-2026.md`.
+  150 m from the amenity on the 2025 aerial photo. The 148 confident ones were
+  moved on 12 Nov (`docs/deploy-history/DEPLOY-PLACES-REPIN-AMENITIES.md`); the
+  rest are listed in `docs/PLACES-PIN-AUDIT-NOV-2026.md`.
 - **A new kind:** add it to `PlaceKind` + `KIND_META`, seed entries, and
   (optionally) a `PLACES_KIND_INTRO`. The index and kind pages pick it up
   automatically once it has entries; add it to the winter/summer season as
