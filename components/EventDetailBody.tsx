@@ -103,11 +103,14 @@ export function EventDetailBody({
                   event.venue
                 )}
                 {event.neighborhood && neighborhoodByKey(event.neighborhood) ? (
-                  <span className="nbhd-chip">
-                    <a href={`/neighborhoods/${event.neighborhood}`}>
-                      {neighborhoodByKey(event.neighborhood)!.label}
-                    </a>
-                  </span>
+                  <>
+                    {" "}
+                    <span className="nbhd-chip">
+                      <a href={`/neighborhoods/${event.neighborhood}`}>
+                        {neighborhoodByKey(event.neighborhood)!.label}
+                      </a>
+                    </span>
+                  </>
                 ) : null}
                 <br />
                 {dir ? (

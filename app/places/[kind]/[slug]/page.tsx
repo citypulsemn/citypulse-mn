@@ -142,9 +142,12 @@ export default async function PlaceDetailPage({
             {place.city}
             {", MN"}
             {hood && (
-              <span className="nbhd-chip">
-                <a href={`/neighborhoods/${place.neighborhood}`}>{hood.label}</a>
-              </span>
+              <>
+                {" "}
+                <span className="nbhd-chip">
+                  <a href={`/neighborhoods/${place.neighborhood}`}>{hood.label}</a>
+                </span>
+              </>
             )}
             {" · "}
             <a href={directions} target="_blank" rel="noopener noreferrer">Directions ↗</a>

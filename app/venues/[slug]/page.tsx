@@ -143,14 +143,20 @@ export default async function VenuePage({
             {citySlug ? <a href={`/cities/${citySlug}`}>{v.city}</a> : v.city}
             {", MN"}
             {nbhd && (
-              <span className="nbhd-chip">
-                <a href={`/neighborhoods/${nbhd.key}`}>{nbhd.label}</a>
-              </span>
+              <>
+                {" "}
+                <span className="nbhd-chip">
+                  <a href={`/neighborhoods/${nbhd.key}`}>{nbhd.label}</a>
+                </span>
+              </>
             )}
-            {" · "}
-            <a href={directions} target="_blank" rel="noopener noreferrer">Directions ↗</a>
-            {" · "}
-            <a href={parking} target="_blank" rel="noopener noreferrer">Parking ↗</a>
+            {" "}
+            <span className="hdr-links">
+              <span className="hdr-sep">· </span>
+              <a href={directions} target="_blank" rel="noopener noreferrer">Directions ↗</a>
+              {" · "}
+              <a href={parking} target="_blank" rel="noopener noreferrer">Parking ↗</a>
+            </span>
           </div>
           {VENUE_INTROS[v.slug] && <p className="page-intro">{VENUE_INTROS[v.slug]}</p>}
         </div>

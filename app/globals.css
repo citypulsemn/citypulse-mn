@@ -1066,7 +1066,13 @@ a.daycard { text-decoration: none; }
 .hp-field { position: absolute; left: -9999px; opacity: 0; height: 0; width: 0; }
 
 /* ---------- Neighborhoods (roadmap 5.5) ---------- */
-.nbhd-chip { display: inline-block; margin-left: 8px; }
+/* The gap before the chip is a space in the markup, not a margin: a margin still counts
+   when the chip wraps to start a line, and pushed that centered line 4px off. */
+.nbhd-chip { display: inline-block; }
+/* Venue header: "Directions ↗ · Parking ↗" wraps as one unit, and on narrow screens
+   takes its own line, so no "·" is left hanging at a line end. */
+.hdr-links { white-space: nowrap; }
+@media (max-width: 700px) { .hdr-links { display: block; } .hdr-sep { display: none; } }
 .nbhd-chip a { font-size: 12px; padding: 2px 9px; border: 1px solid rgba(201,169,97,0.4); border-radius: 999px; color: var(--gold); text-decoration: none; white-space: nowrap; }
 .nbhd-section { margin: 26px 0 6px; }
 .nbhd-city { font-family: var(--font-oswald); font-weight: 600; font-size: 18px; letter-spacing: 0.03em; margin: 0 0 12px; }
