@@ -223,12 +223,27 @@ export function delta(current: number, previous: number): string {
 
 import { sql } from "./db";
 
-/** Every subscriber's join and leave dates. Small table; no need to window it. */
+/**
+ * Every subscriber's join and leave dates. Small table; no need to window it.
+ *
+ * EXCLUDES never-confirmed rows (pending, never unsubscribed): a keep-list row
+ * that never asked for the email is not a subscriber. Without this, /admin/growth
+ * said 54 while the Monday ops email (status = 'subscribed') said 53 — found
+ * 16 Nov 2026, one row apart and widening with every unconfirmed signup.
+ *
+ * NOT `where status = 'subscribed'`, which looks equivalent and is a trap:
+ * churnRate counts rows with unsubscribed_at set, and that clause drops every
+ * one of them, so churn would read 0% forever. A pending row that DID
+ * unsubscribe (parked by the re-confirm flow in lib/subscribe.ts) is a leaver
+ * and stays in.
+ */
 export async function getSubscriberRows(): Promise<SubscriberRow[]> {
   if (!sql) return [];
   const rows = await sql<{ created_at: string; unsubscribed_at: string | null }[]>`
     select created_at::text as created_at, unsubscribed_at::text as unsubscribed_at
-    from subscribers order by created_at`;
+    from subscribers
+    where not (status = 'pending' and unsubscribed_at is null)
+    order by created_at`;
   return [...rows];
 }
 

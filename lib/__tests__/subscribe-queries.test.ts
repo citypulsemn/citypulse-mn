@@ -104,3 +104,20 @@ describe("subscribe-actions (F2.3) — the reconfirm send is bomb-guarded", () =
     expect(actions).toContain("if (id == null)");
   });
 });
+
+describe("getSubscriberRows (/admin/growth) — agrees with the ops email without losing churn", () => {
+  const growth = readFileSync(join(__dirname, "..", "growth.ts"), "utf8");
+  const start = growth.indexOf("export async function getSubscriberRows");
+  const body = growth.slice(start, growth.indexOf("export async function", start + 1));
+
+  it("drops never-confirmed rows, which the ops email does not count", () => {
+    expect(body.length).toBeGreaterThan(50);
+    expect(body).toContain("where not (status = 'pending' and unsubscribed_at is null)");
+  });
+
+  it("does NOT filter to status = 'subscribed', which would zero churn forever", () => {
+    // churnRate counts rows whose unsubscribed_at is set; every one of them has
+    // left 'subscribed', so the obvious clause would remove them all.
+    expect(body).not.toMatch(/status\s*=\s*'subscribed'/);
+  });
+});
