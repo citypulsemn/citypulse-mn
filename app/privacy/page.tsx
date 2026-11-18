@@ -31,7 +31,7 @@ export const metadata: Metadata = {
 // Not exported: an App Router page may only export a fixed set of names
 // (default, metadata, revalidate…), and anything else fails the build's
 // generated type check. lib/__tests__/legal-pages.test.ts reads it from source.
-const LAST_UPDATED = "2 November 2026";
+const LAST_UPDATED = "18 November 2026";
 
 export default function PrivacyPage() {
   return (
@@ -90,11 +90,34 @@ export default function PrivacyPage() {
 
           <h3>Counts of what gets clicked</h3>
           <p>
-            We record that an event page was viewed, that a ticket link was clicked, or that a
-            calendar file was downloaded. These are stored as{" "}
+            We record that an event page was viewed, that a ticket link was clicked, or that an
+            event was added to a calendar. These are stored as{" "}
             <strong>daily totals per event</strong> &mdash; a number that goes up &mdash; with
-            no row per person and nothing tying a click to you. We do this so we can tell which
-            listings are worth the work.
+            no row per person and nothing tying a click to you. When an event page is viewed we
+            also count which website sent the visit (just the name, like google.com), again as
+            a daily total. We do this so we can tell which listings are worth the work.
+          </p>
+
+          <h3>Page views and searches, counted by Vercel</h3>
+          <p>
+            The company that hosts the site, Vercel, also counts visits for us. When you load a
+            page, your browser tells Vercel the page address, the site that sent you, your
+            rough location (city level), and your device and browser type. It also reports how
+            quickly the page loaded.
+          </p>
+          <p>
+            Some of what you do here goes to Vercel the same way:{" "}
+            <strong>the words you type into the search box</strong>, which filters and
+            categories you switch on, which events you open, save, share, add to a calendar or
+            click through to, and which places you mark as been there. The search words also
+            end up in the page address, so they travel with the page view too. It&rsquo;s
+            there so we can see what people look for and don&rsquo;t find.
+          </p>
+          <p>
+            Vercel doesn&rsquo;t set a cookie for this. It tells visits apart with a code made
+            from the incoming request and throws that away after 24 hours. We see totals in a
+            dashboard, not individuals. So don&rsquo;t type anything into the search box you
+            wouldn&rsquo;t want counted.
           </p>
 
           <h3>IP addresses, briefly</h3>
@@ -133,8 +156,8 @@ export default function PrivacyPage() {
           </p>
           <ul>
             <li>
-              <strong>Vercel</strong> &mdash; hosting. Serves every page, and keeps standard
-              server logs.
+              <strong>Vercel</strong> &mdash; hosting. Serves every page, keeps standard
+              server logs, and counts page views and searches as described above.
             </li>
             <li>
               <strong>Supabase</strong> &mdash; the database where the above is stored.

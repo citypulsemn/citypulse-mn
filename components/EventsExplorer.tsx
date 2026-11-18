@@ -370,7 +370,9 @@ export function EventsExplorer({
     );
   }, [filtered, active, dayKey]);
 
-  // Log search terms (no-op until roadmap 1.4 wires analytics).
+  // Sends the typed search terms to Vercel Analytics. This is LIVE, not a
+  // no-op: lib/track.ts forwards to @vercel/analytics, mounted in app/layout.tsx.
+  // Disclosed on /privacy; lib/__tests__/legal-pages.test.ts holds the two together.
   useEffect(() => {
     const q = deferredQuery.trim();
     if (q) track("search", { q, results: matchCount });

@@ -145,6 +145,43 @@ describe("the privacy policy matches what the code collects", () => {
     ).toContain(brand);
   });
 
+  it("discloses what Vercel collects, read from the code rather than the page", () => {
+    // Until 18 Nov 2026 the page called Vercel "hosting" and nothing else, while
+    // <Analytics /> sent a page view from every route and lib/track.ts sent
+    // readers' typed search words. The test beside this one was green the whole
+    // time because it only checks that the word "Vercel" appears. So each claim
+    // here is switched on by the CODE: if the collector exists, the sentence must.
+    if (appSource.includes("<Analytics")) {
+      expect(privacy, "<Analytics /> is mounted — the page must say Vercel counts page views")
+        .toMatch(/Page views and searches, counted by Vercel/);
+    }
+    if (appSource.includes("<SpeedInsights")) {
+      expect(privacy, "<SpeedInsights /> is mounted — say it measures load speed")
+        .toMatch(/how\s+quickly the page loaded/);
+    }
+    if (/track\("search"/.test(appSource)) {
+      expect(privacy, "search terms go to Vercel — the page must say so")
+        .toMatch(/words you type into the search box/);
+    }
+  });
+
+  it("knows every event the code sends to Vercel", () => {
+    // A new track("…") name fails here until someone reads the Vercel
+    // paragraph on the privacy page and decides whether it still covers it,
+    // then adds the name below. That is the point: the next collector should
+    // cost one deliberate look, not slip in under a green suite.
+    const DISCLOSED = new Set([
+      "search", "search_jump", "price_toggle", "area_toggle", "chip_toggle",
+      "preset_select", "set_default_view", "event_open", "save_toggle",
+      "share_click", "ticket_click", "official_click", "ics_download", "visit_toggle",
+    ]);
+    const sent = [...appSource.matchAll(/\btrack\(\s*"([a-z_]+)"/g)].map((m) => m[1]);
+    expect(sent.length, "no track() calls found — has the seam moved?").toBeGreaterThan(5);
+    for (const name of new Set(sent)) {
+      expect(DISCLOSED.has(name), `track("${name}") is new — check the privacy page covers it`).toBe(true);
+    }
+  });
+
   it("discloses the AI, and does not oversell it", () => {
     expect(privacy).toMatch(/researched with the help of AI/i);
     // The honest half: it has been wrong, and the reader should check.

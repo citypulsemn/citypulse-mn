@@ -12,7 +12,7 @@ Roadmap 5.1. The feedback loop: which events people view, click through, save, a
 |---|---|---|
 | `view` | client beacon on the event detail page | client-side, so prefetches and non-JS crawlers don't inflate it |
 | `ticket_click` | client beacon in TicketButton (alongside the vendor `track()` seam) | the click ends on an external page; `sendBeacon` survives navigation |
-| `calendar` | **server-side** in the `.ics` download route; client beacon for the Google Calendar link | the route *is* the download → exact count; Google is an external URL |
+| `calendar` | client beacon on the human click, for both the `.ics` and Google links, once per event per visit (M0.2) | the `.ics` route used to count and no longer does: crawlers and calendar apps hit it ~11× per real view |
 | `save` | **server-action only** (`toggleSaveAction`, adds only) | deliberately NOT accepted by the public beacon — the one metric tied to real user state shouldn't be inflatable with a curl loop |
 
 ## The beacon endpoint
@@ -53,3 +53,7 @@ the privacy policy make. Vercel Analytics is mounted site-wide and has them;
 **Admin → Stats** ends with the Engagement section: totals (views, ticket clicks, view→ticket CTR, saves, calendar adds), top events, and a by-day table, over a 7d/30d toggle. `getEngagement()` in `lib/stats.ts` is the query if you want it elsewhere (it's what 5.2 trending will build on).
 
 Vendor analytics (Vercel, via the `lib/track.ts` seam) still exists for site-wide vitals and search events; 5.1 doesn't replace that seam — it adds the per-event data that's ours.
+
+**What leaves the site to Vercel** (disclosed on `/privacy` since 18 Nov 2026): a page view from every route (`<Analytics />`), load-speed measurements with the route (`<SpeedInsights />`), and 14 named interaction events from `track()` — including the raw text typed into the search box. A new `track()` name fails `lib/__tests__/legal-pages.test.ts` until someone checks the privacy page still covers it.
+
+**`referrer_stats` is not a visit count.** The referrer rides on the event-page view beacon only, so its daily totals equal `event_stats` views exactly. It answers "where did event-page arrivals come from", never "how many visits". The site-wide number is Vercel's.

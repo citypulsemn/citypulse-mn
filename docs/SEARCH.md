@@ -8,7 +8,7 @@ City Pulse search is **client-side** (roadmap 1.3). The full published event set
 - Matches across **title, venue, city, description**, folding case and accents via `normalizeKeyPart` (so "café" ~ "cafe", "Como" ~ "como").
 - Multi-word queries are **AND** — every word must appear somewhere.
 - `EventsExplorer` owns the query string and defers the filter with React's `useDeferredValue`, so the input stays responsive while typing. The searched set is threaded into all three surfaces (calendar dots, map pins, day lists) plus the match-count whisper.
-- Search terms are sent through `lib/track.ts` (`track("search", …)`) — a no-op until roadmap 1.4 wires analytics.
+- Search terms are sent through `lib/track.ts` (`track("search", …)`) to Vercel Analytics, and they also sit in the page address as `?q=`. This is live and has been since `<Analytics />` was mounted; until 18 Nov 2026 this line said it was a no-op, which was false. Disclosed on `/privacy`.
 
 ## Scale & the Postgres FTS upgrade path
 

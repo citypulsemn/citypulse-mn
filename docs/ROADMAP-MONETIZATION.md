@@ -6,6 +6,42 @@ actually go** — inverts part of its conclusion. This doc still operationalizes
 **Phase 5 — Revenue** in [ROADMAP-v6.md](ROADMAP-v6.md) Tier 3; the permanent
 exclusions and the gate discipline there still bind.*
 
+> **RE-MEASURED 16 Nov 2026. Read this before any number below.** The body of this
+> doc is the 29 Oct state, and several of its load-bearing figures are now wrong.
+> Measured with the project's own instruments, read-only:
+>
+> - **Ticket clicks, trailing 30 days: 913** (was 1,444). The top three earners
+>   are all ended and archived. Restaurant Week alone was 353, which is 39%, the same
+>   share as on 29 Oct. The live run-rate is about 90 a week.
+> - **The P2 gate, ≥1,000 clicks/month sustained 8 weeks, did pass on its wording:**
+>   59 consecutive days (17 Sep–14 Nov) against the 56 it needs. It broke 15 Nov.
+>   **But one archived listing was the whole margin.** Without Restaurant Week, the
+>   longest run is 39 days: never met. The tracker row below reading "1,444 ✅ met"
+>   is stale. Whether to adopt P2 is still Taren's call.
+> - **The "Measurement caveat" and traffic-source lines below describe one instrument as two.** `referrer_stats` totals equal
+>   `event_stats` views exactly, every day, because the referrer is written inside the
+>   event-page view beacon. "Near-identical, so a visit averages about one event page"
+>   is a tautology, not corroboration, and "~47% of visits" is event-page arrivals.
+>   The site-wide number lives in Vercel Analytics, which has been collecting all along.
+> - **Vector 16 was never built.** `25e16f7` is per-*event* featured placement;
+>   `CollectionSpec` has no sponsor field. A sponsored collection would also overturn
+>   `lib/collections.ts:11-12`, "Editorial only (never for sale)".
+> - **Vector 14's blocker is demand, not CORS.** The site sends no `X-Frame-Options`
+>   and no CSP, so it has always been embeddable. `feed_events` holds 16 clicks across
+>   its whole history and none in the 46 days to 16 Nov.
+> - **Vectors 6–8 close:** 6 reservation, hotel or experience clicks of 3,249 in 90
+>   days (0.18%, against the ~15% trigger).
+> - **Subscribers: 53 confirmed.** `/admin/growth` said 54 until 18 Nov. At about 2
+>   joins a week, 500 is 3.4–4.3 years out.
+> - **Supply recovered.** Intake was 122, then 327, then 298 on 2, 8 and 15 Nov.
+>   Published upcoming went from 557 to 644. Views have not followed yet.
+>
+> **The honest-metrics prerequisite turned out to be a privacy gap**, and it is fixed:
+> readers' typed search terms were going to Vercel while `/privacy` called Vercel
+> "hosting". See
+> [DEPLOY-PRIVACY-VERCEL-DISCLOSURE.md](deploy-history/DEPLOY-PRIVACY-VERCEL-DISCLOSURE.md).
+> No revenue build is open on these numbers.
+
 ## The honest state (live queries, 29 Oct 2026)
 
 | Signal | 13 Aug | 29 Oct | Read |
